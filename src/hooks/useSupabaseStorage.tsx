@@ -83,11 +83,36 @@ export const useSupabaseStorage = () => {
       return null;
     }
   };
+  
+  const listFiles = async (folderPath: string = '', bucket: string = 'study_materials') => {
+    if (!currentUser) {
+      setError('User must be logged in to list files');
+      return null;
+    }
+    
+    try {
+      setError(null);
+      // Ensure we're only looking in the user's folder
+      const path = folderPath ? `${currentUser.id}/${folderPath}` : `${currentUser.id}`;
+      
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list(path);
+
+      if (error) throw error;
+      return data;
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while listing files');
+      console.error('List files error:', err);
+      return null;
+    }
+  };
 
   return {
     uploadFile,
     deleteFile,
     getSignedUrl,
+    listFiles,
     progress,
     error
   };

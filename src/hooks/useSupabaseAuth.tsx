@@ -72,7 +72,8 @@ export const useSupabaseAuth = () => {
         options: {
           data: {
             name: displayName || email.split('@')[0]
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
       

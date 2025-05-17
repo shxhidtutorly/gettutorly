@@ -11,7 +11,8 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
       options: {
         data: {
           name: displayName
-        }
+        },
+        emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     });
     
@@ -113,6 +114,22 @@ export const getSession = async () => {
     return null;
   }
   return data.session;
+};
+
+// Verify email (can be called after user clicks email verification link)
+export const verifyEmail = async (token: string) => {
+  try {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: token,
+      type: 'email'
+    });
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Email verification error:", error);
+    throw error;
+  }
 };
 
 // Helper function to get error message from Supabase Auth errors
