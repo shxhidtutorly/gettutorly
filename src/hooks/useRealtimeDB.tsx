@@ -35,7 +35,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      await updateUserProfile(currentUser.uid, userData);
+      await updateUserProfile(currentUser.id, userData);
       
       toast({
         title: "Profile updated",
@@ -61,7 +61,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      return await getUserProfile(currentUser.uid);
+      return await getUserProfile(currentUser.id);
     } catch (error) {
       console.error("Error fetching user profile:", error);
       toast({
@@ -88,7 +88,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      await updateStudyProgress(currentUser.uid, courseId, progressData);
+      await updateStudyProgress(currentUser.id, courseId, progressData);
       
       toast({
         title: "Progress updated",
@@ -114,7 +114,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      return await getStudyProgress(currentUser.uid, courseId);
+      return await getStudyProgress(currentUser.id, courseId);
     } catch (error) {
       console.error("Error fetching progress:", error);
       toast({
@@ -141,7 +141,7 @@ export const useRealtimeDB = () => {
       }
 
       setLoading(true);
-      const userSpecificPath = path.replace('{userId}', currentUser.uid);
+      const userSpecificPath = path.replace('{userId}', currentUser.id);
       
       try {
         const unsubscribe = subscribeToData(userSpecificPath, (newData) => {
@@ -176,7 +176,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      const noteId = await createNote(currentUser.uid, noteData);
+      const noteId = await createNote(currentUser.id, noteData);
       
       toast({
         title: "Note saved",
@@ -209,7 +209,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      await updateNote(currentUser.uid, noteId, noteData);
+      await updateNote(currentUser.id, noteId, noteData);
       
       toast({
         title: "Note updated",
@@ -242,7 +242,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      await deleteNote(currentUser.uid, noteId);
+      await deleteNote(currentUser.id, noteId);
       
       toast({
         title: "Note deleted",
@@ -268,7 +268,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      return await getNotes(currentUser.uid);
+      return await getNotes(currentUser.id);
     } catch (error) {
       console.error("Error fetching notes:", error);
       toast({
@@ -295,7 +295,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      const result = await backupUserData(currentUser.uid);
+      const result = await backupUserData(currentUser.id);
       
       toast({
         title: "Backup created",
@@ -328,7 +328,7 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      await restoreFromBackup(currentUser.uid, backupId);
+      await restoreFromBackup(currentUser.id, backupId);
       
       toast({
         title: "Backup restored",

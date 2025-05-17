@@ -33,7 +33,7 @@ export const useFirestore = () => {
 
     try {
       setIsLoading(true);
-      await createUserProfile(currentUser.uid, userData);
+      await createUserProfile(currentUser.id, userData);
       
       toast({
         title: "Profile updated",
@@ -59,7 +59,7 @@ export const useFirestore = () => {
 
     try {
       setIsLoading(true);
-      return await getUserProfile(currentUser.uid);
+      return await getUserProfile(currentUser.id);
     } catch (error) {
       console.error("Error fetching user profile:", error);
       toast({
@@ -86,7 +86,7 @@ export const useFirestore = () => {
 
     try {
       setIsLoading(true);
-      const summaryId = await saveSummary(currentUser.uid, summaryData);
+      const summaryId = await saveSummary(currentUser.id, summaryData);
       
       toast({
         title: "Summary saved",
@@ -112,7 +112,7 @@ export const useFirestore = () => {
 
     try {
       setIsLoading(true);
-      return await getUserSummaries(currentUser.uid);
+      return await getUserSummaries(currentUser.id);
     } catch (error) {
       console.error("Error fetching summaries:", error);
       toast({
@@ -163,7 +163,7 @@ export const useFirestore = () => {
 
     try {
       setIsLoading(true);
-      const noteId = await createNote(currentUser.uid, noteData);
+      const noteId = await createNote(currentUser.id, noteData);
       
       toast({
         title: "Note saved",
@@ -189,7 +189,7 @@ export const useFirestore = () => {
 
     try {
       setIsLoading(true);
-      return await getUserNotes(currentUser.uid);
+      return await getUserNotes(currentUser.id);
     } catch (error) {
       console.error("Error fetching notes:", error);
       toast({
@@ -208,7 +208,7 @@ export const useFirestore = () => {
     
     try {
       setIsLoading(true);
-      await deleteNote(currentUser.uid, noteId);
+      await deleteNote(currentUser.id, noteId);
       
       toast({
         title: "Note deleted",
