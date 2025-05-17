@@ -41,12 +41,24 @@ const AuthForm = () => {
     e.preventDefault();
     setError(null);
     
+    // Basic validation
+    if (!formData.email) {
+      setError("Please enter your email address");
+      return;
+    }
+    
+    if (!formData.password) {
+      setError("Please enter your password");
+      return;
+    }
+    
+    if (isSignUp && !formData.displayName) {
+      setError("Please enter your name");
+      return;
+    }
+    
     try {
       if (isSignUp) {
-        if (!formData.displayName) {
-          setError("Please enter your name");
-          return;
-        }
         await signUp(formData.email, formData.password, formData.displayName);
       } else {
         await signIn(formData.email, formData.password);

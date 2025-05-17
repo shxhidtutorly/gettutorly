@@ -1,8 +1,10 @@
 
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { createUserProfile } from './db';
+import { toast } from '@/components/ui/use-toast';
 
-// Email/Password sign up
+// Email/Password sign up with automatic profile creation
 export const signUpWithEmail = async (email: string, password: string, displayName: string) => {
   try {
     const { data, error } = await supabase.auth.signUp({
@@ -17,9 +19,31 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
     });
     
     if (error) throw error;
+    
+    // Create user profile in the database if user is created
+    if (data.user) {
+      await createUserProfile(data.user.id, {
+        email: data.user.email,
+        name: displayName,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        role: 'student' // Default role
+      });
+      
+      toast({
+        title: 'Account created successfully',
+        description: 'Please check your email to verify your account',
+      });
+    }
+    
     return data.user;
   } catch (error) {
     console.error("Email sign-up error:", error);
+    toast({
+      title: 'Sign-up failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
     throw error;
   }
 };
@@ -33,9 +57,20 @@ export const signInWithEmail = async (email: string, password: string) => {
     });
     
     if (error) throw error;
+    
+    toast({
+      title: 'Signed in successfully',
+      description: `Welcome back${data.user.user_metadata?.name ? ', ' + data.user.user_metadata.name : ''}!`,
+    });
+    
     return data.user;
   } catch (error) {
     console.error("Email sign-in error:", error);
+    toast({
+      title: 'Sign-in failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
     throw error;
   }
 };
@@ -54,6 +89,11 @@ export const signInWithOAuth = async (provider: 'google') => {
     return data;
   } catch (error) {
     console.error(`${provider} sign-in error:`, error);
+    toast({
+      title: 'OAuth sign-in failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
     throw error;
   }
 };
@@ -66,9 +106,20 @@ export const resetPassword = async (email: string) => {
     });
     
     if (error) throw error;
+    
+    toast({
+      title: 'Password reset email sent',
+      description: 'Check your inbox for the reset link',
+    });
+    
     return true;
   } catch (error) {
     console.error("Password reset error:", error);
+    toast({
+      title: 'Password reset failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
     throw error;
   }
 };
@@ -81,9 +132,20 @@ export const updateUserPassword = async (newPassword: string) => {
     });
     
     if (error) throw error;
+    
+    toast({
+      title: 'Password updated successfully',
+      description: 'You can now sign in with your new password',
+    });
+    
     return true;
   } catch (error) {
     console.error("Password update error:", error);
+    toast({
+      title: 'Password update failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
     throw error;
   }
 };
@@ -93,9 +155,20 @@ export const logOut = async () => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    
+    toast({
+      title: 'Signed out successfully',
+      description: 'You have been logged out',
+    });
+    
     return true;
   } catch (error) {
     console.error("Sign out error:", error);
+    toast({
+      title: 'Sign out failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
     throw error;
   }
 };
@@ -116,6 +189,32 @@ export const getSession = async () => {
   return data.session;
 };
 
+// Update user profile
+export const updateUserProfile = async (userData: { name?: string; avatar_url?: string }) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      data: userData
+    });
+    
+    if (error) throw error;
+    
+    toast({
+      title: 'Profile updated successfully',
+      description: 'Your profile information has been updated',
+    });
+    
+    return true;
+  } catch (error) {
+    console.error("Profile update error:", error);
+    toast({
+      title: 'Profile update failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
+    throw error;
+  }
+};
+
 // Verify email (can be called after user clicks email verification link)
 export const verifyEmail = async (token: string) => {
   try {
@@ -125,9 +224,20 @@ export const verifyEmail = async (token: string) => {
     });
     
     if (error) throw error;
+    
+    toast({
+      title: 'Email verified successfully',
+      description: 'Your email has been verified',
+    });
+    
     return true;
   } catch (error) {
     console.error("Email verification error:", error);
+    toast({
+      title: 'Email verification failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
     throw error;
   }
 };
