@@ -1,23 +1,14 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { User } from 'firebase/auth';
-import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthContextType {
-  currentUser: User | null;
-  userProfile: any;
+  currentUser: any;
   loading: boolean;
-  authError: string | null;
-  signIn: () => Promise<User | null>;
-  signUp: (email: string, password: string, displayName: string) => Promise<User | null>;
-  emailSignIn: (email: string, password: string) => Promise<User | null>;
-  phoneAuth: {
-    setupRecaptcha: (elementId: string) => any;
-    sendVerificationCode: (phoneNumber: string) => Promise<any>;
-    verifyCode: (code: string) => Promise<User | null>;
-  };
-  forgotPassword: (email: string) => Promise<boolean>;
+  signUp: (email: string, password: string) => Promise<any | null>;
+  signIn: (email: string, password: string) => Promise<any | null>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,7 +22,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const auth = useFirebaseAuth();
+  const auth = useAuth();
 
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 };

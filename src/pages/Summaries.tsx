@@ -13,7 +13,8 @@ import { fetchJinaSummary, checkPDFProcessable, storeSummary } from "@/lib/jinaR
 import { useTheme } from "@/contexts/ThemeContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFirebaseStorage } from "@/hooks/useFirebaseStorage";
+import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
+import { getSummaries } from "@/lib/supabase";
 
 interface Summary {
   id: number | string;
@@ -44,65 +45,39 @@ const Summaries = () => {
   const { toast } = useToast();
   const { theme } = useTheme();
   const { currentUser } = useAuth();
-  const { uploadFile: uploadToStorage, progress: storageProgress } = useFirebaseStorage();
+  const { uploadFile, progress: storageProgress } = useSupabaseStorage();
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [summaries, setSummaries] = useState<Summary[]>([]);
   
-  const [summaries, setSummaries] = useState<Summary[]>([
-    { 
-      id: 1, 
-      title: "Cell Structure and Function", 
-      description: "Overview of eukaryotic and prokaryotic cell structures and their functions",
-      type: "quick",
-      created: "2 days ago",
-      readTime: "5 min read",
-      content: "Cell structures include the cell wall, cell membrane, cytoplasm, nucleus, and various organelles. Each structure serves specific functions that contribute to the cell's overall survival and activities. Eukaryotic cells contain a true nucleus and membrane-bound organelles, while prokaryotic cells lack these features."
-    },
-    { 
-      id: 2, 
-      title: "Photosynthesis Process", 
-      description: "Detailed explanation of the light-dependent and light-independent reactions",
-      type: "deep",
-      created: "1 week ago",
-      readTime: "15 min read",
-      content: "Photosynthesis occurs in two stages: light-dependent reactions and light-independent reactions (Calvin cycle). In light-dependent reactions, light energy is converted to chemical energy in the form of ATP and NADPH. The light-independent reactions use this chemical energy to fix carbon dioxide and produce glucose."
-    },
-    { 
-      id: 3, 
-      title: "Periodic Table Elements", 
-      description: "Summary of element groups, periods, and their properties",
-      type: "quick",
-      created: "3 days ago",
-      readTime: "7 min read",
-      content: "The periodic table organizes elements based on atomic number and electron configuration. Elements in the same group have similar properties due to their identical valence electron configurations. The table is divided into metals, nonmetals, and metalloids, each with distinct physical and chemical properties."
-    },
-    { 
-      id: 4, 
-      title: "Chemical Bonding", 
-      description: "Comprehensive guide to ionic, covalent, and metallic bonds",
-      type: "deep",
-      created: "2 weeks ago",
-      readTime: "20 min read",
-      content: "Chemical bonding involves the attraction between atoms that leads to chemical compounds. Ionic bonding occurs through electron transfer, covalent bonding through electron sharing, and metallic bonding via a sea of delocalized electrons. The type of bond formed depends on the electronegativity difference between the atoms involved."
-    },
-    { 
-      id: 5, 
-      title: "World War II Timeline", 
-      description: "Chronological events of WWII from 1939-1945",
-      type: "quick",
-      created: "5 days ago",
-      readTime: "8 min read",
-      content: "World War II began with Germany's invasion of Poland in 1939 and ended with Japan's surrender in 1945. Key events include the Battle of Britain, Operation Barbarossa, Pearl Harbor, D-Day, and the atomic bombings of Hiroshima and Nagasaki. The war resulted in significant geopolitical changes and led to the formation of the United Nations."
-    },
-    { 
-      id: 6, 
-      title: "Renaissance Art and Culture", 
-      description: "Analysis of major Renaissance artists, works, and cultural impacts",
-      type: "deep",
-      created: "3 weeks ago",
-      readTime: "25 min read",
-      content: "The Renaissance (14th-17th centuries) marked a cultural rebirth in Europe, characterized by renewed interest in classical learning and values. Major artists like Leonardo da Vinci, Michelangelo, and Raphael created works that emphasized realism, perspective, and humanism. The period's innovations in art, architecture, literature, and science continue to influence modern society."
-    }
-  ]);
+  // Fetch user summaries from Supabase on component mount
+  useEffect(() => {
+    const fetchUserSummaries = async () => {
+      if (currentUser) {
+        try {
+          const userSummaries = await getSummaries(currentUser.uid);
+          if (userSummaries && userSummaries.length > 0) {
+            // Transform Supabase summaries to match the app's format
+            const formattedSummaries = userSummaries.map((summary: any) => ({
+              id: summary.id,
+              title: summary.title || "Untitled Summary",
+              description: summary.content.substring(0, 100) + "...",
+              type: summary.content.length > 500 ? "deep" : "quick",
+              created: new Date(summary.created_at).toLocaleDateString(),
+              readTime: `${Math.max(1, Math.floor(summary.content.length / 1000))} min read`,
+              content: summary.content,
+              fileName: summary.file_name,
+              fileUrl: summary.file_url
+            }));
+            setSummaries(formattedSummaries);
+          }
+        } catch (error) {
+          console.error("Error fetching summaries:", error);
+        }
+      }
+    };
+    
+    fetchUserSummaries();
+  }, [currentUser]);
   
   const summaryTypes = {
     quick: { label: "Quick Recap", bg: "bg-spark-blue dark:bg-blue-800", icon: ScrollText },
@@ -210,12 +185,12 @@ const Summaries = () => {
         return;
       }
       
-      // Upload file to Firebase Storage
+      // Upload file to Supabase Storage
       setUploadProgress(30);
       let fileDetails = null;
       
       if (currentUser) {
-        fileDetails = await uploadToStorage(selectedFile, "summaries");
+        fileDetails = await uploadFile(selectedFile, "summaries");
         if (!fileDetails) {
           throw new Error("File upload to storage failed");
         }
@@ -251,7 +226,7 @@ const Summaries = () => {
       // Set the summary result and keep dialog open
       setSummaryResult(summaryText);
       
-      // If we have a file URL and user is authenticated, store the summary in Firestore
+      // If we have a file URL and user is authenticated, store the summary in Supabase
       if (fileUrl && currentUser && typeof summaryText === 'string') {
         await storeSummary(
           currentUser.uid, 
@@ -315,37 +290,56 @@ const Summaries = () => {
     }
   };
   
-  const handleSaveSummary = () => {
-    if (!summaryResult || !selectedFile) return;
+  const handleSaveSummary = async () => {
+    if (!summaryResult || !selectedFile || !currentUser) return;
     
-    // Create a new summary object
-    const newSummary: Summary = {
-      id: Date.now(),
-      title: selectedFile.name.replace(/\.[^/.]+$/, ""), // Remove file extension
-      description: summaryResult.substring(0, 100) + "...",
-      type: summaryResult.length > 500 ? "deep" : "quick",
-      created: "Just now",
-      readTime: `${Math.max(1, Math.floor(summaryResult.length / 1000))} min read`,
-      content: summaryResult,
-      fileName: selectedFile.name,
-      fileUrl: fileUrl || undefined
-    };
-    
-    // Add the new summary to the list
-    setSummaries([newSummary, ...summaries]);
-    
-    // Close the dialog
-    setShowUploadDialog(false);
-    setSummaryResult(null);
-    setSelectedFile(null);
-    setProcessingError(null);
-    setFileUrl(null);
-    
-    // Show success notification
-    toast({
-      title: "Summary saved",
-      description: "Your summary has been saved to your library"
-    });
+    try {
+      if (fileUrl) {
+        // Save summary to Supabase
+        const savedSummary = await storeSummary(
+          currentUser.uid,
+          summaryResult,
+          selectedFile.name,
+          fileUrl
+        );
+        
+        // Create a new summary object
+        const newSummary: Summary = {
+          id: savedSummary.id || Date.now(),
+          title: selectedFile.name.replace(/\.[^/.]+$/, ""), // Remove file extension
+          description: summaryResult.substring(0, 100) + "...",
+          type: summaryResult.length > 500 ? "deep" : "quick",
+          created: "Just now",
+          readTime: `${Math.max(1, Math.floor(summaryResult.length / 1000))} min read`,
+          content: summaryResult,
+          fileName: selectedFile.name,
+          fileUrl: fileUrl
+        };
+        
+        // Add the new summary to the list
+        setSummaries([newSummary, ...summaries]);
+        
+        // Close the dialog
+        setShowUploadDialog(false);
+        setSummaryResult(null);
+        setSelectedFile(null);
+        setProcessingError(null);
+        setFileUrl(null);
+        
+        // Show success notification
+        toast({
+          title: "Summary saved",
+          description: "Your summary has been saved to your library"
+        });
+      }
+    } catch (error) {
+      console.error("Error saving summary:", error);
+      toast({
+        title: "Error saving summary",
+        description: "Could not save your summary. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleViewSummary = (summary: Summary) => {

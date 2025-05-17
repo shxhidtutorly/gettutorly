@@ -1,5 +1,6 @@
+
 import * as pdfjsLib from 'pdfjs-dist';
-import { saveSummary, uploadFile } from './supabase';
+import { supabase, uploadFile, saveSummary } from './supabase';
 
 // Configure PDF.js worker properly
 import { GlobalWorkerOptions } from 'pdfjs-dist';
@@ -56,7 +57,7 @@ export const checkPDFProcessable = async (file: File): Promise<PDFCheckResult> =
 };
 
 // Store summary in Supabase
-export const storeSummaryInDB = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
+export const storeSummary = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
   try {
     return await saveSummary(userId, summary, fileName, fileUrl);
   } catch (error) {
