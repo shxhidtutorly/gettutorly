@@ -17,7 +17,7 @@ export const useSupabaseAuth = () => {
         setCurrentUser(session.user);
         
         // If the user just signed up, create their profile in the database
-        if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
+        if (event === 'SIGNED_IN') {
           createInitialUserProfile(session.user);
         }
       } else {

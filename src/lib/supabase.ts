@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -51,6 +50,23 @@ export const deleteFile = async (filePath: string, bucket: string = 'study_mater
     return true;
   } catch (error) {
     console.error('Error deleting file:', error);
+    throw error;
+  }
+};
+
+// Get summaries for a user
+export const getSummaries = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_materials')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching summaries:", error);
     throw error;
   }
 };
