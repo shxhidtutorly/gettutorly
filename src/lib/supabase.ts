@@ -5,26 +5,26 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables. Using placeholder values for development.');
+  console.error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
 }
 
 export const supabase = createClient(
-  supabaseUrl || 'https://your-supabase-url.supabase.co',
-  supabaseAnonKey || 'your-anon-key'
+  supabaseUrl || '',
+  supabaseAnonKey || ''
 );
 
 // Storage helpers
-export const uploadFile = async (userId: string, file: File, folder: string = 'files') => {
+export const uploadFile = async (userId: string, file: File, bucket: string = 'study_materials') => {
   try {
-    const filePath = `${userId}/${folder}/${Date.now()}_${file.name}`;
+    const filePath = `${userId}/${Date.now()}_${file.name}`;
     const { data, error } = await supabase.storage
-      .from('summaries')
+      .from(bucket)
       .upload(filePath, file);
 
     if (error) throw error;
 
     const { data: { publicUrl } } = supabase.storage
-      .from('summaries')
+      .from(bucket)
       .getPublicUrl(filePath);
 
     return {
@@ -40,56 +40,17 @@ export const uploadFile = async (userId: string, file: File, folder: string = 'f
   }
 };
 
-// Database helpers
-export const saveSummary = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
+// Delete file from storage
+export const deleteFile = async (filePath: string, bucket: string = 'study_materials') => {
   try {
-    const { data, error } = await supabase
-      .from('summaries')
-      .insert([{
-        user_id: userId,
-        title: fileName.replace(/\.[^/.]+$/, ""),
-        content: summary,
-        file_name: fileName,
-        file_url: fileUrl
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error saving summary:', error);
-    throw error;
-  }
-};
-
-export const getSummaries = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('summaries')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error fetching summaries:', error);
-    throw error;
-  }
-};
-
-export const deleteSummary = async (summaryId: string) => {
-  try {
-    const { error } = await supabase
-      .from('summaries')
-      .delete()
-      .eq('id', summaryId);
+    const { error } = await supabase.storage
+      .from(bucket)
+      .remove([filePath]);
 
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error deleting summary:', error);
+    console.error('Error deleting file:', error);
     throw error;
   }
 };

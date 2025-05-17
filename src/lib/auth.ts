@@ -2,27 +2,6 @@
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
-// Google authentication
-export const signInWithGoogle = async () => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
-    
-    if (error) throw error;
-    
-    // Return user if available in session
-    const { data: sessionData } = await supabase.auth.getSession();
-    return sessionData?.session?.user || null;
-  } catch (error: any) {
-    console.error("Google sign-in error:", error);
-    throw error;
-  }
-};
-
 // Email/Password sign up
 export const signUpWithEmail = async (email: string, password: string, displayName: string) => {
   try {
@@ -60,6 +39,24 @@ export const signInWithEmail = async (email: string, password: string) => {
   }
 };
 
+// OAuth sign in (e.g., Google)
+export const signInWithOAuth = async (provider: 'google') => {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error(`${provider} sign-in error:`, error);
+    throw error;
+  }
+};
+
 // Password reset
 export const resetPassword = async (email: string) => {
   try {
@@ -71,6 +68,21 @@ export const resetPassword = async (email: string) => {
     return true;
   } catch (error) {
     console.error("Password reset error:", error);
+    throw error;
+  }
+};
+
+// Update password (after reset)
+export const updateUserPassword = async (newPassword: string) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Password update error:", error);
     throw error;
   }
 };
@@ -93,14 +105,26 @@ export const getCurrentUser = async (): Promise<User | null> => {
   return data?.user || null;
 };
 
+// Get auth session
+export const getSession = async () => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error("Session error:", error);
+    return null;
+  }
+  return data.session;
+};
+
 // Helper function to get error message from Supabase Auth errors
 export const getAuthErrorMessage = (error: AuthError | Error): string => {
   if ('code' in error) {
     switch (error.code) {
       case 'auth/user-not-found':
+      case 'P0001': // Postgres error
         return 'No account found with this email.';
       case 'auth/wrong-password':
-        return 'Incorrect password.';
+      case '23505': // Unique violation
+        return 'Incorrect password or email.';
       case 'auth/invalid-email':
         return 'Invalid email address.';
       case 'auth/email-already-in-use':

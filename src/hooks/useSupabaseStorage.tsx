@@ -8,7 +8,7 @@ export const useSupabaseStorage = () => {
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
-  const uploadFile = async (file: File, bucket: string = 'files') => {
+  const uploadFile = async (file: File, bucket: string = 'study_materials') => {
     if (!currentUser) {
       setError('User must be logged in to upload files');
       return null;
@@ -19,7 +19,7 @@ export const useSupabaseStorage = () => {
       setError(null);
 
       // Create a unique file path using user ID and timestamp
-      const filePath = `${currentUser.id}/${bucket}/${Date.now()}_${file.name}`;
+      const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
       
       // Upload the file
       const { data, error } = await supabase.storage
@@ -52,7 +52,7 @@ export const useSupabaseStorage = () => {
     }
   };
 
-  const deleteFile = async (filePath: string, bucket: string = 'files') => {
+  const deleteFile = async (filePath: string, bucket: string = 'study_materials') => {
     try {
       setError(null);
       const { error } = await supabase.storage
@@ -67,10 +67,27 @@ export const useSupabaseStorage = () => {
       return false;
     }
   };
+  
+  const getSignedUrl = async (filePath: string, bucket: string = 'study_materials', expiresIn: number = 3600) => {
+    try {
+      setError(null);
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(filePath, expiresIn);
+
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while creating signed URL');
+      console.error('Signed URL error:', err);
+      return null;
+    }
+  };
 
   return {
     uploadFile,
     deleteFile,
+    getSignedUrl,
     progress,
     error
   };

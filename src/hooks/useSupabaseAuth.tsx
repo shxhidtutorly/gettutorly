@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
+import { createUserProfile } from "@/lib/db";
 
 export const useSupabaseAuth = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -14,6 +15,11 @@ export const useSupabaseAuth = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setCurrentUser(session.user);
+        
+        // If the user just signed up, create their profile in the database
+        if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
+          createInitialUserProfile(session.user);
+        }
       } else {
         setCurrentUser(null);
       }
@@ -35,6 +41,25 @@ export const useSupabaseAuth = () => {
       setCurrentUser(session.user);
     }
     setLoading(false);
+  };
+  
+  // Create initial user profile in the database
+  const createInitialUserProfile = async (user: User) => {
+    try {
+      // Extract name from user metadata if available
+      const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+      
+      await createUserProfile(user.id, {
+        email: user.email,
+        name: name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        role: 'student' // Default role
+      });
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+      // We don't toast this error as it's a background operation
+    }
   };
 
   // Sign up with email
@@ -169,6 +194,35 @@ export const useSupabaseAuth = () => {
       setLoading(false);
     }
   };
+  
+  // Update user profile
+  const updateUserProfile = async (userData: { name?: string; avatar_url?: string }) => {
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase.auth.updateUser({
+        data: userData
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message || "Could not update your profile.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
     currentUser,
@@ -177,5 +231,6 @@ export const useSupabaseAuth = () => {
     signIn,
     signOut,
     resetPassword,
+    updateUserProfile
   };
 };

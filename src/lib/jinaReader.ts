@@ -57,17 +57,17 @@ export const checkPDFProcessable = async (file: File): Promise<PDFCheckResult> =
 };
 
 // Upload file to Supabase storage
-export const uploadFile = async (userId: string, file: File, folder: string = 'files') => {
+export const uploadFileToStorage = async (userId: string, file: File, bucket: string = 'study_materials') => {
   try {
-    const filePath = `${userId}/${folder}/${Date.now()}_${file.name}`;
+    const filePath = `${userId}/${Date.now()}_${file.name}`;
     const { data, error } = await supabase.storage
-      .from('summaries')
+      .from(bucket)
       .upload(filePath, file);
 
     if (error) throw error;
 
     const fileUrl = supabase.storage
-      .from('summaries')
+      .from(bucket)
       .getPublicUrl(filePath).data.publicUrl;
 
     return {
@@ -83,15 +83,15 @@ export const uploadFile = async (userId: string, file: File, folder: string = 'f
   }
 };
 
-// Store summary in Supabase - Make sure this is exported
+// Store summary in Supabase database
 export const storeSummary = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
   try {
     const { data, error } = await supabase
-      .from('summaries')
+      .from('study_materials')
       .insert([{
         user_id: userId,
         title: fileName.replace(/\.[^/.]+$/, ""),
-        content: summary,
+        summary,
         file_name: fileName,
         file_url: fileUrl
       }])
