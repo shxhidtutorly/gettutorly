@@ -1,0 +1,65 @@
+
+/* Button click effect */
+.button-click-effect {
+  transition: all 0.2s ease;
+}
+
+.button-click-effect:active {
+  transform: scale(0.97);
+}
+
+/* Loading spinner */
+.loading-spinner {
+  @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite];
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Card hover effect */
+.hover-glow {
+  transition: all 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(155, 135, 245, 0.1);
+}
+
+/* Feature card animations */
+.feature-card {
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Staggered fade-in animation */
+.staggered-fade-in > * {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fade-in-up 0.5s ease forwards;
+}
+
+.staggered-fade-in > *:nth-child(1) { animation-delay: 0.1s; }
+.staggered-fade-in > *:nth-child(2) { animation-delay: 0.2s; }
+.staggered-fade-in > *:nth-child(3) { animation-delay: 0.3s; }
+.staggered-fade-in > *:nth-child(4) { animation-delay: 0.4s; }
+
+/* Section transitions */
+.section-container {
+  opacity: 0;
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.section-divider {
+  width: calc(100% - 2rem);
+  margin: 2rem auto;
+  opacity: 0.1;
+}

@@ -1,0 +1,293 @@
+
+/* Dark Mode Styles */
+.dark {
+  --background: #0d1117;
+  --foreground: #e0e0e0;
+  --card: #1a1f29;
+  --card-foreground: #e0e0e0;
+  --popover: #1a1f29;
+  --popover-foreground: #e0e0e0;
+  --primary: #9b87f5;
+  --primary-foreground: #ffffff;
+  --secondary: #384457;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1f29;
+  --muted-foreground: #b4c0d3;  /* Brightened from #94a3b8 */
+  --accent: #252b38;
+  --accent-foreground: #ffffff;
+  --destructive: #ff5353;
+  --destructive-foreground: #ffffff;
+  --border: #252b38;
+  --input: #252b38;
+  --ring: #9b87f5;
+  --tutorly-purple: #8B5CF6;
+  --tutorly-light: #F3F4F6;
+}
+
+/* Ensure text visibility in dark mode */
+.dark body {
+  background-color: #0d1117;
+  color: var(--foreground);
+}
+
+/* Dark mode text visibility fixes - strengthen contrast */
+.dark .card,
+.dark .card-header,
+.dark .card-title,
+.dark .card-description,
+.dark .card-content,
+.dark .card-footer {
+  color: #e0e0e0;
+}
+
+/* Fix headings in dark mode with stronger visual hierarchy */
+.dark h1 {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.dark h2,
+.dark h3 {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.dark h4, 
+.dark h5, 
+.dark h6 {
+  color: #f3f3f3;
+  font-weight: 500;
+}
+
+/* Fix text in various components */
+.dark .text-foreground,
+.dark .text-default,
+.dark p,
+.dark span,
+.dark div,
+.dark label {
+  color: #e0e0e0;
+}
+
+/* Fix text in buttons with improved prominence */
+.dark .btn,
+.dark button:not(.text-destructive):not(.text-muted-foreground) {
+  color: #ffffff;
+}
+
+/* Fix muted text for better visibility */
+.dark .text-muted-foreground {
+  color: #b4c0d3;
+}
+
+/* Fix specific pages background */
+.dark .progress-page,
+.dark .study-plans-page,
+.dark .library-page,
+.dark .summaries-page {
+  background-color: #0d1117;
+}
+
+/* Fix responsive text on smaller devices */
+@media (max-width: 768px) {
+  .dark .text-sm {
+    color: #e0e0e0;
+  }
+  
+  .dark .text-xs {
+    color: #e0e0e0;
+  }
+}
+
+/* Library-specific fixes */
+.dark .library-card {
+  background-color: var(--card);
+  color: #e0e0e0;
+}
+
+/* Progress page fixes */
+.dark .progress-chart text {
+  fill: #e0e0e0;
+}
+
+/* Study Plans fixes */
+.dark .study-plan-card {
+  background-color: var(--card);
+  color: #e0e0e0;
+}
+
+/* Enhance visibility of topic boxes in dark mode */
+.dark .topic-box,
+.dark .study-topic {
+  background-color: #2d3748 !important;
+  color: #ffffff !important;
+  border-color: #4a5568 !important;
+}
+
+/* Bottom navigation fixes */
+.dark .bottom-nav {
+  background-color: var(--card);
+  border-color: var(--border);
+}
+
+.dark .bottom-nav-item {
+  color: #e0e0e0;
+}
+
+/* Add styles for the navbar in dark mode */
+.dark .navbar {
+  background-color: rgba(13, 17, 23, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Fix any remaining contrast issues */
+.dark [class*="text-gray-"] {
+  color: #d1d5db;
+}
+
+/* Ensure dialog and modal visibility */
+.dark .dialog,
+.dark .modal {
+  background-color: var(--background);
+  color: #e0e0e0;
+}
+
+/* Tooltip visibility */
+.dark .tooltip {
+  background-color: var(--card);
+  color: #e0e0e0;
+}
+
+/* Improve button visibility and contrast in dark mode */
+.dark .bg-purple-500 {
+  background-color: #8b5cf6;
+}
+
+.dark .hover\:bg-purple-600:hover {
+  background-color: #7c3aed;
+}
+
+/* Improve dark mode toggle visibility */
+.dark .dark-mode-toggle {
+  background-color: #1f2937;
+  color: #e0e0e0;
+  border: 1px solid #374151;
+}
+
+/* Enhanced visual hierarchy for feature cards */
+.dark .feature-card h3 {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.dark .testimonial-card p {
+  color: #e0e0e0;
+}
+
+/* Stats section improved visibility */
+.dark .stats-item .text-purple-500 {
+  color: #a78bfa;
+}
+
+/* Fix chat bubbles in dark mode */
+.dark .bg-spark-light {
+  background-color: #384457;
+  color: #ffffff;
+}
+
+.dark .text-gray-800 {
+  color: #ffffff;
+}
+
+/* Fix input fields in dark mode */
+.dark input, 
+.dark textarea {
+  background-color: #252b38;
+  color: #ffffff;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Fix accordions in dark mode */
+.dark .accordion-title,
+.dark .accordion-content {
+  color: #ffffff;
+}
+
+/* Fix study techniques cards */
+.dark .study-technique-card {
+  background-color: var(--card);
+  color: #e0e0e0;
+}
+
+/* Fix quiz elements in dark mode - ensure visibility */
+.dark .quiz-option {
+  background-color: #1a1f29;
+  border-color: #252b38;
+  color: #ffffff !important;
+}
+
+.dark .quiz-option:hover:not(.selected) {
+  background-color: #252b38;
+}
+
+.dark .quiz-option.selected {
+  background-color: #384457;
+}
+
+.dark .quiz-option.correct {
+  background-color: rgba(34, 197, 94, 0.2);
+  border-color: rgb(34, 197, 94);
+  color: rgb(220, 252, 231) !important;
+}
+
+.dark .quiz-option.incorrect {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: rgb(239, 68, 68);
+  color: rgb(254, 226, 226) !important;
+}
+
+.dark .quiz-container,
+.dark .quiz-question,
+.dark .quiz-header,
+.dark .quiz-title,
+.dark .quiz-timer,
+.dark .quiz-progress,
+.dark .quiz-footer {
+  color: #e0e0e0 !important;
+}
+
+/* Fix quiz text and ensure buttons are visible */
+.dark .quiz-button {
+  background-color: var(--primary);
+  color: white !important;
+}
+
+/* Fix PDF viewer elements in dark mode */
+.dark .pdf-viewer {
+  background-color: #252b38;
+  color: #e0e0e0;
+}
+
+.dark .summary-content {
+  color: #e0e0e0;
+}
+
+/* Fix dialog content in dark mode for better visibility */
+.dark .dialog-content {
+  background-color: #1a1f29;
+  border-color: #2d3748;
+}
+
+/* Fix alert components in dark mode */
+.dark .alert-title {
+  color: #ffffff;
+}
+
+.dark .alert-description {
+  color: #e0e0e0;
+}
