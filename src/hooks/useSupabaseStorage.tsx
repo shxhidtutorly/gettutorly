@@ -1,69 +1,77 @@
 
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
-import { uploadFile } from "@/lib/supabase";
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export const useSupabaseStorage = () => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const { currentUser } = useAuth();
-  const { toast } = useToast();
+  const [progress, setProgress] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleUpload = async (file: File, folder: string = "summaries") => {
+  const uploadFile = async (file: File, bucket: string = 'files') => {
     if (!currentUser) {
-      toast({
-        title: "Authentication required",
-        description: "You must be logged in to upload files",
-        variant: "destructive",
-      });
+      setError('User must be logged in to upload files');
       return null;
     }
 
     try {
-      setIsUploading(true);
-      
-      // Simulate progress for better UX
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          const newProgress = prev + 5;
-          if (newProgress >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return newProgress;
-        });
-      }, 100);
+      setProgress(0);
+      setError(null);
 
-      // Upload file to Supabase storage
-      const fileDetails = await uploadFile(currentUser.uid, file, folder);
+      // Create a unique file path using user ID and timestamp
+      const filePath = `${currentUser.id}/${bucket}/${Date.now()}_${file.name}`;
       
-      // Complete the progress
-      clearInterval(progressInterval);
+      // Upload the file
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get the public URL for the uploaded file
+      const { data: publicUrlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
       setProgress(100);
       
-      toast({
-        title: "Upload complete",
-        description: `${file.name} has been uploaded successfully.`,
-      });
-
-      return fileDetails;
-    } catch (error) {
-      console.error("File upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: `Failed to upload ${file.name}. Please try again.`,
-        variant: "destructive",
-      });
+      return {
+        filePath,
+        fileUrl: publicUrlData.publicUrl,
+        fileName: file.name,
+        contentType: file.type,
+        size: file.size
+      };
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during file upload');
+      console.error('File upload error:', err);
       return null;
-    } finally {
-      setIsUploading(false);
+    }
+  };
+
+  const deleteFile = async (filePath: string, bucket: string = 'files') => {
+    try {
+      setError(null);
+      const { error } = await supabase.storage
+        .from(bucket)
+        .remove([filePath]);
+
+      if (error) throw error;
+      return true;
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during file deletion');
+      console.error('File deletion error:', err);
+      return false;
     }
   };
 
   return {
-    uploadFile: handleUpload,
-    isUploading,
+    uploadFile,
+    deleteFile,
     progress,
+    error
   };
 };

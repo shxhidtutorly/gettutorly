@@ -54,7 +54,7 @@ const Summaries = () => {
     const fetchUserSummaries = async () => {
       if (currentUser) {
         try {
-          const userSummaries = await getSummaries(currentUser.uid);
+          const userSummaries = await getSummaries(currentUser.id);
           if (userSummaries && userSummaries.length > 0) {
             // Transform Supabase summaries to match the app's format
             const formattedSummaries = userSummaries.map((summary: any) => ({
@@ -230,7 +230,7 @@ const Summaries = () => {
       // If we have a file URL and user is authenticated, store the summary in Supabase
       if (fileUrl && currentUser && typeof summaryText === 'string') {
         await storeSummary(
-          currentUser.uid, 
+          currentUser.id, 
           summaryText,
           selectedFile.name,
           fileUrl
@@ -298,7 +298,7 @@ const Summaries = () => {
       if (fileUrl) {
         // Save summary to Supabase
         const savedSummary = await storeSummary(
-          currentUser.uid,
+          currentUser.id,
           summaryResult,
           selectedFile.name,
           fileUrl

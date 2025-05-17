@@ -13,7 +13,10 @@ export const signInWithGoogle = async () => {
     });
     
     if (error) throw error;
-    return data.user;
+    
+    // Return user if available in session
+    const { data: sessionData } = await supabase.auth.getSession();
+    return sessionData?.session?.user || null;
   } catch (error: any) {
     console.error("Google sign-in error:", error);
     throw error;
@@ -28,7 +31,7 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
       password,
       options: {
         data: {
-          display_name: displayName
+          name: displayName
         }
       }
     });
@@ -104,12 +107,6 @@ export const getAuthErrorMessage = (error: AuthError | Error): string => {
         return 'This email is already registered.';
       case 'auth/weak-password':
         return 'Password should be at least 6 characters.';
-      case 'auth/invalid-verification-code':
-        return 'Invalid verification code.';
-      case 'auth/invalid-phone-number':
-        return 'Invalid phone number format.';
-      case 'auth/too-many-requests':
-        return 'Too many attempts. Please try again later.';
       default:
         return error.message || 'An error occurred during authentication.';
     }

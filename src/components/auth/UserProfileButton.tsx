@@ -2,7 +2,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User as UserIcon } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -19,9 +19,11 @@ const UserProfileButton = () => {
 
   if (!currentUser) return null;
 
-  const userInitials = currentUser.displayName
-    ? currentUser.displayName.split(" ").map(name => name[0]).join("").toUpperCase()
-    : "U";
+  // Get user metadata for display name
+  const userData = currentUser.user_metadata;
+  const userInitials = userData?.name 
+    ? userData.name.split(" ").map((name: string) => name[0]).join("").toUpperCase()
+    : (userData?.email ? userData.email[0].toUpperCase() : "U");
 
   const handleSignOut = async () => {
     try {
@@ -37,8 +39,8 @@ const UserProfileButton = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-9 w-9">
-            {currentUser.photoURL ? (
-              <AvatarImage src={currentUser.photoURL} alt={currentUser.displayName || "User"} />
+            {userData?.avatar_url ? (
+              <AvatarImage src={userData.avatar_url} alt={userData?.name || "User"} />
             ) : (
               <AvatarFallback>{userInitials}</AvatarFallback>
             )}
@@ -49,7 +51,7 @@ const UserProfileButton = () => {
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/profile")}>
-          <User className="mr-2 h-4 w-4" />
+          <UserIcon className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSignOut}>

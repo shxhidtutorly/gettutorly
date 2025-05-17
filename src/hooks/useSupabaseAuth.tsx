@@ -46,7 +46,7 @@ export const useSupabaseAuth = () => {
         password,
         options: {
           data: {
-            display_name: displayName || email.split('@')[0]
+            name: displayName || email.split('@')[0]
           }
         }
       });
@@ -100,7 +100,13 @@ export const useSupabaseAuth = () => {
         description: email ? `Signed in as ${email}` : "Signed in with Google",
       });
       
-      return result.data.user;
+      // For OAuth we can't directly return the user since it requires a redirect
+      // For password auth we can
+      if (email && password) {
+        return result.data.user;
+      }
+      
+      return null;
     } catch (error: any) {
       toast({
         title: "Sign in failed",

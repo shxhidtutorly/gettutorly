@@ -83,8 +83,8 @@ export const uploadFile = async (userId: string, file: File, folder: string = 'f
   }
 };
 
-// Store summary in Supabase
-export const saveSummary = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
+// Store summary in Supabase - Make sure this is exported
+export const storeSummary = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
   try {
     const { data, error } = await supabase
       .from('summaries')
