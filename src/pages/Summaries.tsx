@@ -61,7 +61,8 @@ const Summaries = () => {
               id: summary.id,
               title: summary.title || "Untitled Summary",
               description: summary.content.substring(0, 100) + "...",
-              type: summary.content.length > 500 ? "deep" : "quick",
+              // Ensure type is either "quick" or "deep"
+              type: summary.content.length > 500 ? "deep" as const : "quick" as const,
               created: new Date(summary.created_at).toLocaleDateString(),
               readTime: `${Math.max(1, Math.floor(summary.content.length / 1000))} min read`,
               content: summary.content,
@@ -303,12 +304,13 @@ const Summaries = () => {
           fileUrl
         );
         
-        // Create a new summary object
+        // Create a new summary object with correct typing
+        const summaryType = summaryResult.length > 500 ? "deep" as const : "quick" as const;
         const newSummary: Summary = {
           id: savedSummary.id || Date.now(),
           title: selectedFile.name.replace(/\.[^/.]+$/, ""), // Remove file extension
           description: summaryResult.substring(0, 100) + "...",
-          type: summaryResult.length > 500 ? "deep" : "quick",
+          type: summaryType,
           created: "Just now",
           readTime: `${Math.max(1, Math.floor(summaryResult.length / 1000))} min read`,
           content: summaryResult,
