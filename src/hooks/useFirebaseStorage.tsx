@@ -1,13 +1,6 @@
 
 import { useState, useCallback } from "react";
-import { 
-  uploadFile, 
-  getFileURL, 
-  deleteFile, 
-  listUserFiles, 
-  validateFile,
-  backupUserFiles
-} from "@/lib/storage";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -28,11 +21,11 @@ export const useFirebaseStorage = () => {
     }
 
     // Validate file type and size
-    const validation = validateFile(file);
-    if (!validation.valid) {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
       toast({
-        title: "Invalid file",
-        description: validation.message || "This file type or size is not allowed.",
+        title: "File too large",
+        description: "Maximum file size is 10MB.",
         variant: "destructive",
       });
       return null;
@@ -42,28 +35,40 @@ export const useFirebaseStorage = () => {
       setIsUploading(true);
       setProgress(0);
       
-      // Use the enhanced upload function that returns task for monitoring progress
-      const { task, promise } = uploadFile(currentUser.uid, file, folder);
+      const filePath = `${currentUser.id}/${folder}/${Date.now()}_${file.name}`;
       
-      // Monitor upload progress
-      task.on('state_changed', 
-        (snapshot) => {
-          const progressValue = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          setProgress(progressValue);
-        },
-        (error) => {
-          console.error("Upload error:", error);
-          toast({
-            title: "Upload failed",
-            description: `Failed to upload ${file.name}. ${error instanceof Error ? error.message : 'Unknown error'}`,
-            variant: "destructive",
-          });
-          setIsUploading(false);
-        }
-      );
+      // Simulating progress because Supabase doesn't provide upload progress
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          const newProgress = prev + Math.random() * 10;
+          return newProgress > 95 ? 95 : newProgress;
+        });
+      }, 300);
       
-      // Wait for upload to complete
-      const fileDetails = await promise;
+      const { data, error } = await supabase.storage
+        .from('files')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      clearInterval(progressInterval);
+      
+      if (error) throw error;
+      
+      setProgress(100);
+      
+      const fileUrl = supabase.storage
+        .from('files')
+        .getPublicUrl(filePath).data.publicUrl;
+      
+      const fileDetails = {
+        path: filePath,
+        url: fileUrl,
+        fileName: file.name,
+        contentType: file.type,
+        size: file.size
+      };
       
       toast({
         title: "Upload complete",
@@ -88,7 +93,13 @@ export const useFirebaseStorage = () => {
     if (!currentUser) return [];
 
     try {
-      return await listUserFiles(currentUser.uid, folder);
+      const { data, error } = await supabase.storage
+        .from('files')
+        .list(`${currentUser.id}/${folder}`);
+        
+      if (error) throw error;
+      
+      return data || [];
     } catch (error) {
       console.error("Error listing files:", error);
       toast({
@@ -100,9 +111,20 @@ export const useFirebaseStorage = () => {
     }
   }, [currentUser, toast]);
 
+  const getFileURL = (filePath: string) => {
+    return supabase.storage
+      .from('files')
+      .getPublicUrl(filePath).data.publicUrl;
+  };
+
   const removeFile = async (filePath: string) => {
     try {
-      await deleteFile(filePath);
+      const { error } = await supabase.storage
+        .from('files')
+        .remove([filePath]);
+        
+      if (error) throw error;
+      
       toast({
         title: "File deleted",
         description: "The file has been removed successfully.",
@@ -131,14 +153,35 @@ export const useFirebaseStorage = () => {
 
     try {
       setIsUploading(true);
-      const result = await backupUserFiles(currentUser.uid, folder);
+      
+      // Get list of user's files
+      const { data: filesList, error: listError } = await supabase.storage
+        .from('files')
+        .list(`${currentUser.id}/${folder}`);
+        
+      if (listError) throw listError;
+      
+      // Create backup folder with timestamp
+      const backupFolder = `backups/${currentUser.id}/${Date.now()}`;
+      const copyPromises = filesList?.map(async (fileItem) => {
+        const sourceFile = `${currentUser.id}/${folder}/${fileItem.name}`;
+        const destFile = `${backupFolder}/${fileItem.name}`;
+        
+        const { error } = await supabase.storage
+          .from('files')
+          .copy(sourceFile, destFile);
+          
+        return { name: fileItem.name, success: !error };
+      }) || [];
+      
+      const results = await Promise.all(copyPromises);
       
       toast({
         title: "Files backed up",
-        description: `${result.length} files have been backed up successfully.`,
+        description: `${results.filter(r => r.success).length} files have been backed up successfully.`,
       });
 
-      return result;
+      return results;
     } catch (error) {
       console.error("File backup error:", error);
       toast({

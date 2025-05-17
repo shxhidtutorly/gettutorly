@@ -1,6 +1,6 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
-import { supabase, uploadFile, saveSummary } from './supabase';
+import { supabase } from './supabase';
 
 // Configure PDF.js worker properly
 import { GlobalWorkerOptions } from 'pdfjs-dist';
@@ -56,12 +56,52 @@ export const checkPDFProcessable = async (file: File): Promise<PDFCheckResult> =
   }
 };
 
-// Store summary in Supabase
-export const storeSummary = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
+// Upload file to Supabase storage
+export const uploadFile = async (userId: string, file: File, folder: string = 'files') => {
   try {
-    return await saveSummary(userId, summary, fileName, fileUrl);
+    const filePath = `${userId}/${folder}/${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage
+      .from('summaries')
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    const fileUrl = supabase.storage
+      .from('summaries')
+      .getPublicUrl(filePath).data.publicUrl;
+
+    return {
+      filePath,
+      fileUrl,
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size
+    };
   } catch (error) {
-    console.error("Error storing summary:", error);
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+};
+
+// Store summary in Supabase
+export const saveSummary = async (userId: string, summary: string, fileName: string, fileUrl: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('summaries')
+      .insert([{
+        user_id: userId,
+        title: fileName.replace(/\.[^/.]+$/, ""),
+        content: summary,
+        file_name: fileName,
+        file_url: fileUrl
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving summary:', error);
     throw error;
   }
 };

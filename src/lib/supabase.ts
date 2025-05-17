@@ -1,13 +1,17 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.warn('Missing Supabase environment variables. Using placeholder values for development.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  supabaseUrl || 'https://your-supabase-url.supabase.co',
+  supabaseAnonKey || 'your-anon-key'
+);
 
 // Storage helpers
 export const uploadFile = async (userId: string, file: File, folder: string = 'files') => {

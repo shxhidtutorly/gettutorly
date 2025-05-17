@@ -1,35 +1,20 @@
 
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  deleteDoc, 
-  addDoc, 
-  serverTimestamp, 
-  Timestamp, 
-  DocumentData,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-  onSnapshot,
-  QueryConstraint
-} from "firebase/firestore";
-import { db } from "./firebase";
+import { supabase } from './supabase';
 
 // User profile operations
 export const createUserProfile = async (userId: string, userData: any) => {
   try {
-    await setDoc(doc(db, "users", userId), {
-      ...userData,
-      role: userData.role || "student", // Default role
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    const { error } = await supabase
+      .from('users')
+      .upsert([{
+        id: userId,
+        ...userData,
+        role: userData.role || "student", // Default role
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }]);
+      
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error("Error creating user profile:", error);
@@ -39,14 +24,14 @@ export const createUserProfile = async (userId: string, userData: any) => {
 
 export const getUserProfile = async (userId: string) => {
   try {
-    const docRef = doc(db, "users", userId);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
-    } else {
-      return null;
-    }
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+      
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error("Error getting user profile:", error);
     throw error;
@@ -55,10 +40,15 @@ export const getUserProfile = async (userId: string) => {
 
 export const updateUserRole = async (userId: string, role: string) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
-      role: role,
-      updatedAt: serverTimestamp(),
-    });
+    const { error } = await supabase
+      .from('users')
+      .update({
+        role: role,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+      
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error("Error updating user role:", error);
@@ -69,8 +59,14 @@ export const updateUserRole = async (userId: string, role: string) => {
 // Admin-specific functions
 export const isUserAdmin = async (userId: string) => {
   try {
-    const userDoc = await getDoc(doc(db, "users", userId));
-    return userDoc.exists() && userDoc.data()?.role === "admin";
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+      
+    if (error) throw error;
+    return data?.role === "admin";
   } catch (error) {
     console.error("Error checking admin status:", error);
     throw error;
@@ -79,11 +75,12 @@ export const isUserAdmin = async (userId: string) => {
 
 export const getAllUsers = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, "users"));
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const { data, error } = await supabase
+      .from('users')
+      .select('*');
+      
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error("Error getting all users:", error);
     throw error;
@@ -93,12 +90,18 @@ export const getAllUsers = async () => {
 // Summary operations
 export const saveSummary = async (userId: string, summaryData: any) => {
   try {
-    const summaryRef = await addDoc(collection(db, "summaries"), {
-      userId,
-      ...summaryData,
-      createdAt: serverTimestamp(),
-    });
-    return summaryRef.id;
+    const { data, error } = await supabase
+      .from('summaries')
+      .insert([{
+        user_id: userId,
+        ...summaryData,
+        created_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data.id;
   } catch (error) {
     console.error("Error saving summary:", error);
     throw error;
@@ -107,13 +110,14 @@ export const saveSummary = async (userId: string, summaryData: any) => {
 
 export const getUserSummaries = async (userId: string) => {
   try {
-    const q = query(collection(db, "summaries"), where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const { data, error } = await supabase
+      .from('summaries')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error("Error getting user summaries:", error);
     throw error;
@@ -122,7 +126,12 @@ export const getUserSummaries = async (userId: string) => {
 
 export const deleteSummary = async (summaryId: string) => {
   try {
-    await deleteDoc(doc(db, "summaries", summaryId));
+    const { error } = await supabase
+      .from('summaries')
+      .delete()
+      .eq('id', summaryId);
+      
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error("Error deleting summary:", error);
@@ -133,43 +142,83 @@ export const deleteSummary = async (summaryId: string) => {
 // Study resources operations
 export const addStudyResource = async (resourceData: any) => {
   try {
-    const resourceRef = await addDoc(collection(db, "resources"), {
-      ...resourceData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return resourceRef.id;
+    const { data, error } = await supabase
+      .from('resources')
+      .insert([{
+        ...resourceData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data.id;
   } catch (error) {
     console.error("Error adding study resource:", error);
     throw error;
   }
 };
 
-export const getStudyResources = async (constraints: QueryConstraint[] = []) => {
+export const getStudyResources = async (filters: any = {}) => {
   try {
-    const resourcesQuery = query(collection(db, "resources"), ...constraints);
-    const querySnapshot = await getDocs(resourcesQuery);
+    let query = supabase
+      .from('resources')
+      .select('*');
+      
+    // Apply any filters dynamically
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query = query.eq(key, value);
+      }
+    });
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error("Error getting study resources:", error);
     throw error;
   }
 };
 
-export const subscribeToCollection = (collectionPath: string, callback: (data: DocumentData[]) => void, ...queryConstraints: QueryConstraint[]) => {
-  const q = query(collection(db, collectionPath), ...queryConstraints);
-  
-  return onSnapshot(q, (snapshot) => {
-    const data = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    callback(data);
-  });
-};
+export const subscribeToCollection = (collectionPath: string, callback: (data: any[]) => void, filters: any = {}) => {
+  // Initialize with a first fetch
+  const fetchData = async () => {
+    try {
+      let query = supabase
+        .from(collectionPath)
+        .select('*');
+        
+      // Apply any filters dynamically
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          query = query.eq(key, value);
+        }
+      });
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      callback(data || []);
+    } catch (error) {
+      console.error(`Error fetching ${collectionPath}:`, error);
+    }
+  };
 
-export { db };
+  fetchData();
+  
+  // Set up realtime subscription
+  const subscription = supabase
+    .channel(`public:${collectionPath}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: collectionPath }, () => {
+      fetchData();
+    })
+    .subscribe();
+  
+  // Return unsubscribe function
+  return () => {
+    subscription.unsubscribe();
+  };
+};

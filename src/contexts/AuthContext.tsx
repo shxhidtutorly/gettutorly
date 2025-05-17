@@ -1,9 +1,10 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  currentUser: any;
+  currentUser: User | null;
   loading: boolean;
   signUp: (email: string, password: string, displayName?: string) => Promise<any | null>;
   signIn: (email?: string, password?: string) => Promise<any | null>;
