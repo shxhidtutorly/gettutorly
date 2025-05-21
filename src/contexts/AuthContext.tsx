@@ -1,6 +1,5 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import React, { createContext, useContext, ReactNode, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -24,7 +23,24 @@ export function useAuth() {
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const auth = useSupabaseAuth();
+  // Create a dummy authentication state that's always "authenticated"
+  const [loading, setLoading] = useState(false);
+  
+  // Dummy auth methods that don't actually authenticate
+  const dummyAuth = {
+    currentUser: { id: 'temp-user-id', email: 'temp@example.com' } as User,
+    loading: false,
+    signUp: async () => null,
+    signIn: async () => {
+      // Just return a successful result without actual authentication
+      return { id: 'temp-user-id', email: 'temp@example.com' } as User;
+    },
+    signOut: async () => {
+      // Do nothing for now
+    },
+    resetPassword: async () => true,
+    updateUserProfile: async () => true
+  };
 
-  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={dummyAuth}>{children}</AuthContext.Provider>;
 };

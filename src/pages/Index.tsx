@@ -27,16 +27,8 @@ const Index = () => {
   const { currentUser } = useAuth();
   
   const handleGetStarted = () => {
-    if (currentUser) {
-      navigate("/dashboard");
-    } else {
-      setIsLoading(true);
-      // Simulate loading for better UX
-      setTimeout(() => {
-        setIsLoading(false);
-        navigate("/dashboard");
-      }, 800);
-    }
+    // Temporarily redirect directly to dashboard without checking authentication
+    navigate("/dashboard");
   };
   
   return (

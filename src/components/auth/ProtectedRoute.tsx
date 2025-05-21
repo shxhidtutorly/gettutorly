@@ -7,6 +7,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  // Temporarily disable authentication check
+  // When authentication is re-enabled, uncomment the following code:
+  /*
   const { currentUser, loading } = useAuth();
   const location = useLocation();
 
@@ -22,7 +25,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     // Redirect to login page with return URL
     return <Navigate to="/" state={{ from: location.pathname }} replace />;
   }
+  */
 
+  // For now, just render the children without checking authentication
   return <>{children}</>;
 };
 
