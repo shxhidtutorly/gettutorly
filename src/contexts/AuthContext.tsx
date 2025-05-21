@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email?: string, password?: string) => Promise<any | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
+  updateUserProfile?: (userData: { name?: string; avatar_url?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
