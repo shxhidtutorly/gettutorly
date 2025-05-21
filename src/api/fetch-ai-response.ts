@@ -1,4 +1,3 @@
-
 // This is a serverless function handler for use with platforms like Vercel or Netlify
 
 export default async function handler(req, res) {
