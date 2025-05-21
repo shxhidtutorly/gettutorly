@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, MessageCircle, Send } from "lucide-react";
+import { BookOpen, MessageCircle, Send, Minimize, Maximize } from "lucide-react";
 
 const AIAssistant = () => {
   // Update document title on component mount
@@ -14,7 +14,7 @@ const AIAssistant = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Navbar />
       
       <main className="container py-8 text-gray-800 dark:text-white">
@@ -52,10 +52,11 @@ const AIAssistant = () => {
 // Implement the AIChat component within the same file to ensure it works
 const AIChat = () => {
   const [messages, setMessages] = useState([
-    { role: 'system', content: 'Hello! I\'m your AI learning assistant. How can I help you today?' }
+    { role: 'system', content: 'Hello! I\'m your AI Study Tutor. How can I help you understand your material better today?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [minimized, setMinimized] = useState(false);
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -68,7 +69,7 @@ const AIChat = () => {
       // Simulate API call to AI service
       setTimeout(() => {
         // Sample responses based on common educational questions
-        let aiResponse = "I'm processing your question. Could you provide more details?";
+        let aiResponse = "I'm currently unable to connect to our AI servers. Please try again later or browse our pre-made study materials in the meantime. We apologize for the inconvenience.";
         
         const userQuestion = input.toLowerCase();
         if (userQuestion.includes('cellular respiration')) {
@@ -91,15 +92,49 @@ const AIChat = () => {
     setInput('');
   };
 
+  if (minimized) {
+    return (
+      <div className="fixed bottom-4 right-4 p-4 bg-blue-500 text-white rounded-full shadow-lg cursor-pointer hover:bg-blue-600 z-50 flex items-center justify-center"
+           onClick={() => setMinimized(false)}>
+        <MessageCircle className="h-6 w-6" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md h-[600px]">
+    <div className="flex flex-col bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md h-[600px] relative">
+      {/* Chat header with minimize button */}
+      <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center">
+          <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">
+            <span className="text-sm">AI</span>
+          </div>
+          <span className="font-medium">AI Study Tutor</span>
+          <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full">Beta</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setMinimized(true)}
+            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+            aria-label="Minimize chat"
+          >
+            <Minimize className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      
       {/* Chat messages area */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-4">
+      <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
         {messages.map((message, index) => (
           <div 
             key={index} 
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
+            {message.role !== 'user' && (
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2 flex-shrink-0">
+                <span className="text-sm">AI</span>
+              </div>
+            )}
             <div 
               className={`max-w-3/4 p-3 rounded-lg ${
                 message.role === 'user' 
@@ -113,6 +148,9 @@ const AIChat = () => {
         ))}
         {isLoading && (
           <div className="flex justify-start">
+            <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2 flex-shrink-0">
+              <span className="text-sm">AI</span>
+            </div>
             <div className="max-w-3/4 p-3 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-bl-none">
               <div className="flex space-x-1">
                 <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce"></div>
@@ -125,7 +163,7 @@ const AIChat = () => {
       </div>
       
       {/* Input area */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
         <div className="flex">
           <input
             type="text"
@@ -133,7 +171,7 @@ const AIChat = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Ask me anything about your studies..."
-            className="flex-grow py-2 px-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-grow py-2 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
           />
           <button
             onClick={handleSendMessage}
@@ -150,19 +188,19 @@ const AIChat = () => {
           <div className="flex flex-wrap gap-2">
             <button 
               onClick={() => setInput("Explain cellular respiration")}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
             >
               Explain cellular respiration
             </button>
             <button 
               onClick={() => setInput("How does photosynthesis work?")}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
             >
               How does photosynthesis work?
             </button>
             <button 
               onClick={() => setInput("Explain the stages of mitosis")}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
             >
               Explain the stages of mitosis
             </button>
