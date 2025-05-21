@@ -1,7 +1,7 @@
 
-import type { Request, Response } from 'express';
+// This is a serverless function handler for use with platforms like Vercel or Netlify
 
-export default async function handler(req: Request, res: Response) {
+export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -20,7 +20,7 @@ export default async function handler(req: Request, res: Response) {
     console.error('AI response error:', error);
     return res.status(500).json({ 
       error: 'Failed to generate AI response',
-      details: (error as Error).message
+      details: (error instanceof Error) ? error.message : String(error)
     });
   }
 }
@@ -126,8 +126,8 @@ async function fetchAIResponse(prompt: string): Promise<string> {
           retryCount++;
         }
       } catch (e) {
-        console.error(`${provider.name} failed: ${(e as Error).message}.`);
-        failedProviders.push(`${provider.name} (${(e as Error).message})`);
+        console.error(`${provider.name} failed: ${(e instanceof Error) ? e.message : String(e)}.`);
+        failedProviders.push(`${provider.name} (${(e instanceof Error) ? e.message : String(e)})`);
         retryCount++;
       }
       
