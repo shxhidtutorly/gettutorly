@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -70,8 +71,8 @@ const staggerContainer = {
 };
 
 // Custom animation hook to trigger animations when in view
-function useAnimateOnScroll() {
-  const ref = useRef(null);
+function useAnimateOnScroll(): [React.RefObject<HTMLDivElement>, boolean] {
+  const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-100px 0px" });
   
   return [ref, isInView];
@@ -285,17 +286,17 @@ const Index = () => {
 };
 
 // Counter component for animated number counting
-const CountUp = ({ end, className }) => {
+const CountUp = ({ end, className }: { end: number; className: string }) => {
   const [count, setCount] = useState(0);
   const [ref, isInView] = useAnimateOnScroll();
   
   useEffect(() => {
     if (!isInView) return;
     
-    let startTimestamp;
+    let startTimestamp: number;
     const duration = 2000; // 2 seconds
     
-    const step = (timestamp) => {
+    const step = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
       setCount(Math.floor(progress * end));
@@ -381,7 +382,7 @@ const FeaturesSection = () => {
 };
 
 // Upload Section Component with scroll animations
-const UploadSection = ({ handleGetStarted }) => {
+const UploadSection = ({ handleGetStarted }: { handleGetStarted: () => void }) => {
   const [ref, isInView] = useAnimateOnScroll();
   
   return (
@@ -615,7 +616,7 @@ const TestimonialsSection = () => {
             whileHover={{ y: -10, transition: { duration: 0.2 } }}
           >
             <div className="text-5xl font-bold text-purple-500 mb-3">
-              <CountUp end={30} />%
+              <CountUp end={30} className="font-bold text-purple-500" />%
             </div>
             <p className="text-lg font-medium text-foreground">Average Exam Score Improvement</p>
           </motion.div>
@@ -624,7 +625,7 @@ const TestimonialsSection = () => {
             whileHover={{ y: -10, transition: { duration: 0.2 } }}
           >
             <div className="text-5xl font-bold text-purple-500 mb-3">
-              <CountUp end={10000} />+
+              <CountUp end={10000} className="font-bold text-purple-500" />+
             </div>
             <p className="text-lg font-medium text-foreground">Active Student Users</p>
           </motion.div>
@@ -633,7 +634,7 @@ const TestimonialsSection = () => {
             whileHover={{ y: -10, transition: { duration: 0.2 } }}
           >
             <div className="text-5xl font-bold text-purple-500 mb-3">
-              <CountUp end={40} />%
+              <CountUp end={40} className="font-bold text-purple-500" />%
             </div>
             <p className="text-lg font-medium text-foreground">Less Study Time Required</p>
           </motion.div>
@@ -644,7 +645,7 @@ const TestimonialsSection = () => {
 };
 
 // CTA Section Component with scroll animations
-const CTASection = ({ currentUser, navigate }) => {
+const CTASection = ({ currentUser, navigate }: { currentUser: any; navigate: any }) => {
   const [ref, isInView] = useAnimateOnScroll();
   
   return (
@@ -705,7 +706,7 @@ const CTASection = ({ currentUser, navigate }) => {
 };
 
 // Feature Card Component with hover animations
-const FeatureCard = ({ icon, title, description }) => (
+const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
   <motion.div
     whileHover={{ y: -10, transition: { duration: 0.2 } }}
   >
@@ -728,7 +729,7 @@ const FeatureCard = ({ icon, title, description }) => (
 );
 
 // Document Type Card with hover animations
-const DocumentTypeCard = ({ icon, title, description }) => (
+const DocumentTypeCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
   <motion.div
     whileHover={{ 
       scale: 1.03,
@@ -756,7 +757,7 @@ const DocumentTypeCard = ({ icon, title, description }) => (
 );
 
 // Benefit Card with hover animations
-const BenefitCard = ({ number, title, description }) => (
+const BenefitCard = ({ number, title, description }: { number: string; title: string; description: string }) => (
   <motion.div
     whileHover={{ 
       y: -10,
@@ -779,7 +780,7 @@ const BenefitCard = ({ number, title, description }) => (
 );
 
 // Testimonial Card Component with hover animations
-const TestimonialCard = ({ quote, author, role }) => (
+const TestimonialCard = ({ quote, author, role }: { quote: string; author: string; role: string }) => (
   <motion.div
     whileHover={{ 
       y: -10,

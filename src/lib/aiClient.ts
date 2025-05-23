@@ -14,30 +14,47 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
     
     // Get the response as text first to help with debugging
     const responseText = await response.text();
+    console.log('Raw API response:', responseText.substring(0, 200) + '...');
     
-    // If the response is not OK, log the error and throw
+    // If the response is not OK, log the error and use fallback
     if (!response.ok) {
       console.error(`API error (${response.status}):`, responseText);
-      throw new Error(`API error (${response.status}): ${responseText}`);
+      
+      // Parse error response if possible
+      try {
+        const errorData = JSON.parse(responseText);
+        console.error('Parsed error data:', errorData);
+      } catch (e) {
+        console.error('Could not parse error response as JSON');
+      }
+      
+      // Use fallback instead of throwing error
+      console.log('Using fallback response due to API error');
+      return generateFallbackResponse(prompt);
     }
     
     // Try to parse the response as JSON
     let data;
     try {
       data = JSON.parse(responseText);
+      console.log('Parsed API response data:', data);
     } catch (e) {
       console.error('Failed to parse API response as JSON:', responseText);
-      throw new Error('Invalid JSON response from API');
+      console.log('Using fallback response due to JSON parse error');
+      return generateFallbackResponse(prompt);
     }
     
     if (!data.result) {
-      console.error('Invalid API response format:', data);
-      throw new Error('Invalid response from AI service');
+      console.error('Invalid API response format - missing result field:', data);
+      console.log('Using fallback response due to missing result');
+      return generateFallbackResponse(prompt);
     }
     
+    console.log('Successfully got AI response');
     return data.result;
   } catch (error) {
     console.error('Error fetching AI response:', error);
+    console.log('Using fallback response due to fetch error');
     // Use the fallback response in case of any errors
     return generateFallbackResponse(prompt);
   }
@@ -45,12 +62,18 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
 
 // Generate a fallback response when API call fails
 function generateFallbackResponse(prompt: string): string {
+  console.log('Generating fallback response for prompt:', prompt.substring(0, 50) + '...');
+  
   // Extract potential keywords to customize the response
-  const isForSummary = prompt.toLowerCase().includes("summarize") || prompt.toLowerCase().includes("summary");
-  const isForExplanation = prompt.toLowerCase().includes("explain") || prompt.toLowerCase().includes("how does");
-  const isForQuestion = prompt.toLowerCase().includes("?") || prompt.toLowerCase().includes("what is");
+  const lowerPrompt = prompt.toLowerCase();
+  const isGreeting = lowerPrompt.includes("hi") || lowerPrompt.includes("hello") || lowerPrompt.includes("hey");
+  const isForSummary = lowerPrompt.includes("summarize") || lowerPrompt.includes("summary");
+  const isForExplanation = lowerPrompt.includes("explain") || lowerPrompt.includes("how does");
+  const isForQuestion = lowerPrompt.includes("?") || lowerPrompt.includes("what is");
 
-  if (isForSummary) {
+  if (isGreeting) {
+    return "Tutor AI: Hello! I'm your AI study assistant. I'm currently having some connectivity issues, but I'm here to help you with your studies. You can ask me questions about your study materials, request summaries, or get help with explanations.";
+  } else if (isForSummary) {
     return "Tutor AI: I couldn't connect to our AI providers at the moment. Here's a general summary: This content covers key academic concepts that are important for understanding the subject matter. The material introduces fundamental principles and provides examples of their application in real-world contexts.";
   } else if (isForExplanation) {
     return "Tutor AI: I'm having trouble connecting to our AI providers right now. This concept typically involves understanding the relationship between different elements and how they interact with each other. Try breaking it down into smaller parts and addressing each component individually.";
