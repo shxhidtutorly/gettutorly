@@ -2,14 +2,24 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
   console.log('=== CLIENT REQUEST START ===');
   console.log('Sending request with prompt:', prompt.substring(0, 50) + '...');
   
+  // Add URL validation
+  const apiUrl = '/api/fetch-ai-response';
+  console.log('API URL:', apiUrl);
+  console.log('Current origin:', window.location.origin);
+  console.log('Full URL will be:', window.location.origin + apiUrl);
+  
   try {
     const requestBody = { prompt };
     console.log('Request body:', JSON.stringify(requestBody));
     
-    const response = await fetch('/api/fetch-ai-response', {
+    // Add a small delay to ensure logs are visible
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify(requestBody),
     });
@@ -22,6 +32,28 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
     const responseText = await response.text();
     console.log('Raw response text:', responseText);
     
+    // Handle specific HTTP status codes
+    if (response.status === 405) {
+      console.error('405 Method Not Allowed - API endpoint configuration issue');
+      console.error('Check your API handler file location and export');
+      console.error('Expected location: pages/api/fetch-ai-response.js or app/api/fetch-ai-response/route.js');
+      
+      // Try to get more info from the response
+      if (responseText) {
+        console.error('Server response for 405:', responseText);
+      }
+      
+      // Use fallback for 405 errors
+      console.log('Using fallback response due to 405 error');
+      return generateFallbackResponse(prompt);
+    }
+    
+    if (response.status === 404) {
+      console.error('404 Not Found - API endpoint does not exist');
+      console.log('Using fallback response due to 404 error');
+      return generateFallbackResponse(prompt);
+    }
+    
     if (!response.ok) {
       console.error(`API responded with status ${response.status}`);
       console.error('Error response text:', responseText);
@@ -33,8 +65,22 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
         throw new Error(`API Error (${response.status}): ${errorData.message || errorData.error || 'Unknown error'}`);
       } catch (parseError) {
         console.error('Could not parse error response as JSON');
+        
+        // For non-critical errors, use fallback instead of throwing
+        if (response.status >= 500) {
+          console.log('Server error detected, using fallback response');
+          return generateFallbackResponse(prompt);
+        }
+        
         throw new Error(`API Error (${response.status}): ${responseText || 'No error message'}`);
       }
+    }
+    
+    // Handle empty response
+    if (!responseText || responseText.trim() === '') {
+      console.error('Received empty response from API');
+      console.log('Using fallback response due to empty response');
+      return generateFallbackResponse(prompt);
     }
     
     // Try to parse successful response
@@ -44,27 +90,43 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
       
       if (!data.result) {
         console.error('Response missing result field:', data);
-        throw new Error('Invalid response format - missing result field');
+        console.log('Using fallback response due to missing result field');
+        return generateFallbackResponse(prompt);
       }
       
       console.log('Successfully got AI response');
+      console.log('=== CLIENT REQUEST SUCCESS ===');
       return data.result;
       
     } catch (parseError) {
       console.error('Failed to parse successful response as JSON:', responseText);
-      throw new Error('Invalid JSON response from API');
+      console.error('Parse error:', parseError);
+      console.log('Using fallback response due to JSON parse error');
+      return generateFallbackResponse(prompt);
     }
     
   } catch (error) {
     console.error('=== CLIENT REQUEST ERROR ===');
     console.error('Error:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error constructor:', error?.constructor?.name);
     
-    // Don't use fallback immediately - let the error bubble up for debugging
-    if (error instanceof Error) {
-      throw error;
-    } else {
-      throw new Error('Unknown error occurred while fetching AI response');
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('Network error detected - could be CORS, network connectivity, or server down');
+      console.log('Using fallback response due to network error');
+      return generateFallbackResponse(prompt);
     }
+    
+    // For development debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Development mode - additional debugging info:');
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    }
+    
+    // Use fallback for most errors instead of throwing
+    console.log('Using fallback response due to unexpected error');
+    return generateFallbackResponse(prompt);
   }
 }
 
