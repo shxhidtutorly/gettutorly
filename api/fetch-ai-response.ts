@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // CORS
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,20 +13,28 @@ export default async function handler(req, res) {
   }
   
   try {
-    const { prompt } = req.body; // Vercel automatically parses JSON
+    console.log('Request body:', req.body);
     
-    if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ message: 'Missing or invalid prompt' });
+    const { prompt, message } = req.body;
+    const userInput = prompt || message;
+    
+    if (!userInput || typeof userInput !== 'string') {
+      return res.status(400).json({ message: 'Missing or invalid prompt/message' });
     }
     
-    const reply = `Hello! You sent: "${prompt}"`;
-    return res.status(200).json({ result: reply });
+    // Simple echo response for testing
+    const reply = `Echo: ${userInput}`;
+    
+    return res.status(200).json({ 
+      result: reply,
+      success: true 
+    });
     
   } catch (error) {
-    console.error('Function crashed:', error);
+    console.error('Handler error:', error);
     return res.status(500).json({
       message: 'Internal Server Error',
-      error: error.message || 'Unknown error',
+      error: error.message
     });
   }
 }
