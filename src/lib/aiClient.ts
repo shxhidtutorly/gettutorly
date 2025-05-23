@@ -1,62 +1,70 @@
-
 export async function fetchAIResponse(prompt: string): Promise<string> {
+  console.log('=== CLIENT REQUEST START ===');
+  console.log('Sending request with prompt:', prompt.substring(0, 50) + '...');
+  
   try {
-    console.log('Sending request to AI API with prompt:', prompt.substring(0, 50) + '...');
+    const requestBody = { prompt };
+    console.log('Request body:', JSON.stringify(requestBody));
     
-    // Make a POST request to our secure server-side API endpoint
     const response = await fetch('/api/fetch-ai-response', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(requestBody),
     });
     
-    // Get the response as text first to help with debugging
-    const responseText = await response.text();
-    console.log('Raw API response:', responseText.substring(0, 200) + '...');
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
     
-    // If the response is not OK, log the error and use fallback
+    // Get response text first
+    const responseText = await response.text();
+    console.log('Raw response text:', responseText);
+    
     if (!response.ok) {
-      console.error(`API error (${response.status}):`, responseText);
+      console.error(`API responded with status ${response.status}`);
+      console.error('Error response text:', responseText);
       
-      // Parse error response if possible
+      // Try to parse error as JSON
       try {
         const errorData = JSON.parse(responseText);
         console.error('Parsed error data:', errorData);
-      } catch (e) {
+        throw new Error(`API Error (${response.status}): ${errorData.message || errorData.error || 'Unknown error'}`);
+      } catch (parseError) {
         console.error('Could not parse error response as JSON');
+        throw new Error(`API Error (${response.status}): ${responseText || 'No error message'}`);
+      }
+    }
+    
+    // Try to parse successful response
+    try {
+      const data = JSON.parse(responseText);
+      console.log('Parsed response data:', data);
+      
+      if (!data.result) {
+        console.error('Response missing result field:', data);
+        throw new Error('Invalid response format - missing result field');
       }
       
-      // Use fallback instead of throwing error
-      console.log('Using fallback response due to API error');
-      return generateFallbackResponse(prompt);
+      console.log('Successfully got AI response');
+      return data.result;
+      
+    } catch (parseError) {
+      console.error('Failed to parse successful response as JSON:', responseText);
+      throw new Error('Invalid JSON response from API');
     }
     
-    // Try to parse the response as JSON
-    let data;
-    try {
-      data = JSON.parse(responseText);
-      console.log('Parsed API response data:', data);
-    } catch (e) {
-      console.error('Failed to parse API response as JSON:', responseText);
-      console.log('Using fallback response due to JSON parse error');
-      return generateFallbackResponse(prompt);
-    }
-    
-    if (!data.result) {
-      console.error('Invalid API response format - missing result field:', data);
-      console.log('Using fallback response due to missing result');
-      return generateFallbackResponse(prompt);
-    }
-    
-    console.log('Successfully got AI response');
-    return data.result;
   } catch (error) {
-    console.error('Error fetching AI response:', error);
-    console.log('Using fallback response due to fetch error');
-    // Use the fallback response in case of any errors
-    return generateFallbackResponse(prompt);
+    console.error('=== CLIENT REQUEST ERROR ===');
+    console.error('Error:', error);
+    
+    // Don't use fallback immediately - let the error bubble up for debugging
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Unknown error occurred while fetching AI response');
+    }
   }
 }
 
