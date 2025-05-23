@@ -1,6 +1,8 @@
 
 export async function fetchAIResponse(prompt: string): Promise<string> {
   try {
+    console.log('Sending request to AI API with prompt:', prompt.substring(0, 50) + '...');
+    
     // Make a POST request to our secure server-side API endpoint
     const response = await fetch('/api/fetch-ai-response', {
       method: 'POST',
@@ -10,20 +12,33 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
       body: JSON.stringify({ prompt }),
     });
     
+    // Get the response as text first to help with debugging
+    const responseText = await response.text();
+    
+    // If the response is not OK, log the error and throw
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error (${response.status}): ${errorText}`);
+      console.error(`API error (${response.status}):`, responseText);
+      throw new Error(`API error (${response.status}): ${responseText}`);
     }
     
-    const data = await response.json();
+    // Try to parse the response as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse API response as JSON:', responseText);
+      throw new Error('Invalid JSON response from API');
+    }
     
-    if (!data.response) {
+    if (!data.result) {
+      console.error('Invalid API response format:', data);
       throw new Error('Invalid response from AI service');
     }
     
-    return data.response;
+    return data.result;
   } catch (error) {
     console.error('Error fetching AI response:', error);
+    // Use the fallback response in case of any errors
     return generateFallbackResponse(prompt);
   }
 }
