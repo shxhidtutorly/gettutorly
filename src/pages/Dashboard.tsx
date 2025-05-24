@@ -20,7 +20,14 @@ import {
   Zap,
   FlaskConical,
   ListChecks,
-  ScrollText
+  ScrollText,
+  TrendingUp,
+  Award,
+  ChevronRight,
+  Activity,
+  Star,
+  Target,
+  Calendar
 } from "lucide-react";
 import AITutor from "@/components/features/AITutor";
 import ProgressDashboard from "@/components/features/ProgressDashboard";
@@ -38,28 +45,38 @@ const Dashboard = () => {
     filesUploaded: 5,
     chatsUsed: 12,
     recentActivity: [
-      { type: "file", name: "Psychology 101 Notes", time: "2 hours ago" },
-      { type: "chat", name: "Asked about cognitive biases", time: "Yesterday" }
+      { type: "quiz", name: "Completed Biology quiz", time: "2h ago" },
+      { type: "flashcard", name: "Created 12 new flashcards", time: "Yesterday" },
+      { type: "file", name: "Psychology 101 Notes", time: "2 days ago" },
+      { type: "chat", name: "Asked about cognitive biases", time: "3 days ago" }
     ],
     bookmarks: [
       { type: "note", name: "Chapter 4 Summary", id: "note1" },
       { type: "chat", name: "AI explanation of quantum physics", id: "chat1" }
+    ],
+    stats: {
+      dailyStreak: 7,
+      conceptsMastered: 24,
+      studyTime: 4.5,
+      quizAccuracy: 86
+    },
+    goals: [
+      { subject: "Biology 101 - Chapter 4", progress: 75 },
+      { subject: "Chemistry - Periodic Table", progress: 40 },
+      { subject: "History - World War II", progress: 90 }
     ]
   });
 
   const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate data loading
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
-
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    // Check if user is online
     const handleOnlineStatusChange = () => {
       if (!navigator.onLine) {
         toast({
@@ -81,7 +98,6 @@ const Dashboard = () => {
 
   const handleUpload = () => {
     setLoading(prev => ({ ...prev, upload: true }));
-    // Simulate upload processing
     setTimeout(() => {
       setLoading(prev => ({ ...prev, upload: false }));
       navigate('/library');
@@ -90,7 +106,6 @@ const Dashboard = () => {
 
   const handleChat = () => {
     setLoading(prev => ({ ...prev, chat: true }));
-    // Navigate to chat page
     setTimeout(() => {
       setLoading(prev => ({ ...prev, chat: false }));
       navigate('/chat');
@@ -101,30 +116,45 @@ const Dashboard = () => {
     navigate(path);
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      <main className="flex-1 py-6 px-4 space-y-8 pb-20 md:pb-8">
-        <div className="container max-w-6xl mx-auto">
-          {/* Welcome Section - Improved spacing and mobile layout */}
-          <section className="rounded-xl bg-gradient-to-br from-spark-light via-white to-spark-blue p-6 dark:from-spark-primary/10 dark:via-background dark:to-spark-secondary/10">
-            <div className="animate-fade-in space-y-4">
-              <h1 className="text-2xl md:text-3xl font-bold">
-                Welcome back, {user.name}!
-              </h1>
-              <p className="text-muted-foreground">
-                Ready to continue your learning journey today?
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
+      <main className="flex-1 py-6 px-4 space-y-6 pb-20 md:pb-8">
+        <div className="container max-w-7xl mx-auto">
+          {/* Welcome Section */}
+          <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 border border-border/50 p-6 md:p-8">
+            <div className="relative z-10 space-y-4">
+              <div className="space-y-2">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                  Welcome back, {user.name}!
+                </h1>
+                <p className="text-muted-foreground text-base md:text-lg">
+                  Ready to continue your learning journey today?
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Button 
                   onClick={handleUpload}
                   disabled={loading.upload}
-                  className="w-full sm:w-auto button-click-effect"
+                  className="flex-1 sm:flex-none transition-all duration-200 hover:scale-105"
+                  size="lg"
                 >
                   {loading.upload ? (
                     <>
-                      <div className="loading-spinner mr-2"></div>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
                       Processing...
                     </>
                   ) : (
@@ -136,13 +166,14 @@ const Dashboard = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  className="w-full sm:w-auto button-click-effect dark:border-muted dark:bg-muted dark:text-foreground"
+                  className="flex-1 sm:flex-none transition-all duration-200 hover:scale-105"
                   onClick={handleChat}
                   disabled={loading.chat}
+                  size="lg"
                 >
                   {loading.chat ? (
                     <>
-                      <div className="loading-spinner mr-2"></div>
+                      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin mr-2"></div>
                       Opening...
                     </>
                   ) : (
@@ -156,68 +187,90 @@ const Dashboard = () => {
             </div>
           </section>
 
-          {/* Main Features Grid - Better organization and spacing */}
-          <section className="py-8 space-y-6">
-            <h2 className="text-xl md:text-2xl font-semibold">Study Tools</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div onClick={() => handleFeatureClick('/chat')} className="cursor-pointer">
-                <StudyFeatureCard 
-                  title="AI Study Tutor"
-                  description="Get personalized help with any topic"
-                  icon={<MessageSquare className="h-6 w-6 text-white" />}
-                  href="/chat"
-                  color="bg-spark-primary"
-                />
-              </div>
-              <div onClick={() => handleFeatureClick('/flashcards')} className="cursor-pointer">
-                <StudyFeatureCard 
-                  title="Flashcards"
-                  description="Review key concepts effectively"
-                  icon={<BookOpen className="h-6 w-6 text-white" />}
-                  href="/flashcards"
-                  color="bg-spark-secondary"
-                />
-              </div>
-              <div onClick={() => handleFeatureClick('/quiz')} className="cursor-pointer">
-                <StudyFeatureCard 
-                  title="Quizzes"
-                  description="Test your understanding"
-                  icon={<ListChecks className="h-6 w-6 text-white" />}
-                  href="/quiz"
-                  color="bg-blue-500"
-                />
-              </div>
-              <div onClick={() => handleFeatureClick('/summaries')} className="cursor-pointer">
-                <StudyFeatureCard 
-                  title="Summaries"
-                  description="Get quick topic overviews"
-                  icon={<ScrollText className="h-6 w-6 text-white" />}
-                  href="/summaries"
-                  color="bg-purple-500"
-                />
-              </div>
+          {/* Study Tools Grid */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground">
+                Study Tools
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StudyFeatureCard 
+                title="AI Study Tutor"
+                description="Get personalized help with any topic"
+                icon={<MessageSquare className="h-6 w-6 text-white" />}
+                onClick={() => handleFeatureClick('/chat')}
+                gradient="from-purple-500 to-purple-600"
+              />
+              <StudyFeatureCard 
+                title="Flashcards"
+                description="Review key concepts effectively"
+                icon={<BookOpen className="h-6 w-6 text-white" />}
+                onClick={() => handleFeatureClick('/flashcards')}
+                gradient="from-purple-400 to-purple-500"
+              />
+              <StudyFeatureCard 
+                title="Quizzes"
+                description="Test your understanding"
+                icon={<ListChecks className="h-6 w-6 text-white" />}
+                onClick={() => handleFeatureClick('/quiz')}
+                gradient="from-blue-500 to-blue-600"
+              />
+              <StudyFeatureCard 
+                title="Summaries"
+                description="Get quick topic overviews"
+                icon={<ScrollText className="h-6 w-6 text-white" />}
+                onClick={() => handleFeatureClick('/summaries')}
+                gradient="from-purple-500 to-pink-500"
+              />
             </div>
           </section>
 
-          {/* Progress and AI Chat Section - Improved layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* AI Tutor Section */}
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* AI Study Tutor Section */}
             <section className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl md:text-2xl font-semibold">AI Study Tutor</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">AI Study Tutor</h2>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="button-click-effect dark:border-muted dark:bg-muted"
                   onClick={() => navigate('/chat')}
+                  className="transition-all duration-200 hover:scale-105"
                 >
                   Open Full Chat
                 </Button>
               </div>
-              <Card className="border dark:border-muted">
-                <CardContent className="p-4">
-                  <div className="h-[350px] overflow-hidden">
-                    <AITutor />
+              <Card className="border border-border bg-card">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-primary to-purple-600 rounded-full flex items-center justify-center">
+                        <MessageSquare className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-foreground">AI Study Tutor</h3>
+                        <div className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          Beta
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Hello! I'm your AI Study Tutor. How can I help you understand your material better today?
+                      </p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="secondary" className="text-xs">
+                          Chat
+                        </Button>
+                        <Button size="sm" variant="secondary" className="text-xs">
+                          Quiz Me
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -225,38 +278,89 @@ const Dashboard = () => {
 
             {/* Progress Section */}
             <section className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl md:text-2xl font-semibold">Your Progress</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">Your Progress</h2>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="button-click-effect dark:border-muted dark:bg-muted"
                   onClick={() => navigate('/progress')}
+                  className="transition-all duration-200 hover:scale-105"
                 >
                   See Detailed Progress
                 </Button>
               </div>
-              <Card className="border dark:border-muted">
-                <CardContent className="p-4">
-                  <ProgressDashboard />
+              <Card className="border border-border bg-card">
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <h3 className="font-medium text-foreground mb-4">Your Progress</h3>
+                      <p className="text-sm text-muted-foreground mb-4">Track your learning journey</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Target className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-foreground">{user.stats.dailyStreak}</div>
+                        <div className="text-xs text-muted-foreground">Daily Streak</div>
+                      </div>
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Award className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-foreground">{user.stats.conceptsMastered}</div>
+                        <div className="text-xs text-muted-foreground">Concepts Mastered</div>
+                      </div>
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Clock className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-foreground">{user.stats.studyTime} hrs</div>
+                        <div className="text-xs text-muted-foreground">Study Time</div>
+                      </div>
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <TrendingUp className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-foreground">{user.stats.quizAccuracy}%</div>
+                        <div className="text-xs text-muted-foreground">Quiz Accuracy</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-sm text-foreground">Current Study Goals</h4>
+                      {user.goals.map((goal, index) => (
+                        <div key={index} className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-foreground font-medium">{goal.subject}</span>
+                            <span className="text-muted-foreground">{goal.progress}%</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-gradient-to-r from-primary to-purple-600 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${goal.progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </section>
           </div>
 
-          {/* Recent Activity - Simplified and cleaner */}
-          <section className="py-8 space-y-4">
-            <h2 className="text-xl md:text-2xl font-semibold">Recent Activity</h2>
+          {/* Recent Activities */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-foreground">Recent Activities</h2>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {isLoading ? (
-                Array(2).fill(null).map((_, i) => (
-                  <div key={i} className="animate-pulse h-24 bg-muted rounded-lg" />
-                ))
-              ) : (
-                user.recentActivity.map((activity, index) => (
-                  <ActivityItem key={index} activity={activity} />
-                ))
-              )}
+              {user.recentActivity.map((activity, index) => (
+                <ActivityItem key={index} activity={activity} />
+              ))}
             </div>
           </section>
         </div>
@@ -268,43 +372,70 @@ const Dashboard = () => {
   );
 };
 
-// Enhanced Feature Card Component with better hover effects
-const StudyFeatureCard = ({ title, description, icon, href, color }) => (
-  <Card className="h-full border-0 shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 dark:bg-card">
-    <div className={`${color} p-6 flex justify-center`}>
-      <div className="p-3 rounded-full bg-white/20 transform group-hover:scale-110 transition-transform">
-        {icon}
-      </div>
-    </div>
-    <CardContent className="p-4 text-center">
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </CardContent>
-  </Card>
-);
-
-// Improved Activity Item Component
-const ActivityItem = ({ activity }) => (
-  <Card className="transition-all duration-300 hover:shadow-md dark:bg-card">
-    <CardContent className="p-4 flex items-center gap-4">
-      <div className={`p-2 rounded-full ${
-        activity.type === 'file' ? 'bg-spark-blue' : 'bg-spark-peach'
-      }`}>
-        {activity.type === 'file' ? (
-          <FileText className="h-4 w-4 text-blue-600" />
-        ) : (
-          <MessageSquare className="h-4 w-4 text-orange-600" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{activity.name}</p>
-        <div className="flex items-center text-xs text-muted-foreground">
-          <Clock className="h-3 w-3 mr-1" />
-          <span>{activity.time}</span>
+// Study Feature Card Component
+const StudyFeatureCard = ({ title, description, icon, onClick, gradient }) => (
+  <div 
+    className="group cursor-pointer transition-all duration-200 hover:scale-105"
+    onClick={onClick}
+  >
+    <Card className="h-full border border-border bg-card hover:shadow-lg transition-shadow duration-200">
+      <div className={`bg-gradient-to-r ${gradient} p-6 rounded-t-lg`}>
+        <div className="flex justify-center">
+          <div className="p-3 bg-white/20 rounded-lg group-hover:scale-110 transition-transform duration-200">
+            {icon}
+          </div>
         </div>
       </div>
-    </CardContent>
-  </Card>
+      <CardContent className="p-4 text-center bg-card">
+        <h3 className="text-base font-semibold mb-2 text-foreground">{title}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  </div>
 );
+
+// Activity Item Component
+const ActivityItem = ({ activity }) => {
+  const getActivityIcon = (type) => {
+    const iconProps = { className: "h-4 w-4 text-white" };
+    switch (type) {
+      case 'file': return <FileText {...iconProps} />;
+      case 'chat': return <MessageSquare {...iconProps} />;
+      case 'quiz': return <ListChecks {...iconProps} />;
+      case 'flashcard': return <BookOpen {...iconProps} />;
+      default: return <Activity {...iconProps} />;
+    }
+  };
+
+  const getActivityColor = (type) => {
+    switch (type) {
+      case 'file': return 'from-blue-500 to-blue-600';
+      case 'chat': return 'from-purple-500 to-purple-600';
+      case 'quiz': return 'from-green-500 to-green-600';
+      case 'flashcard': return 'from-orange-500 to-orange-600';
+      default: return 'from-gray-500 to-gray-600';
+    }
+  };
+
+  return (
+    <Card className="border border-border bg-card hover:shadow-md transition-all duration-200 hover:scale-105 cursor-pointer">
+      <CardContent className="p-4 flex items-center gap-4">
+        <div className={`w-10 h-10 bg-gradient-to-r ${getActivityColor(activity.type)} rounded-lg flex items-center justify-center flex-shrink-0`}>
+          {getActivityIcon(activity.type)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground truncate">
+            {activity.name}
+          </p>
+          <div className="flex items-center text-xs text-muted-foreground mt-1">
+            <Clock className="h-3 w-3 mr-1" />
+            <span>{activity.time}</span>
+          </div>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </CardContent>
+    </Card>
+  );
+};
 
 export default Dashboard;
