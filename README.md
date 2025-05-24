@@ -7,7 +7,7 @@ Build the **initial prototype** of a modern AI-powered study web app using this 
 
 ### ⚙️ Stack & Integrations
 - **Frontend**: React + TailwindCSS + DaisyUI
-- **Backend**: Firebase (Auth, Firestore, Calendar sync)
+- **Backend**: supabase (Auth, edge function, Calendar sync)
 - **AI APIs**: Hugging Face (summarization, Q&A), OpenRouter (optional for chatbot)
 - **Deployment**: Vercel (GitHub integration)
 - **Dev environment**: Replit or Codesandbox (vibe-coded speed)
