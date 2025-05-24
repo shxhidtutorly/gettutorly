@@ -345,12 +345,13 @@ const Profile = () => {
                         <div className="space-y-2">
                           <Label htmlFor="location">Location</Label>
                           <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input 
-                              id="location"
-                              name="location"
-                              value={formData.location
-                  </Card>
+                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+<Input 
+  id="location"
+  name="location"
+  value={formData.location} // Added the missing closing brace
+/>
+</Card>
 
                   {/* Password Section */}
                   <Card className="shadow-lg border-0">
