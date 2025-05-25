@@ -2,18 +2,17 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
   console.log('=== CLIENT REQUEST START ===');
   console.log('Sending request with prompt:', prompt.substring(0, 50) + '...');
   
-  // Add URL validation
-  const apiUrl = '/api/fetch-ai-response';
+  // Use Supabase Edge Function URL
+  // Note: Replace 'your-project-ref' with your actual Supabase project reference
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const projectRef = supabaseUrl ? new URL(supabaseUrl).hostname.split('.')[0] : 'your-project-ref';
+  const apiUrl = `https://${projectRef}.functions.supabase.co/fetch-ai-response`;
+  
   console.log('API URL:', apiUrl);
-  console.log('Current origin:', window.location.origin);
-  console.log('Full URL will be:', window.location.origin + apiUrl);
   
   try {
     const requestBody = { prompt };
     console.log('Request body:', JSON.stringify(requestBody));
-    
-    // Add a small delay to ensure logs are visible
-    await new Promise(resolve => setTimeout(resolve, 10));
     
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -34,35 +33,26 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
     
     // Handle specific HTTP status codes
     if (response.status === 405) {
-      console.error('405 Method Not Allowed - API endpoint configuration issue');
-      console.error('Check your API handler file location and export');
-      console.error('Expected location: pages/api/fetch-ai-response.js or app/api/fetch-ai-response/route.js');
-      
-      // Try to get more info from the response
-      if (responseText) {
-        console.error('Server response for 405:', responseText);
-      }
-      
-      // Use fallback for 405 errors
+      console.error('405 Method Not Allowed - Supabase Edge Function configuration issue');
       console.log('Using fallback response due to 405 error');
       return generateFallbackResponse(prompt);
     }
     
     if (response.status === 404) {
-      console.error('404 Not Found - API endpoint does not exist');
+      console.error('404 Not Found - Supabase Edge Function does not exist or is not deployed');
       console.log('Using fallback response due to 404 error');
       return generateFallbackResponse(prompt);
     }
     
     if (!response.ok) {
-      console.error(`API responded with status ${response.status}`);
+      console.error(`Supabase Edge Function responded with status ${response.status}`);
       console.error('Error response text:', responseText);
       
       // Try to parse error as JSON
       try {
         const errorData = JSON.parse(responseText);
         console.error('Parsed error data:', errorData);
-        throw new Error(`API Error (${response.status}): ${errorData.message || errorData.error || 'Unknown error'}`);
+        throw new Error(`Supabase Error (${response.status}): ${errorData.message || errorData.error || 'Unknown error'}`);
       } catch (parseError) {
         console.error('Could not parse error response as JSON');
         
@@ -72,13 +62,13 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
           return generateFallbackResponse(prompt);
         }
         
-        throw new Error(`API Error (${response.status}): ${responseText || 'No error message'}`);
+        throw new Error(`Supabase Error (${response.status}): ${responseText || 'No error message'}`);
       }
     }
     
     // Handle empty response
     if (!responseText || responseText.trim() === '') {
-      console.error('Received empty response from API');
+      console.error('Received empty response from Supabase Edge Function');
       console.log('Using fallback response due to empty response');
       return generateFallbackResponse(prompt);
     }
@@ -94,7 +84,7 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
         return generateFallbackResponse(prompt);
       }
       
-      console.log('Successfully got AI response');
+      console.log('Successfully got AI response from Supabase Edge Function');
       console.log('=== CLIENT REQUEST SUCCESS ===');
       return data.result;
       
@@ -113,7 +103,7 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
     
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('Network error detected - could be CORS, network connectivity, or server down');
+      console.error('Network error detected - could be CORS, network connectivity, or Supabase Edge Function not deployed');
       console.log('Using fallback response due to network error');
       return generateFallbackResponse(prompt);
     }

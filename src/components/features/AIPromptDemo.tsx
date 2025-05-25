@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Send } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { fetchAIResponse } from "@/lib/aiClient";
 
 const AIPromptDemo = () => {
   const [prompt, setPrompt] = useState("");
@@ -28,25 +29,12 @@ const AIPromptDemo = () => {
     setResponse(null);
     
     try {
-      const result = await fetch('/api/fetch-ai-response', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt }),
-      });
-      
-      if (!result.ok) {
-        const errorData = await result.json();
-        throw new Error(errorData.message || 'Failed to get response');
-      }
-      
-      const data = await result.json();
-      setResponse(data.result);
+      const result = await fetchAIResponse(prompt);
+      setResponse(result);
       
       toast({
         title: "Success",
-        description: "Got response from AI",
+        description: "Got response from Supabase Edge Function",
       });
     } catch (error) {
       console.error('Error fetching AI response:', error);
@@ -63,7 +51,7 @@ const AIPromptDemo = () => {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>AI Prompt Demo</CardTitle>
+        <CardTitle>AI Prompt Demo (Supabase)</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
