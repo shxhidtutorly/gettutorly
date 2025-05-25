@@ -25,6 +25,13 @@ import {
   Calendar
 } from "lucide-react";
 
+// Type for password errors
+interface PasswordErrors {
+  current?: string;
+  new?: string;
+  confirm?: string;
+}
+
 const Profile = () => {
   const [activeSection, setActiveSection] = useState("account");
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +73,7 @@ const Profile = () => {
     confirm: ""
   });
 
-  const [passwordErrors, setPasswordErrors] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState<PasswordErrors>({});
 
   // Mock notifications data
   const notifications = [
@@ -124,7 +131,7 @@ const Profile = () => {
   };
 
   const validatePassword = () => {
-    const errors = {};
+    const errors: PasswordErrors = {};
     
     if (!passwordData.current) {
       errors.current = "Current password is required";
