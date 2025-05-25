@@ -303,7 +303,7 @@ const Profile = () => {
                         Update your personal details and contact information
                       </CardDescription>
                     </CardHeader>
-                    <div>
+                    <form onSubmit={handleSaveChanges}>
                       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name</Label>
@@ -345,13 +345,28 @@ const Profile = () => {
                         <div className="space-y-2">
                           <Label htmlFor="location">Location</Label>
                           <div className="relative">
-                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-<Input 
-  id="location"
-  name="location"
-  value={formData.location} // Added the missing closing brace
-/>
-</Card>
+                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                            <Input 
+                              id="location"
+                              name="location"
+                              value={formData.location}
+                              onChange={handleInputChange}
+                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button 
+                          type="submit" 
+                          disabled={isLoading}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                        >
+                          {isLoading ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </CardFooter>
+                    </form>
+                  </Card>
 
                   {/* Password Section */}
                   <Card className="shadow-lg border-0">
@@ -472,7 +487,7 @@ const Profile = () => {
                         Privacy Settings
                       </CardTitle>
                       <CardDescription>
-Control your privacy and data sharing preferences
+                        Control your privacy and data sharing preferences
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
