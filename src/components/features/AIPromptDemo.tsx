@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Send } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { fetchAIResponse } from "@/lib/aiClient";
+import { callVercelAI } from "@/lib/vercelAiClient";
 
 const AIPromptDemo = () => {
   const [prompt, setPrompt] = useState("");
@@ -25,16 +25,18 @@ const AIPromptDemo = () => {
       return;
     }
     
+    console.log("Sending request", prompt, "gemini");
+    
     setIsLoading(true);
     setResponse(null);
     
     try {
-      const result = await fetchAIResponse(prompt);
+      const result = await callVercelAI(prompt, 'gemini');
       setResponse(result);
       
       toast({
         title: "Success",
-        description: "Got response from Supabase Edge Function",
+        description: "Got response from Vercel API",
       });
     } catch (error) {
       console.error('Error fetching AI response:', error);
@@ -51,7 +53,7 @@ const AIPromptDemo = () => {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>AI Prompt Demo (Supabase)</CardTitle>
+        <CardTitle>AI Prompt Demo (Vercel)</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

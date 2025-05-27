@@ -6,7 +6,7 @@ import { BrainCircuit, MessageSquare, BookOpen, RefreshCw, Send, Sparkles, User,
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { fetchAIResponse } from "@/lib/aiClient";
+import { callVercelAI } from "@/lib/vercelAiClient";
 
 type Message = {
   role: "user" | "assistant";
@@ -58,23 +58,22 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     
+    console.log("Sending request", input, "gemini");
+    
     // Add user message
     setMessages(prev => [...prev, { role: "user", content: input }]);
     setInput("");
     setIsThinking(true);
     
     try {
-      // Use the AI client to get a response
-      const result = await fetchAIResponse(input);
-      
-      // Remove provider name from response
-      const cleanedResponse = result.replace(/^\([^)]+\)\s➤\s/, '');
+      // Use the Vercel AI client to get a response
+      const result = await callVercelAI(input, 'gemini');
       
       setMessages(prev => [
         ...prev,
         {
           role: "assistant",
-          content: cleanedResponse
+          content: result
         }
       ]);
       
@@ -84,7 +83,7 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
         duration: 3000,
       });
     } catch (error) {
-      console.error(error);
+      console.error('AI Tutor Error:', error);
       setMessages(prev => [
         ...prev,
         {

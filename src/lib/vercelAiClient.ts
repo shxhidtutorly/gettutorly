@@ -1,5 +1,5 @@
 
-// Client-side function to call the new Vercel API route
+// Client-side function to call the Vercel API route
 export async function callVercelAI(
   prompt: string, 
   model: 'gemini' | 'groq' | 'claude' | 'openrouter' | 'huggingface' | 'together' = 'gemini'

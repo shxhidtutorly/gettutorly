@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { fetchAIResponse } from "@/lib/aiClient";
+import { callVercelAI } from "@/lib/vercelAiClient";
 import { Loader2, User, BrainCircuit, Send } from "lucide-react";
 
 type Message = {
@@ -49,26 +49,25 @@ const AIChat = () => {
     
     if (!prompt.trim()) return;
     
+    console.log("Sending request", prompt, "gemini");
+    
     // Add user message
     setMessages(prev => [...prev, { role: "user", content: prompt }]);
     setIsLoading(true);
     setPrompt("");
     
     try {
-      const result = await fetchAIResponse(prompt);
-      
-      // Remove provider name from response and replace with "Tutor AI"
-      const cleanedResponse = result.replace(/^\([^)]+\)\s➤\s/, 'Tutor AI: ');
+      const result = await callVercelAI(prompt, 'gemini');
       
       setMessages(prev => [
         ...prev,
         {
           role: "assistant",
-          content: cleanedResponse
+          content: result
         }
       ]);
     } catch (error) {
-      console.error(error);
+      console.error('AI Chat Error:', error);
       setMessages(prev => [
         ...prev,
         {

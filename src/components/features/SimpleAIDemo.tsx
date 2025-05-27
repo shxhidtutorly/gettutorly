@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { fetchAIResponse } from "@/lib/aiClient";
+import { callVercelAI } from "@/lib/vercelAiClient";
 
 const SimpleAIDemo = () => {
   const [prompt, setPrompt] = useState("");
@@ -20,12 +20,14 @@ const SimpleAIDemo = () => {
       return;
     }
     
+    console.log("Sending request", prompt, "gemini");
+    
     setIsLoading(true);
     setError(null);
     setMessage(null);
     
     try {
-      const result = await fetchAIResponse(prompt);
+      const result = await callVercelAI(prompt, 'gemini');
       setMessage(result);
     } catch (err) {
       console.error('Error:', err);
@@ -38,7 +40,7 @@ const SimpleAIDemo = () => {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>AI Edge Function Demo</CardTitle>
+        <CardTitle>AI Vercel API Demo</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,7 +62,7 @@ const SimpleAIDemo = () => {
                 Processing...
               </>
             ) : (
-              "Send to Edge Function"
+              "Send to Vercel API"
             )}
           </Button>
         </form>
