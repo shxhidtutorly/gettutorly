@@ -1,53 +1,32 @@
+import { AIProviderManager } from '../src/lib/aiProviders.js';
 
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { AIProviderManager } from '../../src/lib/aiProviders';
-
-interface AIRequest {
-  prompt: string;
-  model?: 'gemini' | 'groq' | 'claude' | 'openrouter' | 'huggingface' | 'together';
-}
-
-interface AIResponse {
-  response: string;
-  provider?: string;
-  model?: string;
-}
-
-interface ErrorResponse {
-  error: string;
-  details?: string;
-}
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<AIResponse | ErrorResponse>
-) {
+export default async function handler(req, res) {
   console.log('=== AI API ROUTE START ===');
   console.log('Method:', req.method);
   console.log('Headers:', JSON.stringify(req.headers, null, 2));
-
+  
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  
   // Handle OPTIONS request for CORS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
+  
   // Only allow POST requests
   if (req.method !== 'POST') {
     console.log('❌ Method not allowed:', req.method);
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
+  
   try {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
-    const { prompt, model = 'gemini' }: AIRequest = req.body;
-
+    const { prompt, model = 'gemini' } = req.body;
+    
     // Validate required fields
     if (!prompt || typeof prompt !== 'string') {
       console.log('❌ Invalid prompt:', prompt);
@@ -55,16 +34,16 @@ export default async function handler(
         error: 'Prompt is required and must be a string' 
       });
     }
-
+    
     if (model && !['gemini', 'groq', 'claude', 'openrouter', 'huggingface', 'together'].includes(model)) {
       console.log('❌ Invalid model:', model);
       return res.status(400).json({ 
         error: 'Invalid model. Supported models: gemini, groq, claude, openrouter, huggingface, together' 
       });
     }
-
+    
     console.log('✅ Valid request - Prompt:', prompt.substring(0, 50) + '...', 'Model:', model);
-
+    
     // Initialize AI Provider Manager
     const aiManager = new AIProviderManager();
     
@@ -80,7 +59,7 @@ export default async function handler(
       provider: aiResponse.provider,
       model: aiResponse.model
     });
-
+    
   } catch (error) {
     console.error('=== AI API ROUTE ERROR ===');
     console.error('Error details:', error);
