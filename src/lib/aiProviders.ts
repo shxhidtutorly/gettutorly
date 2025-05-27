@@ -4,16 +4,23 @@ export class AIProviderManager {
   private apiKeys: Record<string, string[]>;
   
   constructor() {
-    // Load API keys from environment variables
+    console.log('🔧 Initializing AI Provider Manager...');
+    
+    // Load API keys from environment variables (server-side, no VITE_ prefix)
     // Multiple keys per provider for automatic rotation
     this.apiKeys = {
-      gemini: this.getKeysFromEnv('VITE_GEMINI_API_KEY'),
-      groq: this.getKeysFromEnv('VITE_GROQ_API_KEY'),
-      claude: this.getKeysFromEnv('VITE_CLAUDE_API_KEY'),
-      openrouter: this.getKeysFromEnv('VITE_OPENROUTER_API_KEY'),
-      huggingface: this.getKeysFromEnv('VITE_HUGGINGFACE_API_KEY'),
-      together: this.getKeysFromEnv('VITE_TOGETHER_API_KEY'),
+      gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
+      groq: this.getKeysFromEnv('GROQ_API_KEY'),
+      claude: this.getKeysFromEnv('CLAUDE_API_KEY'),
+      openrouter: this.getKeysFromEnv('OPENROUTER_API_KEY'),
+      huggingface: this.getKeysFromEnv('HUGGINGFACE_API_KEY'),
+      together: this.getKeysFromEnv('TOGETHER_API_KEY'),
     };
+    
+    // Log available providers (without showing actual keys)
+    Object.entries(this.apiKeys).forEach(([provider, keys]) => {
+      console.log(`🔑 ${provider}: ${keys.length} keys available`);
+    });
   }
 
   /**
@@ -22,10 +29,15 @@ export class AIProviderManager {
    */
   private getKeysFromEnv(envVar: string): string[] {
     const keys = process.env[envVar];
-    if (!keys) return [];
+    if (!keys) {
+      console.log(`⚠️ No keys found for ${envVar}`);
+      return [];
+    }
     
     // Split by comma and trim whitespace, filter out empty strings
-    return keys.split(',').map(key => key.trim()).filter(key => key.length > 0);
+    const keyArray = keys.split(',').map(key => key.trim()).filter(key => key.length > 0);
+    console.log(`📋 Found ${keyArray.length} keys for ${envVar}`);
+    return keyArray;
   }
 
   /**
@@ -39,6 +51,8 @@ export class AIProviderManager {
     const provider = this.getProviderForModel(model);
     const keys = this.apiKeys[provider];
     
+    console.log(`🎯 Using provider: ${provider} for model: ${model}`);
+    
     if (!keys || keys.length === 0) {
       throw new Error(`No API keys found for provider: ${provider}`);
     }
@@ -48,7 +62,7 @@ export class AIProviderManager {
     
     for (let i = 0; i < keys.length; i++) {
       try {
-        console.log(`Attempting ${provider} with key ${i + 1}/${keys.length}`);
+        console.log(`🔄 Attempting ${provider} with key ${i + 1}/${keys.length}`);
         
         const response = await this.callProvider(provider, prompt, keys[i], model);
         

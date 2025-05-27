@@ -7,8 +7,11 @@ export async function callVercelAI(
   console.log('=== VERCEL AI CLIENT REQUEST START ===');
   console.log('Sending request with prompt:', prompt.substring(0, 50) + '...');
   console.log('Using model:', model);
+  console.log('API URL:', '/api/ai');
   
   try {
+    console.log('🚀 Making fetch request...');
+    
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: {
@@ -20,30 +23,63 @@ export async function callVercelAI(
       }),
     });
     
+    console.log('📡 Response received');
     console.log('Response status:', response.status);
     console.log('Response ok:', response.ok);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('API Error:', errorData);
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      
       throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
-    console.log('Response data:', data);
+    console.log('✅ Response data:', data);
     
     if (!data.message) {
       throw new Error('No message in API response');
     }
     
-    console.log('Successfully got AI response from Vercel API');
+    console.log('🎉 Successfully got AI response from Vercel API');
     console.log('=== VERCEL AI CLIENT REQUEST SUCCESS ===');
     
     return data.message;
     
   } catch (error) {
     console.error('=== VERCEL AI CLIENT REQUEST ERROR ===');
-    console.error('Error:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Full error:', error);
     throw error;
+  }
+}
+
+// Test function to verify API connectivity
+export async function testVercelAPI(): Promise<boolean> {
+  try {
+    console.log('🧪 Testing API connectivity...');
+    
+    const response = await fetch('/api/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ test: 'connectivity' })
+    });
+    
+    const data = await response.json();
+    console.log('✅ Test API response:', data);
+    return response.ok;
+    
+  } catch (error) {
+    console.error('❌ Test API failed:', error);
+    return false;
   }
 }

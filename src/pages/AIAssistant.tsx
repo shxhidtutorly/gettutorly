@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, MessageCircle, Send } from "lucide-react";
+import { BookOpen, MessageCircle, Send, TestTube } from "lucide-react";
+import APITester from "@/components/features/APITester";
 
 const AIAssistant = () => {
   // Update document title on component mount
@@ -21,7 +22,7 @@ const AIAssistant = () => {
         <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">AI Learning Assistant</h1>
 
         <Tabs defaultValue="chat" className="max-w-5xl mx-auto">
-          <TabsList className="grid grid-cols-2 mb-6">
+          <TabsList className="grid grid-cols-3 mb-6">
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
               <span className="font-medium">Ask Questions</span>
@@ -29,6 +30,10 @@ const AIAssistant = () => {
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
               <span className="font-medium">Upload Study Material</span>
+            </TabsTrigger>
+            <TabsTrigger value="test" className="flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              <span className="font-medium">API Test</span>
             </TabsTrigger>
           </TabsList>
 
@@ -41,6 +46,12 @@ const AIAssistant = () => {
           <TabsContent value="upload" className="focus:outline-none dark:bg-gray-900">
             <div className="max-w-5xl mx-auto">
               <DocumentUploader />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="test" className="focus:outline-none dark:bg-gray-900">
+            <div className="max-w-5xl mx-auto">
+              <APITester />
             </div>
           </TabsContent>
         </Tabs>
