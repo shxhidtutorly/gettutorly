@@ -1,8 +1,5 @@
-
 // AI Provider Management with automatic key rotation and model routing
 export class AIProviderManager {
-  private apiKeys: Record<string, string[]>;
-  
   constructor() {
     console.log('🔧 Initializing AI Provider Manager...');
     
@@ -27,7 +24,7 @@ export class AIProviderManager {
    * Extract API keys from environment variables
    * Supports both single keys and comma-separated multiple keys
    */
-  private getKeysFromEnv(envVar: string): string[] {
+  getKeysFromEnv(envVar) {
     const keys = process.env[envVar];
     if (!keys) {
       console.log(`⚠️ No keys found for ${envVar}`);
@@ -43,11 +40,7 @@ export class AIProviderManager {
   /**
    * Main method to get AI response with automatic provider routing and key rotation
    */
-  async getAIResponse(prompt: string, model: string): Promise<{
-    message: string;
-    provider: string;
-    model: string;
-  }> {
+  async getAIResponse(prompt, model) {
     const provider = this.getProviderForModel(model);
     const keys = this.apiKeys[provider];
     
@@ -58,7 +51,7 @@ export class AIProviderManager {
     }
 
     // Try each API key until one works (automatic key rotation)
-    let lastError: Error | null = null;
+    let lastError = null;
     
     for (let i = 0; i < keys.length; i++) {
       try {
@@ -89,8 +82,8 @@ export class AIProviderManager {
   /**
    * Map model names to their corresponding providers
    */
-  private getProviderForModel(model: string): string {
-    const modelProviderMap: Record<string, string> = {
+  getProviderForModel(model) {
+    const modelProviderMap = {
       'gemini': 'gemini',
       'groq': 'groq',
       'claude': 'claude',
@@ -105,7 +98,7 @@ export class AIProviderManager {
   /**
    * Call the specific AI provider with error handling and retry logic
    */
-  private async callProvider(provider: string, prompt: string, apiKey: string, model: string): Promise<string> {
+  async callProvider(provider, prompt, apiKey, model) {
     switch (provider) {
       case 'gemini':
         return await this.callGemini(prompt, apiKey);
@@ -133,7 +126,7 @@ export class AIProviderManager {
   /**
    * Google Gemini API integration
    */
-  private async callGemini(prompt: string, apiKey: string): Promise<string> {
+  async callGemini(prompt, apiKey) {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -153,7 +146,7 @@ export class AIProviderManager {
   /**
    * Groq API integration
    */
-  private async callGroq(prompt: string, apiKey: string): Promise<string> {
+  async callGroq(prompt, apiKey) {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -178,7 +171,7 @@ export class AIProviderManager {
   /**
    * Anthropic Claude API integration
    */
-  private async callClaude(prompt: string, apiKey: string): Promise<string> {
+  async callClaude(prompt, apiKey) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -204,7 +197,7 @@ export class AIProviderManager {
   /**
    * OpenRouter API integration
    */
-  private async callOpenRouter(prompt: string, apiKey: string, model: string): Promise<string> {
+  async callOpenRouter(prompt, apiKey, model) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -228,7 +221,7 @@ export class AIProviderManager {
   /**
    * Hugging Face Inference API integration
    */
-  private async callHuggingFace(prompt: string, apiKey: string): Promise<string> {
+  async callHuggingFace(prompt, apiKey) {
     const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-large', {
       method: 'POST',
       headers: {
@@ -249,7 +242,7 @@ export class AIProviderManager {
   /**
    * Together.ai API integration
    */
-  private async callTogether(prompt: string, apiKey: string): Promise<string> {
+  async callTogether(prompt, apiKey) {
     const response = await fetch('https://api.together.xyz/inference', {
       method: 'POST',
       headers: {
