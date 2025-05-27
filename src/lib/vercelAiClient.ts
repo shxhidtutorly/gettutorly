@@ -45,14 +45,15 @@ export async function callVercelAI(
     const data = await response.json();
     console.log('✅ Response data:', data);
     
-    if (!data.message) {
-      throw new Error('No message in API response');
+    // Handle the new response format where the message is in 'response' field
+    if (!data.response) {
+      throw new Error('No response in API response');
     }
     
     console.log('🎉 Successfully got AI response from Vercel API');
     console.log('=== VERCEL AI CLIENT REQUEST SUCCESS ===');
     
-    return data.message;
+    return data.response;
     
   } catch (error) {
     console.error('=== VERCEL AI CLIENT REQUEST ERROR ===');
