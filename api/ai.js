@@ -64,6 +64,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('=== AI API ROUTE ERROR ===');
     console.error('Error details:', error);
+    console.error('Error stack:', error.stack);
     
     // Handle specific error types
     if (error instanceof Error) {
@@ -87,7 +88,8 @@ export default async function handler(req, res) {
     console.log('❌ General error');
     return res.status(500).json({ 
       error: 'Internal server error. Please try again later.',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
     });
   }
 }
