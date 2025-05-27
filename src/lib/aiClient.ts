@@ -1,14 +1,18 @@
+
 export async function fetchAIResponse(prompt: string): Promise<string> {
   console.log('=== CLIENT REQUEST START ===');
   console.log('Sending request with prompt:', prompt.substring(0, 50) + '...');
   
-  // Use Supabase Edge Function URL
-  // Note: Replace 'your-project-ref' with your actual Supabase project reference
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const projectRef = supabaseUrl ? new URL(supabaseUrl).hostname.split('.')[0] : 'your-project-ref';
-  const apiUrl = `https://${projectRef}.functions.supabase.co/fetch-ai-response`;
+  // Use your specific Supabase Edge Function URL
+  const apiUrl = `https://dllyfsbuxrjyiatfcegk.functions.supabase.co/fetch-ai-response`;
+  
+  // Get the anon key from environment variables (supporting both Vite and Next.js patterns)
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 
+                          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+                          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbHlmc2J1eHJqeWlhdGZjZWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0NDUxNzAsImV4cCI6MjA2MzAyMTE3MH0.1jfGciFNtGgfw7bNZhuraoA_83whPx6Ojl0J5iHfJz0';
   
   console.log('API URL:', apiUrl);
+  console.log('Using anon key:', supabaseAnonKey ? 'Present' : 'Missing');
   
   try {
     const requestBody = { prompt };
@@ -19,6 +23,8 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
       },
       body: JSON.stringify(requestBody),
     });
@@ -78,15 +84,18 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
       const data = JSON.parse(responseText);
       console.log('Parsed response data:', data);
       
-      if (!data.result) {
-        console.error('Response missing result field:', data);
-        console.log('Using fallback response due to missing result field');
+      // Handle both response formats: { "message": "..." } and { "result": "..." }
+      const message = data.message || data.result;
+      
+      if (!message) {
+        console.error('Response missing message/result field:', data);
+        console.log('Using fallback response due to missing message field');
         return generateFallbackResponse(prompt);
       }
       
       console.log('Successfully got AI response from Supabase Edge Function');
       console.log('=== CLIENT REQUEST SUCCESS ===');
-      return data.result;
+      return message;
       
     } catch (parseError) {
       console.error('Failed to parse successful response as JSON:', responseText);
@@ -109,7 +118,7 @@ export async function fetchAIResponse(prompt: string): Promise<string> {
     }
     
     // For development debugging
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('Development mode - additional debugging info:');
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     }
@@ -132,14 +141,14 @@ function generateFallbackResponse(prompt: string): string {
   const isForQuestion = lowerPrompt.includes("?") || lowerPrompt.includes("what is");
 
   if (isGreeting) {
-    return "Tutor AI: Hello! I'm your AI study assistant. I'm currently having some connectivity issues, but I'm here to help you with your studies. You can ask me questions about your study materials, request summaries, or get help with explanations.";
+    return "Hello! I'm your AI assistant. I'm currently having some connectivity issues, but I'm here to help you with your questions.";
   } else if (isForSummary) {
-    return "Tutor AI: I couldn't connect to our AI providers at the moment. Here's a general summary: This content covers key academic concepts that are important for understanding the subject matter. The material introduces fundamental principles and provides examples of their application in real-world contexts.";
+    return "I couldn't connect to the AI service at the moment. Here's a general summary: This content covers key concepts that are important for understanding the subject matter.";
   } else if (isForExplanation) {
-    return "Tutor AI: I'm having trouble connecting to our AI providers right now. This concept typically involves understanding the relationship between different elements and how they interact with each other. Try breaking it down into smaller parts and addressing each component individually.";
+    return "I'm having trouble connecting to the AI service right now. This concept typically involves understanding the relationship between different elements and how they interact with each other.";
   } else if (isForQuestion) {
-    return "Tutor AI: I couldn't reach our AI providers to answer your specific question. This topic relates to important principles in this field of study. Consider reviewing your course materials or textbook for more detailed information.";
+    return "I couldn't reach the AI service to answer your specific question. This topic relates to important principles in this field of study.";
   } else {
-    return "Tutor AI: I'm currently unable to connect to our AI servers. Please try again later or browse our pre-made study materials in the meantime. We apologize for the inconvenience.";
+    return `Hello ${prompt}!`;
   }
 }

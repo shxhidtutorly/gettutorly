@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +22,7 @@ import UserProfileButton from "@/components/auth/UserProfileButton";
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
+import SimpleAIDemo from "@/components/features/SimpleAIDemo";
 
 // Animation variants for reusable animations
 const fadeIn = {
@@ -261,6 +261,17 @@ const Index = () => {
                 </motion.div>
               </motion.div>
             </div>
+          </div>
+        </section>
+        
+        {/* AI Demo Section */}
+        <section className="py-12 px-4 bg-muted">
+          <div className="container mx-auto max-w-4xl">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold mb-4">Test AI Edge Function</h2>
+              <p className="text-muted-foreground">Try our Supabase Edge Function integration</p>
+            </div>
+            <SimpleAIDemo />
           </div>
         </section>
         

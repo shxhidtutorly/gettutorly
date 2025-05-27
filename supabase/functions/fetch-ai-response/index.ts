@@ -28,17 +28,18 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      // Simulated AI response - in production you'd integrate with your AI service
-      const aiResponse = `AI Response: ${prompt}`;
+      // Return the expected format: { "message": "Hello <prompt>!" }
+      const message = `Hello ${prompt}!`;
       
       return new Response(
-        JSON.stringify({ result: aiResponse }),
+        JSON.stringify({ message }),
         { 
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } catch (error) {
+      console.error('Error processing request:', error);
       return new Response(
         JSON.stringify({ error: 'Failed to process request' }),
         { 
