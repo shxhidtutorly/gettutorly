@@ -1,8 +1,17 @@
+
 import { useEffect, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, MessageCircle, Send, TestTube } from "lucide-react";
 import APITester from "@/components/features/APITester";
+
+// Updated message type to include optional provider and model properties
+type Message = {
+  role: string;
+  content: string;
+  provider?: string;
+  model?: string;
+};
 
 const AIAssistant = () => {
   // Update document title on component mount
@@ -62,7 +71,7 @@ const AIAssistant = () => {
 
 // Fixed AIChat component that actually calls your working API
 const AIChat = () => {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     { role: 'system', content: 'Hello! I\'m your AI Study Tutor. How can I help you understand your material better today?' }
   ]);
   const [input, setInput] = useState('');
@@ -73,7 +82,7 @@ const AIChat = () => {
     if (!input.trim()) return;
 
     // Add user message to the chat
-    const userMessage = { role: 'user', content: input };
+    const userMessage: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
@@ -118,14 +127,16 @@ const AIChat = () => {
       // Show specific error message based on the error type
       let errorMessage = "I'm having trouble connecting to the AI service. ";
       
-      if (error.message.includes('fetch')) {
-        errorMessage += "Please check your internet connection and try again.";
-      } else if (error.message.includes('429')) {
-        errorMessage += "The service is temporarily busy. Please try again in a moment.";
-      } else if (error.message.includes('401')) {
-        errorMessage += "There's an authentication issue. Please contact support.";
-      } else {
-        errorMessage += "Please try again later or contact support if the issue persists.";
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage += "Please check your internet connection and try again.";
+        } else if (error.message.includes('429')) {
+          errorMessage += "The service is temporarily busy. Please try again in a moment.";
+        } else if (error.message.includes('401')) {
+          errorMessage += "There's an authentication issue. Please contact support.";
+        } else {
+          errorMessage += "Please try again later or contact support if the issue persists.";
+        }
       }
       
       setMessages(prev => [...prev, { 
