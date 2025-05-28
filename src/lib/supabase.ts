@@ -1,21 +1,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Default values for development (these will be used if env vars are missing)
-// Replace these with actual values for your development environment
-const DEFAULT_SUPABASE_URL = 'https://example.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'example-anon-key';
+// Use the actual Supabase project configuration
+const supabaseUrl = 'https://dllyfsbuxrjyiatfcegk.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbHlmc2J1eHJqeWlhdGZjZWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0NDUxNzAsImV4cCI6MjA2MzAyMTE3MH0.1jfGciFNtGgfw7bNZhuraoA_83whPx6Ojl0J5iHfJz0';
 
-// Get environment variables or use defaults
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
-
-// Check for empty strings (which might come from env vars)
-if (supabaseUrl === '' || supabaseAnonKey === '') {
-  console.error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-}
-
-// Create Supabase client with fallbacks to prevent runtime errors
+// Create Supabase client
 export const supabase = createClient(
   supabaseUrl,
   supabaseAnonKey,
@@ -27,15 +17,30 @@ export const supabase = createClient(
   }
 );
 
-// Storage helpers
+// Enhanced storage helpers with better error handling
 export const uploadFile = async (userId: string, file: File, bucket: string = 'study_materials') => {
   try {
+    // Validate file type and size
+    if (file.type !== 'application/pdf') {
+      throw new Error('Please upload a PDF file');
+    }
+    
+    if (file.size > 25 * 1024 * 1024) {
+      throw new Error('File size must be less than 25MB');
+    }
+
     const filePath = `${userId}/${Date.now()}_${file.name}`;
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase storage error:', error);
+      throw new Error(`Upload failed: ${error.message}`);
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
@@ -73,7 +78,7 @@ export const deleteFile = async (filePath: string, bucket: string = 'study_mater
 export const getSummaries = async (userId: string) => {
   try {
     const { data, error } = await supabase
-      .from('study_materials')
+      .from('summaries')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -98,15 +103,13 @@ export const storeSummaryWithFile = async (
 ) => {
   try {
     const { data, error } = await supabase
-      .from('study_materials')
+      .from('summaries')
       .insert([{
         user_id: userId,
         title,
-        summary,
+        content: summary,
         file_name: fileName,
         file_url: fileUrl,
-        content_type: fileType,
-        size: fileSize,
         created_at: new Date().toISOString(),
       }])
       .select()

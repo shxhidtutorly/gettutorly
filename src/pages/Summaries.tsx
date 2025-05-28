@@ -28,8 +28,8 @@ interface Summary {
   fileUrl?: string;
 }
 
-// Sample PDF for testing (you can replace this with a known working PDF URL)
-const SAMPLE_PDF_URL = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+// Update the sample PDF URL to use local file
+const SAMPLE_PDF_URL = "/sample-pdfs/dummy.pdf";
 
 const Summaries = () => {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -152,6 +152,16 @@ const Summaries = () => {
       return;
     }
     
+    // Check file size (25MB limit)
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 25MB",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsUploading(true);
     setUploadProgress(0);
     setProcessingError(null);
@@ -186,7 +196,7 @@ const Summaries = () => {
         return;
       }
       
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage using the summaries bucket
       setUploadProgress(30);
       let fileDetails = null;
       
@@ -227,16 +237,6 @@ const Summaries = () => {
       // Set the summary result and keep dialog open
       setSummaryResult(summaryText);
       
-      // If we have a file URL and user is authenticated, store the summary in Supabase
-      if (fileUrl && currentUser && typeof summaryText === 'string') {
-        await storeSummary(
-          currentUser.id, 
-          summaryText,
-          selectedFile.name,
-          fileUrl
-        );
-      }
-      
       // Show success toast
       toast({
         title: "Summary generated",
@@ -248,7 +248,7 @@ const Summaries = () => {
       setUploadProgress(0);
       
       // Set a more descriptive error message
-      const errorMessage = error instanceof Error ? error.message : "Could not process your PDF. Please try again with a different document.";
+      const errorMessage = error instanceof Error ? error.message : "Could not process your PDF. Please check your internet connection and try again.";
       setProcessingError(errorMessage);
       
       toast({
@@ -265,7 +265,7 @@ const Summaries = () => {
     try {
       setIsLoadingSample(true);
       
-      // Fetch the sample PDF
+      // Fetch the local sample PDF
       const response = await fetch(SAMPLE_PDF_URL);
       if (!response.ok) throw new Error("Failed to fetch sample PDF");
       
@@ -296,12 +296,13 @@ const Summaries = () => {
     
     try {
       if (fileUrl) {
-        // Save summary to Supabase
-        const savedSummary = await storeSummary(
+        // Save summary to Supabase using the corrected function
+        const savedSummary = await storeSummaryWithFile(
           currentUser.id,
           summaryResult,
-          selectedFile.name,
-          fileUrl
+          selectedFile.name.replace(/\.[^/.]+$/, ""), // Remove file extension for title
+          fileUrl,
+          selectedFile.name
         );
         
         // Create a new summary object with correct typing
@@ -343,7 +344,7 @@ const Summaries = () => {
       });
     }
   };
-  
+
   const handleViewSummary = (summary: Summary) => {
     setViewingSummary(summary);
     setShowSummaryDialog(true);
@@ -473,7 +474,7 @@ const Summaries = () => {
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-gray-800 dark:text-white">Drag & drop or click to upload</p>
                         <p className="text-xs text-gray-600 dark:text-gray-300">
-                          PDF files (max 20MB)
+                          PDF files (max 25MB)
                         </p>
                       </div>
                     </div>

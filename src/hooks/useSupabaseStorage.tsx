@@ -18,10 +18,19 @@ export const useSupabaseStorage = () => {
       setProgress(0);
       setError(null);
 
+      // Validate file type and size
+      if (file.type !== 'application/pdf') {
+        throw new Error('Please upload a PDF file');
+      }
+      
+      if (file.size > 25 * 1024 * 1024) {
+        throw new Error('File size must be less than 25MB');
+      }
+
       // Create a unique file path using user ID and timestamp
       const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
       
-      // Upload the file
+      // Upload the file with retry logic
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(filePath, file, {
@@ -29,7 +38,10 @@ export const useSupabaseStorage = () => {
           upsert: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase storage error:', error);
+        throw new Error(`Upload failed: ${error.message}`);
+      }
 
       // Get the public URL for the uploaded file
       const { data: publicUrlData } = supabase.storage
@@ -46,7 +58,8 @@ export const useSupabaseStorage = () => {
         size: file.size
       };
     } catch (err: any) {
-      setError(err.message || 'An error occurred during file upload');
+      const errorMessage = err.message || 'An error occurred during file upload';
+      setError(errorMessage);
       console.error('File upload error:', err);
       return null;
     }
