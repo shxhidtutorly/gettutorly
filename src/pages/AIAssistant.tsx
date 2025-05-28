@@ -60,7 +60,7 @@ const AIAssistant = () => {
   );
 };
 
-// Implement the AIChat component within the same file to ensure it works
+// Fixed AIChat component that actually calls your working API
 const AIChat = () => {
   const [messages, setMessages] = useState([
     { role: 'system', content: 'Hello! I\'m your AI Study Tutor. How can I help you understand your material better today?' }
@@ -73,30 +73,66 @@ const AIChat = () => {
     if (!input.trim()) return;
 
     // Add user message to the chat
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
+    const userMessage = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
-      // Simulate API call to AI service
-      setTimeout(() => {
-        // Sample responses based on common educational questions
-        let aiResponse = "I'm currently unable to connect to our AI servers. Please try again later or browse our pre-made study materials in the meantime. We apologize for the inconvenience.";
+      console.log('🚀 Sending request to AI API...');
+      
+      // Make actual API call to your working endpoint
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: input,
+          model: 'gemini' // You can make this configurable later
+        })
+      });
 
-        const userQuestion = input.toLowerCase();
-        if (userQuestion.includes('cellular respiration')) {
-          aiResponse = "Cellular respiration is the process cells use to produce energy, usually in the form of ATP. It includes glycolysis, the citric acid cycle, and the electron transport chain. In this process, glucose is broken down and oxygen is consumed to produce carbon dioxide, water, and energy.";
-        } else if (userQuestion.includes('photosynthesis')) {
-          aiResponse = "Photosynthesis is the process by which plants, algae, and some bacteria convert light energy, usually from the sun, into chemical energy in the form of glucose. The basic equation is: 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂";
-        } else if (userQuestion.includes('mitosis')) {
-          aiResponse = "Mitosis is the process of cell division that results in two identical daughter cells. It involves prophase, metaphase, anaphase, and telophase, followed by cytokinesis. This process is essential for growth, development, and repair in multicellular organisms.";
-        }
+      console.log('📡 API Response status:', response.status);
 
-        setMessages(prev => [...prev, { role: 'system', content: aiResponse }]);
-        setIsLoading(false);
-      }, 1000);
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ API Response data:', data);
+
+      // Extract the AI response from your API's response format
+      const aiResponse = data.response || data.message || 'No response received from AI';
+      
+      // Add AI response to messages
+      setMessages(prev => [...prev, { 
+        role: 'system', 
+        content: aiResponse,
+        provider: data.provider,
+        model: data.model
+      }]);
+
     } catch (error) {
-      console.error('Error sending message:', error);
-      setMessages(prev => [...prev, { role: 'system', content: 'Sorry, I encountered an error processing your request.' }]);
+      console.error('❌ Error calling AI API:', error);
+      
+      // Show specific error message based on the error type
+      let errorMessage = "I'm having trouble connecting to the AI service. ";
+      
+      if (error.message.includes('fetch')) {
+        errorMessage += "Please check your internet connection and try again.";
+      } else if (error.message.includes('429')) {
+        errorMessage += "The service is temporarily busy. Please try again in a moment.";
+      } else if (error.message.includes('401')) {
+        errorMessage += "There's an authentication issue. Please contact support.";
+      } else {
+        errorMessage += "Please try again later or contact support if the issue persists.";
+      }
+      
+      setMessages(prev => [...prev, { 
+        role: 'system', 
+        content: errorMessage 
+      }]);
+    } finally {
       setIsLoading(false);
     }
 
@@ -124,7 +160,9 @@ const AIChat = () => {
             <span className="text-sm">AI</span>
           </div>
           <span className="font-medium">AI Study Tutor</span>
-          <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full">Beta</span>
+          <span className="ml-2 px-2 py-0.5 text-xs bg-green-200 dark:bg-green-700 rounded-full text-green-800 dark:text-green-200">
+            Live
+          </span>
         </div>
         <div className="flex space-x-2">
           <button 
@@ -146,7 +184,7 @@ const AIChat = () => {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             {message.role !== 'user' && (
-              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2 flex-shrink-0">
                 <span className="text-sm">AI</span>
               </div>
             )}
@@ -157,13 +195,18 @@ const AIChat = () => {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-bl-none'
               }`}
             >
-              {message.content}
+              <div className="whitespace-pre-wrap">{message.content}</div>
+              {message.provider && (
+                <div className="text-xs opacity-70 mt-1">
+                  via {message.provider} • {message.model}
+                </div>
+              )}
             </div>
           </div>
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">
+            <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2 flex-shrink-0">
               <span className="text-sm">AI</span>
             </div>
             <div className="max-w-3/4 p-3 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-bl-none">
@@ -184,14 +227,15 @@ const AIChat = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
             placeholder="Ask me anything about your studies..."
-            className="flex-grow py-2 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
+            disabled={isLoading}
+            className="flex-grow py-2 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white disabled:opacity-50"
           />
           <button
             onClick={handleSendMessage}
-            disabled={isLoading}
-            className="flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white px-4 rounded-r-lg"
+            disabled={isLoading || !input.trim()}
+            className="flex items-center justify-center bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 rounded-r-lg transition-colors"
           >
             <Send className="h-5 w-5" />
           </button>
@@ -203,19 +247,22 @@ const AIChat = () => {
           <div className="flex flex-wrap gap-2">
             <button 
               onClick={() => setInput("Explain cellular respiration")}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white"
+              disabled={isLoading}
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white disabled:opacity-50 transition-colors"
             >
               Explain cellular respiration
             </button>
             <button 
               onClick={() => setInput("How does photosynthesis work?")}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white"
+              disabled={isLoading}
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white disabled:opacity-50 transition-colors"
             >
               How does photosynthesis work?
             </button>
             <button 
               onClick={() => setInput("Explain the stages of mitosis")}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white"
+              disabled={isLoading}
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white disabled:opacity-50 transition-colors"
             >
               Explain the stages of mitosis
             </button>
