@@ -34,25 +34,25 @@ const Summaries = () => {
 
   const fetchOpenRouterSummary = async (text: string): Promise<string> => {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-    headers: {
-  Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
-  "Content-Type": "application/json"
-}
-      body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct",
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant that summarizes documents."
-          },
-          {
-            role: "user",
-            content: `Summarize this document:\n\n${text}`
-          }
-        ]
-      })
-    });
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
+    "Content-Type": "application/json"
+  }, 
+  body: JSON.stringify({
+    model: "mistralai/mistral-7b-instruct",
+    messages: [
+      {
+        role: "system",
+        content: "You are a helpful assistant that summarizes documents."
+      },
+      {
+        role: "user",
+        content: `Summarize this document:\n\n${text}`
+      }
+    ]
+  })
+});
 
     const data = await response.json();
 
