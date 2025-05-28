@@ -1,3 +1,4 @@
+// src/lib/aiProviders.js
 // AI Provider Management with automatic key rotation and model routing
 export class AIProviderManager {
   constructor() {
