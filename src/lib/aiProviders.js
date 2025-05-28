@@ -99,19 +99,33 @@ class AIProviderManager {
   }
 
   async callGemini(prompt, apiKey) {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+    // Updated Gemini API endpoint and model name
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1000,
+        }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`Gemini API Error Response: ${errorText}`);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(`Gemini API error: ${data.error.message}`);
+    }
+    
     return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
   }
 
@@ -123,14 +137,17 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'mixtral-8x7b-32768',
+        model: 'llama-3.1-70b-versatile', // Updated model name
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000
+        max_tokens: 1000,
+        temperature: 0.7
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`Groq API Error Response: ${errorText}`);
+      throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -146,14 +163,16 @@ class AIProviderManager {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
+        model: 'claude-3-5-sonnet-20241022', // Updated model name
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`Claude API Error Response: ${errorText}`);
+      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -165,16 +184,21 @@ class AIProviderManager {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://your-app.vercel.app', // Required by OpenRouter
+        'X-Title': 'AI Provider Manager' // Optional but recommended
       },
       body: JSON.stringify({
-        model: 'microsoft/wizardlm-2-8x22b',
-        messages: [{ role: 'user', content: prompt }]
+        model: 'anthropic/claude-3.5-sonnet', // Updated model
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000
       })
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`OpenRouter API Error Response: ${errorText}`);
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -182,43 +206,61 @@ class AIProviderManager {
   }
 
   async callHuggingFace(prompt, apiKey) {
-    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-large', {
+    // Using a more reliable model
+    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ inputs: prompt })
+      body: JSON.stringify({ 
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 1000,
+          temperature: 0.7
+        }
+      })
     });
 
     if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`Hugging Face API Error Response: ${errorText}`);
+      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data[0]?.generated_text || data.generated_text || 'No response from Hugging Face';
+    
+    if (Array.isArray(data)) {
+      return data[0]?.generated_text || 'No response from Hugging Face';
+    }
+    
+    return data.generated_text || 'No response from Hugging Face';
   }
 
   async callTogether(prompt, apiKey) {
-    const response = await fetch('https://api.together.xyz/inference', {
+    // Updated Together AI endpoint and model
+    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'togethercomputer/llama-2-70b-chat',
-        prompt: prompt,
-        max_tokens: 1000
+        model: 'meta-llama/Llama-2-70b-chat-hf',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000,
+        temperature: 0.7
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Together.ai API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`Together.ai API Error Response: ${errorText}`);
+      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.output?.choices?.[0]?.text || data.choices?.[0]?.text || 'No response from Together.ai';
+    return data.choices?.[0]?.message?.content || 'No response from Together.ai';
   }
 }
 
