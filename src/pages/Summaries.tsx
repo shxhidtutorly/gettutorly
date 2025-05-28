@@ -36,9 +36,9 @@ const Summaries = () => {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
   method: "POST",
   headers: {
-   Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`
-    "Content-Type": "application/json"
-  }, 
+  Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
+  "Content-Type": "application/json"
+},
   body: JSON.stringify({
     model: "mistralai/mistral-7b-instruct",
     messages: [
