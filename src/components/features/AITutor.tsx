@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, MessageSquare, BookOpen, RefreshCw, Send, Sparkles, User, Loader2, Maximize2, Minimize2 } from "lucide-react";
+import { BrainCircuit, MessageSquare, BookOpen, RefreshCw, Send, Sparkles, User, Loader2, Maximize2, Minimize2, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,9 +14,10 @@ type Message = {
 interface AITutorProps {
   isFullscreen?: boolean;
   toggleFullscreen?: () => void;
+  onClose?: () => void;
 }
 
-const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
+const AITutor = ({ isFullscreen = false, toggleFullscreen, onClose }: AITutorProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -212,6 +213,17 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
                 ) : (
                   <Maximize2 className="h-4 w-4" />
                 )}
+              </Button>
+            )}
+            {isFullscreen && onClose && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0" 
+                onClick={onClose}
+                title="Close Chat"
+              >
+                <X className="h-4 w-4" />
               </Button>
             )}
             <Tabs defaultValue="chat" className="w-auto">

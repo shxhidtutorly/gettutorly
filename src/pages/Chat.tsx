@@ -9,12 +9,19 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const Chat = () => {
-  // Start in fullscreen by default
-  const [isFullscreen, setIsFullscreen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const navigate = useNavigate();
   
   const handleBack = () => {
     navigate("/dashboard");
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const handleCloseFullscreen = () => {
+    setIsFullscreen(false);
   };
   
   return (
@@ -52,7 +59,11 @@ const Chat = () => {
                 <h2 className="text-xl font-medium">AI Study Tutor</h2>
               </div>
             )}
-            <AITutor isFullscreen={isFullscreen} toggleFullscreen={() => setIsFullscreen(!isFullscreen)} />
+            <AITutor 
+              isFullscreen={isFullscreen} 
+              toggleFullscreen={toggleFullscreen}
+              onClose={handleCloseFullscreen}
+            />
           </div>
         </div>
       </main>

@@ -263,10 +263,10 @@ const Dashboard = () => {
                         Hello! I'm your AI Study Tutor. How can I help you understand your material better today?
                       </p>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" className="text-xs">
+                        <Button size="sm" variant="secondary" className="text-xs" onClick={() => navigate('/chat')}>
                           Chat
                         </Button>
-                        <Button size="sm" variant="secondary" className="text-xs">
+                        <Button size="sm" variant="secondary" className="text-xs" onClick={() => navigate('/quiz')}>
                           Quiz Me
                         </Button>
                       </div>

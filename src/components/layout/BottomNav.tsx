@@ -1,5 +1,5 @@
 
-import { Home, BookOpen, Upload, User } from "lucide-react";
+import { Home, BookOpen, Upload, User, MessageSquare } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -22,6 +22,12 @@ const BottomNav = () => {
           label="Home" 
           href="/dashboard" 
           active={location.pathname === '/dashboard'} 
+        />
+        <NavItem 
+          icon={<MessageSquare size={20} />} 
+          label="Chat" 
+          href="/chat" 
+          active={location.pathname === '/chat'} 
         />
         <NavItem 
           icon={<BookOpen size={20} />} 
