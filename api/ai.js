@@ -1,10 +1,13 @@
 // api/ai.js
+console.log('🚀 Starting AI API import...');
+
 import { AIProviderManager } from '../src/lib/aiProviders.js';
+
+console.log('✅ AI API import successful');
 
 export default async function handler(req, res) {
   console.log('=== AI API ROUTE START ===');
   console.log('Method:', req.method);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
   
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,7 +22,6 @@ export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     console.log('❌ Method not allowed:', req.method);
-    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
@@ -46,7 +48,9 @@ export default async function handler(req, res) {
     console.log('✅ Valid request - Prompt:', prompt.substring(0, 50) + '...', 'Model:', model);
     
     // Initialize AI Provider Manager
+    console.log('🔧 Creating AIProviderManager instance...');
     const aiManager = new AIProviderManager();
+    console.log('✅ AIProviderManager created successfully');
     
     // Get response from the specified AI provider with automatic key rotation
     console.log('🤖 Calling AI Provider Manager...');
@@ -88,8 +92,7 @@ export default async function handler(req, res) {
     console.log('❌ General error');
     return res.status(500).json({ 
       error: 'Internal server error. Please try again later.',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : 'No stack trace'
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }
