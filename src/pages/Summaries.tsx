@@ -14,7 +14,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
-import { getSummaries } from "@/lib/supabase";
+import { getSummaries, storeSummaryWithFile } from "@/lib/supabase";
 
 interface Summary {
   id: number | string;
@@ -201,11 +201,19 @@ const Summaries = () => {
       let fileDetails = null;
       
       if (currentUser) {
-        fileDetails = await uploadFile(selectedFile, "summaries");
-        if (!fileDetails) {
-          throw new Error("File upload to storage failed");
+        try {
+          fileDetails = await uploadFile(selectedFile, "summaries");
+          if (!fileDetails) {
+            throw new Error("File upload to storage failed");
+          }
+          setFileUrl(fileDetails.fileUrl);
+        } catch (uploadError: any) {
+          // Handle bucket not found error specifically
+          if (uploadError.message.includes('Bucket not found')) {
+            throw new Error("Storage configuration issue. Please contact support or try again later.");
+          }
+          throw uploadError;
         }
-        setFileUrl(fileDetails.fileUrl);
       }
       
       // Update progress

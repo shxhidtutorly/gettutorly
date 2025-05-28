@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { uploadFile as uploadFileUtil, deleteFile as deleteFileUtil, ensureBucketExists } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 
 export const useSupabaseStorage = () => {
@@ -8,7 +9,7 @@ export const useSupabaseStorage = () => {
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
-  const uploadFile = async (file: File, bucket: string = 'study_materials') => {
+  const uploadFile = async (file: File, bucket: string = 'summaries') => {
     if (!currentUser) {
       setError('User must be logged in to upload files');
       return null;
@@ -27,36 +28,13 @@ export const useSupabaseStorage = () => {
         throw new Error('File size must be less than 25MB');
       }
 
-      // Create a unique file path using user ID and timestamp
-      const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
+      setProgress(25);
       
-      // Upload the file with retry logic
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        console.error('Supabase storage error:', error);
-        throw new Error(`Upload failed: ${error.message}`);
-      }
-
-      // Get the public URL for the uploaded file
-      const { data: publicUrlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
+      // Use the enhanced upload function with fallback strategy
+      const result = await uploadFileUtil(currentUser.id, file, bucket);
+      
       setProgress(100);
-      
-      return {
-        filePath,
-        fileUrl: publicUrlData.publicUrl,
-        fileName: file.name,
-        contentType: file.type,
-        size: file.size
-      };
+      return result;
     } catch (err: any) {
       const errorMessage = err.message || 'An error occurred during file upload';
       setError(errorMessage);
@@ -65,15 +43,11 @@ export const useSupabaseStorage = () => {
     }
   };
 
-  const deleteFile = async (filePath: string, bucket: string = 'study_materials') => {
+  const deleteFile = async (filePath: string, bucket: string = 'summaries') => {
     try {
       setError(null);
-      const { error } = await supabase.storage
-        .from(bucket)
-        .remove([filePath]);
-
-      if (error) throw error;
-      return true;
+      const result = await deleteFileUtil(filePath, bucket);
+      return result;
     } catch (err: any) {
       setError(err.message || 'An error occurred during file deletion');
       console.error('File deletion error:', err);
@@ -81,7 +55,7 @@ export const useSupabaseStorage = () => {
     }
   };
   
-  const getSignedUrl = async (filePath: string, bucket: string = 'study_materials', expiresIn: number = 3600) => {
+  const getSignedUrl = async (filePath: string, bucket: string = 'summaries', expiresIn: number = 3600) => {
     try {
       setError(null);
       const { data, error } = await supabase.storage
@@ -97,7 +71,7 @@ export const useSupabaseStorage = () => {
     }
   };
   
-  const listFiles = async (folderPath: string = '', bucket: string = 'study_materials') => {
+  const listFiles = async (folderPath: string = '', bucket: string = 'summaries') => {
     if (!currentUser) {
       setError('User must be logged in to list files');
       return null;
@@ -121,11 +95,24 @@ export const useSupabaseStorage = () => {
     }
   };
 
+  const checkBucketStatus = async () => {
+    try {
+      setError(null);
+      const isReady = await ensureBucketExists();
+      return isReady;
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while checking bucket status');
+      console.error('Bucket check error:', err);
+      return false;
+    }
+  };
+
   return {
     uploadFile,
     deleteFile,
     getSignedUrl,
     listFiles,
+    checkBucketStatus,
     progress,
     error
   };

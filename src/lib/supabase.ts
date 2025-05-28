@@ -17,33 +17,96 @@ export const supabase = createClient(
   }
 );
 
-// Enhanced storage helpers with better error handling
-export const uploadFile = async (userId: string, file: File, bucket: string = 'study_materials') => {
+// Storage configuration
+const STORAGE_CONFIG = {
+  bucketName: 'summaries',
+  fallbackBuckets: ['summaries', 'study_materials', 'documents', 'pdfs', 'uploads'],
+  maxFileSize: 25 * 1024 * 1024,
+  allowedTypes: ['application/pdf']
+};
+
+// Function to ensure bucket exists
+export const ensureBucketExists = async (bucketName: string = STORAGE_CONFIG.bucketName) => {
+  try {
+    // Check if bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      return false;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+    
+    if (!bucketExists) {
+      console.log(`Bucket '${bucketName}' not found. Attempting to create...`);
+      // Note: Bucket creation may require admin privileges
+      // For now, we'll return false and use fallback strategy
+      return false;
+    }
+    
+    console.log(`Bucket '${bucketName}' exists and is ready.`);
+    return true;
+  } catch (error) {
+    console.error('Error in ensureBucketExists:', error);
+    return false;
+  }
+};
+
+// Function to upload file with fallback bucket strategy
+export const uploadFile = async (userId: string, file: File, primaryBucket: string = STORAGE_CONFIG.bucketName) => {
   try {
     // Validate file type and size
     if (file.type !== 'application/pdf') {
       throw new Error('Please upload a PDF file');
     }
     
-    if (file.size > 25 * 1024 * 1024) {
+    if (file.size > STORAGE_CONFIG.maxFileSize) {
       throw new Error('File size must be less than 25MB');
     }
 
     const filePath = `${userId}/${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    
+    // Try uploading to the primary bucket first
+    let uploadResult = null;
+    let successfulBucket = null;
+    
+    for (const bucketName of STORAGE_CONFIG.fallbackBuckets) {
+      try {
+        console.log(`Attempting upload to bucket: ${bucketName}`);
+        
+        const { data, error } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-    if (error) {
-      console.error('Supabase storage error:', error);
-      throw new Error(`Upload failed: ${error.message}`);
+        if (error) {
+          console.error(`Upload to ${bucketName} failed:`, error);
+          if (error.message.includes('Bucket not found')) {
+            console.log(`Bucket ${bucketName} not found, trying next...`);
+            continue;
+          }
+          throw error;
+        }
+
+        console.log(`Successfully uploaded to bucket: ${bucketName}`);
+        uploadResult = data;
+        successfulBucket = bucketName;
+        break;
+      } catch (bucketError) {
+        console.error(`Failed to upload to ${bucketName}:`, bucketError);
+        continue;
+      }
+    }
+    
+    if (!uploadResult || !successfulBucket) {
+      throw new Error('All storage buckets failed. Please contact support.');
     }
 
     const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
+      .from(successfulBucket)
       .getPublicUrl(filePath);
 
     return {
@@ -51,7 +114,8 @@ export const uploadFile = async (userId: string, file: File, bucket: string = 's
       fileUrl: publicUrl,
       fileName: file.name,
       contentType: file.type,
-      size: file.size
+      size: file.size,
+      bucket: successfulBucket
     };
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -60,7 +124,7 @@ export const uploadFile = async (userId: string, file: File, bucket: string = 's
 };
 
 // Delete file from storage
-export const deleteFile = async (filePath: string, bucket: string = 'study_materials') => {
+export const deleteFile = async (filePath: string, bucket: string = STORAGE_CONFIG.bucketName) => {
   try {
     const { error } = await supabase.storage
       .from(bucket)
@@ -120,5 +184,39 @@ export const storeSummaryWithFile = async (
   } catch (error) {
     console.error("Error storing summary:", error);
     throw error;
+  }
+};
+
+// Initialize storage on app startup
+export const initializeStorage = async () => {
+  try {
+    console.log('Initializing storage...');
+    
+    // List existing buckets
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return false;
+    }
+    
+    console.log('Available buckets:', buckets?.map(b => b.name) || []);
+    
+    // Check if any of our fallback buckets exist
+    const availableBuckets = buckets?.map(b => b.name) || [];
+    const usableBucket = STORAGE_CONFIG.fallbackBuckets.find(bucket => 
+      availableBuckets.includes(bucket)
+    );
+    
+    if (usableBucket) {
+      console.log(`Found usable bucket: ${usableBucket}`);
+      return true;
+    } else {
+      console.warn('No suitable storage buckets found. File uploads may fail.');
+      return false;
+    }
+  } catch (error) {
+    console.error('Storage initialization failed:', error);
+    return false;
   }
 };
