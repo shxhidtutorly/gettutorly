@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import * as pdfjsLib from "pdfjs-dist/build/pdf";
+import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -34,12 +34,25 @@ const Summaries = () => {
 
   const fetchJinaSummary = async (file: File): Promise<string> => {
     const text = await extractTextFromPDF(file);
+
+    if (!text || text.trim().length === 0) {
+      throw new Error("PDF content is empty. Could not extract text.");
+    }
+
+    const trimmedText = text.length > 15000 ? text.slice(0, 15000) : text;
+    console.log("Sending to Jina:", trimmedText.substring(0, 500));
+
     const response = await fetch("https://r.jina.ai/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: text })
+      body: JSON.stringify({ data: trimmedText })
     });
-    if (!response.ok) throw new Error("Jina summary API failed");
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Jina API Error: ${response.status} - ${errorText}`);
+    }
+
     return await response.text();
   };
 
@@ -94,3 +107,4 @@ const Summaries = () => {
 };
 
 export default Summaries;
+
