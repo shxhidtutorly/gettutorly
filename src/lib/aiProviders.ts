@@ -1,11 +1,10 @@
 // src/lib/aiProviders.js
-// AI Provider Management with automatic key rotation and model routing
-export class AIProviderManager {
+console.log('📦 Loading aiProviders.js...');
+
+class AIProviderManager {
   constructor() {
     console.log('🔧 Initializing AI Provider Manager...');
     
-    // Load API keys from environment variables (server-side, no VITE_ prefix)
-    // Multiple keys per provider for automatic rotation
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
@@ -15,16 +14,11 @@ export class AIProviderManager {
       together: this.getKeysFromEnv('TOGETHER_API_KEY'),
     };
     
-    // Log available providers (without showing actual keys)
     Object.entries(this.apiKeys).forEach(([provider, keys]) => {
       console.log(`🔑 ${provider}: ${keys.length} keys available`);
     });
   }
 
-  /**
-   * Extract API keys from environment variables
-   * Supports both single keys and comma-separated multiple keys
-   */
   getKeysFromEnv(envVar) {
     const keys = process.env[envVar];
     if (!keys) {
@@ -32,15 +26,11 @@ export class AIProviderManager {
       return [];
     }
     
-    // Split by comma and trim whitespace, filter out empty strings
     const keyArray = keys.split(',').map(key => key.trim()).filter(key => key.length > 0);
     console.log(`📋 Found ${keyArray.length} keys for ${envVar}`);
     return keyArray;
   }
 
-  /**
-   * Main method to get AI response with automatic provider routing and key rotation
-   */
   async getAIResponse(prompt, model) {
     const provider = this.getProviderForModel(model);
     const keys = this.apiKeys[provider];
@@ -51,7 +41,6 @@ export class AIProviderManager {
       throw new Error(`No API keys found for provider: ${provider}`);
     }
 
-    // Try each API key until one works (automatic key rotation)
     let lastError = null;
     
     for (let i = 0; i < keys.length; i++) {
@@ -70,19 +59,13 @@ export class AIProviderManager {
       } catch (error) {
         console.log(`❌ Failed with ${provider} key ${i + 1}:`, error instanceof Error ? error.message : error);
         lastError = error instanceof Error ? error : new Error(String(error));
-        
-        // Continue to next key if this one failed
         continue;
       }
     }
     
-    // All keys failed
     throw new Error(`All API keys failed for ${provider}. Last error: ${lastError?.message || 'Unknown error'}`);
   }
 
-  /**
-   * Map model names to their corresponding providers
-   */
   getProviderForModel(model) {
     const modelProviderMap = {
       'gemini': 'gemini',
@@ -96,37 +79,25 @@ export class AIProviderManager {
     return modelProviderMap[model] || model;
   }
 
-  /**
-   * Call the specific AI provider with error handling and retry logic
-   */
   async callProvider(provider, prompt, apiKey, model) {
     switch (provider) {
       case 'gemini':
         return await this.callGemini(prompt, apiKey);
-      
       case 'groq':
         return await this.callGroq(prompt, apiKey);
-      
       case 'claude':
         return await this.callClaude(prompt, apiKey);
-      
       case 'openrouter':
         return await this.callOpenRouter(prompt, apiKey, model);
-      
       case 'huggingface':
         return await this.callHuggingFace(prompt, apiKey);
-      
       case 'together':
         return await this.callTogether(prompt, apiKey);
-      
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
-  /**
-   * Google Gemini API integration
-   */
   async callGemini(prompt, apiKey) {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -144,9 +115,6 @@ export class AIProviderManager {
     return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
   }
 
-  /**
-   * Groq API integration
-   */
   async callGroq(prompt, apiKey) {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -169,9 +137,6 @@ export class AIProviderManager {
     return data.choices?.[0]?.message?.content || 'No response from Groq';
   }
 
-  /**
-   * Anthropic Claude API integration
-   */
   async callClaude(prompt, apiKey) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -195,9 +160,6 @@ export class AIProviderManager {
     return data.content?.[0]?.text || 'No response from Claude';
   }
 
-  /**
-   * OpenRouter API integration
-   */
   async callOpenRouter(prompt, apiKey, model) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -219,9 +181,6 @@ export class AIProviderManager {
     return data.choices?.[0]?.message?.content || 'No response from OpenRouter';
   }
 
-  /**
-   * Hugging Face Inference API integration
-   */
   async callHuggingFace(prompt, apiKey) {
     const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-large', {
       method: 'POST',
@@ -240,9 +199,6 @@ export class AIProviderManager {
     return data[0]?.generated_text || data.generated_text || 'No response from Hugging Face';
   }
 
-  /**
-   * Together.ai API integration
-   */
   async callTogether(prompt, apiKey) {
     const response = await fetch('https://api.together.xyz/inference', {
       method: 'POST',
@@ -265,3 +221,8 @@ export class AIProviderManager {
     return data.output?.choices?.[0]?.text || data.choices?.[0]?.text || 'No response from Together.ai';
   }
 }
+
+// Export the class
+export { AIProviderManager };
+
+console.log('✅ AIProviderManager exported successfully');
