@@ -32,41 +32,58 @@ const Summaries = () => {
     return fullText;
   };
 
-  const fetchJinaSummary = async (file: File): Promise<string> => {
-    const text = await extractTextFromPDF(file);
-
-    if (!text || text.trim().length === 0) {
-      throw new Error("PDF content is empty. Could not extract text.");
-    }
-
-    const trimmedText = text.length > 15000 ? text.slice(0, 15000) : text;
-    console.log("Sending to Jina:", trimmedText.substring(0, 500));
-
-    const response = await fetch("https://r.jina.ai/", {
+  const fetchOpenRouterSummary = async (text: string): Promise<string> => {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: trimmedText })
+      headers: {
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful assistant that summarizes documents."
+          },
+          {
+            role: "user",
+            content: `Summarize this document:\n\n${text}`
+          }
+        ]
+      })
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Jina API Error: ${response.status} - ${errorText}`);
+      throw new Error(data.error?.message || "Failed to fetch summary");
     }
 
-    return await response.text();
+    return data.choices?.[0]?.message?.content || "No summary generated.";
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return toast({ title: "No file selected", description: "Select a file.", variant: "destructive" });
-    if (!currentUser) return toast({ title: "Login required", description: "Please sign in first.", variant: "destructive" });
-    if (selectedFile.type !== "application/pdf") return toast({ title: "Invalid file", description: "Upload a PDF.", variant: "destructive" });
+    if (!selectedFile)
+      return toast({ title: "No file selected", description: "Select a file.", variant: "destructive" });
+    if (!currentUser)
+      return toast({ title: "Login required", description: "Please sign in first.", variant: "destructive" });
+    if (selectedFile.type !== "application/pdf")
+      return toast({ title: "Invalid file", description: "Upload a PDF.", variant: "destructive" });
 
     setIsUploading(true);
     setUploadProgress(25);
 
     try {
+      const rawText = await extractTextFromPDF(selectedFile);
+      if (!rawText || rawText.trim().length === 0) {
+        throw new Error("Could not extract text from this PDF.");
+      }
+
       setUploadProgress(50);
-      const summary = await fetchJinaSummary(selectedFile);
+      const trimmedText = rawText.length > 15000 ? rawText.slice(0, 15000) : rawText;
+      const summary = await fetchOpenRouterSummary(trimmedText);
+
       setUploadProgress(100);
       setSummaryResult(summary);
       toast({ title: "Summary Ready", description: "Summary generated successfully." });
@@ -107,4 +124,3 @@ const Summaries = () => {
 };
 
 export default Summaries;
-
