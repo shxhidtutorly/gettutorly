@@ -35,10 +35,10 @@ const Summaries = () => {
   const fetchOpenRouterSummary = async (text: string): Promise<string> => {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`
-        "Content-Type": "application/json"
-      },
+    headers: {
+  Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
+  "Content-Type": "application/json"
+}
       body: JSON.stringify({
         model: "mistralai/mistral-7b-instruct",
         messages: [
