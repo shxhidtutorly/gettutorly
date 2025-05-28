@@ -41,13 +41,16 @@ class AIProviderManager {
       throw new Error(`No API keys found for provider: ${provider}`);
     }
 
+    // Add instruction to keep responses concise
+    const optimizedPrompt = `${prompt}\n\nPlease provide a concise, focused response (2-3 sentences maximum).`;
+
     let lastError = null;
     
     for (let i = 0; i < keys.length; i++) {
       try {
         console.log(`🔄 Attempting ${provider} with key ${i + 1}/${keys.length}`);
         
-        const response = await this.callProvider(provider, prompt, keys[i], model);
+        const response = await this.callProvider(provider, optimizedPrompt, keys[i], model);
         
         console.log(`✅ Success with ${provider} key ${i + 1}`);
         return {
@@ -99,17 +102,16 @@ class AIProviderManager {
   }
 
   async callGemini(prompt, apiKey) {
-    // Updated Gemini API endpoint and model name
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1000,
+          temperature: 0.3, // Lower for more focused responses
+          topK: 20,         // Reduced for more predictable output
+          topP: 0.8,        // Reduced for more focused responses
+          maxOutputTokens: 200, // REDUCED: was 1000, now 200
         }
       })
     });
@@ -137,10 +139,10 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile', // Updated model name
+        model: 'llama-3.1-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000,
-        temperature: 0.7
+        max_tokens: 200,      // REDUCED: was 1000, now 200
+        temperature: 0.3      // Lower for more focused responses
       })
     });
 
@@ -163,9 +165,10 @@ class AIProviderManager {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022', // Updated model name
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 200,    // REDUCED: was 1000, now 200
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3    // Lower for more focused responses
       })
     });
 
@@ -185,13 +188,14 @@ class AIProviderManager {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://your-app.vercel.app', // Required by OpenRouter
-        'X-Title': 'AI Provider Manager' // Optional but recommended
+        'HTTP-Referer': 'https://your-app.vercel.app',
+        'X-Title': 'AI Provider Manager'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet', // Updated model
+        model: 'anthropic/claude-3.5-sonnet',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000
+        max_tokens: 200,    // REDUCED: was 1000, now 200
+        temperature: 0.3    // Lower for more focused responses
       })
     });
 
@@ -206,7 +210,6 @@ class AIProviderManager {
   }
 
   async callHuggingFace(prompt, apiKey) {
-    // Using a more reliable model
     const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
       method: 'POST',
       headers: {
@@ -216,8 +219,8 @@ class AIProviderManager {
       body: JSON.stringify({ 
         inputs: prompt,
         parameters: {
-          max_new_tokens: 1000,
-          temperature: 0.7
+          max_new_tokens: 200,  // REDUCED: was 1000, now 200
+          temperature: 0.3      // Lower for more focused responses
         }
       })
     });
@@ -238,7 +241,6 @@ class AIProviderManager {
   }
 
   async callTogether(prompt, apiKey) {
-    // Updated Together AI endpoint and model
     const response = await fetch('https://api.together.xyz/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -248,8 +250,8 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'meta-llama/Llama-2-70b-chat-hf',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000,
-        temperature: 0.7
+        max_tokens: 200,    // REDUCED: was 1000, now 200
+        temperature: 0.3    // Lower for more focused responses
       })
     });
 
