@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,6 @@ import { BrainCircuit, MessageSquare, BookOpen, RefreshCw, Send, Sparkles, User,
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { callVercelAI } from "@/lib/vercelAiClient";
 
 type Message = {
   role: "user" | "assistant";
@@ -34,21 +32,31 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   
-  // Load saved messages from localStorage
+  // Load saved messages from localStorage on component mount
   useEffect(() => {
-    const saved = localStorage.getItem("tutorly_chat");
-    if (saved) {
-      try {
-        setMessages(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse saved messages", e);
+    try {
+      const saved = localStorage.getItem("tutorly_chat");
+      if (saved) {
+        const parsedMessages = JSON.parse(saved);
+        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+          setMessages(parsedMessages);
+        }
       }
+    } catch (e) {
+      console.error("Failed to parse saved messages:", e);
+      // Keep default welcome message if parsing fails
     }
   }, []);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("tutorly_chat", JSON.stringify(messages));
+    if (messages.length > 1) { // Only save if there are actual conversations
+      try {
+        localStorage.setItem("tutorly_chat", JSON.stringify(messages));
+      } catch (e) {
+        console.error("Failed to save messages:", e);
+      }
+    }
   }, [messages]);
   
   useEffect(() => {
@@ -56,41 +64,83 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
   }, [messages, isThinking]);
   
   const handleSendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isThinking) return;
     
-    console.log("Sending request", input, "gemini");
+    const userMessage = input.trim();
+    console.log("🚀 Sending message to AI:", userMessage);
     
-    // Add user message
-    setMessages(prev => [...prev, { role: "user", content: input }]);
+    // Add user message immediately
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setInput("");
     setIsThinking(true);
     
     try {
-      // Use the Vercel AI client to get a response
-      const result = await callVercelAI(input, 'gemini');
+      // Call your working /api/ai endpoint
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: userMessage,
+          model: 'gemini' // Using your optimized Gemini with 200 token limit
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("✅ AI Response received:", data);
+      
+      if (data.response) {
+        setMessages(prev => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.response
+          }
+        ]);
+        
+        toast({
+          title: "AI Tutor Response",
+          description: `Response from ${data.provider || 'AI'} • ${data.model || 'model'}`,
+          duration: 3000,
+        });
+      } else {
+        throw new Error('No response from AI');
+      }
+      
+    } catch (error) {
+      console.error('❌ AI Tutor Error:', error);
+      
+      let errorMessage = "I'm having trouble connecting right now. Please try again in a moment.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = "Network connection issue. Please check your internet and try again.";
+        } else if (error.message.includes('500')) {
+          errorMessage = "Server error. Please try again in a few seconds.";
+        } else if (error.message.includes('429')) {
+          errorMessage = "Too many requests. Please wait a moment before trying again.";
+        }
+      }
       
       setMessages(prev => [
         ...prev,
         {
           role: "assistant",
-          content: result
+          content: errorMessage
         }
       ]);
       
       toast({
-        title: "Tutor AI Response",
-        description: "New explanation available",
-        duration: 3000,
+        title: "Connection Error",
+        description: "Failed to get AI response. Please try again.",
+        variant: "destructive",
+        duration: 4000,
       });
-    } catch (error) {
-      console.error('AI Tutor Error:', error);
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "I'm sorry, I had trouble answering that. Please try again."
-        }
-      ]);
     } finally {
       setIsThinking(false);
     }
@@ -102,12 +152,27 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
       handleSendMessage();
     }
   };
+
+  const clearChat = () => {
+    setMessages([{
+      role: "assistant",
+      content: "Hello! I'm your AI Study Tutor. How can I help you understand your material better today?"
+    }]);
+    localStorage.removeItem("tutorly_chat");
+    toast({
+      title: "Chat Cleared",
+      description: "Starting fresh conversation",
+      duration: 2000,
+    });
+  };
   
-  // Shorter, more concise suggested questions
+  // Shorter, more concise suggested questions optimized for 200 tokens
   const suggestedQuestions = [
-    "Explain cellular respiration",
+    "Explain cellular respiration briefly",
     "Quiz me on photosynthesis",
-    "Define osmosis"
+    "What is osmosis?",
+    "Define mitosis",
+    "Explain DNA structure"
   ];
   
   return (
@@ -119,11 +184,21 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
               <BrainCircuit className="h-5 w-5 text-spark-primary" />
             </div>
             <CardTitle className="text-base font-medium text-foreground">AI Study Tutor</CardTitle>
-            <Badge variant="outline" className="ml-2 bg-spark-light text-spark-secondary border-0">
-              Beta
+            <Badge variant="outline" className="ml-2 bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700">
+              Live
             </Badge>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 px-2 text-xs"
+              onClick={clearChat}
+              title="Clear Chat"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
             {toggleFullscreen && (
               <Button 
                 variant="ghost" 
@@ -183,7 +258,7 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
                 </div>
                 
                 <div 
-                  className={`px-4 py-2 rounded-xl break-words ${
+                  className={`px-4 py-2 rounded-xl break-words whitespace-pre-wrap ${
                     message.role === "user" 
                       ? "bg-spark-primary text-white rounded-tr-none"
                       : "bg-spark-light text-foreground rounded-tl-none"
@@ -203,6 +278,7 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
                   <BrainCircuit className="h-4 w-4" />
                 </div>
                 <div className="max-w-[80%] px-4 py-3 bg-spark-light rounded-xl rounded-tl-none flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground mr-2">Thinking</span>
                   <div className="w-2 h-2 bg-spark-secondary rounded-full animate-pulse"></div>
                   <div className="w-2 h-2 bg-spark-secondary rounded-full animate-pulse delay-150"></div>
                   <div className="w-2 h-2 bg-spark-secondary rounded-full animate-pulse delay-300"></div>
@@ -247,6 +323,10 @@ const AITutor = ({ isFullscreen = false, toggleFullscreen }: AITutorProps) => {
             size="icon" 
             className="shrink-0 hover:bg-spark-light transition-colors button-click-effect"
             title="AI Suggestions"
+            onClick={() => {
+              const randomQuestion = suggestedQuestions[Math.floor(Math.random() * suggestedQuestions.length)];
+              setInput(randomQuestion);
+            }}
           >
             <Sparkles className="h-4 w-4 text-spark-primary" />
           </Button>
