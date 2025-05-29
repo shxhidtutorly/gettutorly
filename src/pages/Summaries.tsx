@@ -41,10 +41,19 @@ const Summaries = () => {
 
   console.log("✅ Using API Key:", apiKey);
 
+  const fetchOpenRouterSummary = async (text: string): Promise<string> => {
+  const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("❌ OpenRouter API key is missing");
+  }
+
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://gettutorly.com", // ✅ REQUIRED by OpenRouter
+      "X-Title": "Tutorly",                     // optional
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -62,10 +71,10 @@ const Summaries = () => {
     })
   });
 
-    const data = await response.json();
+  const data = await response.json();
 
   if (!response.ok) {
-    console.error("❌ OpenRouter API Error:", data);
+    console.error("❌ API error:", data);
     throw new Error(data.error?.message || "Failed to fetch summary");
   }
 
