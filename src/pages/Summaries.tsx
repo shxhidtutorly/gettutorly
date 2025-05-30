@@ -19,6 +19,13 @@ const Summaries = () => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
+  // Debug: Check environment variables
+  console.log("=== ENVIRONMENT DEBUG ===");
+  console.log("NEXT_PUBLIC_OPENROUTER_API_KEY exists:", !!process.env.NEXT_PUBLIC_OPENROUTER_API_KEY);
+  console.log("NEXT_PUBLIC_OPENROUTER_API_KEY length:", process.env.NEXT_PUBLIC_OPENROUTER_API_KEY?.length || 0);
+  console.log("NEXT_PUBLIC_OPENROUTER_API_KEY starts with sk-:", process.env.NEXT_PUBLIC_OPENROUTER_API_KEY?.startsWith('sk-'));
+  console.log("All NEXT_PUBLIC env vars:", Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
+
   const extractTextFromPDF = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -33,18 +40,23 @@ const Summaries = () => {
   };
 
   const fetchOpenRouterSummary = async (text: string): Promise<string> => {
-    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    console.log("=== API CALL DEBUG ===");
+    console.log("API Key from env:", apiKey ? `${apiKey.substring(0, 10)}...` : "MISSING");
+    console.log("API Key length:", apiKey?.length || 0);
 
     if (!apiKey) {
-      throw new Error("❌ OpenRouter API key is missing");
+      // More detailed error information
+      const availableEnvVars = Object.keys(process.env).filter(key => key.includes('OPENROUTER') || key.includes('API'));
+      throw new Error(`❌ OpenRouter API key is missing. Available env vars with 'OPENROUTER' or 'API': ${availableEnvVars.join(', ')}`);
     }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://gettutorly.com", // ✅ REQUIRED by OpenRouter
-        "X-Title": "Tutorly",                     // optional
+        "HTTP-Referer": "https://gettutorly.com",
+        "X-Title": "Tutorly",
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -82,6 +94,7 @@ const Summaries = () => {
 
     setIsUploading(true);
     setUploadProgress(25);
+    setProcessingError(null);
 
     try {
       const rawText = await extractTextFromPDF(selectedFile);
@@ -97,6 +110,7 @@ const Summaries = () => {
       setSummaryResult(summary);
       toast({ title: "Summary Ready", description: "Summary generated successfully." });
     } catch (err: any) {
+      console.error("Full error:", err);
       setProcessingError(err.message);
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -109,6 +123,15 @@ const Summaries = () => {
       <Navbar />
       <main className="min-h-screen">
         <h1 className="text-2xl font-bold mb-4">Summarize PDF</h1>
+        
+        {/* Debug info display */}
+        <div className="mb-4 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+          <p><strong>Debug Info:</strong></p>
+          <p>API Key Available: {process.env.NEXT_PUBLIC_OPENROUTER_API_KEY ? '✅ Yes' : '❌ No'}</p>
+          <p>API Key Length: {process.env.NEXT_PUBLIC_OPENROUTER_API_KEY?.length || 0}</p>
+          <p>Environment: {process.env.NODE_ENV}</p>
+        </div>
+
         <input type="file" accept=".pdf" onChange={e => e.target.files && setSelectedFile(e.target.files[0])} />
         <Button className="mt-4" onClick={handleUpload} disabled={!selectedFile || isUploading}>
           {isUploading ? "Processing..." : "Generate Summary"}
