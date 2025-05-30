@@ -7,9 +7,12 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, Download, Loader2 } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 
-// Set up PDF.js worker with proper fallback
+// Set up PDF.js worker for Vite
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.js',
+    import.meta.url
+  ).toString();
 }
 
 export default function Summaries() {
@@ -24,21 +27,21 @@ export default function Summaries() {
   const testAPIConnection = async () => {
     console.log("🧪 Testing API connectivity...");
     try {
-      // Test the debug endpoint first
-      const response = await fetch("/api/test-env", {
+      // Test the health endpoint first
+      const response = await fetch("/api/health", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
 
-      console.log("🔍 Test API Response Status:", response.status);
-      console.log("🔍 Test API Response Headers:", response.headers);
-      console.log("🔍 Test API Content-Type:", response.headers.get('content-type'));
+      console.log("🔍 Health API Response Status:", response.status);
+      console.log("🔍 Health API Response Headers:", response.headers);
+      console.log("🔍 Health API Content-Type:", response.headers.get('content-type'));
 
       // Get the raw response text first
       const responseText = await response.text();
-      console.log("🔍 Raw Response (first 200 chars):", responseText.substring(0, 200));
+      console.log("🔍 Raw Health Response (first 200 chars):", responseText.substring(0, 200));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`);
@@ -51,11 +54,11 @@ export default function Summaries() {
       }
 
       const data = JSON.parse(responseText);
-      console.log("✅ API test successful:", data);
+      console.log("✅ API health check successful:", data);
       setDebugInfo(data);
       return data;
     } catch (error) {
-      console.error("API test failed:", error);
+      console.error("API health check failed:", error);
       setError(`API connectivity test failed: ${error.message}`);
       return null;
     }
@@ -116,9 +119,6 @@ export default function Summaries() {
     setProgress(70);
 
     try {
-      // Test API connection first
-      await testAPIConnection();
-
       console.log("🔄 Sending request to summarize API...");
       console.log(`📊 Text length: ${extractedText.length} characters`);
 
@@ -132,15 +132,15 @@ export default function Summaries() {
         }),
       });
 
-      console.log("📡 API Response Status:", response.status);
-      console.log("📡 API Response OK:", response.ok);
+      console.log("📡 Summarize API Response Status:", response.status);
+      console.log("📡 Summarize API Response OK:", response.ok);
 
       // Log the raw response for debugging
       const responseText = await response.text();
-      console.log("📡 Raw response (first 200 chars):", responseText.substring(0, 200));
+      console.log("📡 Raw summarize response (first 200 chars):", responseText.substring(0, 200));
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`);
       }
 
       // Try to parse the response as JSON
