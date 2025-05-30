@@ -1,7 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Trash2, 
@@ -10,343 +7,488 @@ import {
   Bot,
   Sparkles,
   MessageSquare,
-  Send,
-  RotateCcw,
-  User,
+  MoreVertical,
+  Monitor,
   Zap
 } from "lucide-react";
 
-const Chat = () => {
-  const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  });
-  
+// Mock AITutor component for demonstration
+const AITutor = ({ isFullscreen, darkMode, theme, className }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
       type: 'ai',
-      content: "Hello! I'm your AI Study Tutor. How can I help you understand your material better today?"
+      content: 'Hello! I\'m your AI Study Tutor. How can I help you with your studies today?',
+      timestamp: new Date()
     }
   ]);
-  
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
 
-  // Suggested prompts for better UX
-  const suggestedPrompts = [
-    "Explain cellular respiration briefly",
-    "Quiz me on photosynthesis", 
-    "What is osmosis?",
-    "Define mitosis",
-    "Explain DNA structure"
-  ];
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages]);
 
-  const handleBack = () => {
-    navigate("/dashboard");
-  };
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
-  const clearChat = () => {
-    if (window.confirm('Are you sure you want to clear this chat? This action cannot be undone.')) {
-      setMessages([
-        {
-          id: 1,
-          type: 'ai',
-          content: "Hello! I'm your AI Study Tutor. How can I help you understand your material better today?"
-        }
-      ]);
-    }
-  };
-
-  const sendMessage = async (messageText = inputMessage) => {
-    if (!messageText.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
     const userMessage = {
       id: Date.now(),
       type: 'user',
-      content: messageText
+      content: input,
+      timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    setIsLoading(true);
+    setInput('');
+    setIsTyping(true);
 
-    // Simulate AI response - replace with your actual AITutor logic
+    // Simulate AI response
     setTimeout(() => {
       const aiResponse = {
         id: Date.now() + 1,
         type: 'ai',
-        content: generateAIResponse(messageText)
+        content: `I understand you're asking about "${input}". Let me help you with that topic. Here's a detailed explanation...`,
+        timestamp: new Date()
       };
       setMessages(prev => [...prev, aiResponse]);
-      setIsLoading(false);
+      setIsTyping(false);
     }, 1500);
-  };
-
-  const generateAIResponse = (userInput) => {
-    const responses = [
-      "That's a great question! Let me explain this concept in detail...",
-      "I can help you understand this better. Here's a comprehensive explanation...",
-      "This is an important topic in your studies. Let me break it down step by step...",
-      "Excellent question! Here's what you need to know about this...",
-      "I'm here to help you master this concept. Let me provide a clear explanation..."
-    ];
-    return responses[Math.floor(Math.random() * responses.length)] + 
-           ` Based on your question about "${userInput}", here are the key points you should understand: [This would be replaced with actual AI responses from your AITutor component]`;
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSend();
     }
   };
 
-  const handleSuggestedPrompt = (prompt) => {
-    sendMessage(prompt);
+  const suggestedPrompts = [
+    "Explain quantum physics basics",
+    "Help me with calculus derivatives",
+    "Summarize World War II causes",
+    "Teach me about photosynthesis"
+  ];
+
+  return (
+    <div className={`flex flex-col h-full ${className}`}>
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 1 && (
+          <div className="text-center py-8">
+            <div className="mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4">
+                <Bot className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                Welcome to AI Study Tutor
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Start a conversation or try one of these suggestions:
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+              {suggestedPrompts.map((prompt, index) => (
+                <button
+                  key={index}
+                  onClick={() => setInput(prompt)}
+                  className="p-3 text-left bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 text-sm"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div className={`flex items-start space-x-3 max-w-3xl ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                message.type === 'user' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'
+              }`}>
+                {message.type === 'user' ? (
+                  <span className="text-sm font-medium">U</span>
+                ) : (
+                  <Bot className="h-4 w-4" />
+                )}
+              </div>
+              <div className={`px-4 py-3 rounded-2xl ${
+                message.type === 'user'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
+              }`}>
+                <p className="text-sm leading-relaxed">{message.content}</p>
+                <p className={`text-xs mt-2 opacity-70 ${
+                  message.type === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="flex items-start space-x-3 max-w-3xl">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="px-4 py-3 bg-white dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+        <div className="flex space-x-3">
+          <div className="flex-1 relative">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask me anything about your studies..."
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
+              rows="1"
+              style={{ minHeight: '48px', maxHeight: '120px' }}
+            />
+          </div>
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isTyping}
+            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-xl transition-colors duration-200 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]"
+          >
+            {isTyping ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              'Send'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Chat = () => {
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const menuRef = useRef(null);
+
+  // Enhanced theme management with system preference detection
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ai-tutor-theme');
+      if (saved && ['light', 'dark', 'system'].includes(saved)) {
+        return saved;
+      }
+    }
+    return 'system';
+  });
+
+  const [isDark, setIsDark] = useState(false);
+
+  // Theme effect with proper system detection
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const updateTheme = () => {
+      let shouldBeDark = false;
+      
+      if (theme === 'dark') {
+        shouldBeDark = true;
+      } else if (theme === 'light') {
+        shouldBeDark = false;
+      } else {
+        shouldBeDark = mediaQuery.matches;
+      }
+      
+      setIsDark(shouldBeDark);
+      
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    updateTheme();
+    mediaQuery.addEventListener('change', updateTheme);
+    
+    return () => mediaQuery.removeEventListener('change', updateTheme);
+  }, [theme]);
+
+  // Save theme preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ai-tutor-theme', theme);
+    }
+  }, [theme]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMobileMenu(false);
+      }
+    };
+
+    if (showMobileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMobileMenu]);
+
+  const handleBack = () => {
+    // In a real app, this would use your router
+    console.log('Navigate back to dashboard');
+    alert('In your app, this would navigate back to the dashboard');
+  };
+
+  const cycleTheme = () => {
+    const themes = ['light', 'dark', 'system'];
+    const currentIndex = themes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setTheme(themes[nextIndex]);
+  };
+
+  const handleClearChat = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to clear this chat? This action cannot be undone.'
+    );
+    
+    if (confirmed) {
+      setIsClearing(true);
+      setShowMobileMenu(false);
+      
+      // Add a small delay for better UX
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    }
+  };
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'light':
+        return <Sun className="h-4 w-4 text-yellow-500" />;
+      case 'dark':
+        return <Moon className="h-4 w-4 text-blue-400" />;
+      default:
+        return <Monitor className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getThemeLabel = () => {
+    switch (theme) {
+      case 'light':
+        return 'Light';
+      case 'dark':
+        return 'Dark';
+      default:
+        return 'System';
+    }
   };
 
   return (
-    <div className={`h-screen flex flex-col ${darkMode ? 'dark' : ''}`}>
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-800 dark:via-purple-800 dark:to-indigo-800 text-white shadow-lg">
-        <div className="px-4 py-4">
+    <div className="h-screen flex flex-col transition-colors duration-300">
+      {/* Enhanced Header with Gradient */}
+      <header className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-800 dark:via-purple-800 dark:to-indigo-800 text-white shadow-xl">
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
+        </div>
+        
+        <div className="relative px-4 py-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             {/* Left Section */}
             <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <button 
                 onClick={handleBack}
-                className="text-white hover:bg-white/20 transition-all duration-200"
+                className="flex items-center px-3 py-2 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all duration-300 rounded-lg text-sm"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Back</span>
+              </button>
               
               <div className="hidden sm:block w-px h-6 bg-white/30"></div>
               
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <Bot className="h-8 w-8 text-white" />
-                  <Sparkles className="h-3 w-3 text-yellow-300 absolute -top-1 -right-1 animate-pulse" />
+                  <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                    <Bot className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+                  </div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold">AI Study Tutor</h1>
-                  <p className="text-xs text-white/80 hidden sm:block">Your intelligent learning companion</p>
+                  <h1 className="text-xl font-bold flex items-center">
+                    AI Study Tutor
+                    <Zap className="h-4 w-4 ml-2 text-yellow-300" />
+                  </h1>
+                  <p className="text-xs text-white/80 hidden sm:block">
+                    Your intelligent learning companion
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Right Section */}
             <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearChat}
-                className="text-white hover:bg-red-500/30 hover:text-red-100 transition-all duration-200 hidden sm:flex"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Clear Chat
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleDarkMode}
-                className="text-white hover:bg-white/20 transition-all duration-200"
-              >
-                {darkMode ? (
-                  <Sun className="h-4 w-4 text-yellow-300" />
-                ) : (
-                  <Moon className="h-4 w-4" />
+              {/* Desktop Controls */}
+              <div className="hidden sm:flex items-center space-x-2">
+                <button
+                  onClick={handleClearChat}
+                  disabled={isClearing}
+                  className="flex items-center px-3 py-2 text-white hover:bg-red-500/30 hover:text-red-100 backdrop-blur-sm border border-white/20 hover:border-red-300/50 transition-all duration-300 rounded-lg disabled:opacity-50 text-sm"
+                >
+                  <Trash2 className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
+                  {isClearing ? 'Clearing...' : 'Clear Chat'}
+                </button>
+                
+                <button
+                  onClick={cycleTheme}
+                  className="flex items-center px-3 py-2 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all duration-300 rounded-lg text-sm"
+                  title={`Current: ${getThemeLabel()} theme`}
+                >
+                  {getThemeIcon()}
+                  <span className="ml-2 text-xs hidden lg:inline">{getThemeLabel()}</span>
+                </button>
+              </div>
+
+              {/* Mobile Menu */}
+              <div className="sm:hidden relative" ref={menuRef}>
+                <button
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="flex items-center px-3 py-2 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all duration-300 rounded-lg"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+                
+                {showMobileMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 z-50 overflow-hidden">
+                    <div className="p-2 space-y-1">
+                      <button
+                        onClick={cycleTheme}
+                        className="w-full flex items-center px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-lg transition-all duration-200 text-sm"
+                      >
+                        {getThemeIcon()}
+                        <span className="ml-3">Theme: {getThemeLabel()}</span>
+                      </button>
+                      
+                      <div className="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+                      
+                      <button
+                        onClick={handleClearChat}
+                        disabled={isClearing}
+                        className="w-full flex items-center px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                      >
+                        <Trash2 className={`h-4 w-4 mr-3 ${isClearing ? 'animate-spin' : ''}`} />
+                        {isClearing ? 'Clearing Chat...' : 'Clear Chat'}
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Enhanced bottom gradient */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
       </header>
 
-      {/* Chat Container */}
-      <main className="flex-1 flex flex-col bg-gray-900 dark:bg-gray-950 relative overflow-hidden">
-        {/* Chat Header Bar */}
-        <div className="bg-gray-800 dark:bg-gray-900 border-b border-gray-700 px-4 py-3">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <Bot className="h-5 w-5 text-purple-400" />
-                <span className="text-white font-medium">AI Study Tutor</span>
-                <span className="bg-green-500 text-xs px-2 py-1 rounded-full text-white">Live</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearChat}
-                className="text-gray-400 hover:text-white hover:bg-gray-700 sm:hidden"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white hover:bg-gray-700"
-              >
-                <MessageSquare className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Chat</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white hover:bg-gray-700"
-              >
-                <Zap className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Quiz Me</span>
-              </Button>
-            </div>
+      {/* Main Chat Container */}
+      <main className="flex-1 relative overflow-hidden bg-gray-50/80 dark:bg-gray-900/80 transition-colors duration-300">
+        {/* Subtle Background Pattern */}
+        <div className="absolute inset-0 opacity-5 dark:opacity-10">
+          <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+        </div>
+
+        {/* Enhanced Chat Container */}
+        <div className="relative h-full max-w-6xl mx-auto">
+          <div className="h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-x border-gray-200/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300">
+            <AITutor 
+              isFullscreen={true}
+              darkMode={isDark}
+              theme={theme}
+              className="h-full w-full"
+            />
           </div>
         </div>
 
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto">
-            {messages.map((message, index) => (
-              <div 
-                key={message.id}
-                className="py-6 px-4 border-b border-gray-800 dark:border-gray-700"
-              >
-                <div className="flex space-x-4">
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    message.type === 'user' 
-                      ? 'bg-purple-600 text-white' 
-                      : 'bg-gray-700 text-gray-300'
-                  }`}>
-                    {message.type === 'user' ? (
-                      <User className="h-4 w-4" />
-                    ) : (
-                      <Bot className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-300 mb-2">
-                      {message.type === 'user' ? 'You' : 'AI Study Tutor'}
-                    </div>
-                    <div className="text-gray-100 whitespace-pre-wrap leading-relaxed">
-                      {message.content}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {isLoading && (
-              <div className="py-6 px-4 border-b border-gray-800">
-                <div className="flex space-x-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 text-gray-300 flex items-center justify-center">
-                    <Bot className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-300 mb-2">
-                      AI Study Tutor
-                    </div>
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Suggested Prompts - Show when no user messages */}
-            {messages.length === 1 && messages[0].type === 'ai' && (
-              <div className="p-6">
-                <div className="text-gray-400 text-sm mb-4">Try asking:</div>
-                <div className="space-y-2">
-                  {suggestedPrompts.map((prompt, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestedPrompt(prompt)}
-                      className="block w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-200 transition-colors duration-200"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* Input Area */}
-        <div className="bg-gray-800 dark:bg-gray-900 border-t border-gray-700 p-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex space-x-4">
-              <div className="flex-1 relative">
-                <Input
-                  ref={inputRef}
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ask anything about your material..."
-                  className="pr-12 py-3 text-base bg-gray-700 border-gray-600 focus:border-purple-500 text-white placeholder-gray-400 rounded-lg"
-                  disabled={isLoading}
-                />
-                <Button
-                  onClick={() => sendMessage()}
-                  disabled={!inputMessage.trim() || isLoading}
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 rounded-md"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+        {/* Loading Overlay */}
+        {isClearing && (
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-200 dark:border-gray-700 flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+              <span className="text-gray-700 dark:text-gray-300 font-medium">Clearing chat...</span>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
-      {/* Status Bar */}
-      <footer className="bg-gray-800 dark:bg-gray-900 border-t border-gray-700 px-4 py-2">
-        <div className="flex items-center justify-between max-w-4xl mx-auto text-xs text-gray-400">
+      {/* Enhanced Status Bar */}
+      <footer className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-200/60 dark:border-gray-700/60 px-4 py-3 transition-all duration-300">
+        <div className="flex items-center justify-between max-w-6xl mx-auto text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>AI Ready</span>
-            </div>
-            <div className="hidden sm:block">
-              Press <kbd className="px-1 py-0.5 bg-gray-700 rounded text-xs">Enter</kbd> to send
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-sm"></div>
+                <span className="font-medium">AI Ready</span>
+              </div>
+              <div className="hidden sm:flex items-center space-x-1 text-gray-400 dark:text-gray-500">
+                <span>•</span>
+                <span>Press</span>
+                <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs border border-gray-200 dark:border-gray-600 font-mono">
+                  Enter
+                </kbd>
+                <span>to send</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <MessageSquare className="h-3 w-3" />
-            <span>Study Session Active</span>
+          
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1">
+              <MessageSquare className="h-3 w-3" />
+              <span className="font-medium">Study Session Active</span>
+            </div>
+            <div className="hidden md:flex items-center space-x-1 text-gray-400 dark:text-gray-500">
+              <span>•</span>
+              <span>Theme: {getThemeLabel()}</span>
+            </div>
           </div>
         </div>
       </footer>
