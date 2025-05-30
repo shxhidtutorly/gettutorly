@@ -30,14 +30,14 @@ export default async function handler(req, res) {
         name: 'Groq',
         key: process.env.GROQ_API_KEY,
         url: 'https://api.groq.com/openai/v1/chat/completions',
-        model: 'mixtral-8x7b-32768',
+        model: 'mixtral-8x7b-instruct',
         format: 'openai'
       },
       {
         name: 'OpenRouter',
         key: process.env.OPENROUTER_KEY,
         url: 'https://openrouter.ai/api/v1/chat/completions',
-        model: 'mistralai/mixtral-8x7b',
+        model: 'mistral/mixtral-8x7b-instruct',
         format: 'openai'
       },
       {
