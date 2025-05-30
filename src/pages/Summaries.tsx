@@ -33,53 +33,44 @@ const Summaries = () => {
   };
 
   const fetchOpenRouterSummary = async (text: string): Promise<string> => {
-  const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
-  if (!apiKey) {
-    throw new Error("❌ OpenRouter API key is missing or not loaded.");
-  }
+    if (!apiKey) {
+      throw new Error("❌ OpenRouter API key is missing");
+    }
 
-  console.log("✅ Using API Key:", apiKey);
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://gettutorly.com", // ✅ REQUIRED by OpenRouter
+        "X-Title": "Tutorly",                     // optional
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful assistant that summarizes documents."
+          },
+          {
+            role: "user",
+            content: `Summarize this document:\n\n${text}`
+          }
+        ]
+      })
+    });
 
-  const fetchOpenRouterSummary = async (text: string): Promise<string> => {
-  const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    const data = await response.json();
 
-  if (!apiKey) {
-    throw new Error("❌ OpenRouter API key is missing");
-  }
+    if (!response.ok) {
+      console.error("❌ API error:", data);
+      throw new Error(data.error?.message || "Failed to fetch summary");
+    }
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "HTTP-Referer": "https://gettutorly.com", // ✅ REQUIRED by OpenRouter
-      "X-Title": "Tutorly",                     // optional
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "mistralai/mistral-7b-instruct",
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful assistant that summarizes documents."
-        },
-        {
-          role: "user",
-          content: `Summarize this document:\n\n${text}`
-        }
-      ]
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error("❌ API error:", data);
-    throw new Error(data.error?.message || "Failed to fetch summary");
-  }
-
-  return data.choices?.[0]?.message?.content || "No summary generated.";
-};
+    return data.choices?.[0]?.message?.content || "No summary generated.";
+  };
 
   const handleUpload = async () => {
     if (!selectedFile)
