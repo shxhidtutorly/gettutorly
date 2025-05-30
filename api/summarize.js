@@ -1,4 +1,4 @@
-// api/summarize.js - Enhanced with smart provider switching
+// api/summarize.js - Fixed version with comprehensive error handling
 export default async function handler(req, res) {
   console.log(`🔍 Summarize API called: ${req.method} to ${req.url}`);
   
@@ -20,8 +20,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ 
       error: 'Method not allowed',
       allowed: ['POST'],
-      received: req.method,
-      message: 'This endpoint only accepts POST requests'
+      received: req.method
     });
   }
 
@@ -47,7 +46,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // Smart API Provider Configuration
+    // Debug: Log available environment variables
+    const envKeys = [
+      'OPENROUTER_KEY',
+      'CLAUDE_API_KEY', 
+      'GROQ_API_KEY',
+      'TOGETHER_API_KEY'
+    ];
+    
+    console.log('🔑 Environment check:');
+    envKeys.forEach(key => {
+      const value = process.env[key];
+      console.log(`  ${key}: ${value ? `✅ (${value.length} chars)` : '❌ missing'}`);
+    });
+
+    // Smart API Provider Configuration with proper error handling
     const apiProviders = [
       {
         name: 'OpenRouter',
@@ -58,26 +71,25 @@ export default async function handler(req, res) {
           'HTTP-Referer': 'https://gettutorly.com',
           'X-Title': 'Tutorly PDF Summarizer'
         },
-        rateLimitErrors: [429, 402, 403] // Rate limit, payment required, forbidden
+        format: 'openai'
       },
       {
         name: 'Claude',
         key: process.env.CLAUDE_API_KEY,
         url: 'https://api.anthropic.com/v1/messages',
-        model: 'claude-3-haiku-20240307', // Fast and efficient model
+        model: 'claude-3-haiku-20240307',
         headers: {
           'anthropic-version': '2023-06-01'
         },
-        rateLimitErrors: [429, 402, 403],
-        isAnthropic: true // Special handling for Claude API
+        format: 'anthropic'
       },
       {
         name: 'Groq',
         key: process.env.GROQ_API_KEY,
         url: 'https://api.groq.com/openai/v1/chat/completions',
-        model: 'llama3-8b-8192', // Fast Groq model
+        model: 'llama3-8b-8192',
         headers: {},
-        rateLimitErrors: [429, 402, 403]
+        format: 'openai'
       },
       {
         name: 'Together',
@@ -85,116 +97,147 @@ export default async function handler(req, res) {
         url: 'https://api.together.xyz/v1/chat/completions',
         model: 'meta-llama/Llama-2-7b-chat-hf',
         headers: {},
-        rateLimitErrors: [429, 402, 403]
+        format: 'openai'
       }
     ];
 
-    // Filter providers that have valid API keys
-    const availableProviders = apiProviders.filter(provider => provider.key && provider.key.length > 10);
+    // Filter providers that have valid API keys (more than 10 characters)
+    const availableProviders = apiProviders.filter(provider => {
+      const hasKey = provider.key && provider.key.length > 10;
+      console.log(`🔧 ${provider.name}: ${hasKey ? '✅ Available' : '❌ No valid key'}`);
+      return hasKey;
+    });
     
-    console.log(`🔧 Available providers: ${availableProviders.map(p => p.name).join(', ')}`);
+    console.log(`🚀 Will try providers in order: ${availableProviders.map(p => p.name).join(' → ')}`);
     
     if (availableProviders.length === 0) {
       return res.status(500).json({
         error: 'No valid API keys found',
-        message: 'Please configure at least one API provider'
+        message: 'Please configure at least one API provider with a valid key',
+        keysChecked: envKeys
       });
     }
 
     // Function to make API call with specific provider
     async function callProvider(provider, textToSummarize) {
-      console.log(`🚀 Trying ${provider.name}...`);
+      console.log(`\n🚀 Attempting ${provider.name}...`);
+      console.log(`📋 Model: ${provider.model}`);
+      console.log(`🔑 Key: ${provider.key.substring(0, 10)}...`);
       
-      let requestBody;
-      let headers = {
-        'Authorization': `Bearer ${provider.key}`,
-        'Content-Type': 'application/json',
-        ...provider.headers
-      };
-
-      if (provider.isAnthropic) {
-        // Claude API format
-        requestBody = {
-          model: provider.model,
-          max_tokens: 1000,
-          messages: [
-            {
-              role: 'user',
-              content: `Please provide a clear and concise summary of the following text:\n\n${textToSummarize.slice(0, 15000)}`
-            }
-          ]
+      try {
+        let requestBody;
+        let headers = {
+          'Content-Type': 'application/json',
+          ...provider.headers
         };
-      } else {
-        // OpenAI-compatible format (OpenRouter, Groq, Together)
-        requestBody = {
-          model: provider.model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful assistant that creates concise, well-structured summaries of documents. Focus on the main points and key information.'
-            },
-            {
-              role: 'user',
-              content: `Please provide a clear and concise summary of the following text:\n\n${textToSummarize.slice(0, 15000)}`
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.3
-        };
-      }
 
-      const response = await fetch(provider.url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(requestBody)
-      });
-
-      console.log(`📡 ${provider.name} response status: ${response.status}`);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        // Truncate text to prevent token limit issues
+        const maxChars = 12000; // Conservative limit
+        const truncatedText = textToSummarize.slice(0, maxChars);
         
-        // Check if this is a rate limit error
-        if (provider.rateLimitErrors.includes(response.status)) {
-          console.log(`⚠️ ${provider.name} rate limited or quota exceeded (${response.status})`);
-          throw new Error(`RATE_LIMITED:${response.status}`);
+        if (provider.format === 'anthropic') {
+          // Claude API format
+          headers['x-api-key'] = provider.key;
+          requestBody = {
+            model: provider.model,
+            max_tokens: 1000,
+            messages: [
+              {
+                role: 'user',
+                content: `Please provide a clear and concise summary of the following text:\n\n${truncatedText}`
+              }
+            ]
+          };
+        } else {
+          // OpenAI-compatible format (OpenRouter, Groq, Together)
+          headers['Authorization'] = `Bearer ${provider.key}`;
+          requestBody = {
+            model: provider.model,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful assistant that creates concise, well-structured summaries. Focus on the main points and key information.'
+              },
+              {
+                role: 'user',
+                content: `Please provide a clear and concise summary of the following text:\n\n${truncatedText}`
+              }
+            ],
+            max_tokens: 1000,
+            temperature: 0.3
+          };
         }
+
+        console.log(`📡 Making request to ${provider.url}`);
+        console.log(`📊 Request body size: ${JSON.stringify(requestBody).length} characters`);
+
+        const response = await fetch(provider.url, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(requestBody)
+        });
+
+        console.log(`📡 ${provider.name} response status: ${response.status}`);
         
-        console.error(`❌ ${provider.name} API error:`, errorData);
-        throw new Error(`API_ERROR:${response.status}:${errorData.error?.message || 'Unknown error'}`);
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            errorData = { error: 'Failed to parse error response' };
+          }
+          
+          console.log(`❌ ${provider.name} Error Response:`, JSON.stringify(errorData, null, 2));
+          
+          // Check if this is a rate limit error
+          if ([429, 402, 403].includes(response.status)) {
+            throw new Error(`RATE_LIMITED:${response.status}:${errorData.error?.message || 'Rate limited'}`);
+          }
+          
+          throw new Error(`API_ERROR:${response.status}:${errorData.error?.message || errorData.message || 'Unknown error'}`);
+        }
+
+        const data = await response.json();
+        console.log(`✅ ${provider.name} successful response received`);
+        
+        let summary;
+        if (provider.format === 'anthropic') {
+          // Claude response format
+          summary = data.content?.[0]?.text;
+        } else {
+          // OpenAI-compatible response format
+          summary = data.choices?.[0]?.message?.content;
+        }
+
+        if (!summary) {
+          console.error(`❌ No summary extracted from ${provider.name} response`);
+          console.error('Response structure:', JSON.stringify(data, null, 2));
+          throw new Error(`NO_SUMMARY:No valid summary found in response`);
+        }
+
+        return {
+          summary: summary.trim(),
+          provider: provider.name,
+          model: provider.model
+        };
+
+      } catch (error) {
+        console.error(`💥 ${provider.name} failed:`, error.message);
+        throw error;
       }
-
-      const data = await response.json();
-      let summary;
-
-      if (provider.isAnthropic) {
-        // Claude response format
-        summary = data.content?.[0]?.text;
-      } else {
-        // OpenAI-compatible response format
-        summary = data.choices?.[0]?.message?.content;
-      }
-
-      if (!summary) {
-        console.error(`❌ No summary in ${provider.name} response:`, data);
-        throw new Error(`NO_SUMMARY:No summary generated by ${provider.name}`);
-      }
-
-      return {
-        summary: summary.trim(),
-        provider: provider.name,
-        model: provider.model
-      };
     }
 
     // Try providers in order until one succeeds
     let lastError = null;
+    const attemptedProviders = [];
     
     for (const provider of availableProviders) {
+      attemptedProviders.push(provider.name);
+      
       try {
         const result = await callProvider(provider, text);
         
-        console.log(`✅ Summary generated successfully using ${result.provider}`);
+        console.log(`\n🎉 SUCCESS! Summary generated using ${result.provider}`);
         console.log(`📊 Summary length: ${result.summary.length} characters`);
         
         return res.status(200).json({
@@ -205,41 +248,47 @@ export default async function handler(req, res) {
             provider: result.provider,
             model: result.model,
             timestamp: new Date().toISOString(),
-            providersAttempted: availableProviders.indexOf(provider) + 1,
-            totalProvidersAvailable: availableProviders.length
+            providersAttempted: attemptedProviders.length,
+            totalProvidersAvailable: availableProviders.length,
+            success: true
           }
         });
         
       } catch (error) {
-        lastError = error;
+        lastError = error.message;
+        console.log(`⏭️ ${provider.name} failed, trying next provider...`);
         
-        if (error.message.startsWith('RATE_LIMITED')) {
-          console.log(`⏭️ ${provider.name} rate limited, trying next provider...`);
-          continue; // Try next provider
-        } else {
-          console.log(`⚠️ ${provider.name} failed: ${error.message}, trying next provider...`);
-          continue; // Try next provider for other errors too
-        }
+        // Continue to next provider regardless of error type
+        // This ensures we try all available providers
+        continue;
       }
     }
 
     // If we get here, all providers failed
-    console.error('💥 All providers failed');
+    console.error('\n💥 ALL PROVIDERS FAILED');
+    console.error('Last error:', lastError);
     
     return res.status(500).json({
       error: 'All API providers failed or exceeded their limits',
       message: 'Please try again later when rate limits reset',
-      providersAttempted: availableProviders.map(p => p.name),
-      lastError: lastError?.message || 'Unknown error',
-      retryAfter: '15 minutes',
-      timestamp: new Date().toISOString()
+      details: {
+        providersAttempted: attemptedProviders,
+        lastError: lastError,
+        totalProviders: availableProviders.length,
+        timestamp: new Date().toISOString()
+      },
+      suggestions: [
+        'Check if your API keys are valid and have sufficient credits',
+        'Try again in a few minutes',
+        'Consider using a shorter document'
+      ]
     });
 
   } catch (error) {
     console.error("💥 Server error:", error);
     
     return res.status(500).json({ 
-      error: "Internal server error occurred while processing your request",
+      error: "Internal server error",
       message: error.message,
       timestamp: new Date().toISOString()
     });
