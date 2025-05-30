@@ -12,9 +12,7 @@ import {
   Zap
 } from "lucide-react";
 
-
 import AITutor from "@/components/features/AITutor";
-
     // Simulate AI response
     setTimeout(() => {
       const aiResponse = {
