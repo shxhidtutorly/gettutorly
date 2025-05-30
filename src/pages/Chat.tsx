@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import AITutor from "@/components/features/AITutor";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Trash2, 
@@ -10,9 +10,10 @@ import {
   Bot,
   Sparkles,
   MessageSquare,
-  Settings,
-  Maximize2,
-  MoreVertical
+  Send,
+  RotateCcw,
+  User,
+  Zap
 } from "lucide-react";
 
 const Chat = () => {
@@ -22,7 +23,27 @@ const Chat = () => {
     return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
   
-  const [showSettings, setShowSettings] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'ai',
+      content: "Hello! I'm your AI Study Tutor. How can I help you understand your material better today?"
+    }
+  ]);
+  
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Suggested prompts for better UX
+  const suggestedPrompts = [
+    "Explain cellular respiration briefly",
+    "Quiz me on photosynthesis", 
+    "What is osmosis?",
+    "Define mitosis",
+    "Explain DNA structure"
+  ];
 
   useEffect(() => {
     if (darkMode) {
@@ -34,6 +55,10 @@ const Chat = () => {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const handleBack = () => {
     navigate("/dashboard");
   };
@@ -44,16 +69,69 @@ const Chat = () => {
 
   const clearChat = () => {
     if (window.confirm('Are you sure you want to clear this chat? This action cannot be undone.')) {
-      window.location.reload();
+      setMessages([
+        {
+          id: 1,
+          type: 'ai',
+          content: "Hello! I'm your AI Study Tutor. How can I help you understand your material better today?"
+        }
+      ]);
     }
+  };
+
+  const sendMessage = async (messageText = inputMessage) => {
+    if (!messageText.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: messageText
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+
+    // Simulate AI response - replace with your actual AITutor logic
+    setTimeout(() => {
+      const aiResponse = {
+        id: Date.now() + 1,
+        type: 'ai',
+        content: generateAIResponse(messageText)
+      };
+      setMessages(prev => [...prev, aiResponse]);
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  const generateAIResponse = (userInput) => {
+    const responses = [
+      "That's a great question! Let me explain this concept in detail...",
+      "I can help you understand this better. Here's a comprehensive explanation...",
+      "This is an important topic in your studies. Let me break it down step by step...",
+      "Excellent question! Here's what you need to know about this...",
+      "I'm here to help you master this concept. Let me provide a clear explanation..."
+    ];
+    return responses[Math.floor(Math.random() * responses.length)] + 
+           ` Based on your question about "${userInput}", here are the key points you should understand: [This would be replaced with actual AI responses from your AITutor component]`;
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const handleSuggestedPrompt = (prompt) => {
+    sendMessage(prompt);
   };
 
   return (
     <div className={`h-screen flex flex-col ${darkMode ? 'dark' : ''}`}>
-      {/* Enhanced Header */}
-      <header className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-800 dark:via-purple-800 dark:to-indigo-800 text-white shadow-lg">
-        <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
-        <div className="relative px-4 py-4">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-800 dark:via-purple-800 dark:to-indigo-800 text-white shadow-lg">
+        <div className="px-4 py-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             {/* Left Section */}
             <div className="flex items-center space-x-4">
@@ -61,7 +139,7 @@ const Chat = () => {
                 variant="ghost" 
                 size="sm" 
                 onClick={handleBack}
-                className="text-white hover:bg-white/20 border-white/30 hover:border-white/50 transition-all duration-200"
+                className="text-white hover:bg-white/20 transition-all duration-200"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Dashboard
@@ -105,87 +183,165 @@ const Chat = () => {
                   <Moon className="h-4 w-4" />
                 )}
               </Button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-              {/* Mobile Menu */}
-              <div className="sm:hidden relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="text-white hover:bg-white/20"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-                
-                {showSettings && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearChat}
-                      className="w-full justify-start text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Clear Chat
-                    </Button>
+      {/* Chat Container */}
+      <main className="flex-1 flex flex-col bg-gray-900 dark:bg-gray-950 relative overflow-hidden">
+        {/* Chat Header Bar */}
+        <div className="bg-gray-800 dark:bg-gray-900 border-b border-gray-700 px-4 py-3">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <Bot className="h-5 w-5 text-purple-400" />
+                <span className="text-white font-medium">AI Study Tutor</span>
+                <span className="bg-green-500 text-xs px-2 py-1 rounded-full text-white">Live</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearChat}
+                className="text-gray-400 hover:text-white hover:bg-gray-700 sm:hidden"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white hover:bg-gray-700"
+              >
+                <MessageSquare className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Chat</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white hover:bg-gray-700"
+              >
+                <Zap className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Quiz Me</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto">
+            {messages.map((message, index) => (
+              <div 
+                key={message.id}
+                className="py-6 px-4 border-b border-gray-800 dark:border-gray-700"
+              >
+                <div className="flex space-x-4">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.type === 'user' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-700 text-gray-300'
+                  }`}>
+                    {message.type === 'user' ? (
+                      <User className="h-4 w-4" />
+                    ) : (
+                      <Bot className="h-4 w-4" />
+                    )}
                   </div>
-                )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-300 mb-2">
+                      {message.type === 'user' ? 'You' : 'AI Study Tutor'}
+                    </div>
+                    <div className="text-gray-100 whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {isLoading && (
+              <div className="py-6 px-4 border-b border-gray-800">
+                <div className="flex space-x-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 text-gray-300 flex items-center justify-center">
+                    <Bot className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-300 mb-2">
+                      AI Study Tutor
+                    </div>
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Suggested Prompts - Show when no user messages */}
+            {messages.length === 1 && messages[0].type === 'ai' && (
+              <div className="p-6">
+                <div className="text-gray-400 text-sm mb-4">Try asking:</div>
+                <div className="space-y-2">
+                  {suggestedPrompts.map((prompt, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestedPrompt(prompt)}
+                      className="block w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-200 transition-colors duration-200"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Input Area */}
+        <div className="bg-gray-800 dark:bg-gray-900 border-t border-gray-700 p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex space-x-4">
+              <div className="flex-1 relative">
+                <Input
+                  ref={inputRef}
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask anything about your material..."
+                  className="pr-12 py-3 text-base bg-gray-700 border-gray-600 focus:border-purple-500 text-white placeholder-gray-400 rounded-lg"
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={() => sendMessage()}
+                  disabled={!inputMessage.trim() || isLoading}
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 rounded-md"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* Subtle bottom gradient */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-      </header>
-
-      {/* Chat Container */}
-      <main className="flex-1 relative overflow-hidden bg-gray-50 dark:bg-gray-900">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5 dark:opacity-10">
-          <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-        </div>
-
-        {/* Chat Area with Enhanced Container */}
-        <div className="relative h-full max-w-6xl mx-auto">
-          <div className="h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-x border-gray-200/50 dark:border-gray-700/50 shadow-2xl">
-            <AITutor 
-              isFullscreen={true}
-              darkMode={darkMode}
-              className="h-full w-full"
-            />
-          </div>
-        </div>
-
-        {/* Floating Action Button for Mobile */}
-        <div className="absolute bottom-6 right-6 sm:hidden">
-          <Button
-            onClick={clearChat}
-            size="sm"
-            className="bg-red-500 hover:bg-red-600 text-white shadow-lg rounded-full p-3 h-12 w-12"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
       </main>
 
       {/* Status Bar */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2">
-        <div className="flex items-center justify-between max-w-6xl mx-auto text-xs text-gray-500 dark:text-gray-400">
+      <footer className="bg-gray-800 dark:bg-gray-900 border-t border-gray-700 px-4 py-2">
+        <div className="flex items-center justify-between max-w-4xl mx-auto text-xs text-gray-400">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>AI Ready</span>
             </div>
             <div className="hidden sm:block">
-              Press <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">Enter</kbd> to send
+              Press <kbd className="px-1 py-0.5 bg-gray-700 rounded text-xs">Enter</kbd> to send
             </div>
           </div>
           <div className="flex items-center space-x-2">
