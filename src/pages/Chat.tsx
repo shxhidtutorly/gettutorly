@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import AITutor from "@/components/features/AITutor";
 import { 
   ArrowLeft, 
   Trash2, 
@@ -11,8 +12,6 @@ import {
   Monitor,
   Zap
 } from "lucide-react";
-
-import AITutor from "@/components/features/AITutor";
 
 const Chat = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -87,6 +86,7 @@ const Chat = () => {
 
   const handleBack = () => {
     // In a real app, this would use your router
+    // For React Router: navigate("/dashboard");
     console.log('Navigate back to dashboard');
     alert('In your app, this would navigate back to the dashboard');
   };
