@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         name: 'Groq',
         key: process.env.GROQ_API_KEY,
         url: 'https://api.groq.com/openai/v1/chat/completions',
-        model: 'qwen-qwq-32b',
+        model: 'gemma2-9b-it',
         format: 'openai'
       },
       {
