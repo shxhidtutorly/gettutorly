@@ -339,5 +339,3 @@ export default function Summaries() {
     </div>
   );
 }
-
-export default Summaries;
