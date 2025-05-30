@@ -12,41 +12,8 @@ import {
   Zap
 } from "lucide-react";
 
-// Mock AITutor component for demonstration
-const AITutor = ({ isFullscreen, darkMode, theme, className }) => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'ai',
-      content: 'Hello! I\'m your AI Study Tutor. How can I help you with your studies today?',
-      timestamp: new Date()
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: input,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsTyping(true);
+import AITutor from "@/components/features/AITutor";
 
     // Simulate AI response
     setTimeout(() => {
