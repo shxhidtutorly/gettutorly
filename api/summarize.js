@@ -1,4 +1,4 @@
-// api/summarize.js - Fixed version with comprehensive error handling
+// api/summarize.js - Updated for meta-llama/Llama-3.3-70B-Instruct-Turbo-Free model
 export default async function handler(req, res) {
   console.log(`🔍 Summarize API called: ${req.method} to ${req.url}`);
   
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
         name: 'Together',
         key: process.env.TOGETHER_API_KEY,
         url: 'https://api.together.xyz/v1/chat/completions',
-        model: 'meta-llama/Llama-2-7b-chat-hf',
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
         headers: {},
         format: 'openai'
       }
@@ -199,13 +199,17 @@ export default async function handler(req, res) {
 
         const data = await response.json();
         console.log(`✅ ${provider.name} successful response received`);
-        
+
         let summary;
         if (provider.format === 'anthropic') {
           // Claude response format
           summary = data.content?.[0]?.text;
+        } else if (provider.name === 'Together') {
+          // Together API response format
+          // Usually, it's similar to OpenAI's format
+          summary = data.choices?.[0]?.message?.content;
         } else {
-          // OpenAI-compatible response format
+          // OpenAI-compatible response format (OpenRouter, Groq)
           summary = data.choices?.[0]?.message?.content;
         }
 
@@ -257,40 +261,23 @@ export default async function handler(req, res) {
       } catch (error) {
         lastError = error.message;
         console.log(`⏭️ ${provider.name} failed, trying next provider...`);
-        
-        // Continue to next provider regardless of error type
-        // This ensures we try all available providers
         continue;
       }
     }
 
     // If we get here, all providers failed
-    console.error('\n💥 ALL PROVIDERS FAILED');
-    console.error('Last error:', lastError);
-    
-    return res.status(500).json({
-      error: 'All API providers failed or exceeded their limits',
-      message: 'Please try again later when rate limits reset',
-      details: {
-        providersAttempted: attemptedProviders,
-        lastError: lastError,
-        totalProviders: availableProviders.length,
-        timestamp: new Date().toISOString()
-      },
-      suggestions: [
-        'Check if your API keys are valid and have sufficient credits',
-        'Try again in a few minutes',
-        'Consider using a shorter document'
-      ]
+    console.error(`❌ All providers failed after trying: ${attemptedProviders.join(', ')}`);
+    return res.status(503).json({
+      error: 'All API providers failed to generate summary',
+      lastError: lastError,
+      providersAttempted: attemptedProviders
     });
 
-  } catch (error) {
-    console.error("💥 Server error:", error);
-    
-    return res.status(500).json({ 
-      error: "Internal server error",
-      message: error.message,
-      timestamp: new Date().toISOString()
+  } catch (err) {
+    console.error('❌ Unexpected server error in /api/summarize:', err);
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: err.message
     });
   }
 }
