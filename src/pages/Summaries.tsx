@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Download, Loader2 } from "lucide-react";
+import { Upload, FileText, Download, Loader2, Moon, Sun, BookOpen, Sparkles } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 
 // Set up PDF.js worker for Vite
@@ -22,46 +22,32 @@ export default function Summaries() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [darkMode, setDarkMode] = useState(false);
 
-  const testAPIConnection = async () => {
-    console.log("🧪 Testing API connectivity...");
-    try {
-      // Test the health endpoint first
-      const response = await fetch("/api/health", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("🔍 Health API Response Status:", response.status);
-      console.log("🔍 Health API Response Headers:", response.headers);
-      console.log("🔍 Health API Content-Type:", response.headers.get('content-type'));
-
-      // Get the raw response text first
-      const responseText = await response.text();
-      console.log("🔍 Raw Health Response (first 200 chars):", responseText.substring(0, 200));
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`);
-      }
-
-      // Check if response is actually JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Expected JSON but got: ${contentType || 'unknown'} - Response: ${responseText.substring(0, 100)}...`);
-      }
-
-      const data = JSON.parse(responseText);
-      console.log("✅ API health check successful:", data);
-      setDebugInfo(data);
-      return data;
-    } catch (error) {
-      console.error("API health check failed:", error);
-      setError(`API connectivity test failed: ${error.message}`);
-      return null;
+  // Initialize dark mode from localStorage or system preference
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedDarkMode !== null) {
+      setDarkMode(JSON.parse(savedDarkMode));
+    } else {
+      setDarkMode(systemPrefersDark);
     }
+  }, []);
+
+  // Apply dark mode to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,7 +121,6 @@ export default function Summaries() {
       console.log("📡 Summarize API Response Status:", response.status);
       console.log("📡 Summarize API Response OK:", response.ok);
 
-      // Log the raw response for debugging
       const responseText = await response.text();
       console.log("📡 Raw summarize response (first 200 chars):", responseText.substring(0, 200));
 
@@ -143,7 +128,6 @@ export default function Summaries() {
         throw new Error(`HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`);
       }
 
-      // Try to parse the response as JSON
       let data;
       try {
         data = JSON.parse(responseText);
@@ -192,70 +176,112 @@ export default function Summaries() {
     setSummary("");
     setProgress(0);
     setError("");
-    setDebugInfo(null);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
+    }`}>
       <Navbar />
       
       <div className="container mx-auto px-4 py-8 pb-24">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              PDF Document Summarizer
-            </h1>
-            <p className="text-lg text-gray-600">
-              Upload a PDF document and get an AI-powered summary
-            </p>
-          </div>
-
-          {/* Debug Info */}
-          {debugInfo && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold text-blue-800 mb-2">🔍 Debug Information</h3>
-              <pre className="text-xs text-blue-700 overflow-x-auto">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
+          {/* Header with Dark Mode Toggle */}
+          <div className="text-center mb-8 relative">
+            <div className="absolute top-0 right-0">
+              <Button
+                onClick={toggleDarkMode}
+                variant="outline"
+                size="sm"
+                className={`transition-all duration-300 ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-600 text-yellow-400 hover:bg-gray-700' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
             </div>
-          )}
-
-          {/* Test API Button */}
-          <div className="mb-6 text-center">
-            <Button 
-              onClick={testAPIConnection}
-              variant="outline"
-              className="mr-4"
-            >
-              🧪 Test API Connection
-            </Button>
+            
+            <div className="flex items-center justify-center mb-4">
+              <BookOpen className={`h-8 w-8 mr-3 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              <h1 className={`text-4xl font-bold bg-gradient-to-r ${
+                darkMode 
+                  ? 'from-blue-400 to-purple-400 text-transparent bg-clip-text' 
+                  : 'from-blue-600 to-purple-600 text-transparent bg-clip-text'
+              }`}>
+                AI Study Summarizer
+              </h1>
+            </div>
+            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Transform your PDF documents into concise, intelligent summaries
+            </p>
+            <div className="flex items-center justify-center mt-2">
+              <Sparkles className={`h-4 w-4 mr-2 ${darkMode ? 'text-yellow-400' : 'text-yellow-500'}`} />
+              <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Powered by Advanced AI
+              </span>
+            </div>
           </div>
 
           {/* Error Display */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700">❌ {error}</p>
+            <div className={`mb-6 p-4 rounded-lg border-l-4 ${
+              darkMode 
+                ? 'bg-red-900/20 border-red-500 text-red-300' 
+                : 'bg-red-50 border-red-500 text-red-700'
+            }`}>
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="font-medium">{error}</p>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Progress Bar */}
           {progress > 0 && (
             <div className="mb-6">
-              <div className="flex justify-between text-sm text-gray-600 mb-2">
-                <span>Processing...</span>
-                <span>{progress}%</span>
+              <div className={`flex justify-between text-sm mb-2 ${
+                darkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                <span className="flex items-center">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing your document...
+                </span>
+                <span className="font-medium">{progress}%</span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <Progress 
+                value={progress} 
+                className={`h-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`} 
+              />
             </div>
           )}
 
           {/* File Upload */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <div className={`rounded-xl shadow-lg p-6 mb-6 transition-all duration-300 ${
+            darkMode 
+              ? 'bg-gray-800 border border-gray-700' 
+              : 'bg-white border border-gray-100'
+          }`}>
+            <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 hover:border-blue-400 ${
+              darkMode 
+                ? 'border-gray-600 hover:bg-gray-700/50' 
+                : 'border-gray-300 hover:bg-blue-50/50'
+            }`}>
+              <Upload className={`mx-auto h-12 w-12 mb-4 ${
+                darkMode ? 'text-gray-400' : 'text-gray-400'
+              }`} />
               <div className="mb-4">
                 <label htmlFor="file-upload" className="cursor-pointer">
-                  <span className="text-lg font-medium text-gray-700">
+                  <span className={`text-lg font-medium ${
+                    darkMode ? 'text-gray-200' : 'text-gray-700'
+                  }`}>
                     Choose a PDF file to upload
                   </span>
                   <input
@@ -267,10 +293,18 @@ export default function Summaries() {
                   />
                 </label>
               </div>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Supports PDF files up to 50MB
+              </p>
               {file && (
-                <div className="text-sm text-gray-600">
-                  <FileText className="inline h-4 w-4 mr-1" />
-                  {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                <div className={`mt-4 inline-flex items-center px-3 py-2 rounded-lg ${
+                  darkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700'
+                }`}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  <span className="font-medium">{file.name}</span>
+                  <span className="ml-2 text-sm opacity-75">
+                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
                 </div>
               )}
             </div>
@@ -278,16 +312,32 @@ export default function Summaries() {
 
           {/* Text Preview */}
           {extractedText && (
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h3 className="text-lg font-semibold mb-4">Extracted Text Preview</h3>
-              <div className="bg-gray-50 p-4 rounded border max-h-40 overflow-y-auto">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            <div className={`rounded-xl shadow-lg p-6 mb-6 transition-all duration-300 ${
+              darkMode 
+                ? 'bg-gray-800 border border-gray-700' 
+                : 'bg-white border border-gray-100'
+            }`}>
+              <h3 className={`text-lg font-semibold mb-4 flex items-center ${
+                darkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}>
+                <FileText className="h-5 w-5 mr-2" />
+                Extracted Content Preview
+              </h3>
+              <div className={`p-4 rounded-lg max-h-40 overflow-y-auto ${
+                darkMode ? 'bg-gray-900/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'
+              }`}>
+                <p className={`text-sm whitespace-pre-wrap ${
+                  darkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                   {extractedText.substring(0, 500)}
                   {extractedText.length > 500 && "..."}
                 </p>
               </div>
-              <div className="mt-2 text-sm text-gray-600">
-                Total characters: {extractedText.length}
+              <div className={`mt-3 text-sm flex justify-between ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                <span>Total characters: {extractedText.length.toLocaleString()}</span>
+                <span>Ready for summarization</span>
               </div>
             </div>
           )}
@@ -298,15 +348,22 @@ export default function Summaries() {
               <Button
                 onClick={generateSummary}
                 disabled={isProcessing}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+                className={`px-8 py-4 text-lg font-medium transition-all duration-300 transform hover:scale-105 ${
+                  darkMode
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl'
+                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl'
+                }`}
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Summary...
+                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                    Generating AI Summary...
                   </>
                 ) : (
-                  "Generate Summary"
+                  <>
+                    <Sparkles className="mr-3 h-5 w-5" />
+                    Generate AI Summary
+                  </>
                 )}
               </Button>
             </div>
@@ -314,20 +371,41 @@ export default function Summaries() {
 
           {/* Summary Display */}
           {summary && (
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className={`rounded-xl shadow-lg p-6 mb-6 transition-all duration-300 ${
+              darkMode 
+                ? 'bg-gray-800 border border-gray-700' 
+                : 'bg-white border border-gray-100'
+            }`}>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Generated Summary</h3>
+                <h3 className={`text-lg font-semibold flex items-center ${
+                  darkMode ? 'text-gray-200' : 'text-gray-800'
+                }`}>
+                  <Sparkles className="h-5 w-5 mr-2 text-yellow-500" />
+                  AI Generated Summary
+                </h3>
                 <Button
                   onClick={downloadSummary}
                   variant="outline"
                   size="sm"
+                  className={`transition-all duration-300 ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600' 
+                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Download
+                  Download Summary
                 </Button>
               </div>
-              <div className="bg-gray-50 p-4 rounded border">
-                <p className="text-gray-700 whitespace-pre-wrap">{summary}</p>
+              <div className={`p-5 rounded-lg border-l-4 ${
+                darkMode 
+                  ? 'bg-gray-900/50 border-blue-500 text-gray-200' 
+                  : 'bg-blue-50 border-blue-500 text-gray-800'
+              }`}>
+                <p className="whitespace-pre-wrap leading-relaxed">{summary}</p>
+              </div>
+              <div className={`mt-3 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Summary generated • {new Date().toLocaleString()}
               </div>
             </div>
           )}
@@ -338,9 +416,13 @@ export default function Summaries() {
               <Button
                 onClick={resetAll}
                 variant="outline"
-                className="text-gray-600 hover:text-gray-800"
+                className={`px-6 py-3 transition-all duration-300 ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                Start Over
+                Start New Summary
               </Button>
             </div>
           )}
