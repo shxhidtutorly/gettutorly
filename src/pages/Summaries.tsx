@@ -7,8 +7,10 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, Download, Loader2 } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set up PDF.js worker with proper fallback
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+}
 
 export default function Summaries() {
   const [file, setFile] = useState<File | null>(null);
@@ -32,12 +34,23 @@ export default function Summaries() {
 
       console.log("🔍 Test API Response Status:", response.status);
       console.log("🔍 Test API Response Headers:", response.headers);
+      console.log("🔍 Test API Content-Type:", response.headers.get('content-type'));
+
+      // Get the raw response text first
+      const responseText = await response.text();
+      console.log("🔍 Raw Response (first 200 chars):", responseText.substring(0, 200));
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`);
       }
 
-      const data = await response.json();
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Expected JSON but got: ${contentType || 'unknown'} - Response: ${responseText.substring(0, 100)}...`);
+      }
+
+      const data = JSON.parse(responseText);
       console.log("✅ API test successful:", data);
       setDebugInfo(data);
       return data;
