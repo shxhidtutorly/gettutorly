@@ -1,8 +1,7 @@
-import { useState, useRef } from "react";  // already present
-import { useTheme } from "next-themes";    // <-- ADD this line at the top, with other imports
+import { useState, useRef } from "react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// ...rest of your imports
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -46,11 +45,7 @@ const Profile = () => {
   
   const fileInputRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
- import { useTheme } from "next-themes"; // at the top, with other imports
-
-// ...inside the component:
-const { theme, setTheme } = useTheme();
-  // -------------------------------------------------------------------------------
+  const { theme, setTheme } = useTheme(); // <-- use next-themes for global theme
 
   const [formData, setFormData] = useState({
     name: "Alex Johnson",
