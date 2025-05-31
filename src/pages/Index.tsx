@@ -606,8 +606,8 @@ const TestimonialsSection = () => {
           >
             <TestimonialCard 
               quote="The AI tutor feels like having a professor available 24/7. It's incredible!"
-              author="Sarah M."
-              role="Medical Student"
+              author="charlie."
+              role="Law Student"
             />
           </motion.div>
           <motion.div
@@ -618,8 +618,8 @@ const TestimonialsSection = () => {
           >
             <TestimonialCard 
               quote="The study tools generated from my notes have saved me countless hours of study time."
-              author="James L."
-              role="Law Student"
+              author="Mary manuel."
+              role="Medical Student"
             />
           </motion.div>
         </motion.div>
