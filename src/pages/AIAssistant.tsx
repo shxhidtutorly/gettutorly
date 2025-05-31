@@ -262,5 +262,5 @@ const AIChat = () => {
   );
 };
 
-export default AIAssistant;
+
 export default AIAssistant;
