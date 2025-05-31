@@ -10,36 +10,9 @@ type Message = {
   model?: string;
 };
 
-const AIAssistant = () => {
-  // Update document title on component mount
-  useEffect(() => {
-    document.title = "AI Assistant | Tutorly";
-    // Restore original title when component unmounts
-    return () => {
-      document.title = "Tutorly - Smart Learning Platform";
-    };
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <Navbar />
-
-      <main className="container py-8 text-gray-800 dark:text-white">
-        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">AI Learning Assistant</h1>
-
-        <div className="max-w-5xl mx-auto">
-          <AIChat />
-        </div>
-      </main>
-    </div>
-  );
-};
-
 // Enhanced AIChat component with better UX
 const AIChat = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hello! I\'m your AI Study Tutor. How can I help you understand your material better today?' }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -84,9 +57,7 @@ const AIChat = () => {
       // Add AI response to messages
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: aiResponse,
-        provider: data.provider,
-        model: data.model
+        content: aiResponse
       }]);
 
     } catch (error) {
@@ -166,12 +137,6 @@ const AIChat = () => {
               }`}
             >
               <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
-              {message.provider && (
-                <div className="text-xs opacity-60 mt-2 flex items-center">
-                  <span>via {message.provider}</span>
-                  {message.model && <span className="ml-1">• {message.model}</span>}
-                </div>
-              )}
             </div>
             {message.role === 'user' && (
               <div className="h-8 w-8 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-white ml-3 flex-shrink-0 mt-0.5">
@@ -229,7 +194,7 @@ const AIChat = () => {
         </div>
 
         {/* Sample questions */}
-        {messages.length <= 1 && (
+        {messages.length === 0 && (
           <div className="mt-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">Try asking:</p>
             <div className="flex flex-wrap gap-2">
@@ -262,5 +227,29 @@ const AIChat = () => {
   );
 };
 
+const AIAssistant = () => {
+  // Update document title on component mount
+  useEffect(() => {
+    document.title = "AI Assistant | Tutorly";
+    // Restore original title when component unmounts
+    return () => {
+      document.title = "Tutorly - Smart Learning Platform";
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <Navbar />
+
+      <main className="container py-8 text-gray-800 dark:text-white">
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">AI Learning Assistant</h1>
+
+        <div className="max-w-5xl mx-auto">
+          <AIChat />
+        </div>
+      </main>
+    </div>
+  );
+};
 
 export default AIAssistant;
