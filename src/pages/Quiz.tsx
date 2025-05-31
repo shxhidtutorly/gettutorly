@@ -218,11 +218,21 @@ const Quiz = () => {
       }
     ]
   });
-  
   const [quizNames, setQuizNames] = useState([
-    { id: "biology", name: "Biology", description: "Test your knowledge of biological concepts", category: "Science" },
-    { id: "chemistry", name: "Chemistry", description: "Explore chemical principles and reactions", category: "Science" }
-  ]);
+  {
+    id: "biology",
+    name: "Biology",
+    description: "Test your knowledge of biological concepts",
+    category: "Science"
+  },
+  {
+    id: "chemistry",
+    name: "Chemistry",
+    description: "Explore chemical principles and reactions",
+    category: "Science"
+  }
+]);
+
 
   // Timer effect
   useEffect(() => {
@@ -441,39 +451,39 @@ const Quiz = () => {
         </div>
 
         {/* Quiz Tabs */}
-        <Card className="mb-8 shadow-lg">
-          <CardContent className="p-6">
-            <Tabs value={activeQuiz} onValueChange={handleSwitchQuiz}>
-              <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
-                {quizNames.map(quiz => (
-                  <TabsTrigger 
-                    key={quiz.id} 
-                    value={quiz.id} 
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-700 transition-all duration-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      <span className="font-medium">{quiz.name}</span>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {quiz.category}
-                    </Badge>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            
-            {currentQuizData && (
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <p className="text-sm text-gray-600 dark:text-gray-400">{currentQuizData.description}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {quizSets[activeQuiz].length} questions • Mixed difficulty
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+       <Card className="mb-8 shadow-lg">
+  <CardContent className="p-6">
+    <Tabs value={activeQuiz} onValueChange={handleSwitchQuiz}>
+      <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
+        {quizNames.map(quiz => (
+          <TabsTrigger
+            key={quiz.id}
+            value={quiz.id}
+            className="flex flex-col items-center gap-2 p-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-700 transition-all duration-200"
+          >
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="font-medium">{quiz.name}</span>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {quiz.category}
+            </Badge>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+    {currentQuizData && (
+      <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {currentQuizData.description}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+          {quizSets[activeQuiz].length} questions • Mixed difficulty
+        </p>
+      </div>
+    )}
+  </CardContent>
+</Card>
         {!quizCompleted ? (
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Progress Section */}
