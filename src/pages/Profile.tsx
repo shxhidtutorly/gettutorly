@@ -198,7 +198,7 @@ const Profile = () => {
           <Button
             variant="ghost"
             className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-gray-800 text-blue-700 dark:text-blue-300 transition"
-            onClick={() => navigate("/")} // <-- CHANGE HERE
+            onClick={() => navigate("/dashboard")} // <-- CHANGE HERE
             aria-label="Back to Dashboard"
           >
             <ArrowLeft className="h-5 w-5" />
