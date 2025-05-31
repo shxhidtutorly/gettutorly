@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, XCircle, Plus, ListChecks, ArrowRight, Trophy, RotateCcw, Clock, Target, Zap, BookOpen, Brain } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
+import { Badge } from "../components/ui/badge";
+import { Progress } from "../components/ui/progress";
+import { CheckCircle, XCircle, ArrowRight, Trophy, RotateCcw, Clock, Target, Zap, BookOpen, Brain, Plus } from "lucide-react";
 
 interface QuizQuestion {
   question: string;
@@ -15,15 +15,6 @@ interface QuizQuestion {
   explanation?: string;
 }
 
-interface QuizSet {
-  id: string;
-  name: string;
-  questions: QuizQuestion[];
-  description?: string;
-  category?: string;
-}
-
-// Mock theme context - replace with your actual theme provider
 const useTheme = () => {
   const [theme, setTheme] = useState('light');
   useEffect(() => {
@@ -40,16 +31,13 @@ const useTheme = () => {
   return { theme, toggleTheme };
 };
 
-// Mock toast hook - replace with your actual toast implementation
 const useToast = () => {
-  const toast = ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
-    // Simple toast implementation - replace with your actual toast
+  const toast = ({ title, description }: { title: string; description: string }) => {
     alert(`${title}\n${description}`);
   };
   return { toast };
 };
 
-// Create Quiz Dialog Component (fixed centering)
 const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQuestion[]) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [quizName, setQuizName] = useState('');
@@ -78,7 +66,6 @@ const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQu
   }
 
   return (
-    // Modal fixed and always centered
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Create New Quiz</h2>
@@ -130,9 +117,19 @@ const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQu
             ))}
           </div>
         ))}
+        <Button
+          onClick={() =>
+            setQuestions([...questions, { question: '', options: ['', '', '', ''], correctAnswer: 0 }])
+          }
+          className="mb-4"
+          variant="outline"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Another Question
+        </Button>
         <div className="flex gap-2 justify-end">
           <Button onClick={() => setIsOpen(false)} variant="outline">Cancel</Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">Save Quiz</Button>
+          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">Save Quiz</Button>
         </div>
       </div>
     </div>
@@ -151,7 +148,7 @@ const Quiz = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [activeQuiz, setActiveQuiz] = useState("biology");
   const [timeLeft, setTimeLeft] = useState(30);
-  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isTimerActive, setIsTimerActive] = useState(true);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -234,7 +231,6 @@ const Quiz = () => {
     }
   ]);
 
-  // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerActive && timeLeft > 0 && !isAnswered) {
@@ -245,6 +241,7 @@ const Quiz = () => {
       handleTimeUp();
     }
     return () => clearInterval(interval);
+    // eslint-disable-next-line
   }, [isTimerActive, timeLeft, isAnswered]);
 
   const handleTimeUp = () => {
@@ -252,8 +249,7 @@ const Quiz = () => {
     setStreak(0);
     toast({
       title: "Time's up!",
-      description: `The correct answer was: ${quizSets[activeQuiz][currentQuestion].options[quizSets[activeQuiz][currentQuestion].correctAnswer]}`,
-      variant: "destructive",
+      description: `The correct answer was: ${quizSets[activeQuiz][currentQuestion].options[quizSets[activeQuiz][currentQuestion].correctAnswer]}`
     });
   };
 
@@ -280,19 +276,17 @@ const Quiz = () => {
       setBestStreak(Math.max(bestStreak, streak + 1));
       toast({
         title: "Correct! 🎉",
-        description: "Well done, that's the right answer.",
-        variant: "default",
+        description: "Well done, that's the right answer."
       });
     } else {
       setStreak(0);
       toast({
         title: "Incorrect ❌",
-        description: `The correct answer is: ${quizSets[activeQuiz][currentQuestion].options[quizSets[activeQuiz][currentQuestion].correctAnswer]}`,
-        variant: "destructive",
+        description: `The correct answer is: ${quizSets[activeQuiz][currentQuestion].options[quizSets[activeQuiz][currentQuestion].correctAnswer]}`
       });
     }
-
     setTimeout(() => setShowExplanation(true), 500);
+    // eslint-disable-next-line
   }, [isAnswered, score, streak, bestStreak, activeQuiz, currentQuestion, quizSets, toast]);
 
   const handleNextQuestion = () => {
@@ -323,29 +317,23 @@ const Quiz = () => {
 
   const handleCreateQuiz = (quizName: string, questions: QuizQuestion[]) => {
     const quizId = quizName.toLowerCase().replace(/\s+/g, '-');
-
     if (quizSets[quizId]) {
       toast({
         title: "Quiz already exists",
-        description: "A quiz with this name already exists. Please choose a different name.",
-        variant: "destructive"
+        description: "A quiz with this name already exists. Please choose a different name."
       });
       return;
     }
-
     setQuizSets(prev => ({
       ...prev,
       [quizId]: questions
     }));
-
     setQuizNames(prev => [
       ...prev,
       { id: quizId, name: quizName, description: `Custom quiz with ${questions.length} questions`, category: "Custom" }
     ]);
-
     setActiveQuiz(quizId);
     handleRestartQuiz();
-
     toast({
       title: "Quiz created! 🚀",
       description: `Successfully created "${quizName}" with ${questions.length} questions.`
@@ -457,17 +445,11 @@ const Quiz = () => {
           )}
         </div>
 
-        {/* Quiz Tabs - Redesigned */}
+        {/* Quiz Tabs */}
         <Card className="mb-8 shadow-lg">
           <CardContent className="p-6">
             <Tabs value={activeQuiz} onValueChange={handleSwitchQuiz}>
-              <div
-                role="tablist"
-                aria-orientation="horizontal"
-                className="flex flex-wrap md:flex-nowrap overflow-x-auto gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl"
-                tabIndex={0}
-                style={{ outline: "none" }}
-              >
+              <TabsList className="flex flex-wrap md:flex-nowrap overflow-x-auto gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
                 {quizNames.map(quiz => (
                   <TabsTrigger
                     key={quiz.id}
@@ -486,7 +468,7 @@ const Quiz = () => {
                     <Badge variant="secondary" className="ml-2 text-xs">{quiz.category}</Badge>
                   </TabsTrigger>
                 ))}
-              </div>
+              </TabsList>
             </Tabs>
             {currentQuizData && (
               <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
