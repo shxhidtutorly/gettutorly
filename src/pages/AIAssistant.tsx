@@ -12,7 +12,9 @@ type Message = {
 
 // Enhanced AIChat component with better UX
 const AIChat = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'assistant', content: 'Hello! I\'m your AI Study Tutor. How can I help you understand your material better today?' }
+  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -194,7 +196,7 @@ const AIChat = () => {
         </div>
 
         {/* Sample questions */}
-        {messages.length === 0 && (
+        {messages.length <= 1 && (
           <div className="mt-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">Try asking:</p>
             <div className="flex flex-wrap gap-2">
