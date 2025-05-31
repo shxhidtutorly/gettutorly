@@ -34,7 +34,7 @@ const useTheme = () => {
 
 const useToast = () => {
   const toast = ({ title, description }: { title: string; description: string }) => {
-    alert(`${title}\n${description}`);
+    // Do nothing, or show a custom UI notification instead of alert
   };
   return { toast };
 };
