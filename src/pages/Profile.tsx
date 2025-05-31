@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +45,17 @@ const Profile = () => {
   const fileInputRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [theme, setTheme] = useState('light');
-  
+
+  // --- DARK MODE FIX: This applies/removes the "dark" class on <html> globally ---
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [theme]);
+  // -------------------------------------------------------------------------------
+
   const [formData, setFormData] = useState({
     name: "Alex Johnson",
     email: "alex.johnson@example.com",
