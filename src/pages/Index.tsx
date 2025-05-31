@@ -557,55 +557,76 @@ const BenefitsSection = () => {
   );
 };
 
-// Testimonials Section Component with scroll animations
 const TestimonialsSection = () => {
-  const [ref, isInView] = useAnimateOnScroll();
-  
+  // Remove scroll trigger for headings for instant rendering
   return (
     <section className="py-20 bg-muted px-4">
       <div className="container mx-auto max-w-5xl">
+        {/* Headings: Fade in and slide down instantly */}
         <motion.div 
-          ref={ref}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
           className="text-center mb-12"
         >
           <motion.h2 
-            variants={slideUp}
             className="text-3xl md:text-4xl font-bold mb-4"
+            initial={false}
+            animate={false}
           >
             Loved by Students Everywhere
           </motion.h2>
           <motion.p 
-            variants={fadeIn}
             className="text-lg text-muted-foreground max-w-2xl mx-auto"
+            initial={false}
+            animate={false}
           >
             See what our users are saying about their learning experience
           </motion.p>
         </motion.div>
         
+        {/* Testimonials: Staggered fade-in, not scroll-based */}
         <motion.div 
-          variants={staggerContainer}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
           className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: {
+              transition: { staggerChildren: 0.2 }
+            }
+          }}
         >
-          <motion.div variants={slideInLeft}>
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.7 } }
+            }}
+          >
             <TestimonialCard 
               quote="Tutorly completely changed how I study. I've improved my grades significantly!"
               author="Alex K."
               role="Computer Science Student"
             />
           </motion.div>
-          <motion.div variants={slideUp}>
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.7, delay: 0.2 } }
+            }}
+          >
             <TestimonialCard 
               quote="The AI tutor feels like having a professor available 24/7. It's incredible!"
               author="Sarah M."
               role="Medical Student"
             />
           </motion.div>
-          <motion.div variants={slideInRight}>
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.7, delay: 0.4 } }
+            }}
+          >
             <TestimonialCard 
               quote="The study tools generated from my notes have saved me countless hours of study time."
               author="James L."
@@ -614,41 +635,31 @@ const TestimonialsSection = () => {
           </motion.div>
         </motion.div>
         
-        {/* Stats section with counter animations */}
+        {/* Stats: Also fade in instantly for fast render */}
         <motion.div 
-          ref={ref}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={slideUp}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.5 }}
           className="mt-16 bg-card rounded-xl shadow-lg p-10 grid grid-cols-1 md:grid-cols-3 gap-10 border"
         >
-          <motion.div 
-            className="text-center stats-item"
-            whileHover={{ y: -10, transition: { duration: 0.2 } }}
-          >
+          <div className="text-center stats-item">
             <div className="text-5xl font-bold text-purple-500 mb-3">
               <CountUp end={30} className="font-bold text-purple-500" />%
             </div>
             <p className="text-lg font-medium text-foreground">Average Exam Score Improvement</p>
-          </motion.div>
-          <motion.div 
-            className="text-center stats-item"
-            whileHover={{ y: -10, transition: { duration: 0.2 } }}
-          >
+          </div>
+          <div className="text-center stats-item">
             <div className="text-5xl font-bold text-purple-500 mb-3">
               <CountUp end={10000} className="font-bold text-purple-500" />+
             </div>
             <p className="text-lg font-medium text-foreground">Active Student Users</p>
-          </motion.div>
-          <motion.div 
-            className="text-center stats-item"
-            whileHover={{ y: -10, transition: { duration: 0.2 } }}
-          >
+          </div>
+          <div className="text-center stats-item">
             <div className="text-5xl font-bold text-purple-500 mb-3">
               <CountUp end={40} className="font-bold text-purple-500" />%
             </div>
             <p className="text-lg font-medium text-foreground">Less Study Time Required</p>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </section>
