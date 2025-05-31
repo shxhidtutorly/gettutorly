@@ -14,6 +14,8 @@ import {
   Zap
 } from "lucide-react";
 
+const CHAT_STORAGE_KEY = "your-chat-key"; // <-- Replace with your actual key
+
 const Chat = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -37,10 +39,8 @@ const Chat = () => {
     if (typeof window === 'undefined') return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
     const updateTheme = () => {
       let shouldBeDark = false;
-      
       if (theme === 'dark') {
         shouldBeDark = true;
       } else if (theme === 'light') {
@@ -48,19 +48,15 @@ const Chat = () => {
       } else {
         shouldBeDark = mediaQuery.matches;
       }
-      
       setIsDark(shouldBeDark);
-      
       if (shouldBeDark) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
     };
-
     updateTheme();
     mediaQuery.addEventListener('change', updateTheme);
-    
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [theme]);
 
@@ -76,14 +72,12 @@ const Chat = () => {
         setShowMobileMenu(false);
       }
     };
-
     if (showMobileMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showMobileMenu]);
 
-  // FIXED: This will now actually navigate to /dashboard
   const handleBack = () => {
     navigate("/dashboard");
   };
@@ -95,15 +89,17 @@ const Chat = () => {
     setTheme(themes[nextIndex]);
   };
 
+  // NEW: Proper chat clearing (localStorage, then reload)
   const handleClearChat = async () => {
     const confirmed = window.confirm(
       'Are you sure you want to clear this chat? This action cannot be undone.'
     );
-    
     if (confirmed) {
       setIsClearing(true);
       setShowMobileMenu(false);
-      
+      // Remove chat data from localStorage (edit key as necessary)
+      localStorage.removeItem(CHAT_STORAGE_KEY);
+      // If you use other storage (context/state), clear it here as well
       setTimeout(() => {
         window.location.reload();
       }, 300);
@@ -138,7 +134,6 @@ const Chat = () => {
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
         </div>
-        
         <div className="relative px-4 py-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center space-x-4">
@@ -150,9 +145,7 @@ const Chat = () => {
                 <span className="hidden sm:inline">Dashboard</span>
                 <span className="sm:hidden">Back</span>
               </button>
-              
               <div className="hidden sm:block w-px h-6 bg-white/30"></div>
-              
               <div className="flex items-center space-x-3">
                 <div className="relative">
                   <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
@@ -240,11 +233,20 @@ const Chat = () => {
         </div>
         <div className="relative h-full max-w-6xl mx-auto">
           <div className="h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-x border-gray-200/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300">
+            {/* 
+                Pass unique pre-questions to AITutor if you have a prop like preQuestions or questions:
+                Example:
+                <AITutor 
+                  preQuestions={[...new Set(preQuestions)]}
+                  ...otherProps
+                />
+            */}
             <AITutor 
               isFullscreen={true}
               darkMode={isDark}
               theme={theme}
               className="h-full w-full"
+              // preQuestions={uniqueQuestions} // Un-comment and use if you pass pre-questions here!
             />
           </div>
         </div>
