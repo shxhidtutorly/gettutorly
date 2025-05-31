@@ -109,8 +109,8 @@ const AIChat = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 h-[700px]">
+return (
+    <div className="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 h-[700px] overflow-hidden">
       {/* Chat header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center">
@@ -125,13 +125,11 @@ const AIChat = () => {
             </div>
           </div>
         </div>
-        
-        {/* Clear chat button */}
         {messages.length > 1 && (
           <button
             onClick={clearChat}
             disabled={isLoading}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
             title="Clear chat"
           >
             <Trash2 className="h-4 w-4" />
@@ -153,11 +151,12 @@ const AIChat = () => {
               </div>
             )}
             <div 
-              className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
-                message.role === 'user' 
-                  ? 'bg-blue-500 text-white rounded-br-md' 
-                  : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-bl-md border border-gray-200 dark:border-gray-700'
-              }`}
+              className={`max-w-[80%] p-4 shadow-sm
+                ${message.role === 'user'
+                  ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
+                  : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-2xl rounded-bl-md border border-gray-200 dark:border-gray-700'
+                }`
+              }
             >
               <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
             </div>
@@ -168,13 +167,12 @@ const AIChat = () => {
             )}
           </div>
         ))}
-        
         {isLoading && (
           <div className="flex justify-start">
             <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white mr-3 flex-shrink-0 mt-0.5">
               <span className="text-xs font-medium">AI</span>
             </div>
-            <div className="max-w-[80%] p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-bl-md shadow-sm">
+            <div className="max-w-[80%] p-4 rounded-2xl rounded-bl-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
               <div className="flex items-center space-x-2">
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"></div>
@@ -199,7 +197,7 @@ const AIChat = () => {
               placeholder="Ask me anything about your studies..."
               disabled={isLoading}
               rows={1}
-              className="w-full py-3 px-4 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 resize-none"
+              className="w-full py-3 px-4 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
               style={{
                 minHeight: '48px',
                 maxHeight: '120px',
@@ -210,13 +208,11 @@ const AIChat = () => {
           <button
             onClick={handleSendMessage}
             disabled={isLoading || !input.trim()}
-            className="flex items-center justify-center bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white p-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed min-w-[48px] h-[48px]"
+            className="flex items-center justify-center bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white p-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
           >
             <Send className="h-5 w-5" />
           </button>
         </div>
-
-        {/* Sample questions */}
         {messages.length <= 1 && (
           <div className="mt-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">Try asking:</p>
