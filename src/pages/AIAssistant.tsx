@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Trash2 } from "lucide-react";
 
 // Message type
 type Message = {
@@ -101,10 +101,18 @@ const AIChat = () => {
     }
   };
 
+  const clearChat = () => {
+    if (!isLoading) {
+      setMessages([
+        { role: 'assistant', content: 'Hello! I\'m your AI Study Tutor. How can I help you understand your material better today?' }
+      ]);
+    }
+  };
+
   return (
     <div className="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 h-[700px]">
       {/* Chat header */}
-      <div className="flex items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center">
           <div className="h-9 w-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white mr-3 shadow-sm">
             <span className="text-sm font-medium">AI</span>
@@ -117,6 +125,19 @@ const AIChat = () => {
             </div>
           </div>
         </div>
+        
+        {/* Clear chat button */}
+        {messages.length > 1 && (
+          <button
+            onClick={clearChat}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Clear chat"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Clear</span>
+          </button>
+        )}
       </div>
 
       {/* Chat messages area */}
