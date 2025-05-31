@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import AITutor from "@/components/features/AITutor";
 import { 
   ArrowLeft, 
@@ -18,7 +19,6 @@ const Chat = () => {
   const [isClearing, setIsClearing] = useState(false);
   const menuRef = useRef(null);
 
-  // Enhanced theme management with system preference detection
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ai-tutor-theme');
@@ -31,7 +31,8 @@ const Chat = () => {
 
   const [isDark, setIsDark] = useState(false);
 
-  // Theme effect with proper system detection
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -63,17 +64,15 @@ const Chat = () => {
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [theme]);
 
-  // Save theme preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('ai-tutor-theme', theme);
     }
   }, [theme]);
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !(menuRef.current as any).contains(event.target)) {
         setShowMobileMenu(false);
       }
     };
@@ -84,11 +83,9 @@ const Chat = () => {
     }
   }, [showMobileMenu]);
 
+  // FIXED: This will now actually navigate to /dashboard
   const handleBack = () => {
-    // In a real app, this would use your router
-    // For React Router: navigate("/dashboard");
-    console.log('Navigate back to dashboard');
-    alert('In your app, this would navigate back to the dashboard');
+    navigate("/dashboard");
   };
 
   const cycleTheme = () => {
@@ -107,7 +104,6 @@ const Chat = () => {
       setIsClearing(true);
       setShowMobileMenu(false);
       
-      // Add a small delay for better UX
       setTimeout(() => {
         window.location.reload();
       }, 300);
@@ -138,16 +134,13 @@ const Chat = () => {
 
   return (
     <div className="h-screen flex flex-col transition-colors duration-300">
-      {/* Enhanced Header with Gradient */}
       <header className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-800 dark:via-purple-800 dark:to-indigo-800 text-white shadow-xl">
-        {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
         </div>
         
         <div className="relative px-4 py-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
-            {/* Left Section */}
             <div className="flex items-center space-x-4">
               <button 
                 onClick={handleBack}
@@ -180,20 +173,16 @@ const Chat = () => {
                 </div>
               </div>
             </div>
-
-            {/* Right Section */}
             <div className="flex items-center space-x-2">
-              {/* Desktop Controls */}
               <div className="hidden sm:flex items-center space-x-2">
                 <button
                   onClick={handleClearChat}
                   disabled={isClearing}
-                  className="flex items-center px-3 py-2 text-white hover:bg-red-500/30 hover:text-red-100 backdrop-blur-sm border border-white/20 hover:border-red-300/50 transition-all duration-300 rounded-lg disabled:opacity-50 text-sm"
+                  className="flex items-center px-3 py-2 text-white hover:bg-red-500/30 hover:text-red-100 backdrop-blur-sm border border-white/20 hover:border-red-300/50 transition-all duration-300 rounded-lg text-sm"
                 >
                   <Trash2 className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
                   {isClearing ? 'Clearing...' : 'Clear Chat'}
                 </button>
-                
                 <button
                   onClick={cycleTheme}
                   className="flex items-center px-3 py-2 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all duration-300 rounded-lg text-sm"
@@ -203,8 +192,6 @@ const Chat = () => {
                   <span className="ml-2 text-xs hidden lg:inline">{getThemeLabel()}</span>
                 </button>
               </div>
-
-              {/* Mobile Menu */}
               <div className="sm:hidden relative" ref={menuRef}>
                 <button
                   onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -212,7 +199,6 @@ const Chat = () => {
                 >
                   <MoreVertical className="h-4 w-4" />
                 </button>
-                
                 {showMobileMenu && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 z-50 overflow-hidden">
                     <div className="p-2 space-y-1">
@@ -223,13 +209,11 @@ const Chat = () => {
                         {getThemeIcon()}
                         <span className="ml-3">Theme: {getThemeLabel()}</span>
                       </button>
-                      
                       <div className="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
-                      
                       <button
                         onClick={handleClearChat}
                         disabled={isClearing}
-                        className="w-full flex items-center px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 disabled:opacity-50 text-sm"
+                        className="w-full flex items-center px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 disabled:opacity-60 text-sm"
                       >
                         <Trash2 className={`h-4 w-4 mr-3 ${isClearing ? 'animate-spin' : ''}`} />
                         {isClearing ? 'Clearing Chat...' : 'Clear Chat'}
@@ -241,14 +225,9 @@ const Chat = () => {
             </div>
           </div>
         </div>
-        
-        {/* Enhanced bottom gradient */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
       </header>
-
-      {/* Main Chat Container */}
       <main className="flex-1 relative overflow-hidden bg-gray-50/80 dark:bg-gray-900/80 transition-colors duration-300">
-        {/* Subtle Background Pattern */}
         <div className="absolute inset-0 opacity-5 dark:opacity-10">
           <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -259,8 +238,6 @@ const Chat = () => {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
         </div>
-
-        {/* Enhanced Chat Container */}
         <div className="relative h-full max-w-6xl mx-auto">
           <div className="h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-x border-gray-200/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300">
             <AITutor 
@@ -271,8 +248,6 @@ const Chat = () => {
             />
           </div>
         </div>
-
-        {/* Loading Overlay */}
         {isClearing && (
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-200 dark:border-gray-700 flex items-center space-x-3">
@@ -282,8 +257,6 @@ const Chat = () => {
           </div>
         )}
       </main>
-
-      {/* Enhanced Status Bar */}
       <footer className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-200/60 dark:border-gray-700/60 px-4 py-3 transition-all duration-300">
         <div className="flex items-center justify-between max-w-6xl mx-auto text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center space-x-4">
@@ -302,7 +275,6 @@ const Chat = () => {
               </div>
             </div>
           </div>
-          
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-1">
               <MessageSquare className="h-3 w-3" />
