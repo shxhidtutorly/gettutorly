@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle, Plus, ListChecks, ArrowRight, Trophy, RotateCcw, Clock, Target, Zap, BookOpen, Brain } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
 interface QuizQuestion {
@@ -25,21 +26,17 @@ interface QuizSet {
 // Mock theme context - replace with your actual theme provider
 const useTheme = () => {
   const [theme, setTheme] = useState('light');
-  
   useEffect(() => {
-    // Check for saved theme preference or default to 'light'
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
   }, []);
-  
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
-  
   return { theme, toggleTheme };
 };
 
@@ -47,12 +44,12 @@ const useTheme = () => {
 const useToast = () => {
   const toast = ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
     // Simple toast implementation - replace with your actual toast
-    console.log(`${variant === 'destructive' ? '❌' : '✅'} ${title}: ${description}`);
+    alert(`${title}\n${description}`);
   };
   return { toast };
 };
 
-// Create Quiz Dialog Component
+// Create Quiz Dialog Component (fixed centering)
 const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQuestion[]) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [quizName, setQuizName] = useState('');
@@ -73,7 +70,7 @@ const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQu
 
   if (!isOpen) {
     return (
-      <Button onClick={() => setIsOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+      <Button onClick={() => setIsOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all">
         <Plus className="mr-2 h-4 w-4" />
         Create Quiz
       </Button>
@@ -81,6 +78,7 @@ const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQu
   }
 
   return (
+    // Modal fixed and always centered
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Create New Quiz</h2>
@@ -144,6 +142,8 @@ const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQu
 const Quiz = () => {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -155,7 +155,7 @@ const Quiz = () => {
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [showExplanation, setShowExplanation] = useState(false);
-  
+
   const [quizSets, setQuizSets] = useState<Record<string, QuizQuestion[]>>({
     biology: [
       {
@@ -218,21 +218,21 @@ const Quiz = () => {
       }
     ]
   });
-  const [quizNames, setQuizNames] = useState([
-  {
-    id: "biology",
-    name: "Biology",
-    description: "Test your knowledge of biological concepts",
-    category: "Science"
-  },
-  {
-    id: "chemistry",
-    name: "Chemistry",
-    description: "Explore chemical principles and reactions",
-    category: "Science"
-  }
-]);
 
+  const [quizNames, setQuizNames] = useState([
+    {
+      id: "biology",
+      name: "Biology",
+      description: "Test your knowledge of biological concepts",
+      category: "Science"
+    },
+    {
+      id: "chemistry",
+      name: "Chemistry",
+      description: "Explore chemical principles and reactions",
+      category: "Science"
+    }
+  ]);
 
   // Timer effect
   useEffect(() => {
@@ -271,9 +271,9 @@ const Quiz = () => {
     setSelectedAnswer(index);
     setIsAnswered(true);
     setIsTimerActive(false);
-    
+
     const isCorrect = index === quizSets[activeQuiz][currentQuestion].correctAnswer;
-    
+
     if (isCorrect) {
       setScore(score + 1);
       setStreak(streak + 1);
@@ -291,7 +291,7 @@ const Quiz = () => {
         variant: "destructive",
       });
     }
-    
+
     setTimeout(() => setShowExplanation(true), 500);
   }, [isAnswered, score, streak, bestStreak, activeQuiz, currentQuestion, quizSets, toast]);
 
@@ -323,7 +323,7 @@ const Quiz = () => {
 
   const handleCreateQuiz = (quizName: string, questions: QuizQuestion[]) => {
     const quizId = quizName.toLowerCase().replace(/\s+/g, '-');
-    
+
     if (quizSets[quizId]) {
       toast({
         title: "Quiz already exists",
@@ -332,20 +332,20 @@ const Quiz = () => {
       });
       return;
     }
-    
+
     setQuizSets(prev => ({
       ...prev,
       [quizId]: questions
     }));
-    
+
     setQuizNames(prev => [
       ...prev,
       { id: quizId, name: quizName, description: `Custom quiz with ${questions.length} questions`, category: "Custom" }
     ]);
-    
+
     setActiveQuiz(quizId);
     handleRestartQuiz();
-    
+
     toast({
       title: "Quiz created! 🚀",
       description: `Successfully created "${quizName}" with ${questions.length} questions.`
@@ -402,6 +402,13 @@ const Quiz = () => {
                 {theme === 'light' ? '🌙' : '☀️'}
               </Button>
               <CreateQuizDialog onSave={handleCreateQuiz} />
+              <Button
+                onClick={() => navigate('/dashboard')}
+                variant="outline"
+                className="border-gray-300 dark:border-gray-600"
+              >
+                ← Back to Dashboard
+              </Button>
             </div>
           </div>
         </div>
@@ -450,40 +457,50 @@ const Quiz = () => {
           )}
         </div>
 
-        {/* Quiz Tabs */}
-       <Card className="mb-8 shadow-lg">
-  <CardContent className="p-6">
-    <Tabs value={activeQuiz} onValueChange={handleSwitchQuiz}>
-      <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
-        {quizNames.map(quiz => (
-          <TabsTrigger
-            key={quiz.id}
-            value={quiz.id}
-            className="flex flex-col items-center gap-2 p-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md dark:data-[state=active]:bg-gray-700 transition-all duration-200"
-          >
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="font-medium">{quiz.name}</span>
-            </div>
-            <Badge variant="secondary" className="text-xs">
-              {quiz.category}
-            </Badge>
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
-    {currentQuizData && (
-      <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {currentQuizData.description}
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-          {quizSets[activeQuiz].length} questions • Mixed difficulty
-        </p>
-      </div>
-    )}
-  </CardContent>
-</Card>
+        {/* Quiz Tabs - Redesigned */}
+        <Card className="mb-8 shadow-lg">
+          <CardContent className="p-6">
+            <Tabs value={activeQuiz} onValueChange={handleSwitchQuiz}>
+              <div
+                role="tablist"
+                aria-orientation="horizontal"
+                className="flex flex-wrap md:flex-nowrap overflow-x-auto gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl"
+                tabIndex={0}
+                style={{ outline: "none" }}
+              >
+                {quizNames.map(quiz => (
+                  <TabsTrigger
+                    key={quiz.id}
+                    value={quiz.id}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200
+                      ${
+                        activeQuiz === quiz.id
+                          ? "bg-white shadow-md dark:bg-gray-700 text-blue-700 dark:text-white border-2 border-blue-500"
+                          : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900 border border-transparent"
+                      }
+                    `}
+                    style={{ minWidth: 140 }}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span>{quiz.name}</span>
+                    <Badge variant="secondary" className="ml-2 text-xs">{quiz.category}</Badge>
+                  </TabsTrigger>
+                ))}
+              </div>
+            </Tabs>
+            {currentQuizData && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {currentQuizData.description}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {quizSets[activeQuiz].length} questions • Mixed difficulty
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {!quizCompleted ? (
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Progress Section */}
