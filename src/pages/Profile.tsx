@@ -44,16 +44,10 @@ const Profile = () => {
   
   const fileInputRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [theme, setTheme] = useState('light');
+ import { useTheme } from "next-themes"; // at the top, with other imports
 
-  // --- DARK MODE FIX: This applies/removes the "dark" class on <html> globally ---
-  useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [theme]);
+// ...inside the component:
+const { theme, setTheme } = useTheme();
   // -------------------------------------------------------------------------------
 
   const [formData, setFormData] = useState({
