@@ -606,7 +606,7 @@ const TestimonialsSection = () => {
           >
             <TestimonialCard 
               quote="The AI tutor feels like having a professor available 24/7. It's incredible!"
-              author="charlie."
+              author="Charlie."
               role="Law Student"
             />
           </motion.div>
