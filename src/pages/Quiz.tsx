@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Badge } from "../components/ui/badge";
 import { Progress } from "../components/ui/progress";
 import { CheckCircle, XCircle, ArrowRight, Trophy, RotateCcw, Clock, Target, Zap, BookOpen, Brain, Plus } from "lucide-react";
@@ -56,18 +57,20 @@ const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQu
     }
   };
 
-  if (!isOpen) {
-    return (
-      <Button onClick={() => setIsOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all">
-        <Plus className="mr-2 h-4 w-4" />
-        Create Quiz
-      </Button>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
+  const modal = (
+    <div className="fixed inset-0 z-[1050] flex items-center justify-center">
+      {/* Overlay */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        onClick={() => setIsOpen(false)}
+        aria-label="Close Modal"
+      />
+      {/* Modal */}
+      <div
+        className="relative z-10 bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700"
+        role="dialog"
+        aria-modal="true"
+      >
         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Create New Quiz</h2>
         <input
           type="text"
@@ -133,6 +136,16 @@ const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQu
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <Button onClick={() => setIsOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all">
+        <Plus className="mr-2 h-4 w-4" />
+        Create Quiz
+      </Button>
+      {isOpen && ReactDOM.createPortal(modal, document.body)}
+    </>
   );
 };
 
