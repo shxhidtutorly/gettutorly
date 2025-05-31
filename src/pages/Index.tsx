@@ -604,8 +604,8 @@ const TestimonialsSection = () => {
             }}
           >
             <TestimonialCard 
-              quote="Tutorly completely changed how I study. I've improved my grades significantly!"
-              author="Alex K."
+              quote="Tutorly transformed my study routine! With its smart features, learning became easier and more effective — my grades have skyrocketed!"
+              author="Shahid Afrid."
               role="Computer Science Student"
             />
           </motion.div>
