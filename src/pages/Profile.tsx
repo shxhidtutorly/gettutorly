@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/router"; // ADD THIS
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ interface PasswordErrors {
 }
 
 const Profile = () => {
-  const router = useRouter(); // ADD THIS
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("account");
   const [isLoading, setIsLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -190,7 +190,7 @@ const Profile = () => {
     { id: "preferences", icon: Settings, label: "Preferences", badge: null }
   ];
 
-  return (
+ return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-950 p-4 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Back to Dashboard */}
@@ -198,13 +198,14 @@ const Profile = () => {
           <Button
             variant="ghost"
             className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-gray-800 text-blue-700 dark:text-blue-300 transition"
-            onClick={() => router.push("/")} // Adjust route as needed
+            onClick={() => navigate("/")} // <-- CHANGE HERE
             aria-label="Back to Dashboard"
           >
             <ArrowLeft className="h-5 w-5" />
             <span className="font-medium">Back to Dashboard</span>
           </Button>
         </div>
+        {/* ...rest of your component */}
 
         {/* Header */}
         <div className="mb-8">
