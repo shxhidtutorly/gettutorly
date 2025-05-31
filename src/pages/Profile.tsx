@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/router"; // ADD THIS
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,8 @@ import {
   Mail,
   Phone,
   MapPin,
-  Calendar
+  Calendar,
+  ArrowLeft // ADD THIS
 } from "lucide-react";
 
 // Type for password errors
@@ -34,6 +36,7 @@ interface PasswordErrors {
 }
 
 const Profile = () => {
+  const router = useRouter(); // ADD THIS
   const [activeSection, setActiveSection] = useState("account");
   const [isLoading, setIsLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -45,7 +48,7 @@ const Profile = () => {
   
   const fileInputRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const { theme, setTheme } = useTheme(); // <-- use next-themes for global theme
+  const { theme, setTheme } = useTheme();
 
   const [formData, setFormData] = useState({
     name: "Alex Johnson",
@@ -188,23 +191,36 @@ const Profile = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-950 p-4 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
+        {/* Back to Dashboard */}
+        <div className="mb-4 flex items-center">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-gray-800 text-blue-700 dark:text-blue-300 transition"
+            onClick={() => router.push("/")} // Adjust route as needed
+            aria-label="Back to Dashboard"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="font-medium">Back to Dashboard</span>
+          </Button>
+        </div>
+
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
-          <p className="text-gray-600">Manage your account settings and preferences</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Profile Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             {/* Profile Card */}
-            <Card className="mb-6 shadow-lg border-0">
+            <Card className="mb-6 shadow-lg border-0 bg-white dark:bg-gray-900">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center">
                   <div className="relative mb-4 group">
-                    <Avatar className="h-24 w-24 border-4 border-white shadow-lg">
+                    <Avatar className="h-24 w-24 border-4 border-white dark:border-gray-800 shadow-lg">
                       <AvatarImage src={avatarPreview || ""} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl font-semibold">
                         {formData.name.split(' ').map(n => n[0]).join('')}
@@ -225,15 +241,15 @@ const Profile = () => {
                       className="hidden"
                     />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">{formData.name}</h2>
-                  <p className="text-sm text-gray-500 mb-2">{formData.email}</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">{formData.name}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{formData.email}</p>
                   <Badge variant="secondary" className="mb-4">Pro Member</Badge>
                 </div>
               </CardContent>
             </Card>
 
             {/* Navigation */}
-            <Card className="shadow-lg border-0">
+            <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
               <CardContent className="p-6">
                 <nav className="space-y-2">
                   {sidebarItems.map((item) => {
@@ -245,8 +261,8 @@ const Profile = () => {
                         onClick={() => setActiveSection(item.id)}
                         className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
                           isActive 
-                            ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                            ? 'bg-blue-100 text-blue-700 shadow-sm dark:bg-blue-800 dark:text-white' 
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-white'
                         }`}
                         aria-label={`Navigate to ${item.label}`}
                       >
@@ -264,10 +280,10 @@ const Profile = () => {
                   })}
                   
                   {/* Notifications Toggle */}
-                  <div className="pt-4 border-t">
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button
                       onClick={() => setShowNotifications(!showNotifications)}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
+                      className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-white transition-all duration-200"
                       aria-label="Toggle notifications"
                     >
                       <Bell className="h-5 w-5" />
@@ -301,7 +317,7 @@ const Profile = () => {
               {/* Account Section */}
               {activeSection === "account" && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0">
+                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <User className="h-5 w-5" />
@@ -314,17 +330,17 @@ const Profile = () => {
                     <form onSubmit={handleSaveChanges}>
                       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name">Full Name</Label>
+                          <Label htmlFor="name" className="dark:text-gray-200">Full Name</Label>
                           <Input 
                             id="name"
                             name="name"
                             value={formData.name}
                             onChange={handleInputChange}
-                            className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                            className="transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="email">Email Address</Label>
+                          <Label htmlFor="email" className="dark:text-gray-200">Email Address</Label>
                           <div className="relative">
                             <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                             <Input 
@@ -333,12 +349,12 @@ const Profile = () => {
                               type="email"
                               value={formData.email}
                               onChange={handleInputChange}
-                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone">Phone Number</Label>
+                          <Label htmlFor="phone" className="dark:text-gray-200">Phone Number</Label>
                           <div className="relative">
                             <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                             <Input 
@@ -346,12 +362,12 @@ const Profile = () => {
                               name="phone"
                               value={formData.phone}
                               onChange={handleInputChange}
-                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="location">Location</Label>
+                          <Label htmlFor="location" className="dark:text-gray-200">Location</Label>
                           <div className="relative">
                             <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                             <Input 
@@ -359,7 +375,7 @@ const Profile = () => {
                               name="location"
                               value={formData.location}
                               onChange={handleInputChange}
-                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                             />
                           </div>
                         </div>
@@ -377,7 +393,7 @@ const Profile = () => {
                   </Card>
 
                   {/* Password Section */}
-                  <Card className="shadow-lg border-0">
+                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
                     <CardHeader>
                       <CardTitle>Change Password</CardTitle>
                       <CardDescription>
@@ -388,7 +404,7 @@ const Profile = () => {
                       <CardContent className="space-y-4">
                         {["current", "new", "confirm"].map((field) => (
                           <div key={field} className="space-y-2">
-                            <Label htmlFor={`${field}-password`}>
+                            <Label htmlFor={`${field}-password`} className="dark:text-gray-200">
                               {field === "current" ? "Current Password" : 
                                field === "new" ? "New Password" : "Confirm New Password"}
                             </Label>
@@ -401,7 +417,7 @@ const Profile = () => {
                                   ...prev,
                                   [field]: e.target.value
                                 }))}
-                                className={`pr-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 ${
+                                className={`pr-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 ${
                                   passwordErrors[field] ? 'border-red-500' : ''
                                 }`}
                               />
@@ -440,7 +456,7 @@ const Profile = () => {
               {/* Notifications Section */}
               {activeSection === "notifications" && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0">
+                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Bell className="h-5 w-5" />
@@ -452,12 +468,12 @@ const Profile = () => {
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {Object.entries(formData.notifications).map(([key, value]) => (
-                        <div key={key} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        <div key={key} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
                           <div>
-                            <p className="font-medium capitalize">
+                            <p className="font-medium capitalize dark:text-gray-200">
                               {key.replace(/([A-Z])/g, ' $1').trim()}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {key === 'studyReminders' && "Get reminders for your scheduled study sessions"}
                               {key === 'weeklyDigest' && "Receive a summary of your weekly learning progress"}
                               {key === 'emailNotifications' && "Receive notifications via email"}
@@ -488,7 +504,7 @@ const Profile = () => {
               {/* Privacy Section */}
               {activeSection === "privacy" && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0">
+                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Shield className="h-5 w-5" />
@@ -500,12 +516,12 @@ const Profile = () => {
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {Object.entries(formData.privacy).map(([key, value]) => (
-                        <div key={key} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        <div key={key} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
                           <div>
-                            <p className="font-medium capitalize">
+                            <p className="font-medium capitalize dark:text-gray-200">
                               {key.replace(/([A-Z])/g, ' $1').trim()}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {key === 'profileVisibility' && "Control who can see your profile information"}
                               {key === 'showEmail' && "Display your email address on your public profile"}
                               {key === 'showPhone' && "Display your phone number on your public profile"}
@@ -535,7 +551,7 @@ const Profile = () => {
               {/* Preferences Section */}
               {activeSection === "preferences" && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0">
+                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Settings className="h-5 w-5" />
@@ -546,7 +562,7 @@ const Profile = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
                         <div className="flex items-center gap-3">
                           {theme === 'dark' ? (
                             <Moon className="h-5 w-5 text-blue-600" />
@@ -554,8 +570,8 @@ const Profile = () => {
                             <Sun className="h-5 w-5 text-yellow-600" />
                           )}
                           <div>
-                            <p className="font-medium">Dark Mode</p>
-                            <p className="text-sm text-gray-500">Toggle between light and dark theme</p>
+                            <p className="font-medium dark:text-gray-200">Dark Mode</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Toggle between light and dark theme</p>
                           </div>
                         </div>
                         <Switch 
@@ -575,13 +591,13 @@ const Profile = () => {
 
       {/* Notifications Dropdown */}
       {showNotifications && (
-        <div className="fixed top-20 right-4 w-80 max-h-96 bg-white rounded-lg shadow-2xl border z-50 animate-in slide-in-from-top-4 duration-300">
-          <div className="p-4 border-b">
+        <div className="fixed top-20 right-4 w-80 max-h-96 bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 z-50 animate-in slide-in-from-top-4 duration-300">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Notifications</h3>
+              <h3 className="font-semibold dark:text-gray-100">Notifications</h3>
               <button
                 onClick={() => setShowNotifications(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 aria-label="Close notifications"
               >
                 <X className="h-5 w-5" />
@@ -592,15 +608,15 @@ const Profile = () => {
             {notifications.map((notification) => (
               <div 
                 key={notification.id} 
-                className={`p-4 border-b hover:bg-gray-50 transition-colors duration-200 ${
-                  notification.unread ? 'bg-blue-50' : ''
+                className={`p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 ${
+                  notification.unread ? 'bg-blue-50 dark:bg-blue-900/40' : ''
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{notification.title}</p>
-                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                    <p className="text-xs text-gray-400 mt-2">{notification.time}</p>
+                    <p className="font-medium text-sm dark:text-gray-100">{notification.title}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notification.message}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{notification.time}</p>
                   </div>
                   {notification.unread && (
                     <div className="w-2 h-2 bg-blue-600 rounded-full mt-1"></div>
@@ -609,8 +625,8 @@ const Profile = () => {
               </div>
             ))}
           </div>
-          <div className="p-4 border-t">
-            <Button variant="outline" className="w-full text-sm">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <Button variant="outline" className="w-full text-sm dark:text-gray-100">
               View All Notifications
             </Button>
           </div>
