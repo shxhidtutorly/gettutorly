@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle } from "lucide-react";
 import { Upload, FileText, Download, Loader2, Moon, Sun, BookOpen, Sparkles, ArrowLeft } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -18,8 +16,6 @@ if (typeof window !== 'undefined') {
 }
 
 export default function Summaries() {
-  const router = useRouter();
-
   const [file, setFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState("");
   const [summary, setSummary] = useState("");
@@ -173,18 +169,17 @@ export default function Summaries() {
 
       {/* Back to Dashboard button */}
       <div className="fixed top-6 left-6 z-30">
-        <Button
-          onClick={() => router.push("/dashboard")}
-          variant="outline"
-          size="sm"
+        <Button asChild variant="outline" size="sm"
           className={`flex items-center gap-2 transition
             ${darkMode
               ? "bg-gray-900 border-gray-700 text-gray-100 hover:bg-gray-800"
               : "bg-white border-gray-300 text-gray-800 hover:bg-gray-100"}
           `}
         >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Dashboard</span>
+          <a href="/dashboard">
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Dashboard</span>
+          </a>
         </Button>
       </div>
 
@@ -230,23 +225,23 @@ export default function Summaries() {
 
           {/* Error Display */}
           {error && (
-  <div className={`mb-6 p-4 rounded-lg border-l-4 ${
-    darkMode
-      ? "bg-red-900/20 border-red-500 text-red-300"
-      : "bg-red-50 border-red-500 text-red-700"
-  }`}>
-    <div className="flex items-center">
-      <div className="flex-shrink-0">
-        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 100 2 1 1 0 000-2zm1 4a1 1 0 00-2 0v4a1 1 0 002 0v-4z" clipRule="evenodd" />
-        </svg>
-      </div>
-      <div className="ml-3">
-        <p className="font-medium">{error}</p>
-      </div>
-    </div>
-  </div>
-)}
+            <div className={`mb-6 p-4 rounded-lg border-l-4 ${
+              darkMode
+                ? "bg-red-900/20 border-red-500 text-red-300"
+                : "bg-red-50 border-red-500 text-red-700"
+            }`}>
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 100 2 1 1 0 000-2zm1 4a1 1 0 00-2 0v4a1 1 0 002 0v-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="font-medium">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Progress Bar */}
           {progress > 0 && (
