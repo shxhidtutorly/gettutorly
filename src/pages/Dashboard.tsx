@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -18,13 +19,18 @@ import {
   Calendar,
   FileText,
   Users,
-  Award
+  Award,
+  Brain,
+  Zap,
+  BookMarked,
+  HelpCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRealTimeStudyProgress, useRealTimeStudyMaterials, useRealTimeUserActivity } from "@/hooks/useRealTimeData";
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const { progress, loading: progressLoading } = useRealTimeStudyProgress();
   const { materials, loading: materialsLoading } = useRealTimeStudyMaterials();
   const { activities, loading: activitiesLoading } = useRealTimeUserActivity();
@@ -50,6 +56,14 @@ const Dashboard = () => {
 
   const metrics = calculateMetrics();
 
+  // Get user display name safely
+  const getUserDisplayName = () => {
+    if (currentUser?.user_metadata?.name) return currentUser.user_metadata.name;
+    if (currentUser?.user_metadata?.full_name) return currentUser.user_metadata.full_name;
+    if (currentUser?.email) return currentUser.email.split('@')[0];
+    return 'User';
+  };
+
   if (!currentUser) {
     return <div>Please sign in to view your dashboard.</div>;
   }
@@ -63,7 +77,7 @@ const Dashboard = () => {
           {/* Welcome Section */}
           <div className="mb-8 animate-fade-in">
             <h1 className="text-2xl md:text-3xl font-bold">
-              Welcome back, {currentUser.name || currentUser.email}! 👋
+              Welcome back, {getUserDisplayName()}! 👋
             </h1>
             <p className="text-muted-foreground">Here's your learning progress overview</p>
           </div>
@@ -119,7 +133,7 @@ const Dashboard = () => {
             </Card>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Recent Progress */}
             <Card className="dark:bg-card">
               <CardHeader>
@@ -180,7 +194,7 @@ const Dashboard = () => {
                           <FileText className="h-4 w-4 text-spark-primary" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{activity.action}</p>
+                          <p className="text-sm font-medium">{activity.action_type}</p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(activity.timestamp).toLocaleString()}
                           </p>
@@ -199,11 +213,64 @@ const Dashboard = () => {
             </Card>
           </div>
           
+          {/* Study Tools Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Study Tools</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card 
+                className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105"
+                onClick={() => navigate('/flashcards')}
+              >
+                <CardContent className="p-6 text-center">
+                  <Zap className="h-8 w-8 text-spark-primary mx-auto mb-2" />
+                  <h3 className="font-medium">Flashcards</h3>
+                  <p className="text-sm text-muted-foreground">Create and review flashcards</p>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105"
+                onClick={() => navigate('/quiz')}
+              >
+                <CardContent className="p-6 text-center">
+                  <HelpCircle className="h-8 w-8 text-spark-primary mx-auto mb-2" />
+                  <h3 className="font-medium">Quizzes</h3>
+                  <p className="text-sm text-muted-foreground">Test your knowledge</p>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105"
+                onClick={() => navigate('/summaries')}
+              >
+                <CardContent className="p-6 text-center">
+                  <BookMarked className="h-8 w-8 text-spark-primary mx-auto mb-2" />
+                  <h3 className="font-medium">Summaries</h3>
+                  <p className="text-sm text-muted-foreground">AI-generated summaries</p>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105"
+                onClick={() => navigate('/ai-assistant')}
+              >
+                <CardContent className="p-6 text-center">
+                  <Brain className="h-8 w-8 text-spark-primary mx-auto mb-2" />
+                  <h3 className="font-medium">AI Tutor</h3>
+                  <p className="text-sm text-muted-foreground">Get personalized help</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          
           {/* Quick Actions */}
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="hover-glow cursor-pointer dark:bg-card">
+              <Card 
+                className="hover-glow cursor-pointer dark:bg-card"
+                onClick={() => navigate('/library')}
+              >
                 <CardContent className="p-6 text-center">
                   <Plus className="h-8 w-8 text-spark-primary mx-auto mb-2" />
                   <h3 className="font-medium">Upload Material</h3>
@@ -211,7 +278,10 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
               
-              <Card className="hover-glow cursor-pointer dark:bg-card">
+              <Card 
+                className="hover-glow cursor-pointer dark:bg-card"
+                onClick={() => navigate('/study-plans')}
+              >
                 <CardContent className="p-6 text-center">
                   <Calendar className="h-8 w-8 text-spark-primary mx-auto mb-2" />
                   <h3 className="font-medium">Create Plan</h3>
@@ -219,11 +289,14 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
               
-              <Card className="hover-glow cursor-pointer dark:bg-card">
+              <Card 
+                className="hover-glow cursor-pointer dark:bg-card"
+                onClick={() => navigate('/progress')}
+              >
                 <CardContent className="p-6 text-center">
-                  <Users className="h-8 w-8 text-spark-primary mx-auto mb-2" />
-                  <h3 className="font-medium">AI Tutor</h3>
-                  <p className="text-sm text-muted-foreground">Get help with your studies</p>
+                  <TrendingUp className="h-8 w-8 text-spark-primary mx-auto mb-2" />
+                  <h3 className="font-medium">View Progress</h3>
+                  <p className="text-sm text-muted-foreground">Track your learning</p>
                 </CardContent>
               </Card>
             </div>

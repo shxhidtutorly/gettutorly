@@ -41,13 +41,26 @@ const Profile = () => {
   
   const { toast } = useToast();
 
+  // Get user display name safely
+  const getUserDisplayName = () => {
+    if (currentUser?.user_metadata?.name) return currentUser.user_metadata.name;
+    if (currentUser?.user_metadata?.full_name) return currentUser.user_metadata.full_name;
+    if (currentUser?.email) return currentUser.email.split('@')[0];
+    return '';
+  };
+
+  // Get user avatar URL safely
+  const getUserAvatarUrl = () => {
+    return currentUser?.user_metadata?.avatar_url || '';
+  };
+
   useEffect(() => {
     if (currentUser) {
       setProfile({
-        name: currentUser.name || '',
+        name: getUserDisplayName(),
         email: currentUser.email || '',
-        phone_number: currentUser.phone_number || '',
-        location: currentUser.location || ''
+        phone_number: '',
+        location: ''
       });
     }
   }, [currentUser]);
@@ -187,13 +200,13 @@ const Profile = () => {
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={currentUser.avatar_url} />
+                  <AvatarImage src={getUserAvatarUrl()} />
                   <AvatarFallback>
-                    {(currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                    {(getUserDisplayName() || currentUser.email || 'U')[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-medium">{currentUser.name || 'User'}</h3>
+                  <h3 className="font-medium">{getUserDisplayName() || 'User'}</h3>
                   <p className="text-sm text-muted-foreground">{currentUser.email}</p>
                 </div>
               </div>

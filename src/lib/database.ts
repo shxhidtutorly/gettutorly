@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Study Plans Operations - using direct SQL until types are updated
+// Study Plans Operations - using direct database queries
 export const createStudyPlan = async (planData: {
   title: string;
   description?: string;
@@ -13,13 +13,18 @@ export const createStudyPlan = async (planData: {
     if (!user.user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .rpc('create_study_plan', {
-        p_user_id: user.user.id,
-        p_title: planData.title,
-        p_description: planData.description || '',
-        p_sessions: planData.sessions,
-        p_due_date: planData.due_date || null
-      });
+      .from('study_plans')
+      .insert([{
+        user_id: user.user.id,
+        title: planData.title,
+        description: planData.description || '',
+        sessions: planData.sessions,
+        due_date: planData.due_date || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
       
     if (error) throw error;
     return data;
@@ -35,9 +40,10 @@ export const getUserStudyPlans = async () => {
     if (!user.user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .rpc('get_user_study_plans', {
-        p_user_id: user.user.id
-      });
+      .from('study_plans')
+      .select('*')
+      .eq('user_id', user.user.id)
+      .order('created_at', { ascending: false });
       
     if (error) throw error;
     return data || [];
