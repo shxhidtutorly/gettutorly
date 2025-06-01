@@ -101,6 +101,39 @@ export type Database = {
           },
         ]
       }
+      study_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          sessions: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sessions?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sessions?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       study_progress: {
         Row: {
           completed: boolean | null
@@ -189,7 +222,9 @@ export type Database = {
           email: string
           id: string
           last_login: string | null
+          location: string | null
           name: string | null
+          phone_number: string | null
           role: string | null
           updated_at: string | null
         }
@@ -200,7 +235,9 @@ export type Database = {
           email: string
           id?: string
           last_login?: string | null
+          location?: string | null
           name?: string | null
+          phone_number?: string | null
           role?: string | null
           updated_at?: string | null
         }
@@ -211,7 +248,9 @@ export type Database = {
           email?: string
           id?: string
           last_login?: string | null
+          location?: string | null
           name?: string | null
+          phone_number?: string | null
           role?: string | null
           updated_at?: string | null
         }

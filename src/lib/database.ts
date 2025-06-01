@@ -1,8 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
-// Study Plans Operations
+// Study Plans Operations - using direct SQL until types are updated
 export const createStudyPlan = async (planData: {
   title: string;
   description?: string;
@@ -10,16 +9,17 @@ export const createStudyPlan = async (planData: {
   due_date?: string;
 }) => {
   try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('User not authenticated');
+
     const { data, error } = await supabase
-      .from('study_plans')
-      .insert([{
-        ...planData,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }])
-      .select()
-      .single();
+      .rpc('create_study_plan', {
+        p_user_id: user.user.id,
+        p_title: planData.title,
+        p_description: planData.description || '',
+        p_sessions: planData.sessions,
+        p_due_date: planData.due_date || null
+      });
       
     if (error) throw error;
     return data;
@@ -31,10 +31,13 @@ export const createStudyPlan = async (planData: {
 
 export const getUserStudyPlans = async () => {
   try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('User not authenticated');
+
     const { data, error } = await supabase
-      .from('study_plans')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .rpc('get_user_study_plans', {
+        p_user_id: user.user.id
+      });
       
     if (error) throw error;
     return data || [];

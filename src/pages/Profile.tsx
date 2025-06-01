@@ -1,638 +1,320 @@
-import { useState, useRef } from "react";
-import { useTheme } from "next-themes";
-import { useNavigate } from "react-router-dom";
+
+import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { 
-  User, 
-  Settings, 
-  Bell, 
-  Shield, 
-  LogOut, 
-  Moon, 
-  Sun, 
-  Camera, 
-  Eye, 
-  EyeOff,
-  Check,
-  X,
+  User,
   Mail,
   Phone,
   MapPin,
-  Calendar,
-  ArrowLeft // ADD THIS
+  Lock,
+  Save,
+  LogOut
 } from "lucide-react";
-
-// Type for password errors
-interface PasswordErrors {
-  current?: string;
-  new?: string;
-  confirm?: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { updateUserProfile } from "@/lib/database";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
-  const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState("account");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showPassword, setShowPassword] = useState({
-    current: false,
-    new: false,
-    confirm: false
+  const { currentUser, signOut } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    phone_number: '',
+    location: ''
+  });
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
   });
   
-  const fileInputRef = useRef(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
-    name: "Alex Johnson",
-    email: "alex.johnson@example.com",
-    phone: "+1 (555) 123-4567",
-    location: "San Francisco, CA",
-    bio: "Passionate learner and tech enthusiast",
-    notifications: {
-      studyReminders: true,
-      weeklyDigest: true,
-      emailNotifications: false,
-      pushNotifications: true,
-      marketingEmails: false
-    },
-    privacy: {
-      profileVisibility: "public",
-      showEmail: false,
-      showPhone: false,
-      dataSharing: true
+  useEffect(() => {
+    if (currentUser) {
+      setProfile({
+        name: currentUser.name || '',
+        email: currentUser.email || '',
+        phone_number: currentUser.phone_number || '',
+        location: currentUser.location || ''
+      });
     }
-  });
+  }, [currentUser]);
 
-  const [passwordData, setPasswordData] = useState({
-    current: "",
-    new: "",
-    confirm: ""
-  });
-
-  const [passwordErrors, setPasswordErrors] = useState<PasswordErrors>({});
-
-  // Mock notifications data
-  const notifications = [
-    { id: 1, title: "Study Reminder", message: "Time for your JavaScript lesson!", time: "2 min ago", unread: true },
-    { id: 2, title: "Achievement Unlocked", message: "You've completed 5 lessons this week!", time: "1 hour ago", unread: true },
-    { id: 3, title: "Weekly Digest", message: "Your learning progress summary is ready", time: "1 day ago", unread: false },
-    { id: 4, title: "New Course Available", message: "Advanced React Concepts is now live", time: "2 days ago", unread: false }
-  ];
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name.includes('.')) {
-      const [section, field] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+  const handleUpdateProfile = async () => {
+    setLoading(true);
+    try {
+      await updateUserProfile(profile);
+      
+      // Log the activity
+      await supabase.rpc('log_user_activity', {
+        action_type: 'profile_updated',
+        activity_details: { updated_fields: Object.keys(profile) }
+      });
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleToggleChange = (section, field, value) => {
-    if (section) {
-      setFormData(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+  const handlePasswordChange = async () => {
+    if (passwords.new !== passwords.confirm) {
+      toast({
+        title: "Error",
+        description: "New passwords don't match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwords.new.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwords.new
+      });
+
+      if (error) throw error;
+
+      // Log the activity
+      await supabase.rpc('log_user_activity', {
+        action_type: 'password_changed',
+        activity_details: {}
+      });
+
+      setPasswords({ current: '', new: '', confirm: '' });
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setAvatarPreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+  const handleSignOut = async () => {
+    try {
+      // Update last login timestamp
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', currentUser?.id);
+
+      // Log the activity
+      await supabase.rpc('log_user_activity', {
+        action_type: 'user_signed_out',
+        activity_details: {}
+      });
+
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully",
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
     }
   };
 
-  const validatePassword = () => {
-    const errors: PasswordErrors = {};
-    
-    if (!passwordData.current) {
-      errors.current = "Current password is required";
-    }
-    
-    if (!passwordData.new) {
-      errors.new = "New password is required";
-    } else if (passwordData.new.length < 8) {
-      errors.new = "Password must be at least 8 characters";
-    }
-    
-    if (passwordData.new !== passwordData.confirm) {
-      errors.confirm = "Passwords do not match";
-    }
-    
-    setPasswordErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  if (!currentUser) {
+    return <div>Please sign in to view your profile.</div>;
+  }
 
-  const handlePasswordChange = (e) => {
-    e.preventDefault();
-    if (validatePassword()) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        setPasswordData({ current: "", new: "", confirm: "" });
-        alert("Password updated successfully!");
-      }, 1000);
-    }
-  };
-
-  const handleSaveChanges = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Profile updated successfully!");
-    }, 1000);
-  };
-
-  const handleSignOut = () => {
-    if (confirm("Are you sure you want to sign out?")) {
-      // In a real app, clear authentication state and redirect
-      alert("Signing out... (In a real app, this would redirect to login)");
-    }
-  };
-
-  const sidebarItems = [
-    { id: "account", icon: User, label: "Account", badge: null },
-    { id: "notifications", icon: Bell, label: "Notifications", badge: "4" },
-    { id: "privacy", icon: Shield, label: "Privacy", badge: null },
-    { id: "preferences", icon: Settings, label: "Preferences", badge: null }
-  ];
-
- return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-950 p-4 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto">
-        {/* Back to Dashboard */}
-        <div className="mb-4 flex items-center">
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-gray-800 text-blue-700 dark:text-blue-300 transition"
-            onClick={() => navigate("/dashboard")} // <-- CHANGE HERE
-            aria-label="Back to Dashboard"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="font-medium">Back to Dashboard</span>
-          </Button>
-        </div>
-        {/* ...rest of your component */}
-
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Profile Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            {/* Profile Card */}
-            <Card className="mb-6 shadow-lg border-0 bg-white dark:bg-gray-900">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="relative mb-4 group">
-                    <Avatar className="h-24 w-24 border-4 border-white dark:border-gray-800 shadow-lg">
-                      <AvatarImage src={avatarPreview || ""} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl font-semibold">
-                        {formData.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      aria-label="Change avatar"
-                    >
-                      <Camera className="h-6 w-6 text-white" />
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">{formData.name}</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{formData.email}</p>
-                  <Badge variant="secondary" className="mb-4">Pro Member</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Navigation */}
-            <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
-              <CardContent className="p-6">
-                <nav className="space-y-2">
-                  {sidebarItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = activeSection === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveSection(item.id)}
-                        className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
-                          isActive 
-                            ? 'bg-blue-100 text-blue-700 shadow-sm dark:bg-blue-800 dark:text-white' 
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-white'
-                        }`}
-                        aria-label={`Navigate to ${item.label}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className="h-5 w-5" />
-                          <span className="font-medium">{item.label}</span>
-                        </div>
-                        {item.badge && (
-                          <Badge variant="secondary" className="bg-red-100 text-red-700">
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </button>
-                    );
-                  })}
-                  
-                  {/* Notifications Toggle */}
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={() => setShowNotifications(!showNotifications)}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-white transition-all duration-200"
-                      aria-label="Toggle notifications"
-                    >
-                      <Bell className="h-5 w-5" />
-                      <span className="font-medium">View Notifications</span>
-                      {notifications.filter(n => n.unread).length > 0 && (
-                        <Badge variant="secondary" className="bg-red-100 text-red-700 ml-auto">
-                          {notifications.filter(n => n.unread).length}
-                        </Badge>
-                      )}
-                    </button>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <Button 
-                      variant="destructive" 
-                      className="w-full justify-start"
-                      onClick={handleSignOut}
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign Out
-                    </Button>
-                  </div>
-                </nav>
-              </CardContent>
-            </Card>
+  return (
+    <div className="min-h-screen flex flex-col bg-[#0d1117] text-white">
+      <Navbar />
+      
+      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
+        <div className="container max-w-2xl mx-auto">
+          <div className="mb-8 animate-fade-in">
+            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+              <User className="h-7 w-7 text-spark-primary" />
+              Profile Settings
+            </h1>
+            <p className="text-muted-foreground">Manage your account information</p>
           </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <div className="space-y-6">
-              {/* Account Section */}
-              {activeSection === "account" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <User className="h-5 w-5" />
-                        Account Information
-                      </CardTitle>
-                      <CardDescription>
-                        Update your personal details and contact information
-                      </CardDescription>
-                    </CardHeader>
-                    <form onSubmit={handleSaveChanges}>
-                      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="dark:text-gray-200">Full Name</Label>
-                          <Input 
-                            id="name"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            className="transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="dark:text-gray-200">Email Address</Label>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input 
-                              id="email"
-                              name="email"
-                              type="email"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="phone" className="dark:text-gray-200">Phone Number</Label>
-                          <div className="relative">
-                            <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input 
-                              id="phone"
-                              name="phone"
-                              value={formData.phone}
-                              onChange={handleInputChange}
-                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="location" className="dark:text-gray-200">Location</Label>
-                          <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input 
-                              id="location"
-                              name="location"
-                              value={formData.location}
-                              onChange={handleInputChange}
-                              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter>
-                        <Button 
-                          type="submit" 
-                          disabled={isLoading}
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
-                        >
-                          {isLoading ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </CardFooter>
-                    </form>
-                  </Card>
-
-                  {/* Password Section */}
-                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
-                    <CardHeader>
-                      <CardTitle>Change Password</CardTitle>
-                      <CardDescription>
-                        Update your password to keep your account secure
-                      </CardDescription>
-                    </CardHeader>
-                    <form onSubmit={handlePasswordChange}>
-                      <CardContent className="space-y-4">
-                        {["current", "new", "confirm"].map((field) => (
-                          <div key={field} className="space-y-2">
-                            <Label htmlFor={`${field}-password`} className="dark:text-gray-200">
-                              {field === "current" ? "Current Password" : 
-                               field === "new" ? "New Password" : "Confirm New Password"}
-                            </Label>
-                            <div className="relative">
-                              <Input 
-                                id={`${field}-password`}
-                                type={showPassword[field] ? "text" : "password"}
-                                value={passwordData[field]}
-                                onChange={(e) => setPasswordData(prev => ({
-                                  ...prev,
-                                  [field]: e.target.value
-                                }))}
-                                className={`pr-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 ${
-                                  passwordErrors[field] ? 'border-red-500' : ''
-                                }`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(prev => ({
-                                  ...prev,
-                                  [field]: !prev[field]
-                                }))}
-                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                                aria-label={showPassword[field] ? "Hide password" : "Show password"}
-                              >
-                                {showPassword[field] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </button>
-                            </div>
-                            {passwordErrors[field] && (
-                              <p className="text-sm text-red-600">{passwordErrors[field]}</p>
-                            )}
-                          </div>
-                        ))}
-                      </CardContent>
-                      <CardFooter>
-                        <Button 
-                          type="submit" 
-                          disabled={isLoading}
-                          className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 transition-all duration-200"
-                        >
-                          {isLoading ? "Updating..." : "Update Password"}
-                        </Button>
-                      </CardFooter>
-                    </form>
-                  </Card>
-                </div>
-              )}
-
-              {/* Notifications Section */}
-              {activeSection === "notifications" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Bell className="h-5 w-5" />
-                        Notification Preferences
-                      </CardTitle>
-                      <CardDescription>
-                        Manage how and when you receive notifications
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {Object.entries(formData.notifications).map(([key, value]) => (
-                        <div key={key} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                          <div>
-                            <p className="font-medium capitalize dark:text-gray-200">
-                              {key.replace(/([A-Z])/g, ' $1').trim()}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {key === 'studyReminders' && "Get reminders for your scheduled study sessions"}
-                              {key === 'weeklyDigest' && "Receive a summary of your weekly learning progress"}
-                              {key === 'emailNotifications' && "Receive notifications via email"}
-                              {key === 'pushNotifications' && "Receive push notifications on your device"}
-                              {key === 'marketingEmails' && "Receive promotional emails and updates"}
-                            </p>
-                          </div>
-                          <Switch 
-                            checked={value} 
-                            onCheckedChange={(checked) => handleToggleChange('notifications', key, checked)}
-                            className="data-[state=checked]:bg-blue-600"
-                          />
-                        </div>
-                      ))}
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        onClick={handleSaveChanges}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
-                      >
-                        Save Preferences
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </div>
-              )}
-
-              {/* Privacy Section */}
-              {activeSection === "privacy" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Shield className="h-5 w-5" />
-                        Privacy Settings
-                      </CardTitle>
-                      <CardDescription>
-                        Control your privacy and data sharing preferences
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {Object.entries(formData.privacy).map(([key, value]) => (
-                        <div key={key} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                          <div>
-                            <p className="font-medium capitalize dark:text-gray-200">
-                              {key.replace(/([A-Z])/g, ' $1').trim()}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {key === 'profileVisibility' && "Control who can see your profile information"}
-                              {key === 'showEmail' && "Display your email address on your public profile"}
-                              {key === 'showPhone' && "Display your phone number on your public profile"}
-                              {key === 'dataSharing' && "Allow sharing anonymized data for platform improvements"}
-                            </p>
-                          </div>
-                          <Switch 
-                            checked={typeof value === 'boolean' ? value : value === 'public'} 
-                            onCheckedChange={(checked) => handleToggleChange('privacy', key, checked)}
-                            className="data-[state=checked]:bg-blue-600"
-                          />
-                        </div>
-                      ))}
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        onClick={handleSaveChanges}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
-                      >
-                        Save Privacy Settings
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </div>
-              )}
-
-              {/* Preferences Section */}
-              {activeSection === "preferences" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <Card className="shadow-lg border-0 bg-white dark:bg-gray-900">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        Display Preferences
-                      </CardTitle>
-                      <CardDescription>
-                        Customize your learning environment and interface
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                        <div className="flex items-center gap-3">
-                          {theme === 'dark' ? (
-                            <Moon className="h-5 w-5 text-blue-600" />
-                          ) : (
-                            <Sun className="h-5 w-5 text-yellow-600" />
-                          )}
-                          <div>
-                            <p className="font-medium dark:text-gray-200">Dark Mode</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Toggle between light and dark theme</p>
-                          </div>
-                        </div>
-                        <Switch 
-                          checked={theme === 'dark'}
-                          onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                          className="data-[state=checked]:bg-blue-600"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Notifications Dropdown */}
-      {showNotifications && (
-        <div className="fixed top-20 right-4 w-80 max-h-96 bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 z-50 animate-in slide-in-from-top-4 duration-300">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold dark:text-gray-100">Notifications</h3>
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                aria-label="Close notifications"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.map((notification) => (
-              <div 
-                key={notification.id} 
-                className={`p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 ${
-                  notification.unread ? 'bg-blue-50 dark:bg-blue-900/40' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm dark:text-gray-100">{notification.title}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notification.message}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{notification.time}</p>
-                  </div>
-                  {notification.unread && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-1"></div>
-                  )}
+          
+          {/* Profile Information */}
+          <Card className="mb-6 dark:bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Personal Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={currentUser.avatar_url} />
+                  <AvatarFallback>
+                    {(currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-medium">{currentUser.name || 'User'}</h3>
+                  <p className="text-sm text-muted-foreground">{currentUser.email}</p>
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-            <Button variant="outline" className="w-full text-sm dark:text-gray-100">
-              View All Notifications
-            </Button>
-          </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={profile.name}
+                    onChange={(e) => setProfile({...profile, name: e.target.value})}
+                    placeholder="Enter your full name"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile({...profile, email: e.target.value})}
+                    placeholder="Enter your email"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    value={profile.phone_number}
+                    onChange={(e) => setProfile({...profile, phone_number: e.target.value})}
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={profile.location}
+                    onChange={(e) => setProfile({...profile, location: e.target.value})}
+                    placeholder="Enter your location"
+                  />
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleUpdateProfile} 
+                disabled={loading}
+                className="animated-button"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </CardContent>
+          </Card>
+          
+          {/* Password Change */}
+          <Card className="mb-6 dark:bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Change Password
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={passwords.new}
+                  onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                  placeholder="Enter new password"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={passwords.confirm}
+                  onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                  placeholder="Confirm new password"
+                />
+              </div>
+              
+              <Button 
+                onClick={handlePasswordChange} 
+                disabled={passwordLoading || !passwords.new || !passwords.confirm}
+                className="animated-button"
+              >
+                <Lock className="h-4 w-4 mr-2" />
+                {passwordLoading ? 'Updating...' : 'Update Password'}
+              </Button>
+            </CardContent>
+          </Card>
+          
+          {/* Account Actions */}
+          <Card className="dark:bg-card">
+            <CardHeader>
+              <CardTitle>Account Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="destructive" 
+                onClick={handleSignOut}
+                className="w-full"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-      )}
+      </main>
+      
+      <Footer />
+      <BottomNav />
     </div>
   );
 };
