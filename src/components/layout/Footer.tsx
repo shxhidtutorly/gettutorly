@@ -14,7 +14,7 @@ const Footer = () => {
           <div className="flex items-center gap-6">
             <a href="#" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Help</a>
             <a href="#" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Privacy</a>
-            <a href="#" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Terms</a>
+            <a  href="https://gettutorly.com/terms-of-service" target="_blank" rel="noopener noreferrer"className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Terms</a>
             <a
               href="https://www.tiktok.com/@_mary_manuel"
               target="_blank"
