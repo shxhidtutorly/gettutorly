@@ -109,11 +109,19 @@ const AIChat = () => {
     }
   };
 
-return (
+  return (
     <div className="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 h-[700px] overflow-hidden">
       {/* Chat header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        <div className="flex items-center">
+        {/* Back to Dashboard button */}
+        <button
+          onClick={() => window.location.href = '/dashboard'}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition mr-4"
+          title="Back to Dashboard"
+        >
+          ← Back to Dashboard
+        </button>
+        <div className="flex items-center flex-1">
           <div className="h-9 w-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white mr-3 shadow-sm">
             <span className="text-sm font-medium">AI</span>
           </div>
@@ -129,7 +137,7 @@ return (
           <button
             onClick={clearChat}
             disabled={isLoading}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition"
             title="Clear chat"
           >
             <Trash2 className="h-4 w-4" />
@@ -197,7 +205,7 @@ return (
               placeholder="Ask me anything about your studies..."
               disabled={isLoading}
               rows={1}
-              className="w-full py-3 px-4 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+              className="w-full py-3 px-4 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               style={{
                 minHeight: '48px',
                 maxHeight: '120px',
@@ -220,21 +228,21 @@ return (
               <button 
                 onClick={() => setSampleQuestion("Explain cellular respiration")}
                 disabled={isLoading}
-                className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors border border-gray-200 dark:border-gray-600"
+                className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors border"
               >
                 Explain cellular respiration
               </button>
               <button 
                 onClick={() => setSampleQuestion("How does photosynthesis work?")}
                 disabled={isLoading}
-                className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors border border-gray-200 dark:border-gray-600"
+                className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors border"
               >
                 How does photosynthesis work?
               </button>
               <button 
                 onClick={() => setSampleQuestion("Explain the stages of mitosis")}
                 disabled={isLoading}
-                className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors border border-gray-200 dark:border-gray-600"
+                className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors border"
               >
                 Explain the stages of mitosis
               </button>
