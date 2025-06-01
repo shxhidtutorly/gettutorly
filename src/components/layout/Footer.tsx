@@ -1,6 +1,7 @@
 import { BookOpenIcon, InstagramIcon } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
 import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
 
 const Footer = () => {
   return (
@@ -12,9 +13,21 @@ const Footer = () => {
             <span className="text-lg font-bold dark:text-white">Tutorly</span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Help</a>
+            <Link
+              href="/support"
+              className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors"
+            >
+              Help
+            </Link>
             <a href="#" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Privacy</a>
-            <a  href="https://gettutorly.com/terms-of-service" target="_blank" rel="noopener noreferrer"className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Terms</a>
+            <a
+              href="https://gettutorly.com/terms-of-service"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors"
+            >
+              Terms of Service
+            </a>
             <a
               href="https://www.tiktok.com/@_mary_manuel"
               target="_blank"
