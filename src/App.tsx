@@ -21,6 +21,7 @@ import AIAssistant from "./pages/AIAssistant";
 import StudyTechniques from "./pages/StudyTechniques";
 import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
+import TermsOfService from "./pages/terms-of-service"; // ✅ Import your Terms page
 import "./css/animations.css";
 import "./css/darkMode.css";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -111,6 +112,11 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/upload" element={<Navigate to="/library" replace />} />
+              
+              {/* ✅ Terms of Service Route */}
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+
+              {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
