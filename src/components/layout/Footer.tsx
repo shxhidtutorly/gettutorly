@@ -1,7 +1,6 @@
 import { BookOpenIcon, InstagramIcon } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
 import { Separator } from "@/components/ui/separator";
-import Link from "next/link";
 
 const Footer = () => {
   return (
@@ -13,12 +12,12 @@ const Footer = () => {
             <span className="text-lg font-bold dark:text-white">Tutorly</span>
           </div>
           <div className="flex items-center gap-6">
-            <Link
+            <a
               href="/support"
               className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors"
             >
               Help
-            </Link>
+            </a>
             <a href="#" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Privacy</a>
             <a
               href="https://gettutorly.com/terms-of-service"
