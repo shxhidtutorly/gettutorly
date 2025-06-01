@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { AlertCircle } from "lucide-react";
 import { Upload, FileText, Download, Loader2, Moon, Sun, BookOpen, Sparkles, ArrowLeft } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -229,23 +230,23 @@ export default function Summaries() {
 
           {/* Error Display */}
           {error && (
-            <div className={`mb-6 p-4 rounded-lg border-l-4 ${
-              darkMode
-                ? "bg-red-900/20 border-red-500 text-red-300"
-                : "bg-red-50 border-red-500 text-red-700"
-            }`}>
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L1[...]
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="font-medium">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
+  <div className={`mb-6 p-4 rounded-lg border-l-4 ${
+    darkMode
+      ? "bg-red-900/20 border-red-500 text-red-300"
+      : "bg-red-50 border-red-500 text-red-700"
+  }`}>
+    <div className="flex items-center">
+      <div className="flex-shrink-0">
+        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 100 2 1 1 0 000-2zm1 4a1 1 0 00-2 0v4a1 1 0 002 0v-4z" clipRule="evenodd" />
+        </svg>
+      </div>
+      <div className="ml-3">
+        <p className="font-medium">{error}</p>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Progress Bar */}
           {progress > 0 && (
