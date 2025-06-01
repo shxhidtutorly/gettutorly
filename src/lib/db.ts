@@ -1,8 +1,7 @@
 
-import { supabase } from './supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 // USER OPERATIONS
-// Create or update user profile (called after auth signup)
 export const createUserProfile = async (userId: string, userData: any) => {
   try {
     const { error } = await supabase
@@ -10,7 +9,7 @@ export const createUserProfile = async (userId: string, userData: any) => {
       .upsert([{
         id: userId,
         ...userData,
-        role: userData.role || "student", // Default role
+        role: userData.role || "student",
         updated_at: new Date().toISOString(),
       }]);
       
@@ -22,7 +21,6 @@ export const createUserProfile = async (userId: string, userData: any) => {
   }
 };
 
-// Get user profile data
 export const getUserProfile = async (userId: string) => {
   try {
     const { data, error } = await supabase
@@ -39,7 +37,6 @@ export const getUserProfile = async (userId: string) => {
   }
 };
 
-// Update user role (for admin functions)
 export const updateUserRole = async (userId: string, role: string) => {
   try {
     const { error } = await supabase
@@ -59,20 +56,27 @@ export const updateUserRole = async (userId: string, role: string) => {
 };
 
 // STUDY MATERIALS OPERATIONS
-// Save a study material with its summary to the database
-export const saveSummary = async (userId: string, summaryData: any) => {
+export const saveStudyMaterial = async (userId: string, materialData: any) => {
   try {
     const { data, error } = await supabase
       .from('study_materials')
       .insert([{
         user_id: userId,
-        ...summaryData,
+        ...materialData,
         created_at: new Date().toISOString(),
       }])
       .select()
       .single();
       
     if (error) throw error;
+    
+    // Log the activity
+    await logUserActivity('material_uploaded', {
+      material_id: data.id,
+      title: materialData.title,
+      file_name: materialData.file_name
+    });
+    
     return data.id;
   } catch (error) {
     console.error("Error saving study material:", error);
@@ -80,8 +84,7 @@ export const saveSummary = async (userId: string, summaryData: any) => {
   }
 };
 
-// Get all study materials for a user
-export const getUserSummaries = async (userId: string) => {
+export const getUserStudyMaterials = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from('study_materials')
@@ -97,15 +100,20 @@ export const getUserSummaries = async (userId: string) => {
   }
 };
 
-// Delete a study material
-export const deleteSummary = async (summaryId: string) => {
+export const deleteStudyMaterial = async (materialId: string) => {
   try {
     const { error } = await supabase
       .from('study_materials')
       .delete()
-      .eq('id', summaryId);
+      .eq('id', materialId);
       
     if (error) throw error;
+    
+    // Log the activity
+    await logUserActivity('material_deleted', {
+      material_id: materialId
+    });
+    
     return true;
   } catch (error) {
     console.error("Error deleting study material:", error);
@@ -114,7 +122,6 @@ export const deleteSummary = async (summaryId: string) => {
 };
 
 // NOTES OPERATIONS
-// Create a note for a study session or material
 export const createNote = async (userId: string, noteData: any) => {
   try {
     const { data, error } = await supabase
@@ -128,6 +135,13 @@ export const createNote = async (userId: string, noteData: any) => {
       .single();
       
     if (error) throw error;
+    
+    // Log the activity
+    await logUserActivity('note_created', {
+      note_id: data.id,
+      title: noteData.title
+    });
+    
     return data.id;
   } catch (error) {
     console.error("Error creating note:", error);
@@ -135,7 +149,6 @@ export const createNote = async (userId: string, noteData: any) => {
   }
 };
 
-// Get all notes for a user
 export const getUserNotes = async (userId: string) => {
   try {
     const { data, error } = await supabase
@@ -152,7 +165,6 @@ export const getUserNotes = async (userId: string) => {
   }
 };
 
-// Delete a note
 export const deleteNote = async (noteId: string) => {
   try {
     const { error } = await supabase
@@ -161,6 +173,12 @@ export const deleteNote = async (noteId: string) => {
       .eq('id', noteId);
       
     if (error) throw error;
+    
+    // Log the activity
+    await logUserActivity('note_deleted', {
+      note_id: noteId
+    });
+    
     return true;
   } catch (error) {
     console.error("Error deleting note:", error);
@@ -169,7 +187,6 @@ export const deleteNote = async (noteId: string) => {
 };
 
 // STUDY PROGRESS TRACKING
-// Create or update study progress for a material
 export const updateStudyProgress = async (userId: string, materialId: string, progressData: any) => {
   try {
     const { error } = await supabase
@@ -189,7 +206,6 @@ export const updateStudyProgress = async (userId: string, materialId: string, pr
   }
 };
 
-// Get study progress for a user
 export const getStudyProgress = async (userId: string, materialId?: string) => {
   try {
     let query = supabase
@@ -211,32 +227,24 @@ export const getStudyProgress = async (userId: string, materialId?: string) => {
   }
 };
 
-// ANALYTICS
-// Record user activity log (for analytics)
-export const logUserActivity = async (userId: string, action: string, details: any) => {
+// ACTIVITY LOGGING
+export const logUserActivity = async (action: string, details: any) => {
   try {
-    const { error } = await supabase
-      .from('user_activity_logs')
-      .insert([{
-        user_id: userId,
-        action,
-        details,
-        timestamp: new Date().toISOString(),
-      }]);
+    const { error } = await supabase.rpc('log_user_activity', {
+      action_type: action,
+      activity_details: details
+    });
       
     if (error) throw error;
     return true;
   } catch (error) {
     console.error("Error logging user activity:", error);
-    // Don't throw here to avoid disrupting user experience for analytics errors
     return false;
   }
 };
 
-// Get study analytics for a user
 export const getUserAnalytics = async (userId: string, period: 'day' | 'week' | 'month' = 'week') => {
   try {
-    // Calculate the start date based on the period
     const now = new Date();
     let startDate = new Date();
     
@@ -267,24 +275,47 @@ export const getUserAnalytics = async (userId: string, period: 'day' | 'week' | 
   }
 };
 
-// REAL-TIME SUBSCRIPTIONS
-// Subscribe to updates on a table for real-time features
-export const subscribeToData = (
-  table: string,
-  callback: (data: any) => void,
-  filters: { column: string; value: any }[] = []
-) => {
-  let query = supabase
-    .channel(`public:${table}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table }, payload => {
-      callback(payload.new);
-    });
-  
-  // Add the channel to the subscription and start listening
-  const subscription = query.subscribe();
-  
-  // Return an unsubscribe function
-  return () => {
-    subscription.unsubscribe();
-  };
+// FILE STORAGE OPERATIONS
+export const uploadFile = async (userId: string, file: File) => {
+  try {
+    const fileName = `${userId}/${Date.now()}_${file.name}`;
+    
+    const { data, error } = await supabase.storage
+      .from('study-materials')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('study-materials')
+      .getPublicUrl(fileName);
+
+    return {
+      filePath: data.path,
+      fileUrl: publicUrl,
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size
+    };
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+};
+
+export const deleteFile = async (filePath: string) => {
+  try {
+    const { error } = await supabase.storage
+      .from('study-materials')
+      .remove([filePath]);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    throw error;
+  }
 };

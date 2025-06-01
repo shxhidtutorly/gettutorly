@@ -1,15 +1,15 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { uploadFile as uploadFileUtil, deleteFile as deleteFileUtil, ensureBucketExists } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
+import { uploadFile, deleteFile } from '@/lib/db';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useSupabaseStorage = () => {
   const { currentUser } = useAuth();
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
-  const uploadFile = async (file: File, bucket: string = 'summaries') => {
+  const uploadStudyMaterial = async (file: File) => {
     if (!currentUser) {
       setError('User must be logged in to upload files');
       return null;
@@ -19,7 +19,6 @@ export const useSupabaseStorage = () => {
       setProgress(0);
       setError(null);
 
-      // Validate file type and size
       if (file.type !== 'application/pdf') {
         throw new Error('Please upload a PDF file');
       }
@@ -30,8 +29,7 @@ export const useSupabaseStorage = () => {
 
       setProgress(25);
       
-      // Use the enhanced upload function with fallback strategy
-      const result = await uploadFileUtil(currentUser.id, file, bucket);
+      const result = await uploadFile(currentUser.id, file);
       
       setProgress(100);
       return result;
@@ -43,10 +41,10 @@ export const useSupabaseStorage = () => {
     }
   };
 
-  const deleteFile = async (filePath: string, bucket: string = 'summaries') => {
+  const deleteStudyMaterial = async (filePath: string) => {
     try {
       setError(null);
-      const result = await deleteFileUtil(filePath, bucket);
+      const result = await deleteFile(filePath);
       return result;
     } catch (err: any) {
       setError(err.message || 'An error occurred during file deletion');
@@ -55,11 +53,11 @@ export const useSupabaseStorage = () => {
     }
   };
   
-  const getSignedUrl = async (filePath: string, bucket: string = 'summaries', expiresIn: number = 3600) => {
+  const getSignedUrl = async (filePath: string, expiresIn: number = 3600) => {
     try {
       setError(null);
       const { data, error } = await supabase.storage
-        .from(bucket)
+        .from('study-materials')
         .createSignedUrl(filePath, expiresIn);
 
       if (error) throw error;
@@ -71,7 +69,7 @@ export const useSupabaseStorage = () => {
     }
   };
   
-  const listFiles = async (folderPath: string = '', bucket: string = 'summaries') => {
+  const listFiles = async (folderPath: string = '') => {
     if (!currentUser) {
       setError('User must be logged in to list files');
       return null;
@@ -79,11 +77,10 @@ export const useSupabaseStorage = () => {
     
     try {
       setError(null);
-      // Ensure we're only looking in the user's folder
       const path = folderPath ? `${currentUser.id}/${folderPath}` : `${currentUser.id}`;
       
       const { data, error } = await supabase.storage
-        .from(bucket)
+        .from('study-materials')
         .list(path);
 
       if (error) throw error;
@@ -95,24 +92,11 @@ export const useSupabaseStorage = () => {
     }
   };
 
-  const checkBucketStatus = async () => {
-    try {
-      setError(null);
-      const isReady = await ensureBucketExists();
-      return isReady;
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while checking bucket status');
-      console.error('Bucket check error:', err);
-      return false;
-    }
-  };
-
   return {
-    uploadFile,
-    deleteFile,
+    uploadFile: uploadStudyMaterial,
+    deleteFile: deleteStudyMaterial,
     getSignedUrl,
     listFiles,
-    checkBucketStatus,
     progress,
     error
   };
