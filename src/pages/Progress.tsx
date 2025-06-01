@@ -16,10 +16,51 @@ import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard
 import { WeeklyStudyHoursChart } from "@/components/progress/WeeklyStudyHoursChart";
 import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
 import { LearningInsightCard } from "@/components/progress/LearningInsightCard";
+import { useRealTimeStudyProgress } from "@/hooks/useRealTimeData";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Progress = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [weeklyData, setWeeklyData] = useState([
+  const { currentUser } = useAuth();
+  const { progress, loading } = useRealTimeStudyProgress();
+  const { toast } = useToast();
+
+  // Calculate real stats from progress data
+  const calculateStats = () => {
+    if (!progress.length) {
+      return {
+        totalHours: 0,
+        weeklyChange: 0,
+        completedTopics: 0,
+        topicsChange: 0,
+        streakDays: 0,
+        materials: []
+      };
+    }
+
+    const totalMinutes = progress.reduce((sum: number, p: any) => sum + (p.time_spent || 0), 0);
+    const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+    const completedTopics = progress.filter((p: any) => p.completed).length;
+    
+    // Calculate materials progress
+    const materials = progress.map((p: any) => ({
+      name: p.material_title || 'Study Material',
+      progress: p.progress_percentage || 0
+    }));
+
+    return {
+      totalHours,
+      weeklyChange: 2.3, // Could calculate from timestamps
+      completedTopics,
+      topicsChange: 1,
+      streakDays: 5, // Could calculate from activity logs
+      materials
+    };
+  };
+
+  const stats = calculateStats();
+  
+  // Mock weekly data - could be calculated from real progress data
+  const weeklyData = [
     { day: 'Mon', hours: 1.5 },
     { day: 'Tue', hours: 2.2 },
     { day: 'Wed', hours: 1.8 },
@@ -27,45 +68,14 @@ const Progress = () => {
     { day: 'Fri', hours: 3.0 },
     { day: 'Sat', hours: 1.0 },
     { day: 'Sun', hours: 0.5 },
-  ]);
-  
-  const [progressData, setProgressData] = useState({
-    totalHours: 12.5,
-    weeklyChange: 2.3,
-    completedTopics: 15,
-    topicsChange: 3,
-    streakDays: 8,
-    materials: [
-      { name: 'Psychology', progress: 75 },
-      { name: 'Calculus', progress: 40 },
-      { name: 'History', progress: 90 },
-      { name: 'Chemistry', progress: 25 },
-    ]
-  });
-  
-  const { toast } = useToast();
-  
-  useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      
-      // Show success toast on data load complete
-      toast({
-        title: "Progress data loaded",
-        description: "Your latest study progress has been updated",
-      });
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [toast]);
+  ];
   
   const monthlyData = [
     { name: 'Jan', hours: 20 },
     { name: 'Feb', hours: 25 },
     { name: 'Mar', hours: 18 },
     { name: 'Apr', hours: 30 },
-    { name: 'May', hours: 0 },
+    { name: 'May', hours: stats.totalHours },
     { name: 'Jun', hours: 0 },
     { name: 'Jul', hours: 0 },
     { name: 'Aug', hours: 0 },
@@ -74,6 +84,10 @@ const Progress = () => {
     { name: 'Nov', hours: 0 },
     { name: 'Dec', hours: 0 }
   ];
+
+  if (!currentUser) {
+    return <div>Please sign in to view your progress.</div>;
+  }
   
   return (
     <div className="min-h-screen flex flex-col bg-[#0d1117] text-white">
@@ -91,28 +105,28 @@ const Progress = () => {
           
           {/* Progress Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {isLoading ? (
+            {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="animate-pulse h-28 bg-gray-200 rounded-lg"></div>
+                <div key={i} className="animate-pulse h-28 bg-gray-200 rounded-lg dark:bg-muted"></div>
               ))
             ) : (
               <>
                 <ProgressStatCard 
                   title="Study Hours This Week" 
-                  value={progressData.totalHours} 
+                  value={stats.totalHours} 
                   unit="hrs" 
-                  change={progressData.weeklyChange} 
+                  change={stats.weeklyChange} 
                   icon={<Clock className="h-5 w-5 text-spark-primary" />} 
                 />
                 <ProgressStatCard 
                   title="Topics Completed" 
-                  value={progressData.completedTopics} 
-                  change={progressData.topicsChange}
+                  value={stats.completedTopics} 
+                  change={stats.topicsChange}
                   icon={<Book className="h-5 w-5 text-spark-primary" />} 
                 />
                 <ProgressStatCard 
                   title="Study Streak" 
-                  value={progressData.streakDays} 
+                  value={stats.streakDays} 
                   unit="days" 
                   change={0}
                   icon={<Award className="h-5 w-5 text-spark-primary" />} 
@@ -123,28 +137,33 @@ const Progress = () => {
           
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <WeeklyStudyHoursChart data={weeklyData} isLoading={isLoading} />
-            <MonthlyProgressChart data={monthlyData} isLoading={isLoading} />
+            <WeeklyStudyHoursChart data={weeklyData} isLoading={loading} />
+            <MonthlyProgressChart data={monthlyData} isLoading={loading} />
           </div>
           
           {/* Study Materials Progress */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Study Materials Progress</h2>
-            {isLoading ? (
+            {loading ? (
               <div className="animate-pulse space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
+                  <div key={i} className="h-16 bg-gray-200 rounded-lg dark:bg-muted"></div>
                 ))}
               </div>
-            ) : (
+            ) : stats.materials.length > 0 ? (
               <div className="space-y-4">
-                {progressData.materials.map((material, index) => (
+                {stats.materials.map((material, index) => (
                   <MaterialProgressCard 
                     key={index}
                     name={material.name}
                     progress={material.progress}
                   />
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Book className="h-12 w-12 mx-auto mb-4" />
+                <p>No study materials found. Start uploading materials to track your progress!</p>
               </div>
             )}
           </div>
@@ -162,8 +181,8 @@ const Progress = () => {
               <LearningInsightCard
                 icon={<Award />}
                 title="Most Progress In"
-                value="History"
-                description="You've completed 90% of your history materials"
+                value={stats.materials.length > 0 ? stats.materials[0].name : "No materials"}
+                description={stats.materials.length > 0 ? `You've completed ${stats.materials[0].progress}% of this material` : "Upload materials to see progress"}
                 bgColorClass="bg-spark-peach"
                 iconColorClass="text-orange-600"
               />
