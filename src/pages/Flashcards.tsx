@@ -1,14 +1,15 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Zap, Plus, BookOpen, ArrowLeft } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import CreateFlashcardDialog from "@/components/features/CreateFlashcardDialog";
+import { Flashcard } from "@/lib/aiNotesService";
 
 interface FlashcardItem {
   id: number;
@@ -23,35 +24,29 @@ interface FlashcardSet {
 }
 
 const Flashcards = () => {
-  const [flipped, setFlipped] = useState<Record<number, boolean>>({});
-  const [activeSet, setActiveSet] = useState("biology");
+  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
+  const [activeSet, setActiveSet] = useState("ai-generated");
+  const [aiFlashcards, setAiFlashcards] = useState<Flashcard[]>([]);
+  const [aiSource, setAiSource] = useState<string>('');
   const { toast } = useToast();
   
-  const [flashcardSets, setFlashcardSets] = useState<Record<string, FlashcardItem[]>>({
-    biology: [
-      { id: 1, front: "What is photosynthesis?", back: "The process by which green plants and some other organisms use sunlight to synthesize nutrients from carbon dioxide and water." },
-      { id: 2, front: "Define osmosis", back: "The process of water molecules moving from an area of higher concentration to an area of lower concentration through a semi-permeable membrane." },
-      { id: 3, front: "What are mitochondria?", back: "Organelles that generate most of the cell's supply of adenosine triphosphate (ATP), used as a source of chemical energy." }
-    ],
-    chemistry: [
-      { id: 4, front: "What is the periodic table?", back: "A tabular arrangement of chemical elements organized by atomic number, electron configuration, and recurring chemical properties." },
-      { id: 5, front: "Define pH", back: "A logarithmic scale used to specify the acidity or basicity of an aqueous solution." },
-      { id: 6, front: "What is an isotope?", back: "Variants of a particular chemical element which differ in neutron number but have the same number of protons." }
-    ],
-    history: [
-      { id: 7, front: "When did World War II begin?", back: "September 1, 1939, with Nazi Germany's invasion of Poland." },
-      { id: 8, front: "Who was the first President of the United States?", back: "George Washington, who served from 1789 to 1797." },
-      { id: 9, front: "What was the Renaissance?", back: "A period in European history marking the transition from the Middle Ages to modernity, characterized by an emphasis on learning, art, and culture." }
-    ]
-  });
+  // Load AI-generated flashcards from localStorage
+  useEffect(() => {
+    const savedFlashcards = localStorage.getItem('flashcards');
+    const savedSource = localStorage.getItem('flashcards-source');
+    
+    if (savedFlashcards) {
+      try {
+        const flashcards = JSON.parse(savedFlashcards);
+        setAiFlashcards(flashcards);
+        setAiSource(savedSource || 'AI Generated');
+      } catch (error) {
+        console.error('Error parsing saved flashcards:', error);
+      }
+    }
+  }, []);
   
-  const [setNames, setSetNames] = useState([
-    { id: "biology", name: "Biology" },
-    { id: "chemistry", name: "Chemistry" },
-    { id: "history", name: "History" }
-  ]);
-  
-  const toggleFlip = (id: number) => {
+  const toggleFlip = (id: string) => {
     setFlipped(prev => ({
       ...prev,
       [id]: !prev[id]
@@ -66,10 +61,8 @@ const Flashcards = () => {
   };
   
   const handleCreateFlashcardSet = (setName: string, cards: { front: string, back: string }[]) => {
-    // Create a sanitized ID from the name
     const setId = setName.toLowerCase().replace(/\s+/g, '-');
     
-    // Check if the set already exists
     if (flashcardSets[setId]) {
       toast({
         title: "Set already exists",
@@ -79,25 +72,21 @@ const Flashcards = () => {
       return;
     }
     
-    // Add IDs to cards
     const cardsWithIds = cards.map((card, index) => ({
       ...card,
       id: Math.max(0, ...Object.values(flashcardSets).flat().map(c => c.id)) + index + 1
     }));
     
-    // Add the new set
     setFlashcardSets(prev => ({
       ...prev,
       [setId]: cardsWithIds
     }));
     
-    // Add to the set names
     setSetNames(prev => [
       ...prev,
       { id: setId, name: setName }
     ]);
     
-    // Set the active tab to the new set
     setActiveSet(setId);
     
     toast({
@@ -123,6 +112,18 @@ const Flashcards = () => {
       description: "Successfully added new flashcard to the set."
     });
   };
+
+  const clearAIFlashcards = () => {
+    localStorage.removeItem('flashcards');
+    localStorage.removeItem('flashcards-source');
+    setAiFlashcards([]);
+    setAiSource('');
+    setActiveSet("biology");
+    toast({
+      title: "AI flashcards cleared",
+      description: "All AI-generated flashcards have been removed."
+    });
+  };
   
   return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-background">
@@ -133,20 +134,88 @@ const Flashcards = () => {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold mb-2">Flashcards</h1>
-              <p className="text-muted-foreground">Master key concepts and definitions with AI-generated flashcards</p>
+              <p className="text-muted-foreground">Master key concepts with AI-generated and custom flashcards</p>
             </div>
-            <CreateFlashcardDialog onSave={handleCreateFlashcardSet} />
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <a href="/ai-notes" className="flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Notes
+                </a>
+              </Button>
+              <CreateFlashcardDialog onSave={handleCreateFlashcardSet} />
+            </div>
           </div>
           
           <Tabs value={activeSet} onValueChange={setActiveSet} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-8">
+            <TabsList className={`grid mb-8 ${aiFlashcards.length > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+              {aiFlashcards.length > 0 && (
+                <TabsTrigger value="ai-generated" className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  <span className="hidden sm:inline">AI Generated</span>
+                  <Badge variant="secondary" className="ml-1">{aiFlashcards.length}</Badge>
+                </TabsTrigger>
+              )}
               {setNames.map(set => (
                 <TabsTrigger key={set.id} value={set.id} className="flex items-center gap-2">
                   <Zap className="h-4 w-4" />
-                  <span>{set.name}</span>
+                  <span className="hidden sm:inline">{set.name}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
+            
+            {aiFlashcards.length > 0 && (
+              <TabsContent value="ai-generated" className="mt-0">
+                <div className="mb-4 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold">AI Generated Flashcards</h3>
+                    <p className="text-sm text-muted-foreground">From: {aiSource}</p>
+                  </div>
+                  <Button onClick={clearAIFlashcards} variant="outline" size="sm">
+                    Clear AI Cards
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {aiFlashcards.map((card) => (
+                    <div 
+                      key={card.id} 
+                      className="perspective-1000 h-64"
+                      onClick={() => toggleFlip(card.id)}
+                    >
+                      <Card 
+                        className={`h-full w-full cursor-pointer transition-all duration-500 relative ${
+                          flipped[card.id] ? 'rotate-y-180' : ''
+                        }`}
+                        style={{
+                          transformStyle: 'preserve-3d'
+                        }}
+                      >
+                        <div 
+                          className="absolute inset-0 flex flex-col items-center justify-center p-6 rounded-md bg-muted dark:bg-muted"
+                          style={{
+                            backfaceVisibility: 'hidden'
+                          }}
+                        >
+                          <h3 className="text-lg font-semibold text-center mb-4 text-foreground">{card.question}</h3>
+                          <p className="text-sm text-muted-foreground text-center">Click to flip</p>
+                        </div>
+                        <div 
+                          className="absolute inset-0 flex flex-col items-center justify-center p-6 rounded-md bg-primary text-white"
+                          style={{
+                            backfaceVisibility: 'hidden',
+                            transform: 'rotateY(180deg)'
+                          }}
+                        >
+                          <p className="text-center overflow-auto max-h-full text-white text-sm leading-relaxed">{card.answer}</p>
+                          <p className="text-xs opacity-70 text-center mt-4 text-white">Click to flip back</p>
+                        </div>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            )}
             
             {Object.entries(flashcardSets).map(([key, cards]) => (
               <TabsContent key={key} value={key} className="mt-0">
@@ -156,11 +225,11 @@ const Flashcards = () => {
                       <div 
                         key={card.id} 
                         className="perspective-1000 h-64"
-                        onClick={() => toggleFlip(card.id)}
+                        onClick={() => toggleFlip(card.id.toString())}
                       >
                         <Card 
                           className={`h-full w-full cursor-pointer transition-all duration-500 relative ${
-                            flipped[card.id] ? 'rotate-y-180' : ''
+                            flipped[card.id.toString()] ? 'rotate-y-180' : ''
                           }`}
                           style={{
                             transformStyle: 'preserve-3d'
@@ -220,7 +289,6 @@ const Flashcards = () => {
                   </div>
                 )}
 
-                {/* Hidden trigger button for the dialog */}
                 <div className="hidden">
                   <CreateFlashcardDialog
                     id={`add-flashcard-button-${key}`}

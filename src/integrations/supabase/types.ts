@@ -569,6 +569,10 @@ export type Database = {
         Args: { "": unknown[] }
         Returns: string
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       groups_are: {
         Args: { "": unknown[] }
         Returns: string

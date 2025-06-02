@@ -25,6 +25,7 @@ import TermsOfService from "./pages/terms-of-service"; // ✅ Import your Terms 
 import Support from "./pages/Support";
 import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
+import AINotesGenerator from "./pages/AINotesGenerator";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -62,6 +63,11 @@ const App = () => (
               <Route path="/library" element={
                 <ProtectedRoute>
                   <Library />
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-notes" element={
+                <ProtectedRoute>
+                  <AINotesGenerator />
                 </ProtectedRoute>
               } />
               <Route path="/study-plans" element={
@@ -116,13 +122,11 @@ const App = () => (
               } />
               <Route path="/upload" element={<Navigate to="/library" replace />} />
               
-              {/* ✅ Terms of Service Route */}
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/support" element={<Support />} />
                <Route path="/cancellation" element={<Cancellation />} />
               <Route path="/Privacy" element={<Privacy />} />
 
-              {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
