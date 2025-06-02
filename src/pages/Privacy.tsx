@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 
 const sections = [
   {
@@ -253,17 +253,16 @@ const PrivacyPage: React.FC = () => {
     <div className="min-h-screen bg-black text-gray-100 w-full flex justify-center items-start py-8 px-2">
       {/* Back to Home Page button - TOP LEFT */}
       <div className="fixed top-6 left-6 z-50">
-        <Link href="/" passHref>
-          <button
-            className="
-              bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg
-              transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400
-            "
-            aria-label="Back to Home"
-          >
-            ← Back to Home Page
-          </button>
-        </Link>
+<Link to="/" aria-label="Back to Home">
+  <button
+    className="
+      bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg
+      transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400
+    "
+  >
+    ← Back to Home Page
+  </button>
+</Link>
       </div>
       <div
         className="
