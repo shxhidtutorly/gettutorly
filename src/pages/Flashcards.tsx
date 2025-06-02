@@ -24,7 +24,7 @@ interface FlashcardSet {
 }
 
 // ========== AI Generate Flashcards Component ==========
-const together = new Together();
+
 
 function AIGenerateFlashcards() {
   const [cards, setCards] = useState<{ q: string; a: string }[]>([]);
