@@ -3,6 +3,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { 
+  getUserStudyProgress, 
+  getUserStudyMaterials, 
+  getUserActivityLogs 
+} from '@/lib/database';
 
 export const useRealTimeStudyProgress = () => {
   const { currentUser } = useAuth();
@@ -15,12 +20,7 @@ export const useRealTimeStudyProgress = () => {
 
     const fetchProgress = async () => {
       try {
-        const { data, error } = await supabase
-          .from('study_progress')
-          .select('*')
-          .eq('user_id', currentUser.id);
-        
-        if (error) throw error;
+        const data = await getUserStudyProgress();
         setProgress(data || []);
       } catch (error) {
         console.error('Error fetching progress:', error);
@@ -68,13 +68,7 @@ export const useRealTimeStudyMaterials = () => {
 
     const fetchMaterials = async () => {
       try {
-        const { data, error } = await supabase
-          .from('study_materials')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
+        const data = await getUserStudyMaterials();
         setMaterials(data || []);
       } catch (error) {
         console.error('Error fetching materials:', error);
@@ -122,14 +116,7 @@ export const useRealTimeUserActivity = () => {
 
     const fetchActivities = async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_activity_logs')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .order('timestamp', { ascending: false })
-          .limit(50);
-        
-        if (error) throw error;
+        const data = await getUserActivityLogs();
         setActivities(data || []);
       } catch (error) {
         console.error('Error fetching activities:', error);

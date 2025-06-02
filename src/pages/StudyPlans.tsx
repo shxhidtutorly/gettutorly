@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
@@ -29,6 +28,7 @@ interface StudyPlan {
   due_date?: string;
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
 
 const StudyPlans = () => {
@@ -54,7 +54,12 @@ const StudyPlans = () => {
     try {
       setLoading(true);
       const plans = await getUserStudyPlans();
-      setStudyPlans(plans as StudyPlan[]);
+      // Convert sessions from Json to array if needed
+      const formattedPlans = plans.map(plan => ({
+        ...plan,
+        sessions: Array.isArray(plan.sessions) ? plan.sessions : []
+      })) as StudyPlan[];
+      setStudyPlans(formattedPlans);
     } catch (error) {
       console.error('Error loading study plans:', error);
       toast({
@@ -79,7 +84,11 @@ const StudyPlans = () => {
 
     try {
       const plan = await createStudyPlan(newPlan);
-      setStudyPlans(prev => [plan, ...prev]);
+      const formattedPlan = {
+        ...plan,
+        sessions: Array.isArray(plan.sessions) ? plan.sessions : []
+      } as StudyPlan;
+      setStudyPlans(prev => [formattedPlan, ...prev]);
       setNewPlan({ title: '', description: '', due_date: '', sessions: [] });
       setIsDialogOpen(false);
       toast({

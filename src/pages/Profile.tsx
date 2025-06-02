@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { 
   User,
   Mail,
@@ -62,8 +61,38 @@ const Profile = () => {
         phone_number: '',
         location: ''
       });
+      // Fetch additional profile data from users table
+      fetchUserProfile();
     }
   }, [currentUser]);
+
+  const fetchUserProfile = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, email, phone_number, location')
+        .eq('id', currentUser.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      if (data) {
+        setProfile({
+          name: data.name || getUserDisplayName(),
+          email: data.email || currentUser.email || '',
+          phone_number: data.phone_number || '',
+          location: data.location || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const handleUpdateProfile = async () => {
     setLoading(true);
@@ -92,7 +121,9 @@ const Profile = () => {
     }
   };
 
-  const handlePasswordChange = async () => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (passwords.new !== passwords.confirm) {
       toast({
         title: "Error",
@@ -144,17 +175,17 @@ const Profile = () => {
 
   const handleSignOut = async () => {
     try {
+      // Log the activity before signing out
+      await supabase.rpc('log_user_activity', {
+        action_type: 'user_signed_out',
+        activity_details: {}
+      });
+
       // Update last login timestamp
       await supabase
         .from('users')
         .update({ last_login: new Date().toISOString() })
         .eq('id', currentUser?.id);
-
-      // Log the activity
-      await supabase.rpc('log_user_activity', {
-        action_type: 'user_signed_out',
-        activity_details: {}
-      });
 
       await signOut();
       toast({
@@ -273,37 +304,39 @@ const Profile = () => {
                 Change Password
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={passwords.new}
-                  onChange={(e) => setPasswords({...passwords, new: e.target.value})}
-                  placeholder="Enter new password"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={passwords.confirm}
-                  onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
-                  placeholder="Confirm new password"
-                />
-              </div>
-              
-              <Button 
-                onClick={handlePasswordChange} 
-                disabled={passwordLoading || !passwords.new || !passwords.confirm}
-                className="animated-button"
-              >
-                <Lock className="h-4 w-4 mr-2" />
-                {passwordLoading ? 'Updating...' : 'Update Password'}
-              </Button>
+            <CardContent>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={passwords.new}
+                    onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                    placeholder="Enter new password"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={passwords.confirm}
+                    onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit"
+                  disabled={passwordLoading || !passwords.new || !passwords.confirm}
+                  className="animated-button"
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  {passwordLoading ? 'Updating...' : 'Update Password'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
           
