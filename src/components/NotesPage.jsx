@@ -13,7 +13,6 @@ function logActivity(event) {
 export default function NotesPage() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
-  const [flashcards, setFlashcards] = useState([]);
   const [flashcardsGenerated, setFlashcardsGenerated] = useState(false);
   const navigate = useNavigate();
 
@@ -63,26 +62,23 @@ export default function NotesPage() {
         ],
         model: "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
       });
-      // Parse Q&A pairs (very basic)
-      const cards = (response.choices[0].message.content.match(/Question:(.*)\nAnswer:(.*)/g) || [])
-        .map(line => {
+      const cards =
+        (response.choices[0].message.content.match(/Question:(.*)\nAnswer:(.*)/g) || []).map(line => {
           const m = line.match(/Question:(.*)\nAnswer:(.*)/);
           return { q: m?.[1]?.trim(), a: m?.[2]?.trim() };
         });
-      setFlashcards(cards);
       localStorage.setItem("flashcards", JSON.stringify(cards));
       setFlashcardsGenerated(true);
       logActivity("flashcards_generated");
     } catch (e) {
-      setFlashcards([]);
-      setFlashcardsGenerated(false);
+      // handle error
     }
     setLoading(false);
   }
 
   return (
-    <div className="animate-fade-in">
-      <h2 className="text-2xl font-bold mb-4">AI-Generated Notes</h2>
+    <div>
+      {/* ... show notes ... */}
       {loading && <div className="loader my-8"></div>}
       {!loading && notes && (
         <div className="bg-neutral-800 dark:bg-zinc-200 text-white dark:text-black rounded-xl p-4 mb-6 shadow-md animate-fade-in whitespace-pre-line transition-all">
@@ -90,24 +86,14 @@ export default function NotesPage() {
         </div>
       )}
       {!flashcardsGenerated && notes && (
-        <button
-          onClick={generateFlashcards}
-          className="bg-violet-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-violet-800 transition-all animate-fade-in"
-        >
+        <button onClick={generateFlashcards}>
           {loading ? "Generating Flashcards..." : "Generate Flashcards"}
         </button>
       )}
       {flashcardsGenerated && (
-        <div className="flex flex-col gap-4 items-start animate-fade-in">
-          <span className="text-green-500 font-semibold flex items-center gap-2">
-            ✅ Flashcards generated –{" "}
-            <button
-              className="underline hover:text-violet-500"
-              onClick={() => navigate("/flashcards")}
-            >
-              View them →
-            </button>
-          </span>
+        <div>
+          <span>✅ Generated flashcards – </span>
+          <button onClick={() => navigate("/flashcards")}>View</button>
         </div>
       )}
     </div>
