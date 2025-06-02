@@ -25,26 +25,16 @@ const faqs = [
     question: "How to Cancel Your Tutorly Subscription?",
     answer: (
       <span>
-        <strong>Steps to Cancel Your Subscription:</strong>
-        <br />
-        <br />
-        Follow these steps on your iPhone or iPad:
-        <br />
-        1. <strong>Open the Settings</strong> – Locate and tap the Settings app on your device.
-        <br />
-        2. <strong>Access Your Apple ID</strong> – Tap your name at the top of the Settings screen to open your Apple ID settings.
-        <br />
-        3. <strong>Go to Subscriptions</strong> – Select <strong>Subscriptions</strong> from the list of options.
-        <br />
-        4. <strong>Find Your Tutorly Subscription</strong> – Scroll through your active subscriptions and tap on Tutorly.
-        <br />
-        5. <strong>Cancel Subscription</strong> – Tap <strong>Cancel Subscription</strong> and confirm your cancellation when prompted.
-        <br />
-        <br />
-        We're sorry to see you go, but if you ever decide to return, we'd be happy to welcome you back!
-        <br />
-        <br />
-        <em>Related to: Subscription Management & Cancellation</em>
+        To cancel or request a refund for your subscription, please visit the{" "}
+        <a
+          href="https://gettutorly.com/cancellation"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#8a2be2", textDecoration: "underline", fontWeight: 600 }}
+        >
+          Cancellation &amp; Refund page
+        </a>
+        .
       </span>
     ),
   },
@@ -52,6 +42,11 @@ const faqs = [
 
 const Support: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  // Handler for the back button
+  const handleBackToHome = () => {
+    window.location.href = "/";
+  };
 
   return (
     <div
@@ -61,8 +56,31 @@ const Support: React.FC = () => {
         padding: "2rem",
         fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
         color: "#e2e8f0",
+        position: "relative",
       }}
     >
+      {/* Back to Home Button */}
+      <button
+        onClick={handleBackToHome}
+        style={{
+          position: "absolute",
+          top: 24,
+          left: 24,
+          background: "linear-gradient(to right, #3b82f6, #8b5cf6)",
+          color: "white",
+          padding: "0.6rem 1.2rem",
+          border: "none",
+          borderRadius: 8,
+          fontWeight: 600,
+          fontSize: 16,
+          cursor: "pointer",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          zIndex: 1,
+        }}
+      >
+        ← Back to Home Page
+      </button>
+
       <div
         style={{
           textAlign: "center",
