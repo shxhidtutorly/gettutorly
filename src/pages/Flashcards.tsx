@@ -3,11 +3,14 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import CreateFlashcardDialog from "@/components/features/CreateFlashcardDialog";
+// Only add these new imports below if not already present:
+import Together from "together-ai";
+import { useNavigate } from "react-router-dom";
 
 interface FlashcardItem {
   id: number;
@@ -21,7 +24,125 @@ interface FlashcardSet {
   cards: FlashcardItem[];
 }
 
-// ========== Your snippet as a new component ==========
+// ========== AI Generate Flashcards Component ==========
+const together = new Together();
+
+function AIGenerateFlashcards() {
+  const [cards, setCards] = useState<{ q: string; a: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [idx, setIdx] = useState(0);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const stored = localStorage.getItem("flashcards");
+    if (stored) {
+      setCards(JSON.parse(stored));
+    }
+  }, []);
+
+  async function generateFlashcardsFromNotes() {
+    const notes = sessionStorage.getItem("uploadedText");
+    if (!notes) {
+      setError("No notes available. Please generate notes first.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const response = await together.chat.completions.create({
+        messages: [
+          {
+            role: "user",
+            content: `Generate 15 study flashcards (Q&A pairs) from these notes. Format: Question: ... Answer: ...`
+          },
+          {
+            role: "assistant",
+            content: notes
+          }
+        ],
+        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
+      });
+      const newCards = (response.choices[0].message.content.match(/Question:(.*)\nAnswer:(.*)/g) || []).map(line => {
+        const m = line.match(/Question:(.*)\nAnswer:(.*)/);
+        return { q: m?.[1]?.trim(), a: m?.[2]?.trim() };
+      });
+      localStorage.setItem("flashcards", JSON.stringify(newCards));
+      setCards(newCards);
+    } catch (e) {
+      setError("Failed to generate flashcards.");
+    }
+    setLoading(false);
+  }
+
+  if (!cards.length) {
+    return (
+      <div className="mb-8">
+        <h2>No flashcards found.</h2>
+        <button onClick={generateFlashcardsFromNotes} disabled={loading} className="px-4 py-2 bg-primary text-white rounded-md mt-2">
+          {loading ? "Generating..." : "Generate Flashcards"}
+        </button>
+        {error && <div className="text-red-500 mt-2">{error}</div>}
+        <div className="mt-2">
+          or{" "}
+          <button onClick={() => navigate("/notes")} className="underline text-violet-500">
+            Go to Notes
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function next() {
+    setIdx((i) => (i + 1) % cards.length);
+    setFlipped(false);
+  }
+  function prev() {
+    setIdx((i) => (i - 1 + cards.length) % cards.length);
+    setFlipped(false);
+  }
+
+  return (
+    <div className="flex flex-col items-center animate-fade-in mb-8">
+      <h2 className="text-2xl font-bold mb-4">Flashcards</h2>
+      <div
+        className={`relative w-full max-w-md h-56 mb-8 cursor-pointer transition-transform duration-500 perspective`}
+        onClick={() => setFlipped((f) => !f)}
+      >
+        <div
+          className={`absolute w-full h-full rounded-xl shadow-lg bg-neutral-900 dark:bg-zinc-200 text-white dark:text-black flex items-center justify-center text-xl font-semibold p-6 transition-transform`}
+          style={{
+            transformStyle: "preserve-3d",
+            backfaceVisibility: "hidden",
+            minHeight: "13rem",
+          }}
+        >
+          {!flipped ? cards[idx]?.q : cards[idx]?.a}
+        </div>
+      </div>
+      <div className="flex gap-6">
+        <button
+          className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-violet-700 transition"
+          onClick={prev}
+        >
+          Prev
+        </button>
+        <button
+          className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-violet-700 transition"
+          onClick={next}
+        >
+          Next
+        </button>
+      </div>
+      <div className="mt-4 text-xs text-gray-400">
+        {idx + 1} / {cards.length}
+      </div>
+    </div>
+  );
+}
+// ========== End AI Generate Flashcards Component ==========
+
 function getFlashcards() {
   return JSON.parse(localStorage.getItem("flashcards") || "[]");
 }
@@ -63,7 +184,7 @@ function SimpleFlashcards() {
         onClick={() => setFlipped((f) => !f)}
       >
         <div
-          className={`absolute w-full h-full rounded-xl shadow-lg bg-neutral-900 dark:bg-zinc-200 text-white dark:text-black flex items-center justify-center text-xl font-semibold p-6 transition-transform duration-500 ${flipped ? "rotate-y-180" : ""}`}
+          className={`absolute w-full h-full rounded-xl shadow-lg bg-neutral-900 dark:bg-zinc-200 text-white dark:text-black flex items-center justify-center text-xl font-semibold p-6 transition-transform`}
           style={{
             transformStyle: "preserve-3d",
             backfaceVisibility: "hidden",
@@ -93,7 +214,6 @@ function SimpleFlashcards() {
     </div>
   );
 }
-// ========== End snippet ==========
 
 const Flashcards = () => {
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
@@ -222,6 +342,9 @@ const Flashcards = () => {
 
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
+
+          {/* AI Flashcard Generator */}
+          <AIGenerateFlashcards />
 
           {/* You can move this <SimpleFlashcards /> wherever you want */}
           <div className="mb-12">
