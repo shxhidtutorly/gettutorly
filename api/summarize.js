@@ -27,12 +27,12 @@ export default async function handler(req, res) {
 
     const apiProviders = [
       {
-        name: 'Groq',
-        key: process.env.GROQ_API_KEY,
-        url: 'https://api.groq.com/openai/v1/chat/completions',
-        model: 'gemma2-9b-it',
-        format: 'openai'
-      },
+  name: 'Together',
+  key: process.env.TOGETHER_API_KEY,
+  url: 'https://api.together.xyz/v1/chat/completions',
+  model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+  format: 'openai'
+},
       {
         name: 'OpenRouter',
         key: process.env.OPENROUTER_KEY,
@@ -48,12 +48,12 @@ export default async function handler(req, res) {
         format: 'anthropic'
       },
       {
-        name: 'Together',
-        key: process.env.TOGETHER_API_KEY,
-        url: 'https://api.together.xyz/v1/chat/completions',
-        model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-        format: 'openai'
-      },
+    name: 'Groq',
+    key: process.env.GROQ_API_KEY,
+    url: 'https://api.groq.com/openai/v1/chat/completions',
+    model: 'gemma2-9b-it',
+    format: 'openai'
+  },
       {
         name: 'HuggingFace',
         key: process.env.HUGGINGFACE_API_KEY,
