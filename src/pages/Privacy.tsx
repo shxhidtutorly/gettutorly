@@ -220,10 +220,8 @@ const sections = [
           If you have questions or comments about this notice, you may contact us by post at:
         </p>
         <address className="mt-2 not-italic">
-          <span className="block">__________</span>
-          <span className="block">__________</span>
-          <span className="block">__________</span>
-        </address>
+  <span className="block">support@gettutorly.com</span>
+</address>
       </>
     ),
   },
