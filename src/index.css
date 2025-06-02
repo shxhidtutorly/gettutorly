@@ -114,7 +114,7 @@
   }
   
   .spark-button-primary {
-    @apply bg-spark-primary hover:bg-opacity-90 text-white rounded-lg px-6 py-2 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-1 active:translate-y-0 active:shadow-[...]
+    @apply bg-spark-primary hover:bg-opacity-90 text-white rounded-lg px-6 py-2 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-1 active:translate-y-0 active:shadow-inner;
   }
   
   .spark-button-secondary {
@@ -311,111 +311,89 @@
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out forwards;
   }
-
+  
   .animate-slide-up {
     animation: slideIn 0.5s ease-out forwards;
   }
-
+  
   .animate-scale-in {
     animation: scaleIn 0.4s ease-out forwards;
   }
-
+  
   .animate-fade-in-up {
     animation: fadeInUp 0.6s ease-out forwards;
   }
-
+  
   .animate-fade-in-left {
     animation: fadeInLeft 0.6s ease-out forwards;
   }
-
+  
   .animate-fade-in-right {
     animation: fadeInRight 0.6s ease-out forwards;
   }
-
+  
   .animate-pulse-glow {
     animation: pulseGlow 2s infinite ease-in-out;
   }
-
+  
   .animate-pulse-subtle {
     animation: pulse 2s infinite ease-in-out;
   }
-
+  
   /* Animation delays */
   .delay-100 {
     animation-delay: 100ms;
   }
-
+  
   .delay-200 {
     animation-delay: 200ms;
   }
-
+  
   .delay-300 {
     animation-delay: 300ms;
   }
-
+  
   .delay-400 {
     animation-delay: 400ms;
   }
-
+  
   .delay-500 {
     animation-delay: 500ms;
   }
-
+  
   /* Responsive adjustments */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
-
+  
   /* Responsive text sizes */
   .responsive-text-sm {
     @apply text-xs md:text-sm;
   }
-
+  
   .responsive-text-base {
     @apply text-sm md:text-base;
   }
-
+  
   .responsive-text-lg {
     @apply text-base md:text-lg;
   }
-
+  
   .responsive-text-xl {
     @apply text-lg md:text-xl;
   }
-
+  
   .responsive-text-2xl {
     @apply text-xl md:text-2xl;
   }
-
+  
   /* Hide scrollbar but allow scrolling */
   .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
-
+  
   .scrollbar-hide::-webkit-scrollbar {
     display: none;  /* Chrome, Safari and Opera */
   }
-}
-
-/* Spinner */
-.loader {
-  border-top-color: #000;
-  border-left-color: #000;
-  border-radius: 50%;
-  border-width: 4px;
-  width: 2.5rem;
-  height: 2.5rem;
-  animation: spin 1s linear infinite;
-  border-style: solid;
-}
-
-@media (prefers-color-scheme: dark) {
-  .loader {
-    border-top-color: #fff;
-    border-left-color: #fff;
-  }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
