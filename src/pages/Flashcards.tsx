@@ -9,7 +9,6 @@ import { Zap, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import CreateFlashcardDialog from "@/components/features/CreateFlashcardDialog";
 // Only add these new imports below if not already present:
-import Together from "together-ai";
 import { useNavigate } from "react-router-dom";
 
 interface FlashcardItem {
