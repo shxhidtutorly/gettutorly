@@ -169,7 +169,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0d1117] text-white">
+    <div className="min-h-screen flex flex-col bg-black text-white">
       <Navbar />
 
       <main className="flex-1 py-8 px-2 md:px-4 pb-20 md:pb-8">
