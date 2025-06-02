@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const together = new Together();
 
 function logActivity(event) {
   const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
