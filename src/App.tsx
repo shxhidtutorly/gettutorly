@@ -13,7 +13,7 @@ import Progress from "./pages/Progress";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
-import Flashcards from "./pages/Flashcards";
+import Flashcards from "./pages/Flashcards"; // <-- Use this for flashcards route
 import Quiz from "./pages/Quiz";
 import Summaries from "./pages/Summaries";
 import MicroLessons from "./pages/MicroLessons";
@@ -29,9 +29,10 @@ import "./css/animations.css";
 import "./css/darkMode.css";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-// 👇 ADD THESE IMPORTS
 import FileUploader from "./components/FileUploader";
 import NotesPage from "./components/NotesPage";
+// DO NOT import FlashcardsPage -- it does not exist and will break your app!
+
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,7 +51,6 @@ const App = () => (
       <AuthProvider>
         <TooltipProvider>
           <BrowserRouter>
-            {/* 👇 OPTIONAL: Add navigation bar to match your snippet */}
             <header className="p-4 flex justify-between items-center">
               <h1 className="text-2xl font-bold">AI Notes + Flashcards</h1>
               <nav>
@@ -129,16 +129,15 @@ const App = () => (
                 } />
                 <Route path="/upload" element={<Navigate to="/library" replace />} />
 
-                {/* ✅ Terms of Service Route */}
+                {/* Static pages */}
                 <Route path="/terms-of-service" element={<TermsOfService />} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/Privacy" element={<Privacy />} />
 
-                {/* 👇 NEW ROUTES */}
+                {/* AI Notes/Flashcards */}
                 <Route path="/ainotes" element={<FileUploader />} />
                 <Route path="/notes" element={<NotesPage />} />
-                <Route path="/flashcards" element={<FlashcardsPage />} />
 
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
