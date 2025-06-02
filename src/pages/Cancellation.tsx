@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface PolicySection {
   title: string;
@@ -16,6 +16,8 @@ const CancellationRefundPolicy: React.FC<RefundPolicyProps> = ({
   supportUrl = 'https://gettutorly.com/support',
   lastUpdated = new Date().toLocaleDateString()
 }) => {
+  const [showFaq, setShowFaq] = useState(false);
+
   const policySections: PolicySection[] = [
     {
       title: 'Overview',
@@ -84,14 +86,39 @@ const CancellationRefundPolicy: React.FC<RefundPolicyProps> = ({
       </div>
       <main className="flex-1 flex items-start justify-center">
         <div className="w-full max-w-5xl mx-auto p-8 bg-gray-900 rounded-xl shadow-lg border border-gray-800 mt-4 mb-12">
-          <header className="mb-10 text-center">
-            <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">
-              Cancellation & Refund Policy
-            </h1>
-            <p className="text-sm text-gray-400">
-              Last Updated: {lastUpdated}
-            </p>
-          </header>
+          {/* FAQ Section */}
+          <section className="mb-10">
+            <button
+              className="w-full flex items-center justify-between bg-gray-800 hover:bg-gray-700 text-left text-white px-5 py-4 rounded-lg transition-colors duration-200 focus:outline-none"
+              onClick={() => setShowFaq((prev) => !prev)}
+              aria-expanded={showFaq}
+              aria-controls="faq-answer"
+            >
+              <span className="text-xl font-semibold">
+                How to Cancel Your Tutorly Subscription?
+              </span>
+              <span className={`transform text-2xl transition-transform duration-200 ${showFaq ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+            {showFaq && (
+              <div id="faq-answer" className="bg-gray-950 border border-gray-800 mt-2 px-5 py-6 rounded-lg text-gray-200">
+                <p className="mb-4 font-medium">Steps to Cancel Your Subscription:</p>
+                <p className="mb-2">Follow these steps on your <span className="font-semibold text-blue-400">iPhone or iPad</span>:</p>
+                <ol className="list-decimal list-inside space-y-1 mb-4">
+                  <li>Open the <span className="font-semibold">Settings</span> – Locate and tap the Settings app on your device.</li>
+                  <li>Access Your <span className="font-semibold">Apple ID</span> – Tap your name at the top of the Settings screen to open your Apple ID settings.</li>
+                  <li>Go to <span className="font-semibold">Subscriptions</span> – Select Subscriptions from the list of options.</li>
+                  <li>Find Your <span className="font-semibold">Tutorly Subscription</span> – Scroll through your active subscriptions and tap on Tutorly.</li>
+                  <li><span className="font-semibold">Cancel Subscription</span> – Tap Cancel Subscription and confirm your cancellation when prompted.</li>
+                </ol>
+                <p className="mb-2 text-gray-400">
+                  We're sorry to see you go, but if you ever decide to return, we'd be happy to welcome you back!
+                </p>
+                <p className="text-xs text-gray-500">Related to: <span className="italic">Subscription Management & Cancellation</span></p>
+              </div>
+            )}
+          </section>
 
           <div className="space-y-10">
             {policySections.map((section, index) => (
