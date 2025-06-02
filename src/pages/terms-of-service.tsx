@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import Link from "next/link";
 
-// Updated sections: no numbers in titles, Stripe removed from payment, your new sections added.
+// --- Sections Array ---
+// Replace or extend with your actual content as needed.
 const sections = [
   {
     title: "Our Services",
@@ -44,8 +44,109 @@ const sections = [
       </>
     )
   },
-  // ... (keep the other section objects as in your file)
-  // For brevity, I am not pasting every section here, but keep all your existing sections unchanged.
+  {
+    title: "User Representations",
+    content: (
+      <>
+        <p>
+          By using the Services, you represent and warrant that: (1) all registration information you submit will be true, accurate, current, and complete; (2) you will maintain the accuracy of such information and promptly update such registration information as necessary; (3) you have the legal capacity and you agree to comply with these Legal Terms; (4) you are not under the age of 13; (5) not a minor in the jurisdiction in which you reside, or if a minor, you have received parental permission to use the Services.
+        </p>
+        <p>
+          If you provide any information that is untrue, inaccurate, not current, or incomplete, we have the right to suspend or terminate your account and refuse any and all current or future use of the Services (or any portion thereof).
+        </p>
+      </>
+    )
+  },
+  {
+    title: "User Registration",
+    content: (
+      <>
+        <p>
+          You may be required to register to use the Services. You agree to keep your password confidential and will be responsible for all use of your account and password. We reserve the right to remove, reclaim, or change a username you select if we determine, in our sole discretion, that such username is inappropriate, obscene, or otherwise objectionable.
+        </p>
+      </>
+    )
+  },
+  {
+    title: "Purchases and Payment",
+    content: (
+      <>
+        <p>We accept the following forms of payment:</p>
+        <ul className="list-disc ml-6">
+          <li>Visa</li>
+          <li>Mastercard</li>
+          <li>American Express</li>
+          <li>Discover</li>
+          <li>PayPal</li>
+        </ul>
+        <p>
+          You agree to provide current, complete, and accurate purchase and account information for all purchases made via the Services. You further agree to promptly update account and payment information, including email address, payment method, and payment card expiration date, so that we can complete your transactions and contact you as needed.
+        </p>
+        <p>
+          You agree to pay all charges at the prices then in effect for your purchases and any applicable shipping fees, and you authorize us to charge your chosen payment provider for any such amounts upon placing your order. If your order is subject to recurring charges, then you consent to our charging your payment method on a recurring basis without requiring your prior approval for each recurring charge, until you notify us of your cancellation.
+        </p>
+        <p>
+          We reserve the right to refuse any order placed through the Services. We may, in our sole discretion, limit or cancel quantities purchased per person, per household, or per order. These restrictions may include orders placed by or under the same customer account, the same payment method, and/or orders that use the same billing or shipping address.
+        </p>
+      </>
+    )
+  },
+  {
+    title: "Subscriptions",
+    content: (
+      <>
+        <p>
+          <strong>Billing and Renewal:</strong> Your subscription will continue and automatically renew unless canceled. You consent to our charging your payment method on a recurring basis without requiring your prior approval for each recurring charge, until you cancel.
+        </p>
+        <p>
+          <strong>Free Trial:</strong> We offer a 4-day free trial to new users who register with the Services. The account will be charged according to the user's chosen subscription at the end of the free trial.
+        </p>
+        <p>
+          <strong>Cancellation:</strong> You can cancel your subscription at any time by logging into your account. Your cancellation will take effect at the end of the current paid term.
+        </p>
+        <p>
+          <strong>Fee Changes:</strong> We may, from time to time, make changes to the subscription fee and will communicate any price changes to you in accordance with applicable law.
+        </p>
+      </>
+    )
+  },
+  {
+    title: "Prohibited Activities",
+    content: (
+      <>
+        <p>
+          You may not access or use the Services for any purpose other than that for which we make the Services available. The Services may not be used in connection with any commercial endeavors except those that are specifically endorsed or approved by us.
+        </p>
+        <ul className="list-disc ml-6">
+          <li>Systematically retrieve data or other content from the Services to create or compile, directly or indirectly, a collection, compilation, database, or directory without written permission from us.</li>
+          <li>Trick, defraud, or mislead us and other users, especially in any attempt to learn sensitive account information such as user passwords.</li>
+          <li>Circumvent, disable, or otherwise interfere with security-related features of the Services, including features that prevent or restrict the use or copying of any Content or enforce limitations on the use of the Services and/or the Content contained therein.</li>
+          <li>Disparage, tarnish, or otherwise harm, in our opinion, us and/or the Services.</li>
+          <li>Use any information obtained from the Services in order to harass, abuse, or harm another person.</li>
+          <li>Make improper use of our support services or submit false reports of abuse or misconduct.</li>
+          <li>Use the Services in a manner inconsistent with any applicable laws or regulations.</li>
+          <li>Engage in unauthorized framing of or linking to the Services.</li>
+          <li>Upload or transmit (or attempt to upload or to transmit) viruses, Trojan horses, or other material, including excessive use of capital letters and spamming (continuous posting of repetitive text), that interferes with any party's uninterrupted use and enjoyment of the Services or modifies, impairs, disrupts, alters, or interferes with the use, features, functions, operation, or maintenance of the Services.</li>
+          <li>Engage in any automated use of the system, such as using scripts to send comments or messages, or using any data mining, robots, or similar data gathering and extraction tools.</li>
+          <li>Delete the copyright or other proprietary rights notice from any Content.</li>
+          <li>Attempt to impersonate another user or person or use the username of another user.</li>
+          <li>Upload or transmit (or attempt to upload or to transmit) any material that acts as a passive or active information collection or transmission mechanism, including without limitation, clear graphics interchange formats ("gifs"), 1×1 pixels, web bugs, cookies, or other similar devices (sometimes referred to as "spyware" or "passive collection mechanisms" or "pcms").</li>
+          <li>Interfere with, disrupt, or create an undue burden on the Services or the networks or services connected to the Services.</li>
+          <li>Harass, annoy, intimidate, or threaten any of our employees or agents engaged in providing any portion of the Services to you.</li>
+          <li>Attempt to bypass any measures of the Services designed to prevent or restrict access to the Services, or any portion of the Services.</li>
+          <li>Copy or adapt the Services' software, including but not limited to Flash, PHP, HTML, JavaScript, or other code.</li>
+          <li>Except as permitted by applicable law, decipher, decompile, disassemble, or reverse engineer any of the software comprising or in any way making up a part of the Services.</li>
+          <li>Except as may be the result of standard search engine or Internet browser usage, use, launch, develop, or distribute any automated system, including without limitation, any spider, robot, cheat utility, scraper, or offline reader that accesses the Services, or use or launch any unauthorized script or other software.</li>
+          <li>Use a buying agent or purchasing agent to make purchases on the Services.</li>
+          <li>Make any unauthorized use of the Services, including collecting usernames and/or email addresses of users by electronic or other means for the purpose of sending unsolicited email, or creating user accounts by automated means or under false pretenses.</li>
+          <li>Use the Services as part of any effort to compete with us or otherwise use the Services and/or the Content for any revenue-generating endeavor or commercial enterprise.</li>
+          <li>Use the Services to advertise or offer to sell goods and services.</li>
+          <li>Sell or otherwise transfer your profile.</li>
+        </ul>
+      </>
+    )
+  },
+  // ...add all your other sections here as needed...
 ];
 
 const TermsOfService: React.FC = () => {
@@ -62,17 +163,17 @@ const TermsOfService: React.FC = () => {
     <div className="min-h-screen bg-black text-gray-100 w-full flex justify-center items-start py-8 px-2">
       {/* Back to Home Page button - TOP LEFT */}
       <div className="fixed top-6 left-6 z-50">
-        <Link href="/" passHref>
-          <button
-            className="
-              bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg
-              transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400
-            "
-            aria-label="Back to Home"
-          >
-            ← Back to Home Page
-          </button>
-        </Link>
+        <a
+          href="/"
+          className="
+            bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg
+            transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400
+            inline-block
+          "
+          aria-label="Back to Home"
+        >
+          ← Back to Home Page
+        </a>
       </div>
       <div
         className="
@@ -105,7 +206,7 @@ const TermsOfService: React.FC = () => {
             We are <span className="font-semibold text-white">Gettutorly</span> ("Company," "we," "us," "our"), a company registered in India at BB road 12 door number, Chickaballapur, Karnataka 562101, India.
           </p>
           <p>
-            We operate the website <a href="https://gettutorly.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">https://gettutorly.com/</a> (the "Site"), as well as ...
+            We operate the website <a href="https://gettutorly.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">https://gettutorly.com/</a> (the "Site"), as well as other related products and services that refer or link to these legal terms (the "Legal Terms") (collectively, the "Services").
           </p>
           <p>
             GetTutorly is an AI-powered study assistant web application designed to help students learn smarter and faster. Our platform allows users to upload lecture notes, textbooks, or PDFs and interact with them using AI-powered tools.
