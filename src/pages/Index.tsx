@@ -256,7 +256,7 @@ const Index = () => {
                   className="pt-4"
                 >
                   <p className="text-sm font-medium text-gray-300">
-                    Trusted by <CountUp end={1000000} className="font-bold text-purple-300" />+ students worldwide
+                    Trusted by <CountUp end={10000} className="font-bold text-purple-300" />+ students worldwide
                   </p>
                 </motion.div>
               </motion.div>
@@ -639,7 +639,7 @@ const TestimonialsSection = () => {
           </div>
           <div className="text-center stats-item">
             <div className="text-5xl font-bold text-purple-500 mb-3">
-              <CountUp end={1000000} className="font-bold text-purple-500" />+
+              <CountUp end={10000} className="font-bold text-purple-500" />+
             </div>
             <p className="text-lg font-medium text-foreground">Active Student Users</p>
           </div>
