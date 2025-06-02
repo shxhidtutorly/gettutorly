@@ -27,7 +27,7 @@ export default function NotesPage() {
   async function generateNotes(text) {
     setLoading(true);
     try {
-      const response = await together.chat.completions.create({
+     
         messages: [
           {
             role: "user",
