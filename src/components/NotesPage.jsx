@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-
 function logActivity(event) {
   const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
   logs.push({ event, ts: Date.now() });
@@ -27,16 +26,13 @@ export default function NotesPage() {
   async function generateNotes(text) {
     setLoading(true);
     try {
-     
-        messages: [
-          {
-            role: "user",
-            content: `Summarize these study materials as clean, brief notes for a student:\n\n${text.slice(0, 12000)}`
-          }
-        ],
-        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
+      const res = await fetch("/api/generate-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, type: "notes" }),
       });
-      setNotes(response.choices[0].message.content);
+      const data = await res.json();
+      setNotes(data.content);
       logActivity("notes_generated");
     } catch (e) {
       setNotes("Error generating notes: " + e.message);
@@ -44,48 +40,31 @@ export default function NotesPage() {
     setLoading(false);
   }
 
-async function generateNotes(text) {
-  setLoading(true);
-  try {
-    const res = await fetch("/api/generate-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, type: "notes" }),
-    });
-    const data = await res.json();
-    setNotes(data.content);
-    logActivity("notes_generated");
-  } catch (e) {
-    setNotes("Error generating notes: " + e.message);
-  }
-  setLoading(false);
-}
-
-async function generateFlashcards() {
-  setLoading(true);
-  try {
-    const res = await fetch("/api/generate-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: notes, type: "flashcards" }),
-    });
-    const data = await res.json();
-    // This assumes the API returns flashcards as a single string in data.content
-    // and each flashcard is in the form:
-    // Question: ...\nAnswer: ...
-    const cards =
-      (data.content.match(/Question:(.*)\nAnswer:(.*)/g) || []).map(line => {
-        const m = line.match(/Question:(.*)\nAnswer:(.*)/);
-        return { q: m?.[1]?.trim(), a: m?.[2]?.trim() };
+  async function generateFlashcards() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/generate-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: notes, type: "flashcards" }),
       });
-    localStorage.setItem("flashcards", JSON.stringify(cards));
-    setFlashcardsGenerated(true);
-    logActivity("flashcards_generated");
-  } catch (e) {
-    // handle error
+      const data = await res.json();
+      // This assumes the API returns flashcards as a single string in data.content
+      // and each flashcard is in the form:
+      // Question: ...\nAnswer: ...
+      const cards =
+        (data.content.match(/Question:(.*)\nAnswer:(.*)/g) || []).map(line => {
+          const m = line.match(/Question:(.*)\nAnswer:(.*)/);
+          return { q: m?.[1]?.trim(), a: m?.[2]?.trim() };
+        });
+      localStorage.setItem("flashcards", JSON.stringify(cards));
+      setFlashcardsGenerated(true);
+      logActivity("flashcards_generated");
+    } catch (e) {
+      // handle error
+    }
+    setLoading(false);
   }
-  setLoading(false);
-}
 
   return (
     <div>
