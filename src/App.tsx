@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
 import TermsOfService from "./pages/terms-of-service"; // ✅ Import your Terms page
 import Support from "./pages/Support";
+import Cancellation from "./pages/Cancellation";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -117,6 +118,7 @@ const App = () => (
               {/* ✅ Terms of Service Route */}
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/support" element={<Support />} />
+               <Route path="/cancellation" element={<Cancellation />} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
