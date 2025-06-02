@@ -18,6 +18,12 @@ const CancellationRefundPolicy: React.FC<RefundPolicyProps> = ({
 }) => {
   const [showFaq, setShowFaq] = useState(false);
 
+  // Popup modal state
+  const [modal, setModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+
+  const openModal = (message: string) => setModal({ open: true, message });
+  const closeModal = () => setModal({ open: false, message: '' });
+
   const policySections: PolicySection[] = [
     {
       title: 'Overview',
@@ -51,10 +57,9 @@ const CancellationRefundPolicy: React.FC<RefundPolicyProps> = ({
     }
   ];
 
+  // Handlers
   const handleCancelSubscription = (): void => {
-    // Integrate with your subscription management system
-    console.log('Redirecting to cancellation flow...');
-    // Example: window.location.href = '/account/billing';
+    openModal('You need to have an active subscription to cancel it.');
   };
 
   const handleContactSupport = (): void => {
@@ -62,11 +67,7 @@ const CancellationRefundPolicy: React.FC<RefundPolicyProps> = ({
   };
 
   const handleRefundRequest = (): void => {
-    const subject = encodeURIComponent('Refund Request');
-    const body = encodeURIComponent(
-      'Please include:\n- Your account email address\n- Subscription details\n- Detailed explanation of the issue\n- Any relevant screenshots'
-    );
-    window.open(`mailto:${supportEmail}?subject=${subject}&body=${body}`, '_blank');
+    openModal('You need to have an active subscription to request a refund.');
   };
 
   const handleBackToHome = (): void => {
@@ -74,7 +75,23 @@ const CancellationRefundPolicy: React.FC<RefundPolicyProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col relative">
+      {/* Popup/modal */}
+      {modal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-xl px-8 py-7 max-w-sm w-full text-center">
+            <p className="text-lg text-gray-200 mb-6">{modal.message}</p>
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold transition-colors duration-200"
+              onClick={closeModal}
+              autoFocus
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar with Back Button */}
       <div className="flex items-center p-6">
         <button
