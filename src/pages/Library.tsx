@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
@@ -42,7 +41,7 @@ const Library = () => {
     if (searchTerm && currentUser) {
       const performSearch = async () => {
         try {
-          const results = await searchStudyMaterials(searchTerm, currentUser.id);
+          const results = await searchStudyMaterials(searchTerm);
           setSearchResults(results);
         } catch (error) {
           console.error('Search error:', error);

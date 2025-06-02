@@ -1,11 +1,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Use the actual Supabase project configuration
+// Use the actual Supabase project configuration - SINGLETON PATTERN
 const supabaseUrl = 'https://dllyfsbuxrjyiatfcegk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbHlmc2J1eHJqeWlhdGZjZWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0NDUxNzAsImV4cCI6MjA2MzAyMTE3MH0.1jfGciFNtGgfw7bNZhuraoA_83whPx6Ojl0J5iHfJz0';
 
-// Create Supabase client
+// Create a single Supabase client instance
 export const supabase = createClient(
   supabaseUrl,
   supabaseAnonKey,
@@ -13,7 +13,12 @@ export const supabase = createClient(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-    }
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
   }
 );
 

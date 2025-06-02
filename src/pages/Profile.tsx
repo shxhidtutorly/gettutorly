@@ -311,6 +311,7 @@ const Profile = () => {
                   <Input
                     id="new-password"
                     type="password"
+                    autoComplete="new-password"
                     value={passwords.new}
                     onChange={(e) => setPasswords({...passwords, new: e.target.value})}
                     placeholder="Enter new password"
@@ -322,6 +323,7 @@ const Profile = () => {
                   <Input
                     id="confirm-password"
                     type="password"
+                    autoComplete="new-password"
                     value={passwords.confirm}
                     onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
                     placeholder="Confirm new password"

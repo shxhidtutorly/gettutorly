@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   getUserStudyProgress, 
@@ -36,7 +36,7 @@ export const useRealTimeStudyProgress = () => {
 
     fetchProgress();
 
-    // Set up real-time subscription
+    // Set up real-time subscription with better error handling
     const channel = supabase
       .channel('study_progress_changes')
       .on('postgres_changes', {
@@ -45,9 +45,16 @@ export const useRealTimeStudyProgress = () => {
         table: 'study_progress',
         filter: `user_id=eq.${currentUser.id}`
       }, (payload) => {
+        console.log('Study progress realtime update:', payload);
         fetchProgress();
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to study progress changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to study progress changes');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
