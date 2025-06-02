@@ -32,8 +32,6 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 // 👇 ADD THESE IMPORTS
 import FileUploader from "./components/FileUploader";
 import NotesPage from "./components/NotesPage";
-import FlashcardsPage from "./components/FlashcardsPage";
-
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
