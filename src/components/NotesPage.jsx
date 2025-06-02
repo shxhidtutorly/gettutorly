@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Together from "together-ai";
 import { useNavigate } from "react-router-dom";
 
 const together = new Together();
