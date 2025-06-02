@@ -18,7 +18,7 @@ const Footer = () => {
             >
               Help
             </a>
-            <a href="#" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Privacy</a>
+            <a href="/privacy" className="text-sm text-muted-foreground ...">Privacy</a>
             <a
               href="https://gettutorly.com/terms-of-service"
               target="_blank"
