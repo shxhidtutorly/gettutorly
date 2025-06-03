@@ -4,8 +4,8 @@ console.log('📦 Loading aiProviders.js...');
 class AIProviderManager {
   constructor() {
     console.log('🔧 Initializing AI Provider Manager...');
-    this.providerOrder = ['together', 'gemini', 'groq', 'claude', 'openrouter', 'huggingface']; // fallback order
-
+    // Providers are ordered for fallback: together first, then others
+    this.providerOrder = ['together', 'gemini', 'groq', 'claude', 'openrouter', 'huggingface'];
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
@@ -31,21 +31,23 @@ class AIProviderManager {
     return keyArray;
   }
 
-  // Enhanced: try next provider if all keys for the chosen one fail
+  // MODEL FALLBACK LOGIC HERE
   async getAIResponse(prompt, model) {
     const requestedProvider = this.getProviderForModel(model);
+    // Fallback order: requested provider first, then others
     const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
     for (const provider of fallbackProviders) {
       const keys = this.apiKeys[provider];
       if (!keys || keys.length === 0) {
+        console.log(`⚠️ No keys for provider: ${provider}, skipping...`);
         continue;
       }
       let lastError = null;
       for (let i = 0; i < keys.length; i++) {
         try {
           console.log(`🔄 Attempting ${provider} with key ${i + 1}/${keys.length}`);
-          // Do NOT add "2-3 sentences" constraint!
+          // No "2-3 sentences" constraint!
           const response = await this.callProvider(provider, prompt, keys[i], model);
           console.log(`✅ Success with ${provider} key ${i + 1}`);
           return {
@@ -134,7 +136,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'llama-3.1-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 800, // Increased for better output
+        max_tokens: 800,
         temperature: 0.3
       })
     });
@@ -159,7 +161,7 @@ class AIProviderManager {
       },
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 800, // Increased for better output
+        max_tokens: 800,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3
       })
@@ -187,7 +189,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'anthropic/claude-3.5-sonnet',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 800, // Increased for better output
+        max_tokens: 800,
         temperature: 0.3
       })
     });
@@ -212,7 +214,7 @@ class AIProviderManager {
       body: JSON.stringify({
         inputs: prompt,
         parameters: {
-          max_new_tokens: 400, // Increased for better output
+          max_new_tokens: 400, // Less for HuggingFace (API limits)
           temperature: 0.3
         }
       })
@@ -241,7 +243,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'meta-llama/Llama-2-70b-chat-hf',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 4096, // Maximum for detailed output
+        max_tokens: 4096, // Maximum for Together
         temperature: 0.3
       })
     });
