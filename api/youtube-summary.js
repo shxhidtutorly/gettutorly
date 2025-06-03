@@ -50,13 +50,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid YouTube URL format' });
     }
     let transcriptData;
-    try {
-      transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
-    } catch (transcriptError) {
-      return res.status(404).json({
-        error: '⚠️ Transcript not available for this video. Try a different one.'
-      });
-    }
+   try {
+  transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
+} catch (transcriptError) {
+  console.error('Transcript fetch error:', transcriptError); // Add this line
+  return res.status(404).json({
+    error: '⚠️ Transcript not available for this video. Try a different one.'
+  });
+}
     if (!transcriptData || transcriptData.length === 0) {
       return res.status(404).json({
         error: '⚠️ Transcript not available for this video. Try a different one.'
