@@ -17,6 +17,7 @@ import Chat from "./pages/Chat";
 import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
 import Summaries from "./pages/Summaries";
+import YouTubeSummary from "./pages/YouTubeSummary";
 import MicroLessons from "./pages/MicroLessons";
 import AIAssistant from "./pages/AIAssistant";
 import StudyTechniques from "./pages/StudyTechniques";
@@ -107,7 +108,7 @@ const App = () => (
                   <Quiz />
                 </ProtectedRoute>
               } />
-              <Route path="/summaries" element={
+                           <Route path="/summaries" element={
                 <ProtectedRoute>
                   <Summaries />
                 </ProtectedRoute>
@@ -115,6 +116,11 @@ const App = () => (
               <Route path="/micro-lessons" element={
                 <ProtectedRoute>
                   <MicroLessons />
+                </ProtectedRoute>
+              } />
+              <Route path="/youtube-summary" element={
+                <ProtectedRoute>
+                  <YouTubeSummary />
                 </ProtectedRoute>
               } />
               <Route path="/study-techniques" element={
