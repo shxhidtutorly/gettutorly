@@ -1,5 +1,5 @@
 
-import { Home, BookOpen, Upload, User, MessageSquare } from "lucide-react";
+import { Home, BookOpen, MessageSquare, User, Brain } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -26,20 +26,20 @@ const BottomNav = () => {
         <NavItem 
           icon={<MessageSquare size={20} />} 
           label="Chat" 
-          href="/chat" 
-          active={location.pathname === '/chat'} 
+          href="/ai-assistant" 
+          active={location.pathname === '/ai-assistant'} 
+        />
+        <NavItem 
+          icon={<Brain size={20} />} 
+          label="AI Notes" 
+          href="/ai-notes" 
+          active={location.pathname === '/ai-notes'} 
         />
         <NavItem 
           icon={<BookOpen size={20} />} 
           label="Library" 
           href="/library" 
           active={location.pathname === '/library'} 
-        />
-        <NavItem 
-          icon={<Upload size={20} />} 
-          label="Upload" 
-          href="/upload" 
-          active={location.pathname === '/upload'} 
         />
         <NavItem 
           icon={<User size={20} />} 

@@ -1,204 +1,128 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Lock,
-  Save,
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Save, 
+  Lock, 
+  AlertCircle,
   LogOut
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateUserProfile } from "@/lib/database";
-import { supabase } from "@/integrations/supabase/client";
+import { updateUserProfile, changePassword, logOut } from "@/lib/auth";
 
 const Profile = () => {
-  const { currentUser, signOut } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [profile, setProfile] = useState({
+  const { currentUser } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  // Profile form state
+  const [profileData, setProfileData] = useState({
     name: '',
     email: '',
-    phone_number: '',
+    phone: '',
     location: ''
   });
-  const [passwords, setPasswords] = useState({
-    current: '',
-    new: '',
-    confirm: ''
+  
+  // Password form state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
   
-  const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get user display name safely
-  const getUserDisplayName = () => {
-    if (currentUser?.user_metadata?.name) return currentUser.user_metadata.name;
-    if (currentUser?.user_metadata?.full_name) return currentUser.user_metadata.full_name;
-    if (currentUser?.email) return currentUser.email.split('@')[0];
-    return '';
-  };
-
-  // Get user avatar URL safely
-  const getUserAvatarUrl = () => {
-    return currentUser?.user_metadata?.avatar_url || '';
-  };
-
+  // Initialize profile data
   useEffect(() => {
     if (currentUser) {
-      setProfile({
-        name: getUserDisplayName(),
+      setProfileData({
+        name: currentUser.user_metadata?.name || currentUser.user_metadata?.full_name || '',
         email: currentUser.email || '',
-        phone_number: '',
-        location: ''
+        phone: currentUser.user_metadata?.phone || '',
+        location: currentUser.user_metadata?.location || ''
       });
-      // Fetch additional profile data from users table
-      fetchUserProfile();
     }
   }, [currentUser]);
 
-  const fetchUserProfile = async () => {
-    if (!currentUser?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('name, email, phone_number, location')
-        .eq('id', currentUser.id)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return;
-      }
-      
-      if (data) {
-        setProfile({
-          name: data.name || getUserDisplayName(),
-          email: data.email || currentUser.email || '',
-          phone_number: data.phone_number || '',
-          location: data.location || ''
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsUpdating(true);
 
-  const handleUpdateProfile = async () => {
-    setLoading(true);
     try {
-      await updateUserProfile(profile);
-      
-      // Log the activity
-      await supabase.rpc('log_user_activity', {
-        action_type: 'profile_updated',
-        activity_details: { updated_fields: Object.keys(profile) }
+      await updateUserProfile({
+        name: profileData.name
       });
       
       toast({
-        title: "Success",
-        description: "Profile updated successfully",
+        title: "Profile updated",
+        description: "Your profile has been updated successfully."
       });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      setError(error.message || 'Failed to update profile');
     } finally {
-      setLoading(false);
+      setIsUpdating(false);
     }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (passwords.new !== passwords.confirm) {
-      toast({
-        title: "Error",
-        description: "New passwords don't match",
-        variant: "destructive",
-      });
+    setError(null);
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError("New passwords don't match");
       return;
     }
 
-    if (passwords.new.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
+    if (passwordData.newPassword.length < 8) {
+      setError("Password must be at least 8 characters long");
       return;
     }
 
-    setPasswordLoading(true);
+    setIsChangingPassword(true);
+
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwords.new
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
       });
-
-      if (error) throw error;
-
-      // Log the activity
-      await supabase.rpc('log_user_activity', {
-        action_type: 'password_changed',
-        activity_details: {}
-      });
-
-      setPasswords({ current: '', new: '', confirm: '' });
+      
       toast({
-        title: "Success",
-        description: "Password updated successfully",
+        title: "Password changed",
+        description: "Your password has been changed successfully."
       });
-    } catch (error) {
-      console.error('Error updating password:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update password",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      setError(error.message || 'Failed to change password');
     } finally {
-      setPasswordLoading(false);
+      setIsChangingPassword(false);
     }
   };
 
   const handleSignOut = async () => {
     try {
-      // Log the activity before signing out
-      await supabase.rpc('log_user_activity', {
-        action_type: 'user_signed_out',
-        activity_details: {}
-      });
-
-      // Update last login timestamp
-      await supabase
-        .from('users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', currentUser?.id);
-
-      await signOut();
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully",
-      });
+      await logOut();
+      navigate('/');
     } catch (error) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out",
-        variant: "destructive",
-      });
+      console.error('Sign out error:', error);
     }
   };
 
@@ -207,157 +131,199 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0d1117] text-white">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
-        <div className="container max-w-2xl mx-auto">
-          <div className="mb-8 animate-fade-in">
-            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <User className="h-7 w-7 text-spark-primary" />
-              Profile Settings
-            </h1>
-            <p className="text-muted-foreground">Manage your account information</p>
+        <div className="container max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold">Profile Settings</h1>
+            <p className="text-muted-foreground">
+              Manage your account settings and preferences
+            </p>
           </div>
-          
-          {/* Profile Information */}
-          <Card className="mb-6 dark:bg-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Personal Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={getUserAvatarUrl()} />
-                  <AvatarFallback>
-                    {(getUserDisplayName() || currentUser.email || 'U')[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium">{getUserDisplayName() || 'User'}</h3>
-                  <p className="text-sm text-muted-foreground">{currentUser.email}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
-                    onChange={(e) => setProfile({...profile, name: e.target.value})}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({...profile, email: e.target.value})}
-                    placeholder="Enter your email"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={profile.phone_number}
-                    onChange={(e) => setProfile({...profile, phone_number: e.target.value})}
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={profile.location}
-                    onChange={(e) => setProfile({...profile, location: e.target.value})}
-                    placeholder="Enter your location"
-                  />
-                </div>
-              </div>
-              
-              <Button 
-                onClick={handleUpdateProfile} 
-                disabled={loading}
-                className="animated-button"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </CardContent>
-          </Card>
-          
-          {/* Password Change */}
-          <Card className="mb-6 dark:bg-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                Change Password
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={passwords.new}
-                    onChange={(e) => setPasswords({...passwords, new: e.target.value})}
-                    placeholder="Enter new password"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={passwords.confirm}
-                    onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
-                    placeholder="Confirm new password"
-                  />
-                </div>
-                
+
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-6">
+            {/* Profile Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Profile Information
+                </CardTitle>
+                <CardDescription>
+                  Update your personal information
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleProfileUpdate} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="name"
+                          placeholder="Your full name"
+                          className="pl-8"
+                          value={profileData.name}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your@email.com"
+                          className="pl-8"
+                          value={profileData.email}
+                          disabled
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Email cannot be changed
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          placeholder="+1 (555) 123-4567"
+                          className="pl-8"
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="location"
+                          placeholder="City, Country"
+                          className="pl-8"
+                          value={profileData.location}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button type="submit" disabled={isUpdating} className="w-full md:w-auto">
+                    <Save className="mr-2 h-4 w-4" />
+                    {isUpdating ? "Updating..." : "Save Changes"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Password Change */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Change Password
+                </CardTitle>
+                <CardDescription>
+                  Update your account password
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        placeholder="Enter current password"
+                        className="pl-8"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          placeholder="Enter new password"
+                          className="pl-8"
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="Confirm new password"
+                          className="pl-8"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
+                    <Lock className="mr-2 h-4 w-4" />
+                    {isChangingPassword ? "Changing..." : "Change Password"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Account Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Actions</CardTitle>
+                <CardDescription>
+                  Manage your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <Button 
-                  type="submit"
-                  disabled={passwordLoading || !passwords.new || !passwords.confirm}
-                  className="animated-button"
+                  variant="outline" 
+                  onClick={handleSignOut}
+                  className="w-full md:w-auto"
                 >
-                  <Lock className="h-4 w-4 mr-2" />
-                  {passwordLoading ? 'Updating...' : 'Update Password'}
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
                 </Button>
-              </form>
-            </CardContent>
-          </Card>
-          
-          {/* Account Actions */}
-          <Card className="dark:bg-card">
-            <CardHeader>
-              <CardTitle>Account Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                variant="destructive" 
-                onClick={handleSignOut}
-                className="w-full"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
       

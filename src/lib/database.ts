@@ -1,7 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 
-// Study Plans Operations - Fixed with better error handling
+// Study Plans Operations
 export const createStudyPlan = async (planData: {
   title: string;
   description?: string;
@@ -26,10 +26,7 @@ export const createStudyPlan = async (planData: {
       .select()
       .single();
       
-    if (error) {
-      console.error("Supabase error creating study plan:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data;
   } catch (error) {
     console.error("Error creating study plan:", error);
@@ -40,7 +37,7 @@ export const createStudyPlan = async (planData: {
 export const getUserStudyPlans = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from('study_plans')
@@ -48,22 +45,19 @@ export const getUserStudyPlans = async () => {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
       
-    if (error) {
-      console.error("Supabase error getting study plans:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error getting study plans:", error);
-    throw error;
+    return [];
   }
 };
 
-// Study Materials Operations - Fixed with proper user authentication
+// Study Materials Operations
 export const getUserStudyMaterials = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from('study_materials')
@@ -71,18 +65,15 @@ export const getUserStudyMaterials = async () => {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
       
-    if (error) {
-      console.error("Supabase error getting study materials:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error getting study materials:", error);
-    throw error;
+    return [];
   }
 };
 
-// Update user profile - Fixed to work with proper user ID
+// Update user profile
 export const updateUserProfile = async (updates: {
   name?: string;
   email?: string;
@@ -103,10 +94,7 @@ export const updateUserProfile = async (updates: {
       .select()
       .single();
       
-    if (error) {
-      console.error("Supabase error updating profile:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data;
   } catch (error) {
     console.error("Error updating profile:", error);
@@ -114,11 +102,11 @@ export const updateUserProfile = async (updates: {
   }
 };
 
-// Get user study progress - Fixed with proper authentication
+// Get user study progress
 export const getUserStudyProgress = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from('study_progress')
@@ -126,22 +114,19 @@ export const getUserStudyProgress = async () => {
       .eq('user_id', user.id)
       .order('last_updated', { ascending: false });
       
-    if (error) {
-      console.error("Supabase error getting study progress:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error getting study progress:", error);
-    throw error;
+    return [];
   }
 };
 
-// Get user activity logs - Fixed with proper authentication
+// Get user activity logs
 export const getUserActivityLogs = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from('user_activity_logs')
@@ -150,22 +135,45 @@ export const getUserActivityLogs = async () => {
       .order('timestamp', { ascending: false })
       .limit(50);
       
-    if (error) {
-      console.error("Supabase error getting user activity logs:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error getting user activity logs:", error);
-    throw error;
+    return [];
   }
 };
 
-// Search study materials - Fixed function signature
+// Log user activity
+export const logUserActivity = async (actionType: string, details: any = {}) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('user_activity_logs')
+      .insert([{
+        user_id: user.id,
+        action_type: actionType,
+        details: details,
+        timestamp: new Date().toISOString()
+      }]);
+      
+    if (error) throw error;
+    
+    // Update activity streak
+    const today = new Date().toDateString();
+    localStorage.setItem('lastActivityDate', today);
+    
+  } catch (error) {
+    console.error("Error logging user activity:", error);
+  }
+};
+
+// Search study materials
 export const searchStudyMaterials = async (query: string) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from('study_materials')
@@ -174,67 +182,65 @@ export const searchStudyMaterials = async (query: string) => {
       .or(`title.ilike.%${query}%,file_name.ilike.%${query}%,content_type.ilike.%${query}%`)
       .order('created_at', { ascending: false });
       
-    if (error) {
-      console.error("Supabase error searching materials:", error);
-      throw error;
-    }
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error searching materials:", error);
+    return [];
+  }
+};
+
+// Store AI Notes
+export const storeAINotes = async (notesData: {
+  title: string;
+  content: string;
+  filename: string;
+}) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('ai_notes')
+      .insert([{
+        user_id: user.id,
+        title: notesData.title,
+        content: notesData.content,
+        source_filename: notesData.filename,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    // Log activity
+    await logUserActivity('ai_notes_generated', { title: notesData.title });
+    
+    return data;
+  } catch (error) {
+    console.error("Error storing AI notes:", error);
     throw error;
   }
 };
 
-// Real-time subscription for study progress - Fixed with error handling
-export const subscribeToStudyProgress = (userId: string, callback: (data: any) => void) => {
-  return supabase
-    .channel('study_progress_changes')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'study_progress',
-      filter: `user_id=eq.${userId}`
-    }, (payload) => {
-      console.log('Study progress realtime update:', payload);
-      callback(payload);
-    })
-    .subscribe((status) => {
-      console.log('Study progress subscription status:', status);
-    });
-};
+// Get user AI notes
+export const getUserAINotes = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
 
-// Real-time subscription for study materials - Fixed with error handling
-export const subscribeToStudyMaterials = (userId: string, callback: (data: any) => void) => {
-  return supabase
-    .channel('study_materials_changes')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'study_materials',
-      filter: `user_id=eq.${userId}`
-    }, (payload) => {
-      console.log('Study materials realtime update:', payload);
-      callback(payload);
-    })
-    .subscribe((status) => {
-      console.log('Study materials subscription status:', status);
-    });
-};
-
-// Real-time subscription for user activity logs - Fixed with error handling
-export const subscribeToUserActivity = (userId: string, callback: (data: any) => void) => {
-  return supabase
-    .channel('user_activity_changes')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'user_activity_logs',
-      filter: `user_id=eq.${userId}`
-    }, (payload) => {
-      console.log('User activity realtime update:', payload);
-      callback(payload);
-    })
-    .subscribe((status) => {
-      console.log('User activity subscription status:', status);
-    });
+    const { data, error } = await supabase
+      .from('ai_notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting AI notes:", error);
+    return [];
+  }
 };

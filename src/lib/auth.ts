@@ -1,8 +1,27 @@
 
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import { createUserProfile } from './db';
 import { toast } from '@/components/ui/use-toast';
+
+// Create user profile in database
+const createUserProfile = async (userId: string, userData: any) => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .insert([{
+        id: userId,
+        email: userData.email,
+        name: userData.name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        role: 'student'
+      }]);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+  }
+};
 
 // Email/Password sign up with automatic profile creation
 export const signUpWithEmail = async (email: string, password: string, displayName: string) => {
@@ -24,10 +43,7 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
     if (data.user) {
       await createUserProfile(data.user.id, {
         email: data.user.email,
-        name: displayName,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        role: 'student' // Default role
+        name: displayName
       });
       
       toast({
@@ -192,11 +208,26 @@ export const getSession = async () => {
 // Update user profile
 export const updateUserProfile = async (userData: { name?: string; avatar_url?: string }) => {
   try {
-    const { error } = await supabase.auth.updateUser({
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user');
+
+    // Update auth metadata
+    const { error: authError } = await supabase.auth.updateUser({
       data: userData
     });
     
-    if (error) throw error;
+    if (authError) throw authError;
+
+    // Update profile in database
+    const { error: dbError } = await supabase
+      .from('users')
+      .update({
+        name: userData.name,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+    
+    if (dbError) throw dbError;
     
     toast({
       title: 'Profile updated successfully',
@@ -208,6 +239,44 @@ export const updateUserProfile = async (userData: { name?: string; avatar_url?: 
     console.error("Profile update error:", error);
     toast({
       title: 'Profile update failed',
+      description: getAuthErrorMessage(error),
+      variant: 'destructive',
+    });
+    throw error;
+  }
+};
+
+// Change password for authenticated users
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user');
+
+    // First verify current password by attempting to sign in
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email!,
+      password: currentPassword
+    });
+    
+    if (verifyError) throw new Error('Current password is incorrect');
+
+    // Update password
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    
+    if (error) throw error;
+    
+    toast({
+      title: 'Password changed successfully',
+      description: 'Your password has been updated',
+    });
+    
+    return true;
+  } catch (error) {
+    console.error("Password change error:", error);
+    toast({
+      title: 'Password change failed',
       description: getAuthErrorMessage(error),
       variant: 'destructive',
     });
@@ -243,14 +312,14 @@ export const verifyEmail = async (token: string) => {
 };
 
 // Helper function to get error message from Supabase Auth errors
-export const getAuthErrorMessage = (error: AuthError | Error): string => {
-  if ('code' in error) {
+export const getAuthErrorMessage = (error: any): string => {
+  if (error?.code) {
     switch (error.code) {
       case 'auth/user-not-found':
-      case 'P0001': // Postgres error
+      case 'P0001':
         return 'No account found with this email.';
       case 'auth/wrong-password':
-      case '23505': // Unique violation
+      case 'invalid_credentials':
         return 'Incorrect password or email.';
       case 'auth/invalid-email':
         return 'Invalid email address.';
@@ -262,5 +331,5 @@ export const getAuthErrorMessage = (error: AuthError | Error): string => {
         return error.message || 'An error occurred during authentication.';
     }
   }
-  return error.message || 'An error occurred during authentication.';
+  return error?.message || 'An error occurred during authentication.';
 };

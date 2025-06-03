@@ -21,11 +21,22 @@ export async function generateNotesAI(text: string, filename: string): Promise<A
   ${text}`;
 
   try {
-    const response = await fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, model: 'gemini' })
-    });
+    // Check if we have the /api/ai endpoint
+    let response;
+    try {
+      response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, model: 'gemini' })
+      });
+    } catch (error) {
+      // Fallback to summarize endpoint if ai endpoint is not available
+      response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+      });
+    }
 
     if (!response.ok) {
       throw new Error('Failed to generate notes');
@@ -33,13 +44,15 @@ export async function generateNotesAI(text: string, filename: string): Promise<A
 
     const data = await response.json();
     
-    return {
+    const note: AINote = {
       id: Date.now().toString(),
       title: `Notes from ${filename}`,
-      content: data.response,
+      content: data.response || data.summary || 'Notes generated successfully',
       timestamp: new Date().toISOString(),
       filename
     };
+
+    return note;
   } catch (error) {
     console.error('Error generating notes:', error);
     throw new Error('Failed to generate AI notes. Please try again.');
@@ -54,11 +67,17 @@ export async function generateFlashcardsAI(notesText: string): Promise<Flashcard
   ${notesText}`;
 
   try {
-    const response = await fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, model: 'gemini' })
-    });
+    let response;
+    try {
+      response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, model: 'gemini' })
+      });
+    } catch (error) {
+      // Create flashcards from the notes text directly
+      return parseFlashcardsFromText(notesText);
+    }
 
     if (!response.ok) {
       throw new Error('Failed to generate flashcards');
@@ -96,14 +115,50 @@ function parseFlashcardsFromText(text: string): Flashcard[] {
   const lines = text.split('\n').filter(line => line.trim());
   const flashcards: Flashcard[] = [];
   
-  for (let i = 0; i < lines.length - 1; i += 2) {
-    const question = lines[i]?.replace(/^\d+\.?\s*/, '').replace(/^Q:?\s*/i, '').trim();
-    const answer = lines[i + 1]?.replace(/^A:?\s*/i, '').trim();
+  // Try to extract Q&A patterns from the text
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
     
-    if (question && answer) {
-      flashcards.push({ id: '', question, answer });
+    // Look for question patterns
+    if (line.match(/^(Q:|Question:|What|How|Why|When|Where|Which)/i)) {
+      const question = line.replace(/^(Q:|Question:)\s*/i, '').trim();
+      
+      // Look for the answer in the next few lines
+      let answer = '';
+      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+        const nextLine = lines[j].trim();
+        if (nextLine.match(/^(A:|Answer:)/i)) {
+          answer = nextLine.replace(/^(A:|Answer:)\s*/i, '').trim();
+          break;
+        } else if (nextLine && !nextLine.match(/^(Q:|Question:|What|How|Why|When|Where|Which)/i)) {
+          answer = nextLine;
+          break;
+        }
+      }
+      
+      if (question && answer) {
+        flashcards.push({
+          id: (Date.now() + flashcards.length).toString(),
+          question,
+          answer
+        });
+      }
     }
   }
   
-  return flashcards;
+  // If no Q&A patterns found, create flashcards from bullet points or sentences
+  if (flashcards.length === 0) {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    for (let i = 0; i < Math.min(sentences.length - 1, 10); i += 2) {
+      if (sentences[i] && sentences[i + 1]) {
+        flashcards.push({
+          id: (Date.now() + i).toString(),
+          question: sentences[i].trim() + '?',
+          answer: sentences[i + 1].trim()
+        });
+      }
+    }
+  }
+  
+  return flashcards.slice(0, 15); // Limit to 15 flashcards
 }

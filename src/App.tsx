@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,13 +22,14 @@ import AIAssistant from "./pages/AIAssistant";
 import StudyTechniques from "./pages/StudyTechniques";
 import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
-import TermsOfService from "./pages/terms-of-service"; // ✅ Import your Terms page
+import TermsOfService from "./pages/terms-of-service";
 import Support from "./pages/Support";
 import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
 import "./css/animations.css";
 import "./css/darkMode.css";
+import "./css/mobile.css";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // Create a new QueryClient instance
@@ -120,11 +122,11 @@ const App = () => (
                   <StudyTechniques />
                 </ProtectedRoute>
               } />
-              <Route path="/upload" element={<Navigate to="/library" replace />} />
+              <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
               
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/support" element={<Support />} />
-               <Route path="/cancellation" element={<Cancellation />} />
+              <Route path="/cancellation" element={<Cancellation />} />
               <Route path="/Privacy" element={<Privacy />} />
 
               <Route path="*" element={<NotFound />} />
