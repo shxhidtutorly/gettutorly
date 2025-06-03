@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter as Router,
   Route,
@@ -6,8 +7,9 @@ import {
 } from "react-router-dom";
 import {
   QueryClient,
+  QueryClientProvider,
 } from "@tanstack/react-query";
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Landing from "./pages/Landing";
 import SignUp from "./pages/SignUp";
@@ -25,6 +27,8 @@ import Progress from "./pages/Progress";
 import { Toaster } from "@/components/ui/toaster"
 import SnapSolve from "@/pages/SnapSolve";
 
+const queryClient = new QueryClient();
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser } = useAuth();
   if (!currentUser) {
@@ -35,9 +39,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <QueryClient>
+    <QueryClientProvider client={queryClient}>
       <Router>
-        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <ThemeProvider>
           <AuthProvider>
             <div className="min-h-screen bg-background text-foreground">
               <Routes>
@@ -62,7 +66,7 @@ function App() {
           </AuthProvider>
         </ThemeProvider>
       </Router>
-    </QueryClient>
+    </QueryClientProvider>
   );
 }
 
