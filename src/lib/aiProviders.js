@@ -248,7 +248,7 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'meta-llama/Llama-2-70b-chat-hf',
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 200,    // REDUCED: was 1000, now 200
         temperature: 0.3    // Lower for more focused responses
