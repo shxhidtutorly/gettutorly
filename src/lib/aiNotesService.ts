@@ -14,11 +14,16 @@ export interface Flashcard {
 }
 
 export async function generateNotesAI(text: string, filename: string): Promise<AINote> {
-  const prompt = `Transform the following content into well-structured, comprehensive study notes. 
-  Format them with clear headings, bullet points, and key concepts highlighted. 
-  Make them easy to study from:
+ const prompt = `You are an expert study assistant. Given the following content, generate detailed, comprehensive notes covering all main ideas, subtopics, definitions, examples, and explanations. 
+- Do not overly summarize or omit content.
+- Organize with clear headings, subheadings, and bullet points.
+- Include as much information as possible, making the notes suitable for in-depth study.
+- If the content is long, structure your notes in sections and subsections.
 
-  ${text}`;
+Here is the content to convert into notes:
+
+${text}
+`;
 
   try {
     // Check if we have the /api/ai endpoint
