@@ -32,7 +32,7 @@ ${text}
       response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model: 'gemini' })
+        body: JSON.stringify({ prompt, model: 'together' })
       });
     } catch (error) {
       // Fallback to summarize endpoint if ai endpoint is not available
