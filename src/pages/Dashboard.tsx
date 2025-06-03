@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -18,8 +19,7 @@ import {
   BookMarked,
   HelpCircle,
   Flame,
-  TrendingUp,
-  Camera
+  TrendingUp
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -180,12 +180,6 @@ const Dashboard = () => {
                   route: "/ai-notes"
                 },
                 {
-                  title: "Snap & Solve",
-                  desc: "Solve questions from images",
-                  icon: <Camera className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
-                  route: "/snap-solve"
-                },
-                {
                   title: "Flashcards",
                   desc: "Create and review flashcards",
                   icon: <Zap className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
@@ -196,6 +190,12 @@ const Dashboard = () => {
                   desc: "Test your knowledge",
                   icon: <HelpCircle className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
                   route: "/quiz"
+                },
+                {
+                  title: "Summaries",
+                  desc: "AI-generated summaries",
+                  icon: <BookMarked className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
+                  route: "/summaries"
                 }
               ].map((tool, idx) => (
                 <motion.div
