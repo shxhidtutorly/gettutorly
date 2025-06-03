@@ -172,49 +172,56 @@ const Dashboard = () => {
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Study Tools</h2>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                {
-                  title: "AI Notes",
-                  desc: "Generate smart notes from files",
-                  icon: <Brain className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
-                  route: "/ai-notes"
-                },
-                {
-                  title: "Flashcards",
-                  desc: "Create and review flashcards",
-                  icon: <Zap className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
-                  route: "/flashcards"
-                },
-                {
-                  title: "Quizzes",
-                  desc: "Test your knowledge",
-                  icon: <HelpCircle className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
-                  route: "/quiz"
-                },
-                {
-                  title: "Summaries",
-                  desc: "AI-generated summaries",
-                  icon: <BookMarked className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
-                  route: "/summaries"
-                }
-              ].map((tool, idx) => (
-                <motion.div
-                  key={tool.title}
-                  whileHover={{ scale: 1.06, boxShadow: '0 2px 28px #3b82f6aa' }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <Card
-                    className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105"
-                    onClick={() => navigate(tool.route)}
-                  >
-                    <CardContent className="p-6 text-center">
-                      {tool.icon}
-                      <h3 className="font-medium">{tool.title}</h3>
-                      <p className="text-sm text-muted-foreground">{tool.desc}</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+             {[
+  {
+    title: "AI Notes",
+    desc: "Generate smart notes from files",
+    icon: <Brain className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
+    route: "/ai-notes"
+  },
+  {
+    title: "Flashcards",
+    desc: "Create and review flashcards",
+    icon: <Zap className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
+    route: "/flashcards"
+  },
+  {
+    title: "Quizzes",
+    desc: "Test your knowledge",
+    icon: <HelpCircle className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
+    route: "/quiz"
+  },
+  {
+    title: "Summaries",
+    desc: "AI-generated summaries",
+    icon: <BookMarked className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
+    route: "/summaries"
+  },
+  // --- Add this block below ---
+  {
+    title: "YouTube Summary",
+    desc: "AI-powered video summaries",
+    icon: <FileText className="h-8 w-8 text-spark-primary mx-auto mb-2" />,
+    route: "/youtube-summary"
+  }
+].map((tool, idx) => (
+  <motion.div
+    key={tool.title}
+    whileHover={{ scale: 1.06, boxShadow: '0 2px 28px #3b82f6aa' }}
+    whileTap={{ scale: 0.97 }}
+  >
+    <Card
+      className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105"
+      onClick={() => navigate(tool.route)}
+    >
+      <CardContent className="p-6 text-center">
+        {tool.icon}
+        <h3 className="font-medium">{tool.title}</h3>
+        <p className="text-sm text-muted-foreground">{tool.desc}</p>
+      </CardContent>
+    </Card>
+  </motion.div>
+))}
             </div>
           </div>
 
