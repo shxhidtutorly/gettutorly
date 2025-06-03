@@ -94,7 +94,19 @@ const AIChat = () => {
   };
 
   return (
-    <div className="flex flex-col bg-white dark:bg-black rounded-lg shadow-2xl border border-gray-200 dark:border-gray-800 h-[70vh] max-h-[700px] min-h-[480px] overflow-hidden transition-all duration-300 w-full">
+   <div
+  className="
+    flex flex-col
+    bg-white dark:bg-black
+    rounded-lg shadow-2xl
+    border border-gray-200 dark:border-gray-800
+    h-[80vh] max-h-[90vh] min-h-[60vh]
+    sm:h-[85vh] sm:max-h-[900px] sm:min-h-[500px]
+    w-full
+    overflow-hidden
+    transition-all duration-300
+  "
+>
       {/* Chat header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-black">
         <div className="flex items-center flex-1">
