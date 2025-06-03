@@ -108,7 +108,7 @@ class AIProviderManager {
           temperature: 0.3,
           topK: 20,
           topP: 0.8,
-          maxOutputTokens: 800, // Increased for better output
+          maxOutputTokens: 700, // Increased for better output
         }
       })
     });
@@ -134,7 +134,7 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 800,
         temperature: 0.3
@@ -187,9 +187,9 @@ class AIProviderManager {
         'X-Title': 'AI Provider Manager'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 800,
+        max_tokens: 2000,
         temperature: 0.3
       })
     });
