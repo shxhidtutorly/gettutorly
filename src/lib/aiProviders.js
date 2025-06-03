@@ -4,7 +4,8 @@ console.log('📦 Loading aiProviders.js...');
 class AIProviderManager {
   constructor() {
     console.log('🔧 Initializing AI Provider Manager...');
-    
+    this.providerOrder = ['together', 'gemini', 'groq', 'claude', 'openrouter', 'huggingface']; // fallback order
+
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
@@ -13,7 +14,7 @@ class AIProviderManager {
       huggingface: this.getKeysFromEnv('HUGGINGFACE_API_KEY'),
       together: this.getKeysFromEnv('TOGETHER_API_KEY'),
     };
-    
+
     Object.entries(this.apiKeys).forEach(([provider, keys]) => {
       console.log(`🔑 ${provider}: ${keys.length} keys available`);
     });
@@ -25,48 +26,43 @@ class AIProviderManager {
       console.log(`⚠️ No keys found for ${envVar}`);
       return [];
     }
-    
     const keyArray = keys.split(',').map(key => key.trim()).filter(key => key.length > 0);
     console.log(`📋 Found ${keyArray.length} keys for ${envVar}`);
     return keyArray;
   }
 
+  // Enhanced: try next provider if all keys for the chosen one fail
   async getAIResponse(prompt, model) {
-    const provider = this.getProviderForModel(model);
-    const keys = this.apiKeys[provider];
-    
-    console.log(`🎯 Using provider: ${provider} for model: ${model}`);
-    
-    if (!keys || keys.length === 0) {
-      throw new Error(`No API keys found for provider: ${provider}`);
-    }
+    const requestedProvider = this.getProviderForModel(model);
+    const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
-    // Add instruction to keep responses concise
-    const optimizedPrompt = `${prompt}\n\nPlease provide a concise, focused response (2-3 sentences maximum).`;
-
-    let lastError = null;
-    
-    for (let i = 0; i < keys.length; i++) {
-      try {
-        console.log(`🔄 Attempting ${provider} with key ${i + 1}/${keys.length}`);
-        
-        const response = await this.callProvider(provider, optimizedPrompt, keys[i], model);
-        
-        console.log(`✅ Success with ${provider} key ${i + 1}`);
-        return {
-          message: response,
-          provider,
-          model
-        };
-        
-      } catch (error) {
-        console.log(`❌ Failed with ${provider} key ${i + 1}:`, error instanceof Error ? error.message : error);
-        lastError = error instanceof Error ? error : new Error(String(error));
+    for (const provider of fallbackProviders) {
+      const keys = this.apiKeys[provider];
+      if (!keys || keys.length === 0) {
         continue;
       }
+      let lastError = null;
+      for (let i = 0; i < keys.length; i++) {
+        try {
+          console.log(`🔄 Attempting ${provider} with key ${i + 1}/${keys.length}`);
+          // Do NOT add "2-3 sentences" constraint!
+          const response = await this.callProvider(provider, prompt, keys[i], model);
+          console.log(`✅ Success with ${provider} key ${i + 1}`);
+          return {
+            message: response,
+            provider,
+            model
+          };
+        } catch (error) {
+          console.log(`❌ Failed with ${provider} key ${i + 1}:`, error instanceof Error ? error.message : error);
+          lastError = error instanceof Error ? error : new Error(String(error));
+          continue;
+        }
+      }
+      // If all keys for this provider fail, try next provider in order.
+      console.log(`⚠️ All keys failed for provider: ${provider}, trying next provider...`);
     }
-    
-    throw new Error(`All API keys failed for ${provider}. Last error: ${lastError?.message || 'Unknown error'}`);
+    throw new Error(`All API keys failed for all providers.`);
   }
 
   getProviderForModel(model) {
@@ -78,7 +74,6 @@ class AIProviderManager {
       'huggingface': 'huggingface',
       'together': 'together'
     };
-    
     return modelProviderMap[model] || model;
   }
 
@@ -108,10 +103,10 @@ class AIProviderManager {
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.3, // Lower for more focused responses
-          topK: 20,         // Reduced for more predictable output
-          topP: 0.8,        // Reduced for more focused responses
-          maxOutputTokens: 200, // REDUCED: was 1000, now 200
+          temperature: 0.3,
+          topK: 20,
+          topP: 0.8,
+          maxOutputTokens: 800, // Increased for better output
         }
       })
     });
@@ -123,11 +118,9 @@ class AIProviderManager {
     }
 
     const data = await response.json();
-    
     if (data.error) {
       throw new Error(`Gemini API error: ${data.error.message}`);
     }
-    
     return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
   }
 
@@ -141,8 +134,8 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'llama-3.1-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200,      // REDUCED: was 1000, now 200
-        temperature: 0.3      // Lower for more focused responses
+        max_tokens: 800, // Increased for better output
+        temperature: 0.3
       })
     });
 
@@ -166,9 +159,9 @@ class AIProviderManager {
       },
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 200,    // REDUCED: was 1000, now 200
+        max_tokens: 800, // Increased for better output
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3    // Lower for more focused responses
+        temperature: 0.3
       })
     });
 
@@ -194,8 +187,8 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'anthropic/claude-3.5-sonnet',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200,    // REDUCED: was 1000, now 200
-        temperature: 0.3    // Lower for more focused responses
+        max_tokens: 800, // Increased for better output
+        temperature: 0.3
       })
     });
 
@@ -216,11 +209,11 @@ class AIProviderManager {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         inputs: prompt,
         parameters: {
-          max_new_tokens: 200,  // REDUCED: was 1000, now 200
-          temperature: 0.3      // Lower for more focused responses
+          max_new_tokens: 400, // Increased for better output
+          temperature: 0.3
         }
       })
     });
@@ -232,11 +225,9 @@ class AIProviderManager {
     }
 
     const data = await response.json();
-    
     if (Array.isArray(data)) {
       return data[0]?.generated_text || 'No response from Hugging Face';
     }
-    
     return data.generated_text || 'No response from Hugging Face';
   }
 
@@ -248,10 +239,10 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+        model: 'meta-llama/Llama-2-70b-chat-hf',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200,    // REDUCED: was 1000, now 200
-        temperature: 0.3    // Lower for more focused responses
+        max_tokens: 4096, // Maximum for detailed output
+        temperature: 0.3
       })
     });
 
@@ -266,7 +257,5 @@ class AIProviderManager {
   }
 }
 
-// Export the class
 export { AIProviderManager };
-
 console.log('✅ AIProviderManager exported successfully');
