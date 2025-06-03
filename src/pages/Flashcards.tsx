@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -17,10 +18,13 @@ interface FlashcardItem {
   back: string;
 }
 
-interface FlashcardSet {
+interface FlashcardSets {
+  [key: string]: FlashcardItem[];
+}
+
+interface SetName {
   id: string;
   name: string;
-  cards: FlashcardItem[];
 }
 
 const Flashcards = () => {
@@ -28,6 +32,25 @@ const Flashcards = () => {
   const [activeSet, setActiveSet] = useState("ai-generated");
   const [aiFlashcards, setAiFlashcards] = useState<Flashcard[]>([]);
   const [aiSource, setAiSource] = useState<string>('');
+  const [flashcardSets, setFlashcardSets] = useState<FlashcardSets>({
+    biology: [
+      { id: 1, front: "What is photosynthesis?", back: "The process by which plants convert light energy into chemical energy" },
+      { id: 2, front: "What is DNA?", back: "Deoxyribonucleic acid - the molecule that carries genetic information" }
+    ],
+    chemistry: [
+      { id: 3, front: "What is an atom?", back: "The smallest unit of matter that retains the properties of an element" },
+      { id: 4, front: "What is a molecule?", back: "A group of two or more atoms held together by chemical bonds" }
+    ],
+    physics: [
+      { id: 5, front: "What is Newton's first law?", back: "An object at rest stays at rest, and an object in motion stays in motion, unless acted upon by an external force" },
+      { id: 6, front: "What is energy?", back: "The capacity to do work or produce change" }
+    ]
+  });
+  const [setNames, setSetNames] = useState<SetName[]>([
+    { id: "biology", name: "Biology" },
+    { id: "chemistry", name: "Chemistry" },
+    { id: "physics", name: "Physics" }
+  ]);
   const { toast } = useToast();
   
   // Load AI-generated flashcards from localStorage
