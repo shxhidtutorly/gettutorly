@@ -1,6 +1,5 @@
-
-import { useState, useEffect } from "react";
-import { Camera, Upload, Brain, Clock, CheckCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Camera, Upload, Brain, Clock, CheckCircle, ImageIcon } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
-// Import Tesseract.js types
+// Tesseract.js type for the global window object
 declare global {
   interface Window {
     Tesseract: any;
@@ -22,6 +21,8 @@ interface SnapSolveSession {
   timestamp: number;
 }
 
+const GROQ_API_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY; // Use env
+
 const SnapSolve = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -31,85 +32,111 @@ const SnapSolve = () => {
   const [isProcessingAI, setIsProcessingAI] = useState<boolean>(false);
   const [usageCount, setUsageCount] = useState<number>(0);
   const [error, setError] = useState<string>("");
+  const [tesseractLoaded, setTesseractLoaded] = useState<boolean>(false);
 
-  // Groq API key placeholder
-  const GROQ_API_KEY = "YOUR_GROQ_API_KEY_HERE";
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- Load Tesseract.js ---
   useEffect(() => {
     // Load usage count from localStorage
-    const count = localStorage.getItem('snapSolveUsageCount');
-    setUsageCount(count ? parseInt(count) : 0);
+    let count = 0;
+    try {
+      count = parseInt(localStorage.getItem('snapSolveUsageCount') || "0", 10);
+    } catch {}
+    setUsageCount(count);
 
-    // Load Tesseract.js from CDN
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    script.async = true;
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
+    // Only load if not already loaded
+    if (!window.Tesseract) {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      script.async = true;
+      script.onload = () => setTesseractLoaded(true);
+      script.onerror = () => setError("Failed to load Tesseract.js. Please refresh the page.");
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
+    } else {
+      setTesseractLoaded(true);
+    }
   }, []);
 
+  // --- Handle Image Upload / Drag ---
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setSelectedImage(file);
-      setExtractedText("");
-      setAiAnswer("");
-      setError("");
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    readAndPreviewImage(file);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    if (event.dataTransfer.files.length) {
+      readAndPreviewImage(event.dataTransfer.files[0]);
     }
   };
 
-  const extractTextFromImage = async () => {
-    if (!selectedImage || !window.Tesseract) {
-      setError("Tesseract.js not loaded or no image selected");
+  const readAndPreviewImage = (file?: File | null) => {
+    if (!file || !file.type.startsWith("image/")) {
+      setError("Please upload a valid image file.");
       return;
     }
-
-    setIsProcessingOCR(true);
+    setSelectedImage(file);
+    setExtractedText("");
+    setAiAnswer("");
     setError("");
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
 
+  // --- OCR Extraction ---
+  const extractTextFromImage = async () => {
+    setError("");
+    setExtractedText("");
+    setAiAnswer("");
+    if (!selectedImage) {
+      setError("Please upload an image first.");
+      return;
+    }
+    if (!window.Tesseract) {
+      setError("Tesseract.js not loaded yet. Please wait a moment.");
+      return;
+    }
+    setIsProcessingOCR(true);
     try {
       const { data: { text } } = await window.Tesseract.recognize(
         selectedImage,
-        'eng',
+        "eng",
         {
-          logger: (m: any) => console.log(m)
+          logger: (m: any) => {
+            // Optional: progress UI could be implemented here
+            // console.log(m);
+          }
         }
       );
-
-      const cleanedText = text.trim();
+      const cleanedText = (text || "").replace(/\s{2,}/g, " ").trim();
       setExtractedText(cleanedText);
-      
-      if (cleanedText) {
-        await getAIAnswer(cleanedText);
+      if (!cleanedText) {
+        setError("No text could be extracted. Try a clearer image.");
       } else {
-        setError("No text could be extracted from the image. Please try a clearer image.");
+        // Optionally, immediately get AI answer:
+        // await getAIAnswer(cleanedText);
       }
     } catch (err) {
-      console.error('OCR Error:', err);
-      setError("Failed to extract text from image. Please try again.");
+      setError("Failed to extract text from image. Try a different image.");
     } finally {
       setIsProcessingOCR(false);
     }
   };
 
+  // --- AI Answer (Optional, not auto-called for safety) ---
   const getAIAnswer = async (question: string) => {
-    if (GROQ_API_KEY === "YOUR_GROQ_API_KEY_HERE") {
-      setError("Please configure your Groq API key to get AI answers.");
+    setError("");
+    setAiAnswer("");
+    if (GROQ_API_KEY === "YOUR_GROQ_API_KEY_HERE" || !GROQ_API_KEY) {
+      setError("Please configure your Groq API key for AI answers.");
       return;
     }
-
     setIsProcessingAI(true);
-
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -129,42 +156,32 @@ const SnapSolve = () => {
           temperature: 0.3
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
-      }
-
+      if (!response.ok) throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
       const data = await response.json();
-      const answer = data.choices?.[0]?.message?.content || 'No answer received from AI';
+      const answer = data.choices?.[0]?.message?.content || "No answer received from AI";
       setAiAnswer(answer);
-
-      // Save session to localStorage
       saveSession(question, answer);
-      
-    } catch (err) {
-      console.error('AI Error:', err);
+    } catch {
       setError("Failed to get AI answer. Please check your API key and try again.");
     } finally {
       setIsProcessingAI(false);
     }
   };
 
+  // --- Save Session to localStorage ---
   const saveSession = (question: string, answer: string) => {
-    const session: SnapSolveSession = {
-      question,
-      answer,
-      timestamp: Date.now()
-    };
-
-    // Save session
-    const existingSessions = JSON.parse(localStorage.getItem('snapSolveSessions') || '[]');
+    const session: SnapSolveSession = { question, answer, timestamp: Date.now() };
+    let existingSessions: SnapSolveSession[] = [];
+    try {
+      existingSessions = JSON.parse(localStorage.getItem('snapSolveSessions') || "[]");
+    } catch {}
     existingSessions.push(session);
-    localStorage.setItem('snapSolveSessions', JSON.stringify(existingSessions));
-
-    // Increment usage count
-    const newCount = usageCount + 1;
-    setUsageCount(newCount);
-    localStorage.setItem('snapSolveUsageCount', newCount.toString());
+    try {
+      localStorage.setItem('snapSolveSessions', JSON.stringify(existingSessions));
+      const newCount = usageCount + 1;
+      setUsageCount(newCount);
+      localStorage.setItem('snapSolveUsageCount', newCount.toString());
+    } catch {}
   };
 
   const resetSession = () => {
@@ -175,10 +192,10 @@ const SnapSolve = () => {
     setError("");
   };
 
+  // --- UI ---
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
       <Navbar />
-
       <main className="flex-1 py-8 px-2 md:px-4 pb-20 md:pb-8">
         <div className="container max-w-4xl mx-auto">
           {/* Header */}
@@ -188,7 +205,7 @@ const SnapSolve = () => {
               Snap & Solve
             </h1>
             <p className="text-muted-foreground">
-              Upload an image of a question and get instant AI-powered answers
+              Upload or snap an image of a question and get instant OCR & AI-powered answers
             </p>
             <div className="flex items-center justify-center gap-4 mt-4">
               <Badge variant="outline" className="flex items-center gap-1">
@@ -198,58 +215,64 @@ const SnapSolve = () => {
             </div>
           </div>
 
-          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Upload Section */}
             <Card className="dark:bg-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Upload className="h-5 w-5" />
-                  Upload Image
+                  Upload / Snap Image
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
+                <label
+                  htmlFor="image-upload"
+                  className="border-2 border-dashed border-muted rounded-lg p-6 text-center block cursor-pointer focus:outline-none"
+                  tabIndex={0}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {imagePreview ? (
+                    <img
+                      src={imagePreview}
+                      alt="Uploaded preview"
+                      className="max-w-full h-auto rounded-lg border mx-auto"
+                    />
+                  ) : (
+                    <div>
+                      <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Click or drag & drop image here (you can also take a photo)
+                      </p>
+                    </div>
+                  )}
                   <input
                     type="file"
                     accept="image/*"
+                    capture="environment"
+                    ref={fileInputRef}
                     onChange={handleImageUpload}
                     className="hidden"
                     id="image-upload"
                   />
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    <Camera className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Click to upload an image with text or math questions
-                    </p>
-                  </label>
-                </div>
-
-                {imagePreview && (
-                  <div className="mt-4">
-                    <img
-                      src={imagePreview}
-                      alt="Uploaded question"
-                      className="max-w-full h-auto rounded-lg border"
-                    />
-                  </div>
-                )}
+                </label>
 
                 <div className="flex gap-2">
                   <Button
                     onClick={extractTextFromImage}
-                    disabled={!selectedImage || isProcessingOCR || isProcessingAI}
+                    disabled={!selectedImage || isProcessingOCR || isProcessingAI || !tesseractLoaded}
                     className="flex-1"
                   >
                     {isProcessingOCR ? (
                       <>
                         <Clock className="h-4 w-4 mr-2 animate-spin" />
-                        Extracting Text...
+                        Extracting...
                       </>
                     ) : (
                       <>
                         <Brain className="h-4 w-4 mr-2" />
-                        Process Image
+                        Extract Text
                       </>
                     )}
                   </Button>
@@ -283,16 +306,27 @@ const SnapSolve = () => {
                     <Textarea
                       value={extractedText}
                       onChange={(e) => setExtractedText(e.target.value)}
-                      placeholder="Extracted text will appear here..."
+                      placeholder="Extracted text from image appears here..."
                       className="min-h-[100px]"
+                      disabled={isProcessingAI}
                     />
-                  </div>
-                )}
-
-                {isProcessingAI && (
-                  <div className="flex items-center justify-center p-4">
-                    <Clock className="h-6 w-6 mr-2 animate-spin text-blue-500" />
-                    <span>Getting AI answer...</span>
+                    <Button
+                      className="mt-2"
+                      disabled={isProcessingAI || !extractedText}
+                      onClick={() => getAIAnswer(extractedText)}
+                    >
+                      {isProcessingAI ? (
+                        <>
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                          Getting AI answer...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="h-4 w-4 mr-2" />
+                          Get AI Answer
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
 
@@ -310,7 +344,6 @@ const SnapSolve = () => {
             </Card>
           </div>
 
-          {/* Usage Info */}
           {usageCount > 0 && (
             <Card className="mt-6 dark:bg-card">
               <CardContent className="p-4">
@@ -329,7 +362,6 @@ const SnapSolve = () => {
           )}
         </div>
       </main>
-
       <Footer />
       <BottomNav />
     </div>
