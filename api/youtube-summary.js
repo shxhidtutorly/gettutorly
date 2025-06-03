@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     }
     let transcriptData;
    try {
-  transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
+ transcriptData = await fetchTranscriptFromExternalAPI(videoId);
 } catch (transcriptError) {
   console.error('Transcript fetch error:', transcriptError); // Add this line
   return res.status(404).json({
