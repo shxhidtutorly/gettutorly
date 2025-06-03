@@ -21,7 +21,7 @@ const SignUp = () => {
     setIsLoading(true);
 
     try {
-      await signUp(email, password, { name });
+      await signUp(email, password);
       toast({
         title: "Account created successfully!",
         description: "Welcome to Tutorly!",
