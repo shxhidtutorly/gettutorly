@@ -27,6 +27,7 @@ import Support from "./pages/Support";
 import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
+import SnapSolve from "./pages/SnapSolve";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
@@ -115,6 +116,11 @@ const App = () => (
               <Route path="/micro-lessons" element={
                 <ProtectedRoute>
                   <MicroLessons />
+                </ProtectedRoute>
+              } />
+              <Route path="/snap-solve" element={
+                <ProtectedRoute>
+                  <SnapSolve />
                 </ProtectedRoute>
               } />
               <Route path="/study-techniques" element={
