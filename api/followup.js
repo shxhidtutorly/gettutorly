@@ -26,8 +26,10 @@ export default async function handler(req, res) {
     console.log('Followup type:', followup);
 
     const systemPrompt = "You're an AI tutor helping students understand concepts better.";
-    const userPrompt = `The user asked: "${question}"\nFollow-up request: "${followup}"\nProvide a helpful, specific response.`;
-
+    let userPrompt;
+if (req.body.chain) {
+  userPrompt = `The user asked: "${question}"
+  
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
