@@ -7,7 +7,7 @@ import FileUploader from "@/components/features/FileUploader";
 import NotesDisplay from "@/components/features/NotesDisplay";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Loader2, Download, Sparkles, Flashcards } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Download, Sparkles, Layers } from "lucide-react";
 import { ExtractionResult } from "@/lib/fileExtractor";
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
