@@ -25,8 +25,9 @@ export default async function handler(req, res) {
     console.log('Processing followup for:', question);
     console.log('Followup type:', followup);
 
-    const systemPrompt = "You're an AI tutor helping students understand concepts better.";
-   let userPrompt;
+   const systemPrompt = "You're an AI tutor helping students understand concepts better.";
+let userPrompt;
+
 if (req.body.chain) {
   userPrompt = `The user asked: "${question}"
 
