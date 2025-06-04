@@ -118,11 +118,6 @@ const App = () => (
                   <MicroLessons />
                 </ProtectedRoute>
               } />
-              <Route path="/snap-solve" element={
-                <ProtectedRoute>
-                  <SnapSolve />
-                </ProtectedRoute>
-              } />
               <Route path="/study-techniques" element={
                 <ProtectedRoute>
                   <StudyTechniques />
