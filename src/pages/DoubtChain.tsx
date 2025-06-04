@@ -205,7 +205,7 @@ const DoubtChain = () => {
         reallife: "Can you relate this to real life?",
         simple: "Explain like I'm 5",
         formula: "Give formula (if applicable)",
-        summary: "Show 1-line summary"
+        summary: "Show 1-line summary",
         fullsummary: "Explain my original doubt using all the breakdowns and explanations above in detail"
       };
 
