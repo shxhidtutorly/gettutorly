@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
 import { 
   Search, 
   ChevronDown, 
@@ -23,10 +22,11 @@ import {
   Eye,
   FileText,
   Users,
-  Award
+  Award,
+  ArrowLeftCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface DoubtNode {
   id: string;
@@ -42,6 +42,7 @@ interface DoubtNode {
 
 const DoubtChain = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [initialQuestion, setInitialQuestion] = useState("");
   const [doubtTree, setDoubtTree] = useState<DoubtNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,6 +65,19 @@ const DoubtChain = () => {
     { key: "summary", label: "1-line summary", icon: <Target className="h-4 w-4" /> }
   ];
 
+  // Animations
+  const nodeAnim = {
+    hidden: { opacity: 0, x: -30, scale: 0.97 },
+    visible: (i: number) => ({
+      opacity: 1, x: 0, scale: 1,
+      transition: { delay: i * 0.08, type: "spring", stiffness: 150, damping: 15 }
+    })
+  };
+  const followupAnim = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35, type: "spring" } }
+  };
+
   // Load stats and bookmarks on mount
   useEffect(() => {
     if (currentUser) {
@@ -81,13 +95,8 @@ const DoubtChain = () => {
   const loadUserData = () => {
     const savedStats = localStorage.getItem(`doubt_stats_${currentUser?.id}`);
     const savedBookmarks = localStorage.getItem(`doubt_bookmarks_${currentUser?.id}`);
-    
-    if (savedStats) {
-      setStats(JSON.parse(savedStats));
-    }
-    if (savedBookmarks) {
-      setBookmarkedChains(JSON.parse(savedBookmarks));
-    }
+    if (savedStats) setStats(JSON.parse(savedStats));
+    if (savedBookmarks) setBookmarkedChains(JSON.parse(savedBookmarks));
   };
 
   const saveUserData = () => {
@@ -107,7 +116,7 @@ const DoubtChain = () => {
       if (!response.ok) throw new Error(data.error);
 
       const node: DoubtNode = {
-        id: `${depth}-${Date.now()}`,
+        id: `${depth}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         question,
         explanation: data.isExplanation ? data.result : undefined,
         isExplanation: data.isExplanation,
@@ -133,18 +142,11 @@ const DoubtChain = () => {
 
   const handleSubmitDoubt = async () => {
     if (!initialQuestion.trim()) return;
-
     setIsLoading(true);
     try {
       const tree = await buildDoubtChain(initialQuestion.trim());
       setDoubtTree(tree);
-      
-      // Update stats
-      setStats(prev => ({ 
-        ...prev, 
-        chainsCompleted: prev.chainsCompleted + 1 
-      }));
-      
+      setStats(prev => ({ ...prev, chainsCompleted: prev.chainsCompleted + 1 }));
       toast({
         title: "Doubt Chain Created! 🌱",
         description: "Explore each level to understand the fundamentals"
@@ -171,7 +173,6 @@ const DoubtChain = () => {
           isExpanded: !node.isExpanded,
           isExplored: true
         };
-        
         // Track concept understanding
         if (!wasExplored) {
           setStats(prev => ({ 
@@ -180,7 +181,6 @@ const DoubtChain = () => {
             currentWeekConcepts: prev.currentWeekConcepts + 1
           }));
         }
-        
         return updated;
       }
       return {
@@ -194,7 +194,6 @@ const DoubtChain = () => {
 
   const handleFollowup = async (nodeId: string, followupType: string) => {
     setFollowupLoading(nodeId + followupType);
-    
     try {
       const node = findNode(doubtTree!, nodeId);
       if (!node) return;
@@ -249,82 +248,101 @@ const DoubtChain = () => {
     return null;
   };
 
+  const isChainFullyExplored = (node: DoubtNode | null): boolean => {
+    if (!node) return false;
+    if (!node.isExplored) return false;
+    return node.children.every(isChainFullyExplored);
+  }
+
   const bookmarkChain = () => {
     if (!doubtTree) return;
-    
     const bookmark = {
       id: Date.now().toString(),
       originalQuestion: initialQuestion,
       tree: doubtTree,
       timestamp: new Date().toISOString()
     };
-    
     setBookmarkedChains(prev => [bookmark, ...prev]);
     saveUserData();
-    
     toast({
       title: "Bookmarked! 📌",
       description: "Chain saved to your bookmarks"
     });
   };
 
-  const renderDoubtNode = (node: DoubtNode, isRoot = false) => {
-    return (
-      <motion.div
-        key={node.id}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="mb-4"
-      >
-        <Card className={`transition-all duration-300 ${
-          node.isExplored ? 'border-green-500 bg-green-50 dark:bg-green-950' : 
-          'hover:border-blue-500 cursor-pointer'
-        }`}>
-          <CardHeader 
-            className="pb-3 cursor-pointer"
-            onClick={() => handleNodeClick(node.id)}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {node.isExplanation ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : (
-                  <Brain className="h-5 w-5 text-blue-500" />
-                )}
-                <div>
-                  <CardTitle className="text-sm md:text-base">{node.question}</CardTitle>
-                  <Badge variant="secondary" className="mt-1 text-xs">
-                    {node.isExplanation ? 'Fundamental' : `Level ${node.depth + 1}`}
-                  </Badge>
-                </div>
-              </div>
-              {!node.isExplanation && (
-                node.isExpanded ? 
-                <ChevronDown className="h-5 w-5" /> : 
-                <ChevronRight className="h-5 w-5" />
+  // --- Responsive Mobile Nav for Dashboard ---
+  const goToDashboard = () => navigate("/dashboard");
+
+  // --- Render Doubt Nodes with Animations ---
+  const renderDoubtNode = (node: DoubtNode, isRoot = false, i = 0) => (
+    <motion.div
+      key={node.id}
+      variants={nodeAnim}
+      initial="hidden"
+      animate="visible"
+      custom={i}
+      className="mb-4"
+      layout
+    >
+      <Card className={`transition-all duration-300 shadow-md ${
+        node.isExplored ? 'border-green-500 bg-green-50 dark:bg-green-950' : 
+        'hover:border-blue-500 cursor-pointer'
+      }`}>
+        <CardHeader 
+          className="pb-3 cursor-pointer"
+          onClick={() => handleNodeClick(node.id)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {node.isExplanation ? (
+                <CheckCircle className="h-5 w-5 text-green-500 animate-bounce" />
+              ) : (
+                <Brain className="h-5 w-5 text-blue-500 animate-pulse" />
               )}
+              <div>
+                <CardTitle className="text-sm md:text-base">{node.question}</CardTitle>
+                <Badge variant="secondary" className="mt-1 text-xs">
+                  {node.isExplanation ? 'Fundamental' : `Level ${node.depth + 1}`}
+                </Badge>
+              </div>
             </div>
-          </CardHeader>
-          
-          <AnimatePresence>
-            {node.isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-              >
-                <CardContent>
-                  {node.explanation && (
-                    <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      <p className="text-sm md:text-base leading-relaxed">{node.explanation}</p>
-                    </div>
-                  )}
-                  
-                  {/* Followup buttons */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-                    {followupOptions.map(option => (
+            {!node.isExplanation && (
+              node.isExpanded ? 
+              <ChevronDown className="h-5 w-5" /> : 
+              <ChevronRight className="h-5 w-5" />
+            )}
+          </div>
+        </CardHeader>
+        <AnimatePresence>
+          {node.isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.35, type: "spring" }}
+              layout
+            >
+              <CardContent>
+                {node.explanation && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg"
+                  >
+                    <p className="text-sm md:text-base leading-relaxed">{node.explanation}</p>
+                  </motion.div>
+                )}
+                {/* Followup buttons */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                  {followupOptions.map((option, idx) => (
+                    <motion.div
+                      key={option.key}
+                      variants={followupAnim}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.12 * idx }}
+                    >
                       <Button
-                        key={option.key}
                         variant="outline"
                         size="sm"
                         className="text-xs"
@@ -334,15 +352,18 @@ const DoubtChain = () => {
                         {option.icon}
                         {option.label}
                       </Button>
-                    ))}
-                  </div>
-                  
-                  {/* Followup responses */}
-                  {Object.entries(node.followups).map(([type, response]) => (
+                    </motion.div>
+                  ))}
+                </div>
+                {/* Followup responses */}
+                <div>
+                  {Object.entries(node.followups).map(([type, response], idx) => (
                     <motion.div
                       key={type}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      variants={followupAnim}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.10 + 0.09 * idx }}
                       className="mb-2 p-3 bg-yellow-50 dark:bg-yellow-950 rounded border-l-4 border-yellow-400"
                     >
                       <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
@@ -351,26 +372,35 @@ const DoubtChain = () => {
                       <p className="text-sm text-yellow-700 dark:text-yellow-300">{response}</p>
                     </motion.div>
                   ))}
-                </CardContent>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Card>
-        
-        {/* Render children */}
-        {node.children.length > 0 && (
-          <div className="ml-4 md:ml-8 mt-4 border-l-2 border-dashed border-gray-300 pl-4">
-            {node.children.map(child => renderDoubtNode(child))}
-          </div>
-        )}
-      </motion.div>
-    );
-  };
+                </div>
+              </CardContent>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+      {/* Render children */}
+      {node.children.length > 0 && (
+        <div className="ml-4 md:ml-8 mt-4 border-l-2 border-dashed border-gray-300 pl-4">
+          {node.children.map((child, idx) => renderDoubtNode(child, false, idx))}
+        </div>
+      )}
+    </motion.div>
+  );
 
+  // --- Render ---
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white">
+    <div className="min-h-screen flex flex-col bg-black text-white relative">
       <Navbar />
-      
+      {/* Mobile Dashboard FAB */}
+      <button
+        onClick={goToDashboard}
+        className="fixed bottom-20 right-4 z-50 block md:hidden bg-gradient-to-br from-blue-500 to-purple-500 p-3 rounded-full shadow-lg border-2 border-white"
+        aria-label="Back to Dashboard"
+        style={{ boxShadow: "0 5px 24px 0 rgba(88, 101, 242, 0.22)" }}
+      >
+        <ArrowLeftCircle className="h-7 w-7 text-white" />
+      </button>
+
       <main className="flex-1 py-4 md:py-8 px-2 md:px-4 pb-20 md:pb-8">
         <div className="container max-w-4xl mx-auto">
           {/* Header */}
@@ -390,6 +420,25 @@ const DoubtChain = () => {
             </p>
           </motion.div>
 
+          {/* Celebratory Message */}
+          {doubtTree && isChainFullyExplored(doubtTree) && (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 220, damping: 18 }}
+              className="mb-4 md:mb-6 text-center"
+            >
+              <div
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-green-400 via-purple-400 to-blue-400 shadow-lg border-2 border-white"
+                style={{ fontWeight: 600, fontSize: "1.1rem", color: "#222" }}
+              >
+                <span role="img" aria-label="celebrate">🎉</span>
+                Great job! You’ve fully understood this concept step-by-step.
+                <span role="img" aria-label="party">🌟</span>
+              </div>
+            </motion.div>
+          )}
+
           {/* Stats Dashboard */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -398,14 +447,14 @@ const DoubtChain = () => {
           >
             <Card className="dark:bg-card">
               <CardContent className="p-3 md:p-4 text-center">
-                <Award className="h-6 w-6 text-yellow-500 mx-auto mb-2" />
+                <Award className="h-6 w-6 text-yellow-500 mx-auto mb-2 animate-bounce" />
                 <p className="text-lg font-bold">{stats.conceptsUnderstood}</p>
                 <p className="text-xs text-muted-foreground">Concepts</p>
               </CardContent>
             </Card>
             <Card className="dark:bg-card">
               <CardContent className="p-3 md:p-4 text-center">
-                <Zap className="h-6 w-6 text-blue-500 mx-auto mb-2" />
+                <Zap className="h-6 w-6 text-blue-500 mx-auto mb-2 animate-pulse" />
                 <p className="text-lg font-bold">{stats.chainsCompleted}</p>
                 <p className="text-xs text-muted-foreground">Chains</p>
               </CardContent>
@@ -418,7 +467,7 @@ const DoubtChain = () => {
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div 
-                    className="bg-green-500 h-2 rounded-full transition-all" 
+                    className="bg-green-500 h-2 rounded-full transition-all"
                     style={{ width: `${Math.min((stats.currentWeekConcepts / stats.weeklyGoal) * 100, 100)}%` }}
                   />
                 </div>
@@ -467,6 +516,7 @@ const DoubtChain = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-6"
+              layout
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Your Doubt Chain</h2>
@@ -479,31 +529,25 @@ const DoubtChain = () => {
                   Bookmark
                 </Button>
               </div>
-              
               {renderDoubtNode(doubtTree, true)}
-              
-              {/* Final explanation button */}
-              <Card className="mt-6 dark:bg-gradient-to-r dark:from-purple-950 dark:to-blue-950 border-purple-500">
-                <CardContent className="p-4 md:p-6 text-center">
-                  <Button
-                    className="w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-                    onClick={() => handleFollowup(doubtTree.id, 'summary')}
-                  >
-                    <Lightbulb className="h-4 w-4 mr-2" />
-                    Now explain my original doubt using everything above
-                  </Button>
-                </CardContent>
-              </Card>
             </motion.div>
           )}
 
-          {/* Back to Dashboard */}
-          <div className="flex justify-center">
-            <BackToDashboardButton />
+          {/* Back to Dashboard for desktop */}
+          <div className="hidden md:flex justify-center">
+            {/* Desktop only, mobile uses FAB */}
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={goToDashboard}
+              className="gap-2"
+            >
+              <ArrowLeftCircle className="h-6 w-6" />
+              Back to Dashboard
+            </Button>
           </div>
         </div>
       </main>
-
       <Footer />
       <BottomNav />
     </div>
