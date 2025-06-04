@@ -14,7 +14,7 @@ import {
   Moon,
   Sun,
   Sparkles,
-  Cards
+  SquareStack // <-- REPLACEMENT HERE
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -22,10 +22,10 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 const navbarLinks = [
   { href: "/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
-  { href: "/flashcards", icon: <Cards className="h-4 w-4" />, label: "Flashcards" },
+  { href: "/flashcards", icon: <SquareStack className="h-4 w-4" />, label: "Flashcards" }, // <-- REPLACEMENT HERE
   { href: "/study-plans", icon: <CalendarDays className="h-4 w-4" />, label: "Study Plans" },
   { href: "/progress", icon: <BarChart3 className="h-4 w-4" />, label: "Progress" },
-  { href: "/ai-assistant", icon: <Sparkles className="h-4 w-4" />, label: "AI Assistant" },
+  { href: "/ai-assistant", icon: <Sparkles className="h-4 w-4" />, label: "AI Assistant" }
 ];
 
 const Navbar = () => {
@@ -38,20 +38,15 @@ const Navbar = () => {
 
   const isLandingPage = location.pathname === "/" || location.pathname === "/landing";
 
-  // Sticky header effect
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => setMobileMenuOpen(false), [location.pathname]);
-
-  // Unmount cleanup on session navigation
   useEffect(() => () => setMobileMenuOpen(false), []);
 
-  // Animate mobile menu
   const mobileMenuClass = mobileMenuOpen
     ? "animate-fade-in-down opacity-100 pointer-events-auto"
     : "opacity-0 pointer-events-none";
