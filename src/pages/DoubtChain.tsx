@@ -62,6 +62,7 @@ const DoubtChain = () => {
     { key: "simple", label: "Explain like I'm 5", icon: <Lightbulb className="h-4 w-4" /> },
     { key: "formula", label: "Show formula", icon: <FileText className="h-4 w-4" /> },
     { key: "summary", label: "1-line summary", icon: <Target className="h-4 w-4" /> }
+    { key: "fullsummary", label: "Full, detailed answer", icon: <Lightbulb className="h-4 w-4" /> },
   ];
 
   // Load stats and bookmarks on mount
@@ -205,6 +206,7 @@ const DoubtChain = () => {
         simple: "Explain like I'm 5",
         formula: "Give formula (if applicable)",
         summary: "Show 1-line summary"
+        fullsummary: "Explain my original doubt using all the breakdowns and explanations above in detail"
       };
 
       const response = await fetch('/api/followup', {
@@ -487,7 +489,7 @@ const DoubtChain = () => {
                 <CardContent className="p-4 md:p-6 text-center">
                   <Button
                     className="w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-                    onClick={() => handleFollowup(doubtTree.id, 'summary')}
+                    onClick={() => handleFollowup(doubtTree.id, 'fullsummary')}
                   >
                     <Lightbulb className="h-4 w-4 mr-2" />
                     Now explain my original doubt using everything above
