@@ -81,7 +81,7 @@ const SnapSolve = () => {
     try {
       setProgress(20);
 
-      // Use Tesseract.js directly
+      // Use Tesseract.js directly from npm
       const { data: { text } } = await Tesseract.recognize(
         selectedImage,
         "eng",
