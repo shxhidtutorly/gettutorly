@@ -162,10 +162,6 @@ const Dashboard = () => {
                     <p className="text-xl md:text-2xl font-bold text-yellow-500">{stats.quizzesCompleted}</p>
                     <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
                   </div>
-                  <div>
-                    <p className="text-xl md:text-2xl font-bold text-purple-500">{stats.snapSolveUsed}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">Snap & Solve</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -200,12 +196,7 @@ const Dashboard = () => {
     icon: <BookMarked className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
     route: "/summaries"
   },
-  {
-    title: "Snap & Solve",
-    desc: "Image to answer AI tool",
-    icon: <Camera className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
-    route: "/snap-solve"
-  }
+ 
 ].map((tool, idx) => (
   <motion.div
     key={tool.title}
