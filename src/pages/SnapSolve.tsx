@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Tesseract from "tesseract.js";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
@@ -37,12 +37,12 @@ const SnapSolve = () => {
   const { trackSnapSolveUsage, endSession, startSession } = useStudyTracking();
 
   // Load usage count from localStorage
-  useState(() => {
+  useEffect(() => {
     const count = localStorage.getItem("snapSolveUsageCount");
     if (count) {
       setUsageCount(parseInt(count));
     }
-  });
+  }, []);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
