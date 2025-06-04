@@ -17,7 +17,6 @@ import Chat from "./pages/Chat";
 import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
 import Summaries from "./pages/Summaries";
-import YouTubeSummary from "./pages/YouTubeSummary";
 import MicroLessons from "./pages/MicroLessons";
 import AIAssistant from "./pages/AIAssistant";
 import StudyTechniques from "./pages/StudyTechniques";
@@ -28,6 +27,7 @@ import Support from "./pages/Support";
 import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
+import SnapSolve from "./pages/SnapSolve";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
@@ -108,7 +108,7 @@ const App = () => (
                   <Quiz />
                 </ProtectedRoute>
               } />
-                           <Route path="/summaries" element={
+              <Route path="/summaries" element={
                 <ProtectedRoute>
                   <Summaries />
                 </ProtectedRoute>
@@ -118,9 +118,9 @@ const App = () => (
                   <MicroLessons />
                 </ProtectedRoute>
               } />
-              <Route path="/youtube-summary" element={
+              <Route path="/snap-solve" element={
                 <ProtectedRoute>
-                  <YouTubeSummary />
+                  <SnapSolve />
                 </ProtectedRoute>
               } />
               <Route path="/study-techniques" element={

@@ -3,24 +3,26 @@
 @media (max-width: 768px) {
   /* Ensure content is properly spaced for mobile */
   .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
   /* Mobile-friendly cards */
   .card {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   /* Touch-friendly buttons */
   button {
     min-height: 44px;
     min-width: 44px;
+    font-size: 0.875rem;
   }
 
   /* Mobile navigation improvements */
   .mobile-nav-item {
     transition: all 0.2s ease;
+    padding: 0.75rem;
   }
 
   .mobile-nav-item:active {
@@ -31,6 +33,7 @@
   /* Form improvements */
   input, textarea, select {
     font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
   }
 
   /* Bottom navigation spacing */
@@ -40,12 +43,16 @@
 
   /* Modal improvements */
   .modal-content {
-    margin: 1rem;
-    max-height: calc(100vh - 2rem);
+    margin: 0.75rem;
+    max-height: calc(100vh - 1.5rem);
     overflow-y: auto;
   }
 
-  /* Text sizing */
+  /* Text sizing for mobile */
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
   .text-sm {
     font-size: 0.875rem;
   }
@@ -58,9 +65,25 @@
     font-size: 1.125rem;
   }
 
+  .text-xl {
+    font-size: 1.25rem;
+  }
+
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+
+  .text-3xl {
+    font-size: 1.875rem;
+  }
+
   /* Spacing improvements */
   .space-y-2 > * + * {
     margin-top: 0.5rem;
+  }
+
+  .space-y-3 > * + * {
+    margin-top: 0.75rem;
   }
 
   .space-y-4 > * + * {
@@ -79,6 +102,42 @@
   .grid-cols-mobile-2 {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* Card padding adjustments */
+  .card .p-6 {
+    padding: 1rem;
+  }
+
+  .card .p-4 {
+    padding: 0.75rem;
+  }
+
+  .card .p-3 {
+    padding: 0.5rem;
+  }
+
+  /* Dashboard specific mobile optimizations */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .dashboard-tools-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* Hover effects disabled on mobile */
+  .hover-glow:hover {
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* Touch feedback */
+  .hover-glow:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
 }
 
 /* Landscape mobile */
@@ -88,8 +147,17 @@
   }
   
   .main-content {
-    padding-top: 1rem;
+    padding-top: 0.75rem;
     padding-bottom: 4rem;
+  }
+
+  /* Adjust grid for landscape */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .dashboard-tools-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -100,11 +168,44 @@
     padding-right: 0.5rem;
   }
   
+  .text-xl {
+    font-size: 1.125rem;
+  }
+  
   .text-2xl {
     font-size: 1.25rem;
   }
   
   .text-3xl {
     font-size: 1.5rem;
+  }
+
+  /* Force single column on very small screens */
+  .dashboard-stats-grid,
+  .dashboard-tools-grid {
+    grid-template-columns: 1fr;
+  }
+
+  button {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Loading and animation improvements for mobile */
+@media (max-width: 768px) {
+  .animate-pulse,
+  .animate-spin {
+    animation-duration: 1s;
+  }
+
+  /* Reduce motion for battery saving */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pulse,
+    .animate-spin,
+    .hover-glow {
+      animation: none;
+      transition: none;
+    }
   }
 }

@@ -1,0 +1,30 @@
+
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+interface BackToDashboardButtonProps {
+  variant?: "outline" | "default" | "secondary";
+  size?: "sm" | "default" | "lg";
+  className?: string;
+}
+
+export const BackToDashboardButton = ({ 
+  variant = "outline", 
+  size = "default",
+  className = ""
+}: BackToDashboardButtonProps) => {
+  const navigate = useNavigate();
+
+  return (
+    <Button 
+      onClick={() => navigate('/dashboard')}
+      variant={variant}
+      size={size}
+      className={`flex items-center gap-2 ${className}`}
+    >
+      <Home className="h-4 w-4" />
+      Back to Dashboard
+    </Button>
+  );
+};

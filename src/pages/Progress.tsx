@@ -4,78 +4,92 @@ import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BarChart3,
   Clock,
   Book,
   Award,
-  CalendarDays
+  CalendarDays,
+  Target,
+  CheckCircle,
+  Brain,
+  FileText,
+  Camera
 } from "lucide-react";
 import { ProgressStatCard } from "@/components/progress/ProgressStatCard";
 import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
 import { WeeklyStudyHoursChart } from "@/components/progress/WeeklyStudyHoursChart";
 import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
 import { LearningInsightCard } from "@/components/progress/LearningInsightCard";
-import { useRealTimeStudyProgress } from "@/hooks/useRealTimeData";
+import { useStudyTracking, StudySession } from "@/hooks/useStudyTracking";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Progress = () => {
   const { currentUser } = useAuth();
-  const { progress, loading } = useRealTimeStudyProgress();
+  const { stats, getSessions } = useStudyTracking();
   const { toast } = useToast();
+  const [sessions, setSessions] = useState<StudySession[]>([]);
 
-  // Calculate real stats from progress data
-  const calculateStats = () => {
-    if (!progress.length) {
-      return {
-        totalHours: 0,
-        weeklyChange: 0,
-        completedTopics: 0,
-        topicsChange: 0,
-        streakDays: 0,
-        materials: []
-      };
+  useEffect(() => {
+    if (currentUser) {
+      setSessions(getSessions());
     }
+  }, [currentUser, getSessions]);
 
-    const totalMinutes = progress.reduce((sum: number, p: any) => sum + (p.time_spent || 0), 0);
-    const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
-    const completedTopics = progress.filter((p: any) => p.completed).length;
-    
-    // Calculate materials progress
-    const materials = progress.map((p: any) => ({
-      name: p.material_title || 'Study Material',
-      progress: p.progress_percentage || 0
-    }));
-
-    return {
-      totalHours,
-      weeklyChange: 2.3, // Could calculate from timestamps
-      completedTopics,
-      topicsChange: 1,
-      streakDays: 5, // Could calculate from activity logs
-      materials
-    };
+  // Calculate materials progress from sessions
+  const getMaterialsProgress = () => {
+    const materialMap = new Map();
+    sessions.forEach(session => {
+      if (session.completed) {
+        materialMap.set(session.title, {
+          name: session.title,
+          progress: 100, // Completed sessions are 100%
+          type: session.type
+        });
+      }
+    });
+    return Array.from(materialMap.values());
   };
 
-  const stats = calculateStats();
-  
-  // Mock weekly data - could be calculated from real progress data
-  const weeklyData = [
-    { day: 'Mon', hours: 1.5 },
-    { day: 'Tue', hours: 2.2 },
-    { day: 'Wed', hours: 1.8 },
-    { day: 'Thu', hours: 2.5 },
-    { day: 'Fri', hours: 3.0 },
-    { day: 'Sat', hours: 1.0 },
-    { day: 'Sun', hours: 0.5 },
-  ];
+  const materials = getMaterialsProgress();
+
+  // Get recent sessions (last 7 days)
+  const getRecentSessions = () => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return sessions
+      .filter(session => new Date(session.timestamp) > sevenDaysAgo)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10);
+  };
+
+  const recentSessions = getRecentSessions();
+
+  // Mock weekly data based on actual sessions
+  const getWeeklyData = () => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weekData = days.map(day => ({ day, hours: 0 }));
+    
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    sessions
+      .filter(session => new Date(session.timestamp) > oneWeekAgo)
+      .forEach(session => {
+        const dayIndex = new Date(session.timestamp).getDay();
+        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Convert Sunday=0 to Sunday=6
+        weekData[adjustedIndex].hours += session.duration / 60; // Convert minutes to hours
+      });
+    
+    return weekData;
+  };
+
+  const weeklyData = getWeeklyData();
   
   const monthlyData = [
-    { name: 'Jan', hours: 20 },
-    { name: 'Feb', hours: 25 },
-    { name: 'Mar', hours: 18 },
-    { name: 'Apr', hours: 30 },
-    { name: 'May', hours: stats.totalHours },
+    { name: 'Jan', hours: 0 },
+    { name: 'Feb', hours: 0 },
+    { name: 'Mar', hours: 0 },
+    { name: 'Apr', hours: 0 },
+    { name: 'May', hours: stats.totalStudyHours },
     { name: 'Jun', hours: 0 },
     { name: 'Jul', hours: 0 },
     { name: 'Aug', hours: 0 },
@@ -88,71 +102,102 @@ const Progress = () => {
   if (!currentUser) {
     return <div>Please sign in to view your progress.</div>;
   }
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'notes': return <Brain className="h-4 w-4 text-blue-500" />;
+      case 'summary': return <FileText className="h-4 w-4 text-green-500" />;
+      case 'quiz': return <CheckCircle className="h-4 w-4 text-yellow-500" />;
+      case 'snap-solve': return <Camera className="h-4 w-4 text-purple-500" />;
+      default: return <Book className="h-4 w-4 text-gray-500" />;
+    }
+  };
   
   return (
     <div className="min-h-screen flex flex-col bg-[#0d1117] text-white">
       <Navbar />
       
-      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
+      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
-          <div className="mb-8 animate-fade-in">
-            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <BarChart3 className="h-7 w-7 text-spark-primary" />
+          <div className="mb-6 md:mb-8 animate-fade-in">
+            <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
+              <BarChart3 className="h-6 w-6 md:h-7 md:w-7 text-spark-primary" />
               Learning Progress
             </h1>
-            <p className="text-muted-foreground">Track your study habits and achievements</p>
+            <p className="text-muted-foreground text-sm md:text-base">Track your study habits and achievements</p>
           </div>
           
           {/* Progress Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {loading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="animate-pulse h-28 bg-gray-200 rounded-lg dark:bg-muted"></div>
-              ))
-            ) : (
-              <>
-                <ProgressStatCard 
-                  title="Study Hours This Week" 
-                  value={stats.totalHours} 
-                  unit="hrs" 
-                  change={stats.weeklyChange} 
-                  icon={<Clock className="h-5 w-5 text-spark-primary" />} 
-                />
-                <ProgressStatCard 
-                  title="Topics Completed" 
-                  value={stats.completedTopics} 
-                  change={stats.topicsChange}
-                  icon={<Book className="h-5 w-5 text-spark-primary" />} 
-                />
-                <ProgressStatCard 
-                  title="Study Streak" 
-                  value={stats.streakDays} 
-                  unit="days" 
-                  change={0}
-                  icon={<Award className="h-5 w-5 text-spark-primary" />} 
-                />
-              </>
-            )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+            <ProgressStatCard 
+              title="Study Hours" 
+              value={stats.totalStudyHours} 
+              unit="hrs" 
+              change={0.5} 
+              icon={<Clock className="h-4 w-4 md:h-5 md:w-5 text-spark-primary" />} 
+            />
+            <ProgressStatCard 
+              title="Sessions" 
+              value={stats.sessionCount} 
+              change={2}
+              icon={<Target className="h-4 w-4 md:h-5 md:w-5 text-spark-primary" />} 
+            />
+            <ProgressStatCard 
+              title="Quizzes" 
+              value={stats.quizzesCompleted} 
+              change={1}
+              icon={<CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-spark-primary" />} 
+            />
+            <ProgressStatCard 
+              title="Study Streak" 
+              value={stats.streakDays} 
+              unit="days" 
+              change={0}
+              icon={<Award className="h-4 w-4 md:h-5 md:w-5 text-spark-primary" />} 
+            />
+          </div>
+
+          {/* Activity Summary */}
+          <div className="mb-6 md:mb-8">
+            <Card className="dark:bg-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base md:text-lg">Activity Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-lg md:text-2xl font-bold text-blue-500">{stats.summariesGenerated}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Summaries</p>
+                  </div>
+                  <div>
+                    <p className="text-lg md:text-2xl font-bold text-green-500">{stats.notesCreated}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">AI Notes</p>
+                  </div>
+                  <div>
+                    <p className="text-lg md:text-2xl font-bold text-yellow-500">{stats.quizzesCompleted}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
+                  </div>
+                  <div>
+                    <p className="text-lg md:text-2xl font-bold text-purple-500">{stats.snapSolveUsed}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Snap & Solve</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           
           {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <WeeklyStudyHoursChart data={weeklyData} isLoading={loading} />
-            <MonthlyProgressChart data={monthlyData} isLoading={loading} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+            <WeeklyStudyHoursChart data={weeklyData} isLoading={false} />
+            <MonthlyProgressChart data={monthlyData} isLoading={false} />
           </div>
           
           {/* Study Materials Progress */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Study Materials Progress</h2>
-            {loading ? (
-              <div className="animate-pulse space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded-lg dark:bg-muted"></div>
-                ))}
-              </div>
-            ) : stats.materials.length > 0 ? (
-              <div className="space-y-4">
-                {stats.materials.map((material, index) => (
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-lg md:text-xl font-semibold mb-4">Completed Materials</h2>
+            {materials.length > 0 ? (
+              <div className="space-y-3 md:space-y-4">
+                {materials.map((material, index) => (
                   <MaterialProgressCard 
                     key={index}
                     name={material.name}
@@ -161,28 +206,62 @@ const Progress = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Book className="h-12 w-12 mx-auto mb-4" />
-                <p>No study materials found. Start uploading materials to track your progress!</p>
+              <div className="text-center py-6 md:py-8 text-muted-foreground">
+                <Book className="h-8 w-8 md:h-12 md:w-12 mx-auto mb-4" />
+                <p className="text-sm md:text-base">No completed materials yet. Start studying to see your progress!</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Activity */}
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-lg md:text-xl font-semibold mb-4">Recent Activity</h2>
+            {recentSessions.length > 0 ? (
+              <Card className="dark:bg-card">
+                <CardContent className="p-4 md:p-6">
+                  <div className="space-y-3">
+                    {recentSessions.map((session) => (
+                      <div key={session.id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-b-0">
+                        <div className="flex items-center gap-3">
+                          {getActivityIcon(session.type)}
+                          <div>
+                            <p className="font-medium text-sm md:text-base">{session.title}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground capitalize">
+                              {session.type} • {session.duration} min
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-xs md:text-sm text-muted-foreground">
+                          {new Date(session.timestamp).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="text-center py-6 md:py-8 text-muted-foreground">
+                <CalendarDays className="h-8 w-8 md:h-12 md:w-12 mx-auto mb-4" />
+                <p className="text-sm md:text-base">No recent activity. Start studying to see your sessions here!</p>
               </div>
             )}
           </div>
           
           {/* Learning Insights */}
           <div>
-            <h2 className="text-xl font-semibold mb-4">Learning Insights</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-4">Learning Insights</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <LearningInsightCard
                 icon={<CalendarDays />}
-                title="Best Study Day"
-                value="Friday"
-                description="You study an average of 3 hours on Fridays"
+                title="Current Streak"
+                value={`${stats.streakDays} days`}
+                description={`You've been consistent for ${stats.streakDays} consecutive days`}
               />
               <LearningInsightCard
                 icon={<Award />}
-                title="Most Progress In"
-                value={stats.materials.length > 0 ? stats.materials[0].name : "No materials"}
-                description={stats.materials.length > 0 ? `You've completed ${stats.materials[0].progress}% of this material` : "Upload materials to see progress"}
+                title="Most Active"
+                value={sessions.length > 0 ? sessions[0]?.type || "None" : "None"}
+                description={`You've been most active with ${sessions.length > 0 ? sessions[0]?.type || "studying" : "studying"}`}
                 bgColorClass="bg-spark-peach"
                 iconColorClass="text-orange-600"
               />

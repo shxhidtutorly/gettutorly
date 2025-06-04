@@ -1,729 +1,411 @@
-import { useState, useEffect, useCallback } from "react";
-import ReactDOM from "react-dom";
-import { useNavigate } from "react-router-dom";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Badge } from "../components/ui/badge";
-import { Progress } from "../components/ui/progress";
-import { CheckCircle, XCircle, ArrowRight, Trophy, RotateCcw, Clock, Target, Zap, BookOpen, Brain, Plus } from "lucide-react";
+
+import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { 
+  HelpCircle, 
+  CheckCircle, 
+  XCircle, 
+  Trophy,
+  ArrowRight,
+  ArrowLeft,
+  RotateCcw
+} from "lucide-react";
+import { useStudyTracking } from "@/hooks/useStudyTracking";
+import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
 
 interface QuizQuestion {
   question: string;
   options: string[];
-  correctAnswer: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  explanation?: string;
+  correct: number;
 }
 
-const useTheme = () => {
-  const [theme, setTheme] = useState('light');
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-  return { theme, toggleTheme };
-};
-
-const useToast = () => {
-  const toast = ({ title, description }: { title: string; description: string }) => {
-    // Do nothing, or show a custom UI notification instead of alert
-  };
-  return { toast };
-};
-
-const CreateQuizDialog = ({ onSave }: { onSave: (name: string, questions: QuizQuestion[]) => void }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [quizName, setQuizName] = useState('');
-  const [questions, setQuestions] = useState<QuizQuestion[]>([{
-    question: '',
-    options: ['', '', '', ''],
-    correctAnswer: 0
-  }]);
-
-  const handleSave = () => {
-    if (quizName.trim() && questions.every(q => q.question.trim() && q.options.every(o => o.trim()))) {
-      onSave(quizName, questions);
-      setIsOpen(false);
-      setQuizName('');
-      setQuestions([{ question: '', options: ['', '', '', ''], correctAnswer: 0 }]);
-    }
-  };
-
-  const modal = (
-    <div className="fixed inset-0 z-[1050] flex items-center justify-center">
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={() => setIsOpen(false)}
-        aria-label="Close Modal"
-      />
-      {/* Modal */}
-      <div
-        className="relative z-10 bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700"
-        role="dialog"
-        aria-modal="true"
-      >
-        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Create New Quiz</h2>
-        <input
-          type="text"
-          placeholder="Quiz Name"
-          value={quizName}
-          onChange={(e) => setQuizName(e.target.value)}
-          className="w-full p-3 border rounded-lg mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        />
-        {questions.map((q, qIndex) => (
-          <div key={qIndex} className="mb-6 p-4 border rounded-lg dark:border-gray-600">
-            <input
-              type="text"
-              placeholder={`Question ${qIndex + 1}`}
-              value={q.question}
-              onChange={(e) => {
-                const newQuestions = [...questions];
-                newQuestions[qIndex].question = e.target.value;
-                setQuestions(newQuestions);
-              }}
-              className="w-full p-2 border rounded mb-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-            {q.options.map((option, oIndex) => (
-              <div key={oIndex} className="flex items-center gap-2 mb-2">
-                <input
-                  type="radio"
-                  name={`correct-${qIndex}`}
-                  checked={q.correctAnswer === oIndex}
-                  onChange={() => {
-                    const newQuestions = [...questions];
-                    newQuestions[qIndex].correctAnswer = oIndex;
-                    setQuestions(newQuestions);
-                  }}
-                  className="w-4 h-4"
-                />
-                <input
-                  type="text"
-                  placeholder={`Option ${oIndex + 1}`}
-                  value={option}
-                  onChange={(e) => {
-                    const newQuestions = [...questions];
-                    newQuestions[qIndex].options[oIndex] = e.target.value;
-                    setQuestions(newQuestions);
-                  }}
-                  className="flex-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            ))}
-          </div>
-        ))}
-        <Button
-          onClick={() =>
-            setQuestions([...questions, { question: '', options: ['', '', '', ''], correctAnswer: 0 }])
-          }
-          className="mb-4"
-          variant="outline"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Another Question
-        </Button>
-        <div className="flex gap-2 justify-end">
-          <Button onClick={() => setIsOpen(false)} variant="outline">Cancel</Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">Save Quiz</Button>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <>
-      <Button onClick={() => setIsOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all">
-        <Plus className="mr-2 h-4 w-4" />
-        Create Quiz
-      </Button>
-      {isOpen && ReactDOM.createPortal(modal, document.body)}
-    </>
-  );
-};
+interface Quiz {
+  title: string;
+  questions: QuizQuestion[];
+  source?: string;
+  timestamp?: string;
+}
 
 const Quiz = () => {
-  const { theme, toggleTheme } = useTheme();
-  const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
+  const { toast } = useToast();
+  const { trackQuizCompletion, endSession, startSession } = useStudyTracking();
+  
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [score, setScore] = useState(0);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [activeQuiz, setActiveQuiz] = useState("biology");
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [isTimerActive, setIsTimerActive] = useState(true);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [showExplanation, setShowExplanation] = useState(false);
-
-  const [quizSets, setQuizSets] = useState<Record<string, QuizQuestion[]>>({
-    biology: [
-      {
-        question: "Which of the following is a function of mitochondria?",
-        options: ["Photosynthesis", "Cellular respiration", "Protein synthesis", "Cell division"],
-        correctAnswer: 1,
-        difficulty: 'medium',
-        explanation: "Mitochondria are known as the powerhouse of the cell and are responsible for cellular respiration, which produces ATP energy."
-      },
-      {
-        question: "What is the chemical formula of water?",
-        options: ["H2O", "CO2", "NaCl", "CH4"],
-        correctAnswer: 0,
-        difficulty: 'easy',
-        explanation: "Water consists of two hydrogen atoms bonded to one oxygen atom, hence H2O."
-      },
-      {
-        question: "Which of the following is NOT a phase of mitosis?",
-        options: ["Prophase", "Metaphase", "Interphase", "Telophase"],
-        correctAnswer: 2,
-        difficulty: 'medium',
-        explanation: "Interphase is the phase between cell divisions, not a phase of mitosis itself."
-      },
-      {
-        question: "Which scientist is known for the theory of evolution by natural selection?",
-        options: ["Isaac Newton", "Albert Einstein", "Charles Darwin", "Gregor Mendel"],
-        correctAnswer: 2,
-        difficulty: 'easy',
-        explanation: "Charles Darwin formulated the theory of evolution by natural selection in his work 'On the Origin of Species'."
-      },
-      {
-        question: "Which organelle is responsible for protein synthesis in a cell?",
-        options: ["Mitochondria", "Golgi apparatus", "Lysosome", "Ribosome"],
-        correctAnswer: 3,
-        difficulty: 'medium',
-        explanation: "Ribosomes are the cellular structures responsible for translating mRNA into proteins."
-      }
-    ],
-    chemistry: [
-      {
-        question: "What is the atomic number of carbon?",
-        options: ["4", "6", "8", "12"],
-        correctAnswer: 1,
-        difficulty: 'easy',
-        explanation: "Carbon has 6 protons in its nucleus, giving it an atomic number of 6."
-      },
-      {
-        question: "Which of these is a noble gas?",
-        options: ["Oxygen", "Nitrogen", "Helium", "Chlorine"],
-        correctAnswer: 2,
-        difficulty: 'easy',
-        explanation: "Helium is a noble gas with a complete outer electron shell, making it chemically inert."
-      },
-      {
-        question: "What is the pH of pure water at room temperature?",
-        options: ["0", "7", "10", "14"],
-        correctAnswer: 1,
-        difficulty: 'medium',
-        explanation: "Pure water has a pH of 7, which is considered neutral on the pH scale."
-      }
-    ]
-  });
-
-  const [quizNames, setQuizNames] = useState([
-    {
-      id: "biology",
-      name: "Biology",
-      description: "Test your knowledge of biological concepts",
-      category: "Science"
-    },
-    {
-      id: "chemistry",
-      name: "Chemistry",
-      description: "Explore chemical principles and reactions",
-      category: "Science"
-    }
-  ]);
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerActive && timeLeft > 0 && !isAnswered) {
-      interval = setInterval(() => {
-        setTimeLeft(time => time - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && !isAnswered) {
-      handleTimeUp();
-    }
-    return () => clearInterval(interval);
-    // eslint-disable-next-line
-  }, [isTimerActive, timeLeft, isAnswered]);
-
-  const handleTimeUp = () => {
-    setIsAnswered(true);
-    setStreak(0);
-    toast({
-      title: "Time's up!",
-      description: `The correct answer was: ${quizSets[activeQuiz][currentQuestion].options[quizSets[activeQuiz][currentQuestion].correctAnswer]}`
-    });
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'hard': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
-
-  const handleSelectAnswer = useCallback((index: number) => {
-    if (isAnswered) return;
-    setSelectedAnswer(index);
-    setIsAnswered(true);
-    setIsTimerActive(false);
-
-    const isCorrect = index === quizSets[activeQuiz][currentQuestion].correctAnswer;
-
-    if (isCorrect) {
-      setScore(score + 1);
-      setStreak(streak + 1);
-      setBestStreak(Math.max(bestStreak, streak + 1));
-      toast({
-        title: "Correct! 🎉",
-        description: "Well done, that's the right answer."
-      });
+    const source = searchParams.get('source');
+    
+    if (source === 'generated') {
+      // Load generated quiz from localStorage
+      const savedQuiz = localStorage.getItem('generatedQuiz');
+      if (savedQuiz) {
+        const parsedQuiz = JSON.parse(savedQuiz);
+        setQuiz(parsedQuiz);
+        setSelectedAnswers(new Array(parsedQuiz.questions.length).fill(-1));
+        startSession();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "No quiz found",
+          description: "Generate a quiz first from your notes."
+        });
+        navigate('/dashboard');
+      }
     } else {
-      setStreak(0);
-      toast({
-        title: "Incorrect ❌",
-        description: `The correct answer is: ${quizSets[activeQuiz][currentQuestion].options[quizSets[activeQuiz][currentQuestion].correctAnswer]}`
-      });
+      // Load default sample quiz
+      const sampleQuiz: Quiz = {
+        title: "Sample Study Quiz",
+        questions: [
+          {
+            question: "What is the capital of France?",
+            options: ["London", "Berlin", "Paris", "Madrid"],
+            correct: 2
+          },
+          {
+            question: "Which planet is closest to the Sun?",
+            options: ["Venus", "Mercury", "Earth", "Mars"],
+            correct: 1
+          },
+          {
+            question: "What is 2 + 2?",
+            options: ["3", "4", "5", "6"],
+            correct: 1
+          },
+          {
+            question: "Who wrote 'Romeo and Juliet'?",
+            options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
+            correct: 1
+          },
+          {
+            question: "What is the chemical symbol for water?",
+            options: ["H2O", "CO2", "O2", "H2SO4"],
+            correct: 0
+          }
+        ]
+      };
+      setQuiz(sampleQuiz);
+      setSelectedAnswers(new Array(sampleQuiz.questions.length).fill(-1));
+      startSession();
     }
-    setTimeout(() => setShowExplanation(true), 500);
-    // eslint-disable-next-line
-  }, [isAnswered, score, streak, bestStreak, activeQuiz, currentQuestion, quizSets, toast]);
+    
+    setIsLoading(false);
+  }, [searchParams, navigate, toast, startSession]);
 
-  const handleNextQuestion = () => {
-    if (currentQuestion < quizSets[activeQuiz].length - 1) {
+  const handleAnswerSelect = (answerIndex: number) => {
+    const newAnswers = [...selectedAnswers];
+    newAnswers[currentQuestion] = answerIndex;
+    setSelectedAnswers(newAnswers);
+  };
+
+  const goToNext = () => {
+    if (currentQuestion < (quiz?.questions.length || 0) - 1) {
       setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(null);
-      setIsAnswered(false);
-      setShowExplanation(false);
-      setTimeLeft(30);
-      setIsTimerActive(true);
-    } else {
-      setQuizCompleted(true);
-      setIsTimerActive(false);
     }
   };
 
-  const handleRestartQuiz = () => {
-    setCurrentQuestion(0);
-    setSelectedAnswer(null);
-    setIsAnswered(false);
-    setScore(0);
-    setQuizCompleted(false);
-    setShowExplanation(false);
-    setTimeLeft(30);
-    setIsTimerActive(true);
-    setStreak(0);
+  const goToPrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+    }
   };
 
-  const handleCreateQuiz = (quizName: string, questions: QuizQuestion[]) => {
-    const quizId = quizName.toLowerCase().replace(/\s+/g, '-');
-    if (quizSets[quizId]) {
+  const submitQuiz = () => {
+    if (!quiz) return;
+    
+    const unanswered = selectedAnswers.some(answer => answer === -1);
+    if (unanswered) {
       toast({
-        title: "Quiz already exists",
-        description: "A quiz with this name already exists. Please choose a different name."
+        variant: "destructive",
+        title: "Incomplete Quiz",
+        description: "Please answer all questions before submitting."
       });
       return;
     }
-    setQuizSets(prev => ({
-      ...prev,
-      [quizId]: questions
-    }));
-    setQuizNames(prev => [
-      ...prev,
-      { id: quizId, name: quizName, description: `Custom quiz with ${questions.length} questions`, category: "Custom" }
-    ]);
-    setActiveQuiz(quizId);
-    handleRestartQuiz();
+
+    setShowResults(true);
+    trackQuizCompletion();
+    endSession('quiz', quiz.title, true);
+    
     toast({
-      title: "Quiz created! 🚀",
-      description: `Successfully created "${quizName}" with ${questions.length} questions.`
+      title: "Quiz Completed!",
+      description: "Great job! Check your results below."
     });
   };
 
-  const handleSwitchQuiz = (quizId: string) => {
-    setActiveQuiz(quizId);
+  const calculateScore = () => {
+    if (!quiz) return 0;
+    const correct = selectedAnswers.reduce((score, answer, index) => {
+      return score + (answer === quiz.questions[index].correct ? 1 : 0);
+    }, 0);
+    return Math.round((correct / quiz.questions.length) * 100);
+  };
+
+  const restartQuiz = () => {
     setCurrentQuestion(0);
-    setSelectedAnswer(null);
-    setIsAnswered(false);
-    setScore(0);
-    setQuizCompleted(false);
-    setShowExplanation(false);
-    setTimeLeft(30);
-    setIsTimerActive(true);
-    setStreak(0);
+    setSelectedAnswers(new Array(quiz?.questions.length || 0).fill(-1));
+    setShowResults(false);
+    startSession();
   };
 
-  const getScoreEmoji = () => {
-    const percentage = (score / quizSets[activeQuiz].length) * 100;
-    if (percentage === 100) return "🏆";
-    if (percentage >= 80) return "🌟";
-    if (percentage >= 60) return "👍";
-    return "📚";
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading quiz...</p>
+          </div>
+        </main>
+        <Footer />
+        <BottomNav />
+      </div>
+    );
+  }
 
-  const currentQuizData = quizNames.find(q => q.id === activeQuiz);
+  if (!quiz) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <HelpCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-lg font-semibold mb-2">No Quiz Available</p>
+            <p className="text-muted-foreground mb-4">Generate a quiz from your notes or try again.</p>
+            <BackToDashboardButton />
+          </div>
+        </main>
+        <Footer />
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (showResults) {
+    const score = calculateScore();
+    const correctAnswers = selectedAnswers.reduce((count, answer, index) => {
+      return count + (answer === quiz.questions[index].correct ? 1 : 0);
+    }, 0);
+
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
+          <div className="container max-w-4xl mx-auto">
+            <div className="text-center mb-6 md:mb-8">
+              <Trophy className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 text-yellow-500" />
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">Quiz Complete!</h1>
+              <p className="text-muted-foreground">Here are your results</p>
+            </div>
+
+            <Card className="mb-6 md:mb-8">
+              <CardHeader>
+                <CardTitle className="text-center">Final Score</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="text-4xl md:text-6xl font-bold mb-2 text-primary">{score}%</div>
+                <p className="text-lg md:text-xl text-muted-foreground">
+                  {correctAnswers} out of {quiz.questions.length} correct
+                </p>
+                <div className="mt-4">
+                  {score >= 80 && <p className="text-green-600 font-semibold">Excellent work! 🎉</p>}
+                  {score >= 60 && score < 80 && <p className="text-yellow-600 font-semibold">Good job! 👍</p>}
+                  {score < 60 && <p className="text-red-600 font-semibold">Keep practicing! 💪</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4 md:space-y-6 mb-6 md:mb-8">
+              {quiz.questions.map((question, index) => {
+                const userAnswer = selectedAnswers[index];
+                const isCorrect = userAnswer === question.correct;
+                
+                return (
+                  <Card key={index} className={`border-l-4 ${isCorrect ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start gap-3">
+                        {isCorrect ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-500 mt-1 flex-shrink-0" />
+                        )}
+                        <div>
+                          <h3 className="font-semibold text-sm md:text-base">Question {index + 1}</h3>
+                          <p className="text-sm md:text-base">{question.question}</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {question.options.map((option, optionIndex) => (
+                          <div 
+                            key={optionIndex}
+                            className={`p-2 md:p-3 rounded-lg text-sm md:text-base ${
+                              optionIndex === question.correct 
+                                ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' 
+                                : optionIndex === userAnswer && !isCorrect
+                                ? 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
+                                : 'bg-muted'
+                            }`}
+                          >
+                            <span className="font-medium mr-2">{String.fromCharCode(65 + optionIndex)}.</span>
+                            {option}
+                            {optionIndex === question.correct && (
+                              <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
+                            )}
+                            {optionIndex === userAnswer && !isCorrect && (
+                              <span className="ml-2 text-red-600 font-semibold">✗ Your answer</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+              <Button onClick={restartQuiz} variant="outline" className="flex items-center gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Retake Quiz
+              </Button>
+              <BackToDashboardButton />
+            </div>
+          </div>
+        </main>
+        <Footer />
+        <BottomNav />
+      </div>
+    );
+  }
+
+  const currentQ = quiz.questions[currentQuestion];
+  const progress = ((currentQuestion + 1) / quiz.questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-      {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <div className="container max-w-6xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-xl">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      
+      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
+        <div className="container max-w-4xl mx-auto">
+          <div className="mb-6 md:mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  AI Study Quiz
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Master your knowledge with adaptive learning</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={toggleTheme}
-                variant="outline"
-                size="sm"
-                className="border-gray-300 dark:border-gray-600"
-              >
-                {theme === 'light' ? '🌙' : '☀️'}
-              </Button>
-              <CreateQuizDialog onSave={handleCreateQuiz} />
-              <Button
-                onClick={() => navigate('/dashboard')}
-                variant="outline"
-                className="border-gray-300 dark:border-gray-600"
-              >
-                ← Back to Dashboard
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="container max-w-6xl mx-auto px-4 pt-8 pb-12">
-        {/* Stats Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Target className="h-8 w-8" />
-              <div>
-                <p className="text-sm opacity-90">Current Score</p>
-                <p className="text-2xl font-bold">{score}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Zap className="h-8 w-8" />
-              <div>
-                <p className="text-sm opacity-90">Streak</p>
-                <p className="text-2xl font-bold">{streak}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Trophy className="h-8 w-8" />
-              <div>
-                <p className="text-sm opacity-90">Best Streak</p>
-                <p className="text-2xl font-bold">{bestStreak}</p>
-              </div>
-            </CardContent>
-          </Card>
-          {!quizCompleted && (
-            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Clock className="h-8 w-8" />
-                <div>
-                  <p className="text-sm opacity-90">Time Left</p>
-                  <p className="text-2xl font-bold">{timeLeft}s</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Quiz Tabs */}
-        <Card className="mb-8 shadow-lg">
-          <CardContent className="p-6">
-            <Tabs value={activeQuiz} onValueChange={handleSwitchQuiz}>
-              <TabsList className="flex flex-wrap md:flex-nowrap overflow-x-auto gap-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
-                {quizNames.map(quiz => (
-                  <TabsTrigger
-                    key={quiz.id}
-                    value={quiz.id}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200
-                      ${
-                        activeQuiz === quiz.id
-                          ? "bg-white shadow-md dark:bg-gray-700 text-blue-700 dark:text-white border-2 border-blue-500"
-                          : "bg-transparent text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900 border border-transparent"
-                      }
-                    `}
-                    style={{ minWidth: 140 }}
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    <span>{quiz.name}</span>
-                    <Badge variant="secondary" className="ml-2 text-xs">{quiz.category}</Badge>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            {currentQuizData && (
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {currentQuizData.description}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {quizSets[activeQuiz].length} questions • Mixed difficulty
+                <h1 className="text-xl md:text-2xl font-bold mb-2">{quiz.title}</h1>
+                <p className="text-muted-foreground text-sm md:text-base">
+                  Question {currentQuestion + 1} of {quiz.questions.length}
                 </p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {!quizCompleted ? (
-          <div className="max-w-4xl mx-auto space-y-6">
-            {/* Progress Section */}
-            <Card className="shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Question {currentQuestion + 1} of {quizSets[activeQuiz].length}
-                    </span>
-                    {quizSets[activeQuiz][currentQuestion].difficulty && (
-                      <Badge className={getDifficultyColor(quizSets[activeQuiz][currentQuestion].difficulty!)}>
-                        {quizSets[activeQuiz][currentQuestion].difficulty}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Score: {score}/{quizSets[activeQuiz].length}
-                  </div>
-                </div>
-                <Progress 
-                  value={((currentQuestion + 1) / quizSets[activeQuiz].length) * 100} 
-                  className="h-3 bg-gray-200 dark:bg-gray-700"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Question Card */}
-            <Card className="shadow-xl border-0 bg-white dark:bg-gray-800">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl md:text-2xl leading-relaxed text-gray-900 dark:text-white">
-                  {quizSets[activeQuiz][currentQuestion].question}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {quizSets[activeQuiz][currentQuestion].options.map((option, index) => (
-                  <div 
-                    key={index}
-                    className={`group flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
-                      selectedAnswer === index && index === quizSets[activeQuiz][currentQuestion].correctAnswer 
-                        ? 'bg-green-50 border-green-400 shadow-green-100 dark:bg-green-900/30 dark:border-green-500' 
-                        : selectedAnswer === index && index !== quizSets[activeQuiz][currentQuestion].correctAnswer 
-                        ? 'bg-red-50 border-red-400 shadow-red-100 dark:bg-red-900/30 dark:border-red-500' 
-                        : selectedAnswer === null 
-                        ? 'hover:bg-blue-50 border-gray-200 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:border-gray-600 dark:hover:border-blue-500' 
-                        : isAnswered && index === quizSets[activeQuiz][currentQuestion].correctAnswer 
-                        ? 'bg-green-50 border-green-400 shadow-green-100 dark:bg-green-900/30 dark:border-green-500' 
-                        : 'border-gray-200 dark:border-gray-600'
-                    }`}
-                    onClick={() => handleSelectAnswer(index)}
-                  >
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-300 ${
-                      selectedAnswer === index && index === quizSets[activeQuiz][currentQuestion].correctAnswer 
-                        ? 'bg-green-500 border-green-500 text-white' 
-                        : selectedAnswer === index && index !== quizSets[activeQuiz][currentQuestion].correctAnswer 
-                        ? 'bg-red-500 border-red-500 text-white' 
-                        : selectedAnswer === null 
-                        ? 'border-gray-300 group-hover:border-blue-400 dark:border-gray-600' 
-                        : isAnswered && index === quizSets[activeQuiz][currentQuestion].correctAnswer 
-                        ? 'bg-green-500 border-green-500 text-white' 
-                        : 'border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {selectedAnswer === index && index === quizSets[activeQuiz][currentQuestion].correctAnswer && (
-                        <CheckCircle className="h-5 w-5" />
-                      )}
-                      {selectedAnswer === index && index !== quizSets[activeQuiz][currentQuestion].correctAnswer && (
-                        <XCircle className="h-5 w-5" />
-                      )}
-                      {isAnswered && index === quizSets[activeQuiz][currentQuestion].correctAnswer && selectedAnswer !== index && (
-                        <CheckCircle className="h-5 w-5" />
-                      )}
-                      {!isAnswered && <span className="text-sm font-medium">{String.fromCharCode(65 + index)}</span>}
-                    </div>
-                    <span className="flex-grow text-gray-900 dark:text-gray-100 font-medium">{option}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Explanation Card */}
-            {showExplanation && quizSets[activeQuiz][currentQuestion].explanation && (
-              <Card className="shadow-lg border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-l-blue-400">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-blue-500 p-2 rounded-full">
-                      <BookOpen className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Explanation</h4>
-                      <p className="text-blue-800 dark:text-blue-200">{quizSets[activeQuiz][currentQuestion].explanation}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Action Button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleNextQuestion}
-                disabled={!isAnswered}
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3 text-lg"
-              >
-                {currentQuestion < quizSets[activeQuiz].length - 1 ? (
-                  <>Next Question <ArrowRight className="ml-2 h-5 w-5" /></>
-                ) : (
-                  <>Finish Quiz <Trophy className="ml-2 h-5 w-5" /></>
-                )}
-              </Button>
+              <BackToDashboardButton className="mt-4 md:mt-0" />
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex justify-between text-sm mb-2">
+                <span>Progress</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
             </div>
           </div>
-        ) : (
-          <Card className="max-w-4xl mx-auto shadow-2xl border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
-            <CardHeader className="text-center pb-4">
-              <div className="text-8xl mb-4">{getScoreEmoji()}</div>
-              <CardTitle className="text-3xl md:text-4xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Quiz Completed!
-              </CardTitle>
+
+          <Card className="mb-6 md:mb-8">
+            <CardHeader>
+              <CardTitle className="text-lg md:text-xl">{currentQ.question}</CardTitle>
             </CardHeader>
-            <CardContent className="text-center space-y-8">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-2xl">
-                <div className="text-6xl font-bold mb-2">{score}/{quizSets[activeQuiz].length}</div>
-                <div className="text-xl opacity-90">
-                  {Math.round((score / quizSets[activeQuiz].length) * 100)}% Accuracy
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                  <Trophy className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                  <div className="font-semibold text-blue-900 dark:text-blue-100">Best Streak</div>
-                  <div className="text-2xl font-bold text-blue-600">{bestStreak}</div>
-                </div>
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                  <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                  <div className="font-semibold text-green-900 dark:text-green-100">Correct Answers</div>
-                  <div className="text-2xl font-bold text-green-600">{score}</div>
-                </div>
-                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                  <Target className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                  <div className="font-semibold text-purple-900 dark:text-purple-100">Completion</div>
-                  <div className="text-2xl font-bold text-purple-600">100%</div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <p className="text-lg text-gray-600 dark:text-gray-400">
-                  {score === quizSets[activeQuiz].length ? "🎉 Perfect score! You're a master of this subject!" : 
-                   score >= quizSets[activeQuiz].length * 0.8 ? "🌟 Excellent work! You've got a great understanding." :
-                   score >= quizSets[activeQuiz].length * 0.6 ? "👍 Good job! Keep practicing to improve further." :
-                   "📚 Keep studying! Every attempt makes you stronger."}
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button 
-                    onClick={handleRestartQuiz}
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <RotateCcw className="mr-2 h-5 w-5" />
-                    Try Again
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => {
-                      const nextQuizIndex = quizNames.findIndex(q => q.id === activeQuiz) + 1;
-                      if (nextQuizIndex < quizNames.length) {
-                        handleSwitchQuiz(quizNames[nextQuizIndex].id);
-                      }
-                    }}
-                    variant="outline"
-                    size="lg"
-                    disabled={quizNames.findIndex(q => q.id === activeQuiz) === quizNames.length - 1}
-                    className="border-2 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <ArrowRight className="mr-2 h-5 w-5" />
-                    Next Quiz
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Performance Insights */}
-              <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl text-left">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  Performance Insights
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Questions Attempted:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{quizSets[activeQuiz].length}</span>
+            <CardContent>
+              <RadioGroup 
+                value={selectedAnswers[currentQuestion]?.toString() || ""} 
+                onValueChange={(value) => handleAnswerSelect(parseInt(value))}
+                className="space-y-3 md:space-y-4"
+              >
+                {currentQ.options.map((option, index) => (
+                  <div key={index} className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                    <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                    <Label 
+                      htmlFor={`option-${index}`} 
+                      className="flex-1 cursor-pointer text-sm md:text-base font-medium"
+                    >
+                      <span className="mr-2 text-muted-foreground">{String.fromCharCode(65 + index)}.</span>
+                      {option}
+                    </Label>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Accuracy Rate:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{Math.round((score / quizSets[activeQuiz].length) * 100)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Best Streak:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{bestStreak} questions</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Quiz Category:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{currentQuizData?.category}</span>
-                  </div>
-                </div>
-              </div>
+                ))}
+              </RadioGroup>
             </CardContent>
           </Card>
-        )}
-      </main>
 
-      {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
-        <div className="container max-w-6xl mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-blue-600" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                © 2025 AI Study Quiz - Powered by intelligent learning algorithms
-              </span>
+          <div className="flex flex-col md:flex-row gap-4 justify-between">
+            <Button 
+              onClick={goToPrevious}
+              disabled={currentQuestion === 0}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Previous
+            </Button>
+
+            <div className="flex gap-4">
+              {currentQuestion === quiz.questions.length - 1 ? (
+                <Button 
+                  onClick={submitQuiz}
+                  className="flex items-center gap-2"
+                  disabled={selectedAnswers[currentQuestion] === -1}
+                >
+                  <Trophy className="h-4 w-4" />
+                  Submit Quiz
+                </Button>
+              ) : (
+                <Button 
+                  onClick={goToNext}
+                  disabled={selectedAnswers[currentQuestion] === -1}
+                  className="flex items-center gap-2"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-              <span>Made with ❤️ for learners worldwide</span>
+          </div>
+
+          {/* Question Navigator */}
+          <div className="mt-6 md:mt-8">
+            <h3 className="font-semibold mb-3 text-sm md:text-base">Question Navigator</h3>
+            <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+              {quiz.questions.map((_, index) => (
+                <Button
+                  key={index}
+                  size="sm"
+                  variant={index === currentQuestion ? "default" : selectedAnswers[index] !== -1 ? "secondary" : "outline"}
+                  onClick={() => setCurrentQuestion(index)}
+                  className="h-8 w-8 md:h-10 md:w-10 p-0 text-xs md:text-sm"
+                >
+                  {index + 1}
+                </Button>
+              ))}
             </div>
           </div>
         </div>
-      </footer>
+      </main>
+      
+      <Footer />
+      <BottomNav />
     </div>
   );
 };

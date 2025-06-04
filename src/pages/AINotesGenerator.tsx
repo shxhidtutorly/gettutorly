@@ -11,16 +11,22 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, ArrowLeft, Loader2 } from "lucide-react";
 import { ExtractionResult } from "@/lib/fileExtractor";
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
+import { useStudyTracking } from "@/hooks/useStudyTracking";
+import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
+import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
+import { QuizFromNotesButton } from "@/components/features/QuizFromNotesButton";
 
 const AINotesGenerator = () => {
   const [extractedFile, setExtractedFile] = useState<ExtractionResult | null>(null);
   const [note, setNote] = useState<AINote | null>(null);
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const [notesProgress, setNotesProgress] = useState(0);
+  const { trackNotesCreation, endSession, startSession } = useStudyTracking();
   const { toast } = useToast();
 
   const handleFileProcessed = async (result: ExtractionResult) => {
     setExtractedFile(result);
+    startSession(); // Start tracking session
     await generateNotes(result);
   };
 
@@ -36,6 +42,10 @@ const AINotesGenerator = () => {
       setNote(generatedNote);
       setNotesProgress(100);
       
+      // Track the notes creation
+      trackNotesCreation();
+      endSession('notes', generatedNote.title, true);
+      
       setTimeout(() => setNotesProgress(0), 1000);
       
       toast({
@@ -45,6 +55,7 @@ const AINotesGenerator = () => {
     } catch (error) {
       console.error('Error generating notes:', error);
       setNotesProgress(0);
+      endSession('notes', fileResult.filename, false);
       toast({
         variant: "destructive",
         title: "Error generating notes",
@@ -69,14 +80,14 @@ const AINotesGenerator = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
+      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6 md:mb-8">
             <div className="flex items-center justify-center mb-4">
-              <BookOpen className="h-8 w-8 mr-3 text-primary" />
-              <h1 className="text-3xl font-bold">AI Notes Generator</h1>
+              <BookOpen className="h-6 w-6 md:h-8 md:w-8 mr-3 text-primary" />
+              <h1 className="text-2xl md:text-3xl font-bold">AI Notes Generator</h1>
             </div>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">
               Upload your study materials and let AI transform them into structured, comprehensive notes
             </p>
           </div>
@@ -91,9 +102,9 @@ const AINotesGenerator = () => {
           {isGeneratingNotes && (
             <div className="max-w-2xl mx-auto mb-8">
               <div className="text-center mb-4">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <h3 className="text-lg font-semibold">Generating AI Notes...</h3>
-                <p className="text-muted-foreground">
+                <Loader2 className="w-6 h-6 md:w-8 md:h-8 animate-spin mx-auto mb-2" />
+                <h3 className="text-base md:text-lg font-semibold">Generating AI Notes...</h3>
+                <p className="text-muted-foreground text-sm md:text-base">
                   Our AI is analyzing your content and creating structured study notes
                 </p>
               </div>
@@ -108,7 +119,8 @@ const AINotesGenerator = () => {
 
           {note && (
             <div className="space-y-6">
-              <div className="flex justify-center">
+              <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                <BackToDashboardButton />
                 <Button 
                   onClick={startOver}
                   variant="outline"
@@ -117,6 +129,18 @@ const AINotesGenerator = () => {
                   <ArrowLeft className="w-4 h-4" />
                   Upload Another File
                 </Button>
+              </div>
+              
+              {/* Action buttons after notes are generated */}
+              <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                <DownloadNotesButton 
+                  content={note.content}
+                  filename={note.title}
+                />
+                <QuizFromNotesButton 
+                  notesContent={note.content}
+                  notesTitle={note.title}
+                />
               </div>
               
               <NotesDisplay 
