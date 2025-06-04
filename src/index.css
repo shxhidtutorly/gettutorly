@@ -393,7 +393,25 @@
     scrollbar-width: none;  /* Firefox */
   }
   
-  .scrollbar-hide::-webkit-scrollbar {
+   .scrollbar-hide::-webkit-scrollbar {
     display: none;  /* Chrome, Safari and Opera */
   }
+}
+
+/* 3D Flashcard Flip and Fade-in Animation Utilities */
+.perspective {
+  perspective: 1200px;
+}
+
+[style*="rotateY(180deg)"] {
+  transition: transform 0.7s cubic-bezier(.4,2,.6,1);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
