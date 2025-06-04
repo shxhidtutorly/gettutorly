@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-4-scout-17b-16e-instruct',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
