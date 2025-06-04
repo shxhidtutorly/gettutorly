@@ -193,55 +193,62 @@ const DoubtChain = () => {
     setDoubtTree(updateNode(doubtTree));
   };
 
-  const handleFollowup = async (nodeId: string, followupType: string) => {
-    setFollowupLoading(nodeId + followupType);
-    
-    try {
-      const node = findNode(doubtTree!, nodeId);
-      if (!node) return;
+ const handleFollowup = async (nodeId: string, followupType: string) => {
+  setFollowupLoading(nodeId + followupType);
 
-      const followupMap = {
-        example: "What's an example of this?",
-        reallife: "Can you relate this to real life?",
-        simple: "Explain like I'm 5",
-        formula: "Give formula (if applicable)",
-        summary: "Show 1-line summary",
-        fullsummary: "Explain my original doubt using all the breakdowns and explanations above in detail"
-      };
+  try {
+    const node = findNode(doubtTree!, nodeId);
+    if (!node) return;
 
-      const response = await fetch('/api/followup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          question: node.question, 
-          followup: followupMap[followupType as keyof typeof followupMap]
-        })
-      });
+    const followupMap = {
+      example: "What's an example of this?",
+      reallife: "Can you relate this to real life?",
+      simple: "Explain like I'm 5",
+      formula: "Give formula (if applicable)",
+      summary: "Show 1-line summary",
+      fullsummary: "Explain my original doubt using all the breakdowns and explanations above in detail"
+    };
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+    const isFullSummary = followupType === 'fullsummary';
+    const chainString = isFullSummary ? buildChainString(doubtTree) : undefined;
 
-      // Update node with followup response
-      const updateNode = (n: DoubtNode): DoubtNode => {
-        if (n.id === nodeId) {
-          return { ...n, followups: { ...n.followups, [followupType]: data.result } };
-        }
-        return { ...n, children: n.children.map(updateNode) };
-      };
-
-      setDoubtTree(prev => prev ? updateNode(prev) : null);
-      
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to get followup response",
-        variant: "destructive"
-      });
-    } finally {
-      setFollowupLoading(null);
+    const body: any = {
+      question: node.question,
+      followup: followupMap[followupType]
+    };
+    if (isFullSummary) {
+      body.chain = chainString;
     }
-  };
 
+    const response = await fetch('/api/followup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+
+    // Update node with followup response
+    const updateNode = (n: DoubtNode): DoubtNode => {
+      if (n.id === nodeId) {
+        return { ...n, followups: { ...n.followups, [followupType]: data.result } };
+      }
+      return { ...n, children: n.children.map(updateNode) };
+    };
+
+    setDoubtTree(prev => prev ? updateNode(prev) : null);
+
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to get followup response",
+      variant: "destructive"
+    });
+  } finally {
+    setFollowupLoading(null);
+  }
+};
   const findNode = (node: DoubtNode, id: string): DoubtNode | null => {
     if (node.id === id) return node;
     for (const child of node.children) {
@@ -487,13 +494,13 @@ const DoubtChain = () => {
               {/* Final explanation button */}
               <Card className="mt-6 dark:bg-gradient-to-r dark:from-purple-950 dark:to-blue-950 border-purple-500">
                 <CardContent className="p-4 md:p-6 text-center">
-                  <Button
-                    className="w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-                    onClick={() => handleFollowup(doubtTree.id, 'fullsummary')}
-                  >
-                    <Lightbulb className="h-4 w-4 mr-2" />
-                    Now explain my original doubt using everything above
-                  </Button>
+                 <Button
+  className="w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+  onClick={() => handleFollowup(doubtTree.id, 'fullsummary')}
+>
+  <Lightbulb className="h-4 w-4 mr-2" />
+  Now explain my original doubt using everything above
+</Button>
                 </CardContent>
               </Card>
             </motion.div>
