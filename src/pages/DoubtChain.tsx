@@ -57,13 +57,12 @@ const DoubtChain = () => {
   const { toast } = useToast();
 
   const followupOptions = [
-  { key: "example", label: "What's an example?", icon: <Eye className="h-4 w-4" /> },
-  { key: "reallife", label: "Real life connection?", icon: <Users className="h-4 w-4" /> },
-  { key: "simple", label: "Explain like I'm 5", icon: <Lightbulb className="h-4 w-4" /> },
-  { key: "formula", label: "Show formula", icon: <FileText className="h-4 w-4" /> },
-  { key: "summary", label: "1-line summary", icon: <Target className="h-4 w-4" /> },
-  { key: "fullsummary", label: "Full, detailed answer", icon: <Lightbulb className="h-4 w-4" /> },
-];
+    { key: "example", label: "What's an example?", icon: <Eye className="h-4 w-4" /> },
+    { key: "reallife", label: "Real life connection?", icon: <Users className="h-4 w-4" /> },
+    { key: "simple", label: "Explain like I'm 5", icon: <Lightbulb className="h-4 w-4" /> },
+    { key: "formula", label: "Show formula", icon: <FileText className="h-4 w-4" /> },
+    { key: "summary", label: "1-line summary", icon: <Target className="h-4 w-4" /> }
+  ];
 
   // Load stats and bookmarks on mount
   useEffect(() => {
@@ -82,13 +81,8 @@ const DoubtChain = () => {
   const loadUserData = () => {
     const savedStats = localStorage.getItem(`doubt_stats_${currentUser?.id}`);
     const savedBookmarks = localStorage.getItem(`doubt_bookmarks_${currentUser?.id}`);
-    
-    if (savedStats) {
-      setStats(JSON.parse(savedStats));
-    }
-    if (savedBookmarks) {
-      setBookmarkedChains(JSON.parse(savedBookmarks));
-    }
+    if (savedStats) setStats(JSON.parse(savedStats));
+    if (savedBookmarks) setBookmarkedChains(JSON.parse(savedBookmarks));
   };
 
   const saveUserData = () => {
@@ -124,7 +118,6 @@ const DoubtChain = () => {
         const childNode = await buildDoubtChain(data.result, depth + 1);
         node.children = [childNode];
       }
-
       return node;
     } catch (error) {
       console.error('Error building doubt chain:', error);
@@ -139,13 +132,10 @@ const DoubtChain = () => {
     try {
       const tree = await buildDoubtChain(initialQuestion.trim());
       setDoubtTree(tree);
-      
-      // Update stats
       setStats(prev => ({ 
         ...prev, 
         chainsCompleted: prev.chainsCompleted + 1 
       }));
-      
       toast({
         title: "Doubt Chain Created! 🌱",
         description: "Explore each level to understand the fundamentals"
@@ -163,7 +153,6 @@ const DoubtChain = () => {
 
   const handleNodeClick = async (nodeId: string) => {
     if (!doubtTree) return;
-
     const updateNode = (node: DoubtNode): DoubtNode => {
       if (node.id === nodeId) {
         const wasExplored = node.isExplored;
@@ -172,8 +161,6 @@ const DoubtChain = () => {
           isExpanded: !node.isExpanded,
           isExplored: true
         };
-        
-        // Track concept understanding
         if (!wasExplored) {
           setStats(prev => ({ 
             ...prev, 
@@ -181,7 +168,6 @@ const DoubtChain = () => {
             currentWeekConcepts: prev.currentWeekConcepts + 1
           }));
         }
-        
         return updated;
       }
       return {
@@ -189,66 +175,53 @@ const DoubtChain = () => {
         children: node.children.map(updateNode)
       };
     };
-
     setDoubtTree(updateNode(doubtTree));
   };
 
- const handleFollowup = async (nodeId: string, followupType: string) => {
-  setFollowupLoading(nodeId + followupType);
+  const handleFollowup = async (nodeId: string, followupType: string) => {
+    setFollowupLoading(nodeId + followupType);
+    try {
+      const node = findNode(doubtTree!, nodeId);
+      if (!node) return;
 
-  try {
-    const node = findNode(doubtTree!, nodeId);
-    if (!node) return;
+      const followupMap = {
+        example: "What's an example of this?",
+        reallife: "Can you relate this to real life?",
+        simple: "Explain like I'm 5",
+        formula: "Give formula (if applicable)",
+        summary: "Show 1-line summary"
+      };
 
-    const followupMap = {
-      example: "What's an example of this?",
-      reallife: "Can you relate this to real life?",
-      simple: "Explain like I'm 5",
-      formula: "Give formula (if applicable)",
-      summary: "Show 1-line summary",
-      fullsummary: "Explain my original doubt using all the breakdowns and explanations above in detail"
-    };
+      const response = await fetch('/api/followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          question: node.question, 
+          followup: followupMap[followupType as keyof typeof followupMap]
+        })
+      });
 
-    const isFullSummary = followupType === 'fullsummary';
-    const chainString = isFullSummary ? buildChainString(doubtTree) : undefined;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
 
-    const body: any = {
-      question: node.question,
-      followup: followupMap[followupType]
-    };
-    if (isFullSummary) {
-      body.chain = chainString;
+      const updateNode = (n: DoubtNode): DoubtNode => {
+        if (n.id === nodeId) {
+          return { ...n, followups: { ...n.followups, [followupType]: data.result } };
+        }
+        return { ...n, children: n.children.map(updateNode) };
+      };
+      setDoubtTree(prev => prev ? updateNode(prev) : null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get followup response",
+        variant: "destructive"
+      });
+    } finally {
+      setFollowupLoading(null);
     }
+  };
 
-    const response = await fetch('/api/followup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error);
-
-    // Update node with followup response
-    const updateNode = (n: DoubtNode): DoubtNode => {
-      if (n.id === nodeId) {
-        return { ...n, followups: { ...n.followups, [followupType]: data.result } };
-      }
-      return { ...n, children: n.children.map(updateNode) };
-    };
-
-    setDoubtTree(prev => prev ? updateNode(prev) : null);
-
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to get followup response",
-      variant: "destructive"
-    });
-  } finally {
-    setFollowupLoading(null);
-  }
-};
   const findNode = (node: DoubtNode, id: string): DoubtNode | null => {
     if (node.id === id) return node;
     for (const child of node.children) {
@@ -260,17 +233,14 @@ const DoubtChain = () => {
 
   const bookmarkChain = () => {
     if (!doubtTree) return;
-    
     const bookmark = {
       id: Date.now().toString(),
       originalQuestion: initialQuestion,
       tree: doubtTree,
       timestamp: new Date().toISOString()
     };
-    
     setBookmarkedChains(prev => [bookmark, ...prev]);
     saveUserData();
-    
     toast({
       title: "Bookmarked! 📌",
       description: "Chain saved to your bookmarks"
@@ -284,6 +254,7 @@ const DoubtChain = () => {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         className="mb-4"
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
       >
         <Card className={`transition-all duration-300 ${
           node.isExplored ? 'border-green-500 bg-green-50 dark:bg-green-950' : 
@@ -321,12 +292,18 @@ const DoubtChain = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
               >
                 <CardContent>
                   {node.explanation && (
-                    <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg"
+                    >
                       <p className="text-sm md:text-base leading-relaxed">{node.explanation}</p>
-                    </div>
+                    </motion.div>
                   )}
                   
                   {/* Followup buttons */}
@@ -379,6 +356,16 @@ const DoubtChain = () => {
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
       <Navbar />
+
+      {/* Top Back to Dashboard for mobile */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="block md:hidden sticky top-0 z-30 bg-black pt-3 pb-1 px-2"
+      >
+        <BackToDashboardButton />
+      </motion.div>
       
       <main className="flex-1 py-4 md:py-8 px-2 md:px-4 pb-20 md:pb-8">
         <div className="container max-w-4xl mx-auto">
@@ -475,6 +462,7 @@ const DoubtChain = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
               className="mb-6"
             >
               <div className="flex justify-between items-center mb-4">
@@ -490,24 +478,36 @@ const DoubtChain = () => {
               </div>
               
               {renderDoubtNode(doubtTree, true)}
-              
-              {/* Final explanation button */}
-              <Card className="mt-6 dark:bg-gradient-to-r dark:from-purple-950 dark:to-blue-950 border-purple-500">
-                <CardContent className="p-4 md:p-6 text-center">
-                 <Button
-  className="w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-  onClick={() => handleFollowup(doubtTree.id, 'fullsummary')}
->
-  <Lightbulb className="h-4 w-4 mr-2" />
-  Now explain my original doubt using everything above
-</Button>
-                </CardContent>
-              </Card>
+
+              {/* Animated Info Section Instead of Button */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.25, type: "spring" }}
+                className="mt-6 flex flex-col items-center justify-center"
+              >
+                <div className="bg-gradient-to-r from-purple-900/70 to-blue-900/60 rounded-xl p-4 md:p-6 w-full text-center shadow-lg border border-purple-700/40">
+                  <motion.div
+                    initial={{ rotate: -10, scale: 0.8 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ duration: 0.4, type: "spring" }}
+                    className="flex justify-center mb-2"
+                  >
+                    <Lightbulb className="h-8 w-8 text-yellow-300 drop-shadow-lg" />
+                  </motion.div>
+                  <h3 className="font-bold text-lg md:text-xl text-purple-200 mb-2">
+                    Full Explanation Placeholder
+                  </h3>
+                  <p className="text-base text-purple-100 md:text-lg leading-relaxed">
+                    This is where a complete, synthesized explanation of your original doubt would appear, using all the breakdowns and insights above!
+                  </p>
+                </div>
+              </motion.div>
             </motion.div>
           )}
 
-          {/* Back to Dashboard */}
-          <div className="flex justify-center">
+          {/* Back to Dashboard for desktop */}
+          <div className="hidden md:flex justify-center">
             <BackToDashboardButton />
           </div>
         </div>
