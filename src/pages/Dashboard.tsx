@@ -20,7 +20,6 @@ import {
   HelpCircle,
   Flame,
   TrendingUp,
-  Camera,
   Clock,
   CheckCircle
 } from "lucide-react";
@@ -149,7 +148,7 @@ const Dashboard = () => {
                 <CardTitle className="text-base md:text-lg">Today's Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-xl md:text-2xl font-bold text-blue-500">{stats.summariesGenerated}</p>
                     <p className="text-xs md:text-sm text-muted-foreground">Summaries</p>
@@ -161,10 +160,6 @@ const Dashboard = () => {
                   <div>
                     <p className="text-xl md:text-2xl font-bold text-yellow-500">{stats.quizzesCompleted}</p>
                     <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
-                  </div>
-                  <div>
-                    <p className="text-xl md:text-2xl font-bold text-purple-500">{stats.snapSolveUsed}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">Snap & Solve</p>
                   </div>
                 </div>
               </CardContent>
@@ -199,12 +194,6 @@ const Dashboard = () => {
     desc: "AI-generated summaries",
     icon: <BookMarked className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
     route: "/summaries"
-  },
-  {
-    title: "Snap & Solve",
-    desc: "Image to answer AI tool",
-    icon: <Camera className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
-    route: "/snap-solve"
   }
 ].map((tool, idx) => (
   <motion.div

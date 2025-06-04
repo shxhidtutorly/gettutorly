@@ -1,30 +1,16 @@
 
-import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from 'react';
 
-export interface StudySession {
-  id: string;
-  type: 'summary' | 'notes' | 'quiz' | 'snap-solve';
-  title: string;
-  duration: number;
-  timestamp: string;
-  completed: boolean;
-}
-
-export interface StudyStats {
+interface StudyStats {
   streakDays: number;
   totalStudyHours: number;
   sessionCount: number;
   quizzesCompleted: number;
   summariesGenerated: number;
   notesCreated: number;
-  snapSolveUsed: number;
-  lastActivityDate: string;
 }
 
 export const useStudyTracking = () => {
-  const { currentUser } = useAuth();
-  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [stats, setStats] = useState<StudyStats>({
     streakDays: 0,
     totalStudyHours: 0,
@@ -32,154 +18,123 @@ export const useStudyTracking = () => {
     quizzesCompleted: 0,
     summariesGenerated: 0,
     notesCreated: 0,
-    snapSolveUsed: 0,
-    lastActivityDate: ''
   });
 
-  const getStorageKey = (key: string) => `tutorly_${currentUser?.id}_${key}`;
+  const [currentSession, setCurrentSession] = useState<{
+    startTime: Date;
+    activity: string;
+  } | null>(null);
 
-  // Load stats from localStorage
-  const loadStats = useCallback(() => {
-    if (!currentUser) return;
+  // Load stats from localStorage on mount
+  useEffect(() => {
+    loadStats();
+    updateStreak();
+  }, []);
 
-    const savedStats = localStorage.getItem(getStorageKey('stats'));
+  const loadStats = () => {
+    const savedStats = localStorage.getItem('tutorly-study-stats');
     if (savedStats) {
       setStats(JSON.parse(savedStats));
     }
-  }, [currentUser]);
+  };
 
-  // Save stats to localStorage
-  const saveStats = useCallback((newStats: StudyStats) => {
-    if (!currentUser) return;
-    
-    localStorage.setItem(getStorageKey('stats'), JSON.stringify(newStats));
+  const saveStats = (newStats: StudyStats) => {
+    localStorage.setItem('tutorly-study-stats', JSON.stringify(newStats));
     setStats(newStats);
-  }, [currentUser]);
+  };
 
-  // Calculate and update streak
-  const updateStreak = useCallback(() => {
-    if (!currentUser) return;
-
+  const updateStreak = () => {
+    const lastActiveDate = localStorage.getItem('tutorly-last-active');
     const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
     
-    setStats(prev => {
-      let newStreakDays = prev.streakDays;
-      
-      if (prev.lastActivityDate === today) {
-        // Already active today, no change
-        return prev;
-      } else if (prev.lastActivityDate === yesterday) {
-        // Consecutive day, increment streak
-        newStreakDays = prev.streakDays + 1;
-      } else if (prev.lastActivityDate !== today) {
-        // Streak broken or first time, reset to 1
-        newStreakDays = 1;
-      }
+    if (lastActiveDate === today) {
+      return; // Already active today
+    }
 
-      const newStats = {
-        ...prev,
-        streakDays: newStreakDays,
-        lastActivityDate: today
-      };
-      
-      saveStats(newStats);
-      return newStats;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (lastActiveDate === yesterday.toDateString()) {
+      // Consecutive day - increment streak
+      setStats(prev => {
+        const newStats = { ...prev, streakDays: prev.streakDays + 1 };
+        saveStats(newStats);
+        return newStats;
+      });
+    } else if (lastActiveDate !== today) {
+      // Streak broken - reset to 1
+      setStats(prev => {
+        const newStats = { ...prev, streakDays: 1 };
+        saveStats(newStats);
+        return newStats;
+      });
+    }
+
+    localStorage.setItem('tutorly-last-active', today);
+  };
+
+  const startSession = (activity: string = 'study') => {
+    setCurrentSession({
+      startTime: new Date(),
+      activity
     });
-  }, [currentUser, saveStats]);
+  };
 
-  // Start session tracking
-  const startSession = useCallback(() => {
-    setSessionStartTime(Date.now());
-    updateStreak();
-  }, [updateStreak]);
-
-  // End session and calculate duration
-  const endSession = useCallback((type: StudySession['type'], title: string, completed = true) => {
-    if (!sessionStartTime || !currentUser) return;
-
-    const duration = Math.round((Date.now() - sessionStartTime) / 1000 / 60); // minutes
-    const session: StudySession = {
-      id: Date.now().toString(),
-      type,
-      title,
-      duration,
-      timestamp: new Date().toISOString(),
-      completed
-    };
-
-    // Save session to localStorage
-    const sessionsKey = getStorageKey('sessions');
-    const savedSessions = localStorage.getItem(sessionsKey);
-    const sessions = savedSessions ? JSON.parse(savedSessions) : [];
-    sessions.push(session);
-    localStorage.setItem(sessionsKey, JSON.stringify(sessions));
-
-    // Update stats
-    setStats(prev => {
-      const newStats = {
-        ...prev,
-        sessionCount: prev.sessionCount + 1,
-        totalStudyHours: prev.totalStudyHours + (duration / 60)
-      };
+  const endSession = (activity: string, details: string, completed: boolean = true) => {
+    if (currentSession) {
+      const endTime = new Date();
+      const duration = (endTime.getTime() - currentSession.startTime.getTime()) / (1000 * 60 * 60); // hours
       
-      saveStats(newStats);
-      return newStats;
-    });
+      setStats(prev => {
+        const newStats = {
+          ...prev,
+          totalStudyHours: prev.totalStudyHours + duration,
+          sessionCount: prev.sessionCount + 1
+        };
+        saveStats(newStats);
+        return newStats;
+      });
 
-    setSessionStartTime(null);
-    return session;
-  }, [sessionStartTime, currentUser, saveStats]);
+      // Store session data
+      const session = {
+        activity,
+        details,
+        duration: duration * 60, // minutes
+        timestamp: new Date().toISOString(),
+        completed
+      };
 
-  // Track specific activities
-  const trackQuizCompletion = useCallback(() => {
+      const sessions = JSON.parse(localStorage.getItem('tutorly-sessions') || '[]');
+      sessions.push(session);
+      localStorage.setItem('tutorly-sessions', JSON.stringify(sessions));
+
+      setCurrentSession(null);
+    }
+  };
+
+  const trackQuizCompletion = () => {
     setStats(prev => {
       const newStats = { ...prev, quizzesCompleted: prev.quizzesCompleted + 1 };
       saveStats(newStats);
       return newStats;
     });
-  }, [saveStats]);
+  };
 
-  const trackSummaryGeneration = useCallback(() => {
+  const trackSummaryGeneration = () => {
     setStats(prev => {
       const newStats = { ...prev, summariesGenerated: prev.summariesGenerated + 1 };
       saveStats(newStats);
       return newStats;
     });
-  }, [saveStats]);
+  };
 
-  const trackNotesCreation = useCallback(() => {
+  const trackNotesCreation = () => {
     setStats(prev => {
       const newStats = { ...prev, notesCreated: prev.notesCreated + 1 };
       saveStats(newStats);
       return newStats;
     });
-  }, [saveStats]);
-
-  const trackSnapSolveUsage = useCallback(() => {
-    setStats(prev => {
-      const newStats = { ...prev, snapSolveUsed: prev.snapSolveUsed + 1 };
-      saveStats(newStats);
-      return newStats;
-    });
-  }, [saveStats]);
-
-  // Get all sessions
-  const getSessions = useCallback((): StudySession[] => {
-    if (!currentUser) return [];
-    
-    const sessionsKey = getStorageKey('sessions');
-    const savedSessions = localStorage.getItem(sessionsKey);
-    return savedSessions ? JSON.parse(savedSessions) : [];
-  }, [currentUser]);
-
-  // Initialize on user login
-  useEffect(() => {
-    if (currentUser) {
-      loadStats();
-      startSession(); // Start tracking when component mounts
-    }
-  }, [currentUser, loadStats, startSession]);
+  };
 
   return {
     stats,
@@ -187,9 +142,6 @@ export const useStudyTracking = () => {
     endSession,
     trackQuizCompletion,
     trackSummaryGeneration,
-    trackNotesCreation,
-    trackSnapSolveUsage,
-    getSessions,
-    isSessionActive: sessionStartTime !== null
+    trackNotesCreation
   };
 };
