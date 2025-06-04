@@ -57,13 +57,13 @@ const DoubtChain = () => {
   const { toast } = useToast();
 
   const followupOptions = [
-    { key: "example", label: "What's an example?", icon: <Eye className="h-4 w-4" /> },
-    { key: "reallife", label: "Real life connection?", icon: <Users className="h-4 w-4" /> },
-    { key: "simple", label: "Explain like I'm 5", icon: <Lightbulb className="h-4 w-4" /> },
-    { key: "formula", label: "Show formula", icon: <FileText className="h-4 w-4" /> },
-    { key: "summary", label: "1-line summary", icon: <Target className="h-4 w-4" /> }
-    { key: "fullsummary", label: "Full, detailed answer", icon: <Lightbulb className="h-4 w-4" /> },
-  ];
+  { key: "example", label: "What's an example?", icon: <Eye className="h-4 w-4" /> },
+  { key: "reallife", label: "Real life connection?", icon: <Users className="h-4 w-4" /> },
+  { key: "simple", label: "Explain like I'm 5", icon: <Lightbulb className="h-4 w-4" /> },
+  { key: "formula", label: "Show formula", icon: <FileText className="h-4 w-4" /> },
+  { key: "summary", label: "1-line summary", icon: <Target className="h-4 w-4" /> },
+  { key: "fullsummary", label: "Full, detailed answer", icon: <Lightbulb className="h-4 w-4" /> },
+];
 
   // Load stats and bookmarks on mount
   useEffect(() => {
