@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -223,6 +222,12 @@ const Dashboard = () => {
             <h2 className="text-lg md:text-xl font-semibold mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
               {[
+                {
+                  title: "AI Doubt Chain",
+                  desc: "Break down complex concepts",
+                  icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+                  route: "/doubt-chain"
+                },
                 {
                   title: "Create Plan",
                   desc: "Plan your study sessions",

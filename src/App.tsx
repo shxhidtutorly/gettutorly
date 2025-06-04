@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,6 +31,8 @@ import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import DoubtChain from "./pages/DoubtChain";
+import DoubtBookmarks from "./pages/DoubtBookmarks";
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -121,6 +122,16 @@ const App = () => (
               <Route path="/study-techniques" element={
                 <ProtectedRoute>
                   <StudyTechniques />
+                </ProtectedRoute>
+              } />
+              <Route path="/doubt-chain" element={
+                <ProtectedRoute>
+                  <DoubtChain />
+                </ProtectedRoute>
+              } />
+              <Route path="/doubt-bookmarks" element={
+                <ProtectedRoute>
+                  <DoubtBookmarks />
                 </ProtectedRoute>
               } />
               <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
