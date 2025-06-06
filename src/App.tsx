@@ -74,6 +74,11 @@ const App = () => (
                   <AINotesGenerator />
                 </ProtectedRoute>
               } />
+              <Route path="/math-chat" element={
+  <ProtectedRoute>
+    <MathChat />
+  </ProtectedRoute>
+} />
               <Route path="/study-plans" element={
                 <ProtectedRoute>
                   <StudyPlans />
