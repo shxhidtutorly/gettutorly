@@ -21,7 +21,8 @@ import {
   TrendingUp,
   Camera,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Calculator
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
@@ -161,6 +162,10 @@ const Dashboard = () => {
                     <p className="text-xl md:text-2xl font-bold text-yellow-500">{stats.quizzesCompleted}</p>
                     <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
                   </div>
+                  <div>
+                    <p className="text-xl md:text-2xl font-bold text-purple-500">{stats.mathProblemsSolved}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Math Problems</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -171,6 +176,12 @@ const Dashboard = () => {
             <h2 className="text-lg md:text-xl font-semibold mb-4">Study Tools</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
              {[
+  {
+    title: "Math Chat",
+    desc: "Solve math problems with AI",
+    icon: <Calculator className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+    route: "/math-chat"
+  },
   {
     title: "AI Notes",
     desc: "Generate smart notes from files",
@@ -188,12 +199,6 @@ const Dashboard = () => {
     desc: "Test your knowledge",
     icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
     route: "/quiz"
-  },
-  {
-    title: "Summaries",
-    desc: "AI-generated summaries",
-    icon: <BookMarked className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
-    route: "/summaries"
   },
  
 ].map((tool, idx) => (

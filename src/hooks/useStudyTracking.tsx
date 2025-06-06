@@ -1,50 +1,71 @@
-
-import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface StudySession {
   id: string;
-  type: 'summary' | 'notes' | 'quiz' | 'snap-solve';
+  type: 'notes' | 'summary' | 'quiz' | 'doubt-chain' | 'math';
   title: string;
-  duration: number;
+  duration: number; // in minutes
   timestamp: string;
   completed: boolean;
 }
 
 export interface StudyStats {
-  streakDays: number;
   totalStudyHours: number;
   sessionCount: number;
+  streakDays: number;
   quizzesCompleted: number;
   summariesGenerated: number;
   notesCreated: number;
-  snapSolveUsed: number;
-  lastActivityDate: string;
+  doubtsResolved: number;
+  conceptsUnderstood: number;
+  mathProblemsSolved: number;
+  weeklyGoalProgress: number; // out of 20 concepts
+}
+
+export interface DailyUsage {
+  date: string;
+  timeSpent: number; // in minutes
+  activeSessions: number;
 }
 
 export const useStudyTracking = () => {
   const { currentUser } = useAuth();
-  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [stats, setStats] = useState<StudyStats>({
-    streakDays: 0,
     totalStudyHours: 0,
     sessionCount: 0,
+    streakDays: 0,
     quizzesCompleted: 0,
     summariesGenerated: 0,
     notesCreated: 0,
-    snapSolveUsed: 0,
-    lastActivityDate: ''
+    doubtsResolved: 0,
+    conceptsUnderstood: 0,
+    mathProblemsSolved: 0,
+    weeklyGoalProgress: 0
   });
+  
+  const [currentSession, setCurrentSession] = useState<{
+    startTime: number;
+    type?: string;
+    title?: string;
+  } | null>(null);
 
-  const getStorageKey = (key: string) => `tutorly_${currentUser?.id}_${key}`;
+  const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
 
   // Load stats from localStorage
   const loadStats = useCallback(() => {
     if (!currentUser) return;
-
-    const savedStats = localStorage.getItem(getStorageKey('stats'));
+    
+    const userId = currentUser.id;
+    const savedStats = localStorage.getItem(`study_stats_${userId}`);
+    const savedUsage = localStorage.getItem(`daily_usage_${userId}`);
+    
     if (savedStats) {
       setStats(JSON.parse(savedStats));
+    }
+    
+    if (savedUsage) {
+      setDailyUsage(JSON.parse(savedUsage));
     }
   }, [currentUser]);
 
@@ -52,144 +73,232 @@ export const useStudyTracking = () => {
   const saveStats = useCallback((newStats: StudyStats) => {
     if (!currentUser) return;
     
-    localStorage.setItem(getStorageKey('stats'), JSON.stringify(newStats));
+    const userId = currentUser.id;
+    localStorage.setItem(`study_stats_${userId}`, JSON.stringify(newStats));
     setStats(newStats);
   }, [currentUser]);
 
-  // Calculate and update streak
-  const updateStreak = useCallback(() => {
+  // Save daily usage
+  const saveDailyUsage = useCallback((newUsage: DailyUsage[]) => {
     if (!currentUser) return;
-
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
     
-    setStats(prev => {
-      let newStreakDays = prev.streakDays;
+    const userId = currentUser.id;
+    localStorage.setItem(`daily_usage_${userId}`, JSON.stringify(newUsage));
+    setDailyUsage(newUsage);
+  }, [currentUser]);
+
+  // Track time spent in app
+  const updateDailyUsage = useCallback((timeSpent: number) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    setDailyUsage(prev => {
+      const existingIndex = prev.findIndex(usage => usage.date === today);
+      const newUsage = [...prev];
       
-      if (prev.lastActivityDate === today) {
-        // Already active today, no change
-        return prev;
-      } else if (prev.lastActivityDate === yesterday) {
-        // Consecutive day, increment streak
-        newStreakDays = prev.streakDays + 1;
-      } else if (prev.lastActivityDate !== today) {
-        // Streak broken or first time, reset to 1
-        newStreakDays = 1;
+      if (existingIndex >= 0) {
+        newUsage[existingIndex].timeSpent += timeSpent;
+        newUsage[existingIndex].activeSessions += 1;
+      } else {
+        newUsage.push({
+          date: today,
+          timeSpent,
+          activeSessions: 1
+        });
       }
-
-      const newStats = {
-        ...prev,
-        streakDays: newStreakDays,
-        lastActivityDate: today
-      };
       
-      saveStats(newStats);
-      return newStats;
+      // Keep only last 30 days
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const filtered = newUsage.filter(usage => 
+        new Date(usage.date) > thirtyDaysAgo
+      );
+      
+      saveDailyUsage(filtered);
+      return filtered;
     });
-  }, [currentUser, saveStats]);
+  }, [saveDailyUsage]);
 
-  // Start session tracking
+  // Calculate streak
+  const calculateStreak = useCallback(() => {
+    const sortedUsage = [...dailyUsage].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < sortedUsage.length; i++) {
+      const usageDate = new Date(sortedUsage[i].date);
+      const diffDays = Math.floor((today.getTime() - usageDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === streak) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
+  }, [dailyUsage]);
+
+  // Start a study session
   const startSession = useCallback(() => {
-    setSessionStartTime(Date.now());
-    updateStreak();
-  }, [updateStreak]);
+    const now = Date.now();
+    setCurrentSession({ startTime: now });
+    
+    // Track visibility changes to pause/resume timing
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App is hidden, pause session
+        setCurrentSession(prev => prev ? { ...prev, pausedAt: Date.now() } : null);
+      } else {
+        // App is visible, resume session
+        setCurrentSession(prev => {
+          if (prev && 'pausedAt' in prev) {
+            const { pausedAt, ...sessionWithoutPause } = prev as any;
+            return sessionWithoutPause;
+          }
+          return prev;
+        });
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
-  // End session and calculate duration
-  const endSession = useCallback((type: StudySession['type'], title: string, completed = true) => {
-    if (!sessionStartTime || !currentUser) return;
-
-    const duration = Math.round((Date.now() - sessionStartTime) / 1000 / 60); // minutes
+  // End a study session
+  const endSession = useCallback((type: string, title: string, completed: boolean) => {
+    if (!currentSession) return;
+    
+    const duration = Math.round((Date.now() - currentSession.startTime) / (1000 * 60)); // minutes
+    
+    // Update daily usage
+    updateDailyUsage(duration);
+    
+    // Update stats
+    const newStats = { ...stats };
+    newStats.totalStudyHours += duration / 60;
+    newStats.sessionCount += 1;
+    newStats.streakDays = calculateStreak();
+    
+    saveStats(newStats);
+    setCurrentSession(null);
+    
+    // Save session to history
     const session: StudySession = {
       id: Date.now().toString(),
-      type,
+      type: type as any,
       title,
       duration,
       timestamp: new Date().toISOString(),
       completed
     };
+    
+    if (currentUser) {
+      const userId = currentUser.id;
+      const existingSessions = JSON.parse(localStorage.getItem(`sessions_${userId}`) || '[]');
+      const newSessions = [session, ...existingSessions].slice(0, 100); // Keep last 100
+      localStorage.setItem(`sessions_${userId}`, JSON.stringify(newSessions));
+    }
+  }, [currentSession, stats, updateDailyUsage, calculateStreak, saveStats, currentUser]);
 
-    // Save session to localStorage
-    const sessionsKey = getStorageKey('sessions');
-    const savedSessions = localStorage.getItem(sessionsKey);
-    const sessions = savedSessions ? JSON.parse(savedSessions) : [];
-    sessions.push(session);
-    localStorage.setItem(sessionsKey, JSON.stringify(sessions));
-
-    // Update stats
-    setStats(prev => {
-      const newStats = {
-        ...prev,
-        sessionCount: prev.sessionCount + 1,
-        totalStudyHours: prev.totalStudyHours + (duration / 60)
-      };
-      
-      saveStats(newStats);
-      return newStats;
-    });
-
-    setSessionStartTime(null);
-    return session;
-  }, [sessionStartTime, currentUser, saveStats]);
-
-  // Track specific activities
+  // Tracking functions for different activities
   const trackQuizCompletion = useCallback(() => {
-    setStats(prev => {
-      const newStats = { ...prev, quizzesCompleted: prev.quizzesCompleted + 1 };
-      saveStats(newStats);
-      return newStats;
-    });
-  }, [saveStats]);
+    const newStats = { ...stats, quizzesCompleted: stats.quizzesCompleted + 1 };
+    saveStats(newStats);
+  }, [stats, saveStats]);
 
   const trackSummaryGeneration = useCallback(() => {
-    setStats(prev => {
-      const newStats = { ...prev, summariesGenerated: prev.summariesGenerated + 1 };
-      saveStats(newStats);
-      return newStats;
-    });
-  }, [saveStats]);
+    const newStats = { ...stats, summariesGenerated: stats.summariesGenerated + 1 };
+    saveStats(newStats);
+  }, [stats, saveStats]);
 
   const trackNotesCreation = useCallback(() => {
-    setStats(prev => {
-      const newStats = { ...prev, notesCreated: prev.notesCreated + 1 };
-      saveStats(newStats);
-      return newStats;
-    });
-  }, [saveStats]);
+    const newStats = { ...stats, notesCreated: stats.notesCreated + 1 };
+    saveStats(newStats);
+  }, [stats, saveStats]);
 
-  const trackSnapSolveUsage = useCallback(() => {
-    setStats(prev => {
-      const newStats = { ...prev, snapSolveUsed: prev.snapSolveUsed + 1 };
-      saveStats(newStats);
-      return newStats;
-    });
-  }, [saveStats]);
+  const trackDoubtResolved = useCallback(() => {
+    const newStats = { ...stats, doubtsResolved: stats.doubtsResolved + 1 };
+    saveStats(newStats);
+  }, [stats, saveStats]);
 
-  // Get all sessions
+  const trackConceptUnderstood = useCallback(() => {
+    const newStats = { 
+      ...stats, 
+      conceptsUnderstood: stats.conceptsUnderstood + 1,
+      weeklyGoalProgress: Math.min(20, stats.weeklyGoalProgress + 1)
+    };
+    saveStats(newStats);
+  }, [stats, saveStats]);
+
+  const trackMathProblemSolved = useCallback(() => {
+    const newStats = { ...stats, mathProblemsSolved: stats.mathProblemsSolved + 1 };
+    saveStats(newStats);
+  }, [stats, saveStats]);
+
+  // Get sessions
   const getSessions = useCallback((): StudySession[] => {
     if (!currentUser) return [];
     
-    const sessionsKey = getStorageKey('sessions');
-    const savedSessions = localStorage.getItem(sessionsKey);
-    return savedSessions ? JSON.parse(savedSessions) : [];
+    const userId = currentUser.id;
+    const sessions = JSON.parse(localStorage.getItem(`sessions_${userId}`) || '[]');
+    return sessions.map((session: any) => ({
+      ...session,
+      timestamp: new Date(session.timestamp).toISOString()
+    }));
   }, [currentUser]);
 
-  // Initialize on user login
+  // Get last 7 days usage
+  const getWeeklyUsage = useCallback(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
+    
+    return last7Days.map(date => {
+      const usage = dailyUsage.find(u => u.date === date);
+      return {
+        date,
+        timeSpent: usage?.timeSpent || 0,
+        activeSessions: usage?.activeSessions || 0
+      };
+    });
+  }, [dailyUsage]);
+
+  // Load stats on mount and user change
   useEffect(() => {
-    if (currentUser) {
-      loadStats();
-      startSession(); // Start tracking when component mounts
+    loadStats();
+  }, [loadStats]);
+
+  // Update streak calculation when daily usage changes
+  useEffect(() => {
+    if (dailyUsage.length > 0) {
+      const newStreak = calculateStreak();
+      if (newStreak !== stats.streakDays) {
+        const newStats = { ...stats, streakDays: newStreak };
+        saveStats(newStats);
+      }
     }
-  }, [currentUser, loadStats, startSession]);
+  }, [dailyUsage, calculateStreak, stats, saveStats]);
 
   return {
     stats,
+    dailyUsage,
+    currentSession,
     startSession,
     endSession,
     trackQuizCompletion,
     trackSummaryGeneration,
     trackNotesCreation,
-    trackSnapSolveUsage,
+    trackDoubtResolved,
+    trackConceptUnderstood,
+    trackMathProblemSolved,
     getSessions,
-    isSessionActive: sessionStartTime !== null
+    getWeeklyUsage
   };
 };

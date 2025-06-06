@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
@@ -15,7 +14,9 @@ import {
   CheckCircle,
   Brain,
   FileText,
-  Camera
+  Camera,
+  Calculator,
+  HelpCircle
 } from "lucide-react";
 import { ProgressStatCard } from "@/components/progress/ProgressStatCard";
 import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
@@ -108,7 +109,8 @@ const Progress = () => {
       case 'notes': return <Brain className="h-4 w-4 text-blue-500" />;
       case 'summary': return <FileText className="h-4 w-4 text-green-500" />;
       case 'quiz': return <CheckCircle className="h-4 w-4 text-yellow-500" />;
-      case 'snap-solve': return <Camera className="h-4 w-4 text-purple-500" />;
+      case 'math': return <Calculator className="h-4 w-4 text-purple-500" />;
+      case 'doubt-chain': return <HelpCircle className="h-4 w-4 text-orange-500" />;
       default: return <Book className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -164,7 +166,7 @@ const Progress = () => {
                 <CardTitle className="text-base md:text-lg">Activity Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                   <div>
                     <p className="text-lg md:text-2xl font-bold text-blue-500">{stats.summariesGenerated}</p>
                     <p className="text-xs md:text-sm text-muted-foreground">Summaries</p>
@@ -178,8 +180,12 @@ const Progress = () => {
                     <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
                   </div>
                   <div>
-                    <p className="text-lg md:text-2xl font-bold text-purple-500">{stats.snapSolveUsed}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">Snap & Solve</p>
+                    <p className="text-lg md:text-2xl font-bold text-purple-500">{stats.mathProblemsSolved}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Math Problems</p>
+                  </div>
+                  <div>
+                    <p className="text-lg md:text-2xl font-bold text-orange-500">{stats.doubtsResolved}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Doubts Resolved</p>
                   </div>
                 </div>
               </CardContent>

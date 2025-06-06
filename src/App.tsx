@@ -26,6 +26,7 @@ import Support from "./pages/Support";
 import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
+import MathChat from "./pages/MathChat";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
