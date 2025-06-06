@@ -1,5 +1,4 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -38,6 +37,7 @@ const MathChat = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { trackMathProblemSolved, startSession, endSession } = useStudyTracking();
+  const [ocrWorker, setOcrWorker] = useState<ReturnType<typeof createWorker>>();
 
   const extractTextFromImage = async (file: File): Promise<string> => {
   setIsProcessingImage(true);
@@ -164,6 +164,25 @@ const MathChat = () => {
       });
     }
   };
+
+  useEffect(() => {
+    const initTesseract = async () => {
+      try {
+        const worker = await createWorker('eng');
+        setOcrWorker(worker);
+      } catch (error) {
+        console.error('Failed to initialize OCR worker:', error);
+      }
+    };
+
+    initTesseract();
+
+    return () => {
+      if (ocrWorker) {
+        ocrWorker.terminate();
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-white">
