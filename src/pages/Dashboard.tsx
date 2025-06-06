@@ -128,7 +128,7 @@ const Dashboard = () => {
       title: "Summarize",
       desc: "Quickly summarize any text",
       icon: <StickyNote className="h-6 w-6 md:h-8 md:w-8 text-pink-400 mx-auto mb-2" />,
-      route: "/summarize"
+      route: "/summaries"
     },
     {
       title: "Flashcards",
