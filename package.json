@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0"
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -52,6 +52,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
     "framer-motion": "^10.16.1",
+    "html-to-image": "^1.11.11",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "mammoth": "^1.9.1",
@@ -74,7 +75,6 @@
     "tesseract.js": "^6.0.1",
     "vaul": "^0.9.3",
     "zod": "^3.23.8"
-    "html-to-image": "^1.11.11",
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
