@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -13,811 +14,716 @@ import {
   MessageSquare, 
   FileText,
   CheckCircle,
-  LogIn
+  Star,
+  Users,
+  Globe,
+  Shield,
+  Play,
+  Check,
+  X,
+  Moon,
+  Sun,
+  Calculator,
+  Languages,
+  PenTool
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import LoginButton from "@/components/auth/LoginButton";
 import UserProfileButton from "@/components/auth/UserProfileButton";
 import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
-import { useRef } from "react";
-import SimpleAIDemo from "@/components/features/SimpleAIDemo";
-
-// Animation variants for reusable animations
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1,
-    transition: { duration: 0.6 }
-  }
-};
-
-const slideUp = {
-  hidden: { y: 30, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1,
-    transition: { duration: 0.6 }
-  }
-};
-
-const slideInLeft = {
-  hidden: { x: -60, opacity: 0 },
-  visible: { 
-    x: 0, 
-    opacity: 1,
-    transition: { duration: 0.6 }
-  }
-};
-
-const slideInRight = {
-  hidden: { x: 60, opacity: 0 },
-  visible: { 
-    x: 0, 
-    opacity: 1,
-    transition: { duration: 0.6 }
-  }
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2
-    }
-  }
-};
-
-// Custom animation hook to trigger animations when in view
-function useAnimateOnScroll(): [React.RefObject<HTMLDivElement>, boolean] {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px 0px" });
-  
-  return [ref, isInView];
-}
+import { useInView } from "react-intersection-observer";
+import CountUp from "react-countup";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 const Index = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [scrollY, setScrollY] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [showAIDemo, setShowAIDemo] = useState(false);
+  const [aiDemoText, setAiDemoText] = useState("");
+  const [aiDemoResult, setAiDemoResult] = useState("");
+  const [pricingToggle, setPricingToggle] = useState("monthly");
 
-  // Manage scroll position for parallax and scroll-triggered effects
   useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-    
+    AOS.init({
+      duration: 800,
+      easing: 'ease-out-cubic',
+      once: true,
+      offset: 100
+    });
+
+    const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-  
+
   const handleGetStarted = () => {
-    // Temporarily redirect directly to dashboard without checking authentication
-    navigate("/dashboard");
+    if (currentUser) {
+      navigate("/dashboard");
+    } else {
+      navigate("/dashboard");
+    }
   };
-  
+
+  const generateAISummary = async () => {
+    if (!aiDemoText.trim()) {
+      toast({
+        title: "Please enter some text",
+        description: "Add some content to summarize"
+      });
+      return;
+    }
+    
+    setAiDemoResult("Generating summary...");
+    
+    // Simulate AI response
+    setTimeout(() => {
+      setAiDemoResult(`📝 **AI Summary**: This text discusses ${aiDemoText.split(' ').slice(0, 3).join(' ')}... Key points include the main concepts and important details that enhance understanding and retention.`);
+    }, 2000);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-background dark:bg-background">
-      {/* Animated navbar */}
+    <div className="min-h-screen flex flex-col bg-background dark:bg-black">
+      {/* Enhanced Navbar with scroll effect */}
       <motion.header 
-        className="bg-gray-900 text-white sticky top-0 z-50 shadow-md"
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+          scrollY > 50 
+            ? 'bg-background/95 dark:bg-black/95 backdrop-blur-lg border-b border-border/50' 
+            : 'bg-transparent'
+        }`}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.6 }}
       >
         <div className="container flex h-16 items-center justify-between px-4">
+          <motion.div 
+            className="flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+          >
+            <Brain className="h-8 w-8 text-purple-500" />
+            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Tutorly
+            </span>
+          </motion.div>
+          
           <div className="flex items-center gap-4">
-            <motion.div 
-              className="flex items-center gap-2 cursor-pointer"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="rounded-full"
             >
-              <span className="text-xl font-bold text-white">Tutorly</span>
-            </motion.div>
-          </div>
-          <div className="flex items-center gap-2">
+              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
+            
             {currentUser ? (
               <UserProfileButton />
             ) : (
-              <>
+              <div className="flex gap-2">
                 <LoginButton variant="ghost" />
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <Button 
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                  onClick={handleGetStarted}
                 >
-                  <Button 
-                    className="bg-purple-500 text-white hover:bg-purple-600 py-2 px-6 rounded-md font-semibold"
-                    onClick={handleGetStarted}
-                  >
-                    Get Started
-                  </Button>
-                </motion.div>
-              </>
+                  Start Free
+                </Button>
+              </div>
             )}
           </div>
         </div>
       </motion.header>
-      
-      <main className="flex-1">
-        {/* Hero Section with animated entry and parallax effect */}
-        <section className="py-20 px-4 bg-gray-900 text-white relative overflow-hidden">
-          {/* Subtle parallax background effect */}
-          <div 
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: "url('/api/placeholder/1200/800')",
-              backgroundSize: "cover",
-              transform: `translateY(${scrollY * 0.1}px)`,
-              zIndex: 0
+
+      <main className="flex-1 pt-16">
+        {/* Hero Section with Animated Gradient */}
+        <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 dark:from-black dark:via-purple-950 dark:to-black">
+          {/* Animated Background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10 animate-pulse" />
+          <motion.div 
+            className="absolute inset-0 opacity-30"
+            animate={{
+              background: [
+                "radial-gradient(circle at 20% 20%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)",
+                "radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)",
+                "radial-gradient(circle at 40% 60%, rgba(147, 51, 234, 0.3) 0%, transparent 50%)"
+              ]
             }}
-          ></div>
-          
-          <div className="container max-w-6xl mx-auto relative z-10">
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-              <motion.div 
-                className="w-full space-y-6 text-center"
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  visible: {
-                    transition: {
-                      staggerChildren: 0.2
-                    }
-                  }
-                }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          />
+
+          <div className="container max-w-7xl mx-auto relative z-10">
+            <div className="text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="mb-6"
               >
-                <motion.div 
-                  variants={fadeIn}
-                  className="inline-flex items-center gap-2 bg-purple-900/60 px-4 py-2 rounded-full mb-3"
-                >
+                <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/30 px-4 py-2 rounded-full mb-6">
                   <Sparkles className="h-4 w-4 text-purple-300" />
-                  <span className="text-sm font-semibold text-purple-300">Smart Learning Platform</span>
-                </motion.div>
+                  <span className="text-sm font-semibold text-purple-200">AI-Powered Learning Platform</span>
+                </div>
                 
-                <motion.h1 
-                  variants={slideUp}
-                  className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight text-white"
-                >
-                  Supercharge Your Studies with
-                  <motion.span 
-                    className="bg-gradient-to-r from-purple-400 to-purple-300 text-transparent bg-clip-text block mt-3"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6, duration: 0.6 }}
-                  >
-                    Intelligent Study Tools
-                  </motion.span>
-                </motion.h1>
+                <h1 className="text-5xl md:text-7xl font-bold leading-tight text-white mb-6">
+                  Your Personal
+                  <span className="block bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                    AI Tutor
+                  </span>
+                </h1>
                 
-                <motion.p 
-                  variants={fadeIn}
-                  className="text-lg md:text-xl text-gray-300 max-w-xl mx-auto leading-relaxed"
-                >
-                  Upload notes, get instant summaries, personalized quizzes, and track your progress. Study smarter, not harder.
-                </motion.p>
+                <p className="text-xl md:text-2xl text-gray-300 mb-4 font-medium">
+                  Study Smarter. Learn Faster.
+                </p>
                 
-                <motion.div 
-                  variants={slideUp}
-                  className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+                <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
+                  Turn your lectures, notes, and readings into flashcards, summaries, and quizzes — all powered by AI.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
+              >
+                <Button 
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-lg px-8 py-4 rounded-xl font-semibold shadow-xl"
+                  onClick={handleGetStarted}
                 >
-                  {currentUser ? (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button 
-                        size="lg" 
-                        className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white button-click-effect text-base font-semibold py-6 px-8 rounded-md shadow-lg"
-                        onClick={() => navigate("/dashboard")}
-                      >
-                        <Zap className="mr-2 h-5 w-5" />
-                        Go to Dashboard
-                      </Button>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <LoginButton 
-                        size="lg"
-                        variant="default"
-                      />
-                    </motion.div>
-                  )}
-                  
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button 
-                      size="lg" 
-                      variant="outline"
-                      className="w-full sm:w-auto text-base font-medium border-purple-400 text-purple-300 hover:bg-purple-900/40 py-6 px-8 rounded-md"
-                      onClick={() => {
-                        toast({
-                          title: "Coming Soon!",
-                          description: "Our product tour video will be available soon!"
-                        });
-                      }}
-                    >
-                      See How It Works
-                    </Button>
-                  </motion.div>
-                </motion.div>
+                  <Zap className="mr-2 h-5 w-5" />
+                  Start Learning Free
+                </Button>
                 
-                {/* Social proof with counter animation */}
-                <motion.div 
-                  variants={fadeIn}
-                  className="pt-4"
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 rounded-xl"
+                  onClick={() => setIsVideoPlaying(true)}
                 >
-                  <p className="text-sm font-medium text-gray-300">
-                    Trusted by <CountUp end={10000} className="font-bold text-purple-300" />+ students worldwide
-                  </p>
-                </motion.div>
+                  <Play className="mr-2 h-5 w-5" />
+                  Watch Demo
+                </Button>
+              </motion.div>
+
+              {/* Floating Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+              >
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white">
+                    <CountUp end={500} duration={2.5} />K+
+                  </div>
+                  <p className="text-gray-300">Students Worldwide</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white">
+                    <CountUp end={128} duration={2.5} />+
+                  </div>
+                  <p className="text-gray-300">Countries</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white">
+                    <CountUp end={200} duration={2.5} />+
+                  </div>
+                  <p className="text-gray-300">Top Institutions</p>
+                </div>
               </motion.div>
             </div>
           </div>
         </section>
-        
-        {/* Features Section with staggered animations */}
-        <FeaturesSection />
-        
-        {/* Upload Section with improved visuals */}
-        <UploadSection handleGetStarted={handleGetStarted} />
-        
-        {/* Why Tutorly Works Section with improved readability */}
-        <BenefitsSection />
-        
-        {/* Testimonials Section with proper dark mode support */}
-        <TestimonialsSection />
-        
-        {/* CTA Section with improved contrast and visible button */}
-        <CTASection currentUser={currentUser} navigate={navigate} />
+
+        {/* Trust Section with University Logos */}
+        <section className="py-16 bg-white dark:bg-gray-950 border-b" data-aos="fade-up">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                Trusted by over 500,000 students across 128+ countries and 200+ top institutions
+              </h2>
+            </div>
+            
+            {/* Scrolling University Logos */}
+            <div className="relative overflow-hidden">
+              <motion.div 
+                className="flex gap-12 items-center"
+                animate={{ x: [-1000, 0] }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              >
+                {["MIT", "Oxford", "Stanford", "Harvard", "IIT", "Cambridge", "Yale", "Princeton"].map((uni, i) => (
+                  <div key={i} className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-6 py-3 rounded-lg font-semibold text-gray-700 dark:text-gray-300">
+                    {uni}
+                  </div>
+                ))}
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Real Reviews Section */}
+        <section className="py-20 bg-gray-50 dark:bg-gray-900">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16" data-aos="fade-up">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Loved by Students Everywhere
+              </h2>
+              <div className="flex justify-center items-center gap-2 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+                ))}
+                <span className="text-lg font-semibold ml-2">4.9/5 from 10,000+ reviews</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {[
+                {
+                  name: "Sarah Chen",
+                  role: "Medical Student",
+                  avatar: "👩‍⚕️",
+                  review: "Tutorly transformed my study routine! The AI summaries save me hours, and the quiz generation is incredibly accurate.",
+                  rating: 5
+                },
+                {
+                  name: "Marcus Rodriguez",
+                  role: "Engineering Student", 
+                  avatar: "👨‍💻",
+                  review: "The math problem solver is a game-changer. It explains each step clearly and helps me understand concepts deeply.",
+                  rating: 5
+                },
+                {
+                  name: "Emily Watson",
+                  role: "Business Student",
+                  avatar: "👩‍💼", 
+                  review: "I've tried many study apps, but Tutorly's AI tutor feels like having a personal teacher available 24/7.",
+                  rating: 5
+                }
+              ].map((review, i) => (
+                <motion.div
+                  key={i}
+                  data-aos="fade-up"
+                  data-aos-delay={i * 200}
+                  whileHover={{ y: -5 }}
+                  className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+                >
+                  <div className="flex items-center mb-4">
+                    <div className="text-3xl mr-3">{review.avatar}</div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">{review.name}</h4>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">{review.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex mb-3">
+                    {[...Array(review.rating)].map((_, j) => (
+                      <Star key={j} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300">{review.review}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="py-20 bg-white dark:bg-black">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16" data-aos="fade-up">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Everything You Need to Excel
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                Powerful AI tools designed for modern learners
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {[
+                {
+                  icon: <Brain className="h-12 w-12 text-purple-500" />,
+                  title: "AI Chat Tutor",
+                  description: "Get instant help from your personal AI tutor, available 24/7 for any subject"
+                },
+                {
+                  icon: <FileText className="h-12 w-12 text-blue-500" />,
+                  title: "Smart Notes",
+                  description: "Transform any document into organized, AI-enhanced study notes"
+                },
+                {
+                  icon: <Zap className="h-12 w-12 text-green-500" />,
+                  title: "Instant Quizzes",
+                  description: "Generate personalized quizzes from your study materials automatically"
+                },
+                {
+                  icon: <BookOpen className="h-12 w-12 text-red-500" />,
+                  title: "Smart Flashcards",
+                  description: "Create adaptive flashcards that focus on what you need to learn"
+                },
+                {
+                  icon: <Calculator className="h-12 w-12 text-orange-500" />,
+                  title: "Math Solver",
+                  description: "Step-by-step solutions for complex math problems with explanations"
+                },
+                {
+                  icon: <Languages className="h-12 w-12 text-pink-500" />,
+                  title: "Multilingual AI",
+                  description: "Learn in your preferred language with global AI support"
+                }
+              ].map((feature, i) => (
+                <motion.div
+                  key={i}
+                  data-aos="fade-up"
+                  data-aos-delay={i * 100}
+                  whileHover={{ y: -10, scale: 1.02 }}
+                  className="bg-gray-50 dark:bg-gray-900 p-8 rounded-xl border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="mb-4">{feature.icon}</div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* AI Demo Section */}
+        <section className="py-20 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12" data-aos="fade-up">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Try Our AI Right Now
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                Paste any text and see AI summarization in action
+              </p>
+            </div>
+
+            <div className="max-w-4xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+              <Card className="p-8 shadow-2xl border-2 border-purple-200 dark:border-purple-800">
+                <CardContent className="space-y-6 p-0">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      Paste your text here:
+                    </label>
+                    <textarea
+                      className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                      placeholder="Paste any lecture notes, article, or study material here..."
+                      value={aiDemoText}
+                      onChange={(e) => setAiDemoText(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button
+                    onClick={generateAISummary}
+                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3"
+                    disabled={!aiDemoText.trim()}
+                  >
+                    <Brain className="mr-2 h-5 w-5" />
+                    Generate AI Summary
+                  </Button>
+
+                  {aiDemoResult && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    >
+                      <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">AI Result:</h4>
+                      <p className="text-gray-700 dark:text-gray-300">{aiDemoResult}</p>
+                    </motion.div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Interactive Stats */}
+        <section className="py-20 bg-white dark:bg-black">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+              {[
+                { number: 2300000, suffix: "+", label: "Flashcards Created" },
+                { number: 780000, suffix: "+", label: "Notes Summarized" },
+                { number: 1500000, suffix: "+", label: "Quizzes Generated" },
+                { number: 95, suffix: "%", label: "Student Success Rate" }
+              ].map((stat, i) => (
+                <motion.div
+                  key={i}
+                  data-aos="fade-up"
+                  data-aos-delay={i * 150}
+                  className="text-center"
+                >
+                  <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                    <CountUp 
+                      end={stat.number} 
+                      duration={3}
+                      separator=","
+                      suffix={stat.suffix}
+                    />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Comparison Table */}
+        <section className="py-20 bg-gray-50 dark:bg-gray-900">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16" data-aos="fade-up">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Why Choose Tutorly?
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                See how we compare to other platforms
+              </p>
+            </div>
+
+            <div className="max-w-4xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-4 gap-4 p-6 bg-gray-100 dark:bg-gray-700 font-semibold text-gray-900 dark:text-white">
+                  <div>Features</div>
+                  <div className="text-center">Tutorly</div>
+                  <div className="text-center">Mindgrasp</div>
+                  <div className="text-center">Quizlet</div>
+                </div>
+
+                {[
+                  ["AI Chat Tutor", true, false, false],
+                  ["Math Problem Solver", true, false, false],
+                  ["Multi-format Upload", true, true, false],
+                  ["Real-time Collaboration", true, false, true],
+                  ["Offline Access", true, false, true],
+                  ["Free Forever Plan", true, false, true]
+                ].map((row, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-4 p-6 border-b border-gray-200 dark:border-gray-600 last:border-b-0">
+                    <div className="font-medium text-gray-900 dark:text-white">{row[0]}</div>
+                    {[1, 2, 3].map((j) => (
+                      <div key={j} className="text-center">
+                        {row[j] ? (
+                          <Check className="h-5 w-5 text-green-500 mx-auto" />
+                        ) : (
+                          <X className="h-5 w-5 text-red-500 mx-auto" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section className="py-20 bg-white dark:bg-black">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16" data-aos="fade-up">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Choose Your Plan
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+                Start free, upgrade when you're ready
+              </p>
+
+              <div className="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                <button
+                  className={`px-6 py-2 rounded-md font-semibold transition-all ${
+                    pricingToggle === "monthly" 
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400"
+                  }`}
+                  onClick={() => setPricingToggle("monthly")}
+                >
+                  Monthly
+                </button>
+                <button
+                  className={`px-6 py-2 rounded-md font-semibold transition-all ${
+                    pricingToggle === "yearly" 
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400"
+                  }`}
+                  onClick={() => setPricingToggle("yearly")}
+                >
+                  Yearly
+                  <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">Save 20%</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {[
+                {
+                  name: "Free",
+                  price: { monthly: "$0", yearly: "$0" },
+                  description: "Perfect for getting started",
+                  features: ["5 AI summaries/month", "Basic flashcards", "Community support"],
+                  cta: "Start Free",
+                  popular: false
+                },
+                {
+                  name: "Pro",
+                  price: { monthly: "$9.99", yearly: "$7.99" },
+                  description: "Best for serious students",
+                  features: ["Unlimited AI features", "Advanced quiz generation", "Priority support", "Export options"],
+                  cta: "Start Pro Trial",
+                  popular: true
+                },
+                {
+                  name: "Team",
+                  price: { monthly: "$19.99", yearly: "$15.99" },
+                  description: "For study groups & classes",
+                  features: ["Everything in Pro", "Team collaboration", "Admin dashboard", "Custom integrations"],
+                  cta: "Start Team Trial",
+                  popular: false
+                }
+              ].map((plan, i) => (
+                <motion.div
+                  key={i}
+                  data-aos="fade-up"
+                  data-aos-delay={i * 150}
+                  whileHover={{ y: -5 }}
+                  className={`relative bg-white dark:bg-gray-800 p-8 rounded-xl border-2 ${
+                    plan.popular 
+                      ? "border-purple-500 shadow-xl" 
+                      : "border-gray-200 dark:border-gray-700"
+                  }`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
+                        Best Value
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="text-center mb-8">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
+                    <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                      {plan.price[pricingToggle]}
+                      <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400">{plan.description}</p>
+                  </div>
+
+                  <ul className="space-y-4 mb-8">
+                    {plan.features.map((feature, j) => (
+                      <li key={j} className="flex items-center">
+                        <Check className="h-5 w-5 text-green-500 mr-3" />
+                        <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className={`w-full py-3 ${
+                      plan.popular 
+                        ? "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
+                    }`}
+                    onClick={handleGetStarted}
+                  >
+                    {plan.cta}
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="text-center mt-12" data-aos="fade-up" data-aos-delay="400">
+              <div className="flex justify-center items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span>Secure Checkout</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Cancel Anytime</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-20 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 dark:from-black dark:via-purple-950 dark:to-black">
+          <div className="container mx-auto px-4 text-center">
+            <motion.div
+              data-aos="fade-up"
+              className="max-w-3xl mx-auto"
+            >
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                Ready to Transform Your Learning?
+              </h2>
+              <p className="text-xl text-gray-300 mb-8">
+                Join over 500,000 students who are already studying smarter with AI
+              </p>
+              
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-xl px-12 py-4 rounded-xl font-semibold shadow-xl"
+                onClick={handleGetStarted}
+              >
+                <Zap className="mr-2 h-6 w-6" />
+                Start Your Free Journey
+              </Button>
+              
+              <p className="text-gray-400 mt-4 text-sm">
+                No credit card required • Free forever plan available
+              </p>
+            </motion.div>
+          </div>
+        </section>
       </main>
-      
+
       <Footer />
-    </div>
-  );
-};
 
-// Counter component for animated number counting
-const CountUp = ({ end, className }: { end: number; className: string }) => {
-  const [count, setCount] = useState(0);
-  const [ref, isInView] = useAnimateOnScroll();
-  
-  useEffect(() => {
-    if (!isInView) return;
-    
-    let startTimestamp: number;
-    const duration = 2000; // 2 seconds
-    
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      setCount(Math.floor(progress * end));
-      
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      }
-    };
-    
-    window.requestAnimationFrame(step);
-  }, [end, isInView]);
-  
-  return <span ref={ref} className={className}>{count.toLocaleString()}</span>;
-};
-
-// Features Section Component with staggered animations
-const FeaturesSection = () => {
-  const [ref, isInView] = useAnimateOnScroll();
-  
-  return (
-    <section className="py-20 px-4 bg-background dark:bg-background">
-      <div className="container mx-auto max-w-6xl">
-        <motion.div 
-          ref={ref}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
-          className="text-center mb-16"
-        >
-          <motion.h2 
-            variants={slideUp}
-            className="text-3xl md:text-4xl font-bold mb-4"
-          >
-            Everything You Need To Study Smarter
-          </motion.h2>
-          <motion.p 
-            variants={fadeIn}
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
-          >
-            Our platform transforms the way you learn with these powerful features
-          </motion.p>
-        </motion.div>
-        
-        <motion.div 
-          ref={ref}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
-        >
-          <motion.div variants={fadeIn}>
-            <FeatureCard 
-              icon={<Brain className="w-10 h-10 text-purple-500" />}
-              title="AI Study Tutor"
-              description="Chat with your personalized AI tutor about any topic in your study materials"
-            />
-          </motion.div>
-          <motion.div variants={fadeIn}>
-            <FeatureCard 
-              icon={<BookOpen className="w-10 h-10 text-purple-500" />}
-              title="Smart Study Tools"
-              description="Accelerate your learning with effective study materials generated from your content"
-            />
-          </motion.div>
-          <motion.div variants={fadeIn}>
-            <FeatureCard 
-              icon={<BarChart3 className="w-10 h-10 text-purple-500" />}
-              title="Progress Tracking"
-              description="Monitor your learning progress with detailed analytics"
-            />
-          </motion.div>
-          <motion.div variants={fadeIn}>
-            <FeatureCard 
-              icon={<Zap className="w-10 h-10 text-purple-500" />}
-              title="Instant Quizzes"
-              description="Test your knowledge with AI-generated quizzes tailored to your materials"
-            />
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-};
-
-// Upload Section Component with scroll animations
-const UploadSection = ({ handleGetStarted }: { handleGetStarted: () => void }) => {
-  const [ref, isInView] = useAnimateOnScroll();
-  
-  return (
-    <section className="py-20 bg-muted px-4 overflow-hidden">
-      <div className="container mx-auto max-w-5xl">
-        <motion.div 
-          ref={ref}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
-          className="text-center mb-12"
-        >
-          <motion.h2 
-            variants={slideUp}
-            className="text-3xl md:text-4xl font-bold mb-4"
-          >
-            Upload Any Study Material
-          </motion.h2>
-          <motion.p 
-            variants={fadeIn}
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
-          >
-            Our AI instantly processes your documents and helps you learn faster
-          </motion.p>
-        </motion.div>
-        
-        <motion.div 
-          variants={fadeIn}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          className="bg-card rounded-xl shadow-lg p-8 border"
-        >
-          <div className="grid grid-cols-1 gap-10">
-            <div className="flex flex-col justify-center">
-              <motion.h3 
-                variants={slideUp}
-                className="text-2xl font-bold mb-4"
-              >
-                Supports Multiple Formats
-              </motion.h3>
-              <motion.p 
-                variants={fadeIn}
-                className="text-muted-foreground mb-8 text-lg"
-              >
-                Upload PDFs, Word documents, images, or plain text. Our AI processes everything.
-              </motion.p>
-              
-              <motion.div 
-                variants={staggerContainer}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8"
-              >
-                <motion.div variants={slideInLeft}>
-                  <DocumentTypeCard 
-                    icon={<FileText className="h-6 w-6 text-red-600" />}
-                    title="PDF Files"
-                    description="Textbooks, articles, papers"
-                  />
-                </motion.div>
-                <motion.div variants={slideInRight}>
-                  <DocumentTypeCard 
-                    icon={<FileText className="h-6 w-6 text-blue-600" />}
-                    title="Word Documents"
-                    description="Notes, essays, assignments"
-                  />
-                </motion.div>
-                <motion.div variants={slideInLeft}>
-                  <DocumentTypeCard 
-                    icon={<FileText className="h-6 w-6 text-green-600" />}
-                    title="Images"
-                    description="Diagrams, charts, screenshots"
-                  />
-                </motion.div>
-                <motion.div variants={slideInRight}>
-                  <DocumentTypeCard 
-                    icon={<MessageSquare className="h-6 w-6 text-purple-600" />}
-                    title="Text & URLs"
-                    description="Copy-paste or link websites"
-                  />
-                </motion.div>
-              </motion.div>
-              
-              <motion.div 
-                variants={slideUp}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  className="w-full md:w-auto bg-purple-500 hover:bg-purple-600 text-white font-semibold text-base shadow-md py-3 px-6 rounded-md"
-                  onClick={handleGetStarted}
-                >
-                  <Zap className="mr-2 h-5 w-5" />
-                  Upload Your First Document
-                </Button>
-              </motion.div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-};
-
-// Benefits Section Component with scroll animations
-const BenefitsSection = () => {
-  const [ref, isInView] = useAnimateOnScroll();
-  
-  return (
-    <section className="py-20 bg-background dark:bg-background px-4">
-      <div className="container mx-auto max-w-5xl">
-        <motion.div 
-          ref={ref}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
-          className="text-center mb-12"
-        >
-          <motion.h2 
-            variants={slideUp}
-            className="text-3xl md:text-4xl font-bold mb-4"
-          >
-            Why Tutorly Works
-          </motion.h2>
-          <motion.p 
-            variants={fadeIn}
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
-          >
-            Our science-based approach combines proven learning methods with cutting-edge AI
-          </motion.p>
-        </motion.div>
-        
-        <motion.div 
-          variants={staggerContainer}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
-        >
-          <motion.div variants={slideInLeft}>
-            <BenefitCard 
-              number="01"
-              title="Active Recall"
-              description="Our interactive tools force your brain to retrieve information, strengthening neural connections."
-            />
-          </motion.div>
-          <motion.div variants={slideUp}>
-            <BenefitCard 
-              number="02"
-              title="Spaced Repetition"
-              description="Our system automatically schedules reviews at optimal intervals to maximize long-term retention."
-            />
-          </motion.div>
-          <motion.div variants={slideInRight}>
-            <BenefitCard 
-              number="03"
-              title="AI Personalization"
-              description="Our advanced algorithms adapt to your learning style, focusing on areas where you need the most help."
-            />
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-};
-
-const TestimonialsSection = () => {
-  // Remove scroll trigger for headings for instant rendering
-  return (
-    <section className="py-20 bg-muted px-4">
-      <div className="container mx-auto max-w-5xl">
-        {/* Headings: Fade in and slide down instantly */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="text-center mb-12"
-        >
-          <motion.h2 
-            className="text-3xl md:text-4xl font-bold mb-4"
-            initial={false}
-            animate={false}
-          >
-            Loved by Students Everywhere
-          </motion.h2>
-          <motion.p 
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
-            initial={false}
-            animate={false}
-          >
-            See what our users are saying about their learning experience
-          </motion.p>
-        </motion.div>
-        
-        {/* Testimonials: Staggered fade-in, not scroll-based */}
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: {},
-            visible: {
-              transition: { staggerChildren: 0.2 }
-            }
-          }}
-        >
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.7 } }
-            }}
-          >
-            <TestimonialCard 
-              quote="Tutorly transformed my study routine! With its smart features, learning became easier and more effective — my grades have skyrocketed!"
-              author="Shahid Afrid."
-              role="Computer Science Student"
-            />
-          </motion.div>
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.7, delay: 0.2 } }
-            }}
-          >
-            <TestimonialCard 
-              quote="The AI tutor feels like having a professor available 24/7. It's incredible!"
-              author="Charlie."
-              role="Law Student"
-            />
-          </motion.div>
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.7, delay: 0.4 } }
-            }}
-          >
-            <TestimonialCard 
-              quote="The study tools generated from my notes have saved me countless hours of study time."
-              author="Mary manuel."
-              role="Medical Student"
-            />
-          </motion.div>
-        </motion.div>
-        
-        {/* Stats: Also fade in instantly for fast render */}
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5 }}
-          className="mt-16 bg-card rounded-xl shadow-lg p-10 grid grid-cols-1 md:grid-cols-3 gap-10 border"
-        >
-          <div className="text-center stats-item">
-            <div className="text-5xl font-bold text-purple-500 mb-3">
-              <CountUp end={30} className="font-bold text-purple-500" />%
-            </div>
-            <p className="text-lg font-medium text-foreground">Average Exam Score Improvement</p>
-          </div>
-          <div className="text-center stats-item">
-            <div className="text-5xl font-bold text-purple-500 mb-3">
-              <CountUp end={10000} className="font-bold text-purple-500" />+
-            </div>
-            <p className="text-lg font-medium text-foreground">Active Student Users</p>
-          </div>
-          <div className="text-center stats-item">
-            <div className="text-5xl font-bold text-purple-500 mb-3">
-              <CountUp end={40} className="font-bold text-purple-500" />%
-            </div>
-            <p className="text-lg font-medium text-foreground">Less Study Time Required</p>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-};
-
-// CTA Section Component with scroll animations
-const CTASection = ({ currentUser, navigate }: { currentUser: any; navigate: any }) => {
-  const [ref, isInView] = useAnimateOnScroll();
-  
-  return (
-    <section className="py-20 bg-gray-900 text-white px-4">
-      <div className="container mx-auto max-w-5xl text-center">
+      {/* Video Modal */}
+      {isVideoPlaying && (
         <motion.div
-          ref={ref}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          variants={staggerContainer}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsVideoPlaying(false)}
         >
-          <motion.h2 
-            variants={slideUp}
-            className="text-4xl md:text-5xl font-bold mb-6 text-white"
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.8 }}
+            className="bg-white dark:bg-gray-900 p-8 rounded-xl max-w-2xl w-full"
+            onClick={(e) => e.stopPropagation()}
           >
-            Ready to Transform Your Learning?
-          </motion.h2>
-          <motion.p 
-            variants={fadeIn}
-            className="text-xl text-gray-300 max-w-2xl mx-auto mb-8"
-          >
-            Join thousands of students who are already studying smarter, not harder.
-          </motion.p>
-          <motion.div 
-            variants={slideUp}
-            className="flex justify-center"
-          >
-            {currentUser ? (
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  size="lg" 
-                  className="bg-purple-500 hover:bg-purple-600 text-white text-lg font-semibold shadow-lg py-3 px-8 rounded-md" 
-                  onClick={() => navigate("/dashboard")}
-                >
-                  <Zap className="mr-2 h-5 w-5" />
-                  Go to Your Dashboard
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <LoginButton 
-                  size="lg"
-                  variant="default"
-                />
-              </motion.div>
-            )}
+            <div className="aspect-video bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mb-4">
+              <div className="text-white text-center">
+                <Play className="h-16 w-16 mx-auto mb-4" />
+                <p className="text-lg">Demo Video Coming Soon!</p>
+                <p className="text-sm opacity-75">See Tutorly in action</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setIsVideoPlaying(false)}
+            >
+              Close
+            </Button>
           </motion.div>
         </motion.div>
-      </div>
-    </section>
+      )}
+    </div>
   );
 };
-
-// Feature Card Component with hover animations
-const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
-  <motion.div
-    whileHover={{ y: -10, transition: { duration: 0.2 } }}
-  >
-    <Card className="border shadow-md hover:shadow-lg transition-all duration-300 h-full feature-card">
-      <CardContent className="p-6 space-y-4 h-full">
-        <motion.div 
-          className="p-3 bg-purple-100 w-fit rounded-xl"
-          whileHover={{ 
-            rotate: [0, -10, 10, -10, 0],
-            transition: { duration: 0.6 }
-          }}
-        >
-          {icon}
-        </motion.div>
-        <h3 className="text-xl font-bold">{title}</h3>
-        <p className="text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  </motion.div>
-);
-
-// Document Type Card with hover animations
-const DocumentTypeCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
-  <motion.div
-    whileHover={{ 
-      scale: 1.03,
-      backgroundColor: "rgba(124, 58, 237, 0.1)",
-      transition: { duration: 0.2 }
-    }}
-    className="bg-muted p-4 rounded-lg cursor-pointer"
-  >
-    <div className="flex items-start gap-3">
-      <motion.div 
-        className="mt-1"
-        whileHover={{ 
-          rotate: [0, -10, 10, -10, 0],
-          transition: { duration: 0.5 }
-        }}
-      >
-        {icon}
-      </motion.div>
-      <div>
-        <h4 className="font-bold">{title}</h4>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  </motion.div>
-);
-
-// Benefit Card with hover animations
-const BenefitCard = ({ number, title, description }: { number: string; title: string; description: string }) => (
-  <motion.div
-    whileHover={{ 
-      y: -10,
-      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-      transition: { duration: 0.2 }
-    }}
-    className="bg-card border rounded-xl p-6 shadow-md transition-all duration-300 h-full"
-  >
-    <div className="text-sm font-bold text-purple-500 mb-3">{number}</div>
-    <h3 className="text-xl font-bold mb-3">{title}</h3>
-    <p className="text-muted-foreground">{description}</p>
-    <motion.div 
-      className="mt-4 flex items-center text-purple-600 font-semibold"
-      whileHover={{ x: 5, transition: { duration: 0.2 } }}
-    >
-      <CheckCircle className="h-5 w-5 mr-2" />
-      <span>Proven Effective</span>
-    </motion.div>
-  </motion.div>
-);
-
-// Testimonial Card Component with hover animations
-const TestimonialCard = ({ quote, author, role }: { quote: string; author: string; role: string }) => (
-  <motion.div
-    whileHover={{ 
-      y: -10,
-      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-      transition: { duration: 0.2 }
-    }}
-  >
-    <Card className="p-6 border shadow-md h-full testimonial-card">
-      <CardContent className="p-0 space-y-4 h-full">
-        <motion.div 
-          className="text-4xl text-purple-500"
-          initial={{ opacity: 0, scale: 0 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          viewport={{ once: true }}
-        >
-          "
-        </motion.div>
-        <p className="text-muted-foreground italic">{quote}</p>
-        <div className="mt-auto pt-4">
-          <p className="font-bold">{author}</p>
-          <p className="text-sm text-muted-foreground">{role}</p>
-        </div>
-      </CardContent>
-    </Card>
-  </motion.div>
-);
 
 export default Index;
