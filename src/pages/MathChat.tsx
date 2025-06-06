@@ -11,7 +11,7 @@ import { useStudyTracking } from "@/hooks/useStudyTracking";
 import MathChatHistory from "@/components/features/MathChatHistory";
 import MathRenderer from "@/components/features/MathRenderer";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 
 interface MathChatMessage {
   id: string;
@@ -31,7 +31,7 @@ const MathChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { trackMathProblemSolved, startSession, endSession } = useStudyTracking();
-  const router = useRouter();
+ const navigate = useNavigate();
 
   const solveMathProblem = async (mathProblem: string): Promise<string> => {
     const response = await fetch('/api/math-solver', {
@@ -103,7 +103,7 @@ const MathChat = () => {
         <Button
           variant="ghost"
           className="flex items-center gap-2 text-primary shadow-md bg-white/80 dark:bg-gray-900/80 backdrop-blur px-3 py-2 rounded-full animate-fadeIn"
-          onClick={() => router.push("/dashboard")}
+          onClick={() => navigate("/dashboard")}
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
