@@ -7,7 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, Download, Loader2, Moon, Sun, BookOpen, Sparkles, ArrowLeft } from "lucide-react";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
-import Card from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import * as pdfjsLib from "pdfjs-dist";
 
