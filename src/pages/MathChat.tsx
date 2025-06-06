@@ -40,21 +40,22 @@ const MathChat = () => {
   const { trackMathProblemSolved, startSession, endSession } = useStudyTracking();
 
   const extractTextFromImage = async (file: File): Promise<string> => {
-    setIsProcessingImage(true);
-    try {
-      const worker = await createWorker();
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
-      const { data: { text } } = await worker.recognize(file);
-      await worker.terminate();
-      return text.trim();
-    } catch (error) {
-      console.error('OCR Error:', error);
-      throw new Error('Failed to extract text from image');
-    } finally {
-      setIsProcessingImage(false);
-    }
-  };
+  setIsProcessingImage(true);
+  try {
+    const worker = await createWorker();
+    await worker.load(); // Load Tesseract core scripts
+    await worker.loadLanguage('eng'); // Load English language data
+    await worker.initialize('eng'); // Initialize with English
+    const { data: { text } } = await worker.recognize(file);
+    await worker.terminate();
+    return text.trim();
+  } catch (error) {
+    console.error('OCR Error:', error);
+    throw new Error('Failed to extract text from image');
+  } finally {
+    setIsProcessingImage(false);
+  }
+};
 
   const solveMathProblem = async (mathProblem: string): Promise<string> => {
     const response = await fetch('/api/math-solver', {
