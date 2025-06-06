@@ -37,17 +37,7 @@ interface Quiz {
 }
 
 const emojiSet = [
-  "🧠",
-  "🔥",
-  "🌈",
-  "🎉",
-  "⭐",
-  "🚀",
-  "💡",
-  "🎯",
-  "🙌",
-  "📚",
-  "✨"
+  "🧠", "🔥", "🌈", "🎉", "⭐", "🚀", "💡", "🎯", "🙌", "📚", "✨"
 ];
 
 const getRandomEmoji = () =>
@@ -274,7 +264,7 @@ const Quiz = () => {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => navigate("/ai-session")}
+                onClick={() => navigate("/ai-notes")}
                 className="flex items-center gap-2 text-lg font-semibold"
                 size="lg"
               >
