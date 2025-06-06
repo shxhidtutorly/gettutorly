@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CreateFlashcardDialog } from "@/components/flashcards/CreateFlashcardDialog";
+import CreateFlashcardDialog from "@/components/features/CreateFlashcardDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
