@@ -4,7 +4,7 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Download, Loader2, Moon, Sun, BookOpen, Sparkles, ArrowLeft } from "lucide-react";
+import { Upload, FileText, Loader2, Moon, Sun, Sparkles, ArrowLeft } from "lucide-react";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
 import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
@@ -73,7 +73,7 @@ export default function Summaries() {
     setExtractedText("");
     setSummary("");
     setShowSummaryAnim(false);
-    startSession(); // Start tracking session
+    startSession();
 
     try {
       const arrayBuffer = await uploadedFile.arrayBuffer();
@@ -93,7 +93,7 @@ export default function Summaries() {
         setProgress(30 + (i / numPages) * 40);
       }
 
-      setExtractedText(fullText); // Will not be previewed!
+      setExtractedText(fullText);
       setProgress(70);
     } catch (error: any) {
       setError(`❗ Failed to process PDF: ${error.message}`);
@@ -153,7 +153,6 @@ export default function Summaries() {
       setShowSummaryAnim(false);
       setTimeout(() => setShowSummaryAnim(true), 100);
 
-      // Track summary generation
       trackSummaryGeneration();
       endSession("summary", file?.name || "Summary", true);
     } catch (error: any) {
@@ -324,7 +323,7 @@ export default function Summaries() {
               </div>
 
               <div
-                className={`rounded-3xl shadow-2xl border-2 border-[#43e97b] p-6 md:p-10 mb-10 mx-auto transition-all duration-500 bg-gradient-to-br from-[#232453] via-[#17173a] to-[#1e2140] min-h-[300px] md:min-h-[450px] max-h-[500px] md:max-h-[650px] flex flex-col justify-between animate-fade-in-up`}
+                className={`rounded-3xl shadow-2xl border-2 border-[#43e97b] p-6 md:p-10 mb-10 mx-auto transition-all duration-500 bg-gradient-to-br from-[#232453] via-[#17173a] to-[#1e2140] min-h-[400px] md:min-h-[600px] max-h-[900px] md:max-h-[1200px] flex flex-col justify-between animate-fade-in-up`}
                 style={{
                   animation: showSummaryAnim
                     ? "fadeInUp 0.9s cubic-bezier(0.23, 1, 0.32, 1) both"
@@ -338,7 +337,7 @@ export default function Summaries() {
                   </h3>
                   <span className="text-2xl animate-pulse">🌟</span>
                 </div>
-                <div className="p-4 md:p-6 rounded-lg border-l-4 overflow-y-auto min-h-[200px] md:min-h-[320px] max-h-[300px] md:max-h-[380px] mt-3 mb-2 bg-[#21264b]/80 border-[#43e97b] text-blue-50">
+                <div className="p-4 md:p-6 rounded-lg border-l-4 overflow-y-auto min-h-[320px] md:min-h-[520px] max-h-[700px] md:max-h-[900px] mt-3 mb-2 bg-[#21264b]/80 border-[#43e97b] text-blue-50">
                   <p className="whitespace-pre-wrap leading-relaxed text-lg font-medium">
                     {stripFirstMarkdownHeading(summary)}
                   </p>
