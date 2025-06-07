@@ -254,7 +254,7 @@ const Index = () => {
   <div className="container mx-auto px-4">
     <div className="text-center mb-16">
       <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-        Empowering learners from 200+ leading institutions across 128 countries — trusted by over 500,000 students
+        Empowering learners from 200+ leading institutions across 128 countries  trusted by over 500,000 students
       </h2>
     </div>
     <div className="relative overflow-hidden w-full">
