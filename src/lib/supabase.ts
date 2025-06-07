@@ -1,12 +1,11 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Use the actual Supabase project configuration - SINGLETON PATTERN
+// Use the actual Supabase project configuration
 const supabaseUrl = 'https://dllyfsbuxrjyiatfcegk.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbHlmc2J1eHJqeWlhdGZjZWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0NDUxNzAsImV4cCI6MjA2MzAyMTE3MH0.1jfGciFNtGgfw7bNZhuraoA_83whPx6Ojl0J5iHfJz0';
 
 // Create a single Supabase client instance
-export const supabase = createClient(
+const supabase = createClient(
   supabaseUrl,
   supabaseAnonKey,
   {
@@ -22,6 +21,9 @@ export const supabase = createClient(
   }
 );
 
+// Export the Supabase client for use in other modules
+export { supabase };
+
 // Storage configuration
 const STORAGE_CONFIG = {
   bucketName: 'summaries',
@@ -33,7 +35,6 @@ const STORAGE_CONFIG = {
 // Function to ensure bucket exists
 export const ensureBucketExists = async (bucketName: string = STORAGE_CONFIG.bucketName) => {
   try {
-    // Check if bucket exists
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
     if (listError) {
@@ -45,8 +46,6 @@ export const ensureBucketExists = async (bucketName: string = STORAGE_CONFIG.buc
     
     if (!bucketExists) {
       console.log(`Bucket '${bucketName}' not found. Attempting to create...`);
-      // Note: Bucket creation may require admin privileges
-      // For now, we'll return false and use fallback strategy
       return false;
     }
     
@@ -61,7 +60,6 @@ export const ensureBucketExists = async (bucketName: string = STORAGE_CONFIG.buc
 // Function to upload file with fallback bucket strategy
 export const uploadFile = async (userId: string, file: File, primaryBucket: string = STORAGE_CONFIG.bucketName) => {
   try {
-    // Validate file type and size
     if (file.type !== 'application/pdf') {
       throw new Error('Please upload a PDF file');
     }
@@ -72,7 +70,6 @@ export const uploadFile = async (userId: string, file: File, primaryBucket: stri
 
     const filePath = `${userId}/${Date.now()}_${file.name}`;
     
-    // Try uploading to the primary bucket first
     let uploadResult = null;
     let successfulBucket = null;
     
@@ -197,7 +194,6 @@ export const initializeStorage = async () => {
   try {
     console.log('Initializing storage...');
     
-    // List existing buckets
     const { data: buckets, error } = await supabase.storage.listBuckets();
     
     if (error) {
@@ -207,7 +203,6 @@ export const initializeStorage = async () => {
     
     console.log('Available buckets:', buckets?.map(b => b.name) || []);
     
-    // Check if any of our fallback buckets exist
     const availableBuckets = buckets?.map(b => b.name) || [];
     const usableBucket = STORAGE_CONFIG.fallbackBuckets.find(bucket => 
       availableBuckets.includes(bucket)
