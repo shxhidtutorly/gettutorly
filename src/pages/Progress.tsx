@@ -206,14 +206,18 @@ const Progress = () => {
 
           {/* Progress Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in-up">
-            <ProgressStatCard
-              title="Study Hours ⏳"
-              value={stats.totalStudyHours}
-              unit="hrs"
-              change={0.5}
-              icon={<Clock className="h-5 w-5 text-yellow-300" />}
-              className={cardClass + " hover:scale-105 transition"}
-            />
+          <ProgressStatCard
+  title="Study Hours ⏳"
+  value={
+    stats.totalStudyHours < 1
+      ? Math.round(stats.totalStudyHours * 60)
+      : Number(stats.totalStudyHours).toFixed(1)
+  }
+  unit={stats.totalStudyHours < 1 ? "min" : "hrs"}
+  change={0.5}
+  icon={<Clock className="h-5 w-5 text-yellow-300" />}
+  className={cardClass + " hover:scale-105 transition"}
+/>
             <ProgressStatCard
               title="Sessions 🎯"
               value={stats.sessionCount}
