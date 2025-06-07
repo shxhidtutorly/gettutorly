@@ -41,7 +41,7 @@ const MathChat = () => {
     });
     if (!response.ok) throw new Error('Failed to solve math problem');
     const data = await response.json();
-    return data.solution;
+     return data.plainSolution;
   };
 
   const handleSubmit = async () => {
