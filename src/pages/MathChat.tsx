@@ -136,8 +136,9 @@ const MathChat = () => {
 
       <Navbar />
 
-      {/* Back to Dashboard Button */}
-      <div className="absolute top-4 left-4 z-20">
+      {/* Top Buttons Row: Back to Dashboard (left), Clear History (right) */}
+      <div className="w-full flex justify-between items-center absolute top-4 left-0 px-4 z-20">
+        {/* Back to Dashboard Button */}
         <Button
           variant="ghost"
           className="flex items-center gap-2 text-primary shadow-md bg-white/80 dark:bg-gray-900/90 backdrop-blur px-3 py-2 rounded-full animate-fadeIn text-base font-bold"
@@ -146,26 +147,16 @@ const MathChat = () => {
           <ArrowLeft className="h-5 w-5" />
           <span className="ml-1">Back to Dashboard</span>
         </Button>
-      </div>
-
-      {/* Clear History Button */}
-      {messages.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85, x: 40 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          transition={{ delay: 0.2, type: "spring", stiffness: 140 }}
-          className="absolute top-4 right-4 z-20"
+        {/* Clear History Button */}
+        <Button
+          variant="destructive"
+          className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2 rounded-full shadow-lg"
+          onClick={handleClearHistory}
         >
-          <Button
-            variant="destructive"
-            className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2 rounded-full shadow-lg"
-            onClick={handleClearHistory}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span>{EMOJI_CLEAR} Clear History</span>
-          </Button>
-        </motion.div>
-      )}
+          <Trash2 className="h-4 w-4" />
+          <span>{EMOJI_CLEAR} Clear History</span>
+        </Button>
+      </div>
 
       <main className="flex-1 py-6 px-2 md:px-0 pb-20 md:pb-8 flex flex-col">
         <div className="container max-w-2xl mx-auto">
@@ -231,7 +222,7 @@ const MathChat = () => {
                 <Button
                   onClick={handleSubmit}
                   disabled={isLoading || !problem.trim()}
-                  className="w-full flex items-center gap-2 text-lg bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 shadow-xl transition font-bold py-3"
+                  className="w-full flex items-center gap-2 text-lg bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 shadow-xl transition font-bold"
                 >
                   {isLoading ? (
                     <>
