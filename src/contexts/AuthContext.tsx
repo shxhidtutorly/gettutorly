@@ -44,6 +44,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       async (event, session) => {
         setCurrentUser(session?.user ?? null);
         setLoading(false);
+        
+        // Redirect to dashboard on successful sign in
+        if (event === 'SIGNED_IN' && session?.user) {
+          window.location.href = '/dashboard';
+        }
       }
     );
 
@@ -58,15 +63,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password,
         options: {
           data: {
-            name: displayName || email.split('@')[0]
-          }
+            name: displayName || email.split('@')[0],
+            display_name: displayName || email.split('@')[0]
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Account created",
+        title: "Account created successfully!",
         description: "Please check your email to verify your account.",
       });
 
@@ -77,7 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message || "Could not create your account.",
         variant: "destructive",
       });
-      return null;
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -97,17 +104,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (error) throw error;
 
         toast({
-          title: "Sign in successful",
-          description: `Welcome back!`,
+          title: "Welcome back!",
+          description: "Successfully signed in to GetTutorly.",
         });
 
         return data.user;
       } else {
-        // Google OAuth sign in
+        // Google OAuth sign in with proper branding
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
           }
         });
 
@@ -117,10 +128,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
       toast({
         title: "Sign in failed",
-        description: error.message || "Invalid credentials or authentication error.",
+        description: error.message || "Invalid credentials. Please try again.",
         variant: "destructive",
       });
-      return null;
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -137,6 +148,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         title: "Signed out",
         description: "You have been signed out successfully.",
       });
+      
+      // Redirect to home page after sign out
+      window.location.href = '/';
     } catch (error: any) {
       toast({
         title: "Sign out failed",
