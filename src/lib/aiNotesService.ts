@@ -14,16 +14,37 @@ export interface Flashcard {
 }
 
 export async function generateNotesAI(text: string, filename: string): Promise<AINote> {
- const prompt = `You are an expert study assistant. Given the following content, generate detailed, comprehensive notes covering all main ideas, subtopics, definitions, examples, and explanations. 
-- Do not overly summarize or omit content.
-- Organize with clear headings, subheadings, and bullet points.
-- Include as much information as possible, making the notes suitable for in-depth study.
-- If the content is long, structure your notes in sections and subsections.
+  // Updated prompt as requested
+  const prompt = `You are a top-tier AI study assistant. Your task is to generate detailed and well-structured study notes from the given content.
+
+Instructions:
+- Do NOT omit or overly summarize important content — include as much relevant detail as possible.
+- Organize the notes using clear and consistent headings, subheadings, and bullet points.
+- Ensure the notes cover:
+  - All main ideas and key concepts
+  - Important definitions, examples, and explanations
+  - Any lists, processes, or formulas mentioned
+- If the content is long or complex, break the notes into logical sections and subsections.
+- Prioritize clarity, completeness, and usefulness for exam preparation and in-depth revision.
+- The final output should feel like comprehensive classroom notes taken by a top student.
 
 Here is the content to convert into notes:
 
 ${text}
 `;
+
+  function cleanMarkdownSymbols(str: string): string {
+    return str
+      .replace(/[*`'"]/g, "") // Remove *, `, ', and "
+      .replace(/^\s*-\s+/gm, "") // Remove leading dash bullet points
+      .replace(/^\s*\d+\.\s+/gm, "") // Remove ordered list numbering
+      .replace(/^\s*•\s+/gm, "") // Remove bullet dots
+      .replace(/_{2,}/g, "") // Remove long underscores
+      .replace(/#+\s*/g, "") // Remove markdown headings
+      .replace(/\s{2,}/g, " ") // Remove double spaces
+      .replace(/^\s+/gm, "") // Remove leading whitespace from each line
+      .trim();
+  }
 
   try {
     // Check if we have the /api/ai endpoint
@@ -48,11 +69,14 @@ ${text}
     }
 
     const data = await response.json();
-    
+
+    // Clean up the AI output to remove markdown symbols
+    const cleanedContent = cleanMarkdownSymbols(data.response || data.summary || 'Notes generated successfully');
+
     const note: AINote = {
       id: Date.now().toString(),
       title: `Notes from ${filename}`,
-      content: data.response || data.summary || 'Notes generated successfully',
+      content: cleanedContent,
       timestamp: new Date().toISOString(),
       filename
     };
@@ -63,7 +87,6 @@ ${text}
     throw new Error('Failed to generate AI notes. Please try again.');
   }
 }
-
 export async function generateFlashcardsAI(notesText: string): Promise<Flashcard[]> {
   const prompt = `Create 10-15 study flashcards from these notes. 
   Each flashcard should have a clear question and a concise answer.
