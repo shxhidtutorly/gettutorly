@@ -249,27 +249,24 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Trust Section with University Logos */}
-<section className="py-16 bg-white dark:bg-gray-950 border-b" data-aos="fade-up">
+        {/* Trusted by Universities Section */}
+<section className="py-28 bg-white dark:bg-gray-950" data-aos="fade-up">
   <div className="container mx-auto px-4">
-    <div className="text-center mb-12">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="text-center mb-16">
+      <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
         Empowering learners from 200+ leading institutions across 128 countries — trusted by over 500,000 students
       </h2>
     </div>
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden w-full">
       <motion.div
-        className="flex gap-16 items-center will-change-transform"
+        className="flex gap-20 items-center"
         style={{ minWidth: "min-content" }}
         animate={{ x: ["0%", "-50%"] }}
         transition={{
           repeat: Infinity,
           repeatType: "loop",
-          duration: 45,
+          duration: 60,
           ease: "linear"
-        }}
-        onUpdate={latest => {
-          // This is handled by Framer Motion for an infinite loop
         }}
       >
         {/* Duplicate array for seamless looping */}
@@ -296,20 +293,20 @@ const Index = () => {
         ]).map((uni, i) => (
           <div
             key={i}
-            className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-8 py-4 mx-2 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-2xl"
-            style={{ minWidth: 180 }}
+            className="flex-shrink-0 flex items-center justify-center transition-transform duration-300 hover:scale-110"
+            style={{ minWidth: 220 }}
             title={uni.name}
           >
             <img
               src={uni.logo}
               alt={uni.name + " logo"}
-              className="h-16 md:h-20 max-w-[180px] object-contain transition-all duration-300"
-              style={{ filter: "drop-shadow(0 2px 6px #0003)" }}
+              className="h-24 md:h-32 max-w-[220px] object-contain transition-all duration-300 hover:drop-shadow-lg"
+              style={{ filter: "drop-shadow(0 2px 8px #0002)" }}
             />
           </div>
         ))}
       </motion.div>
-      {/* Gradient Fades for edges */}
+      {/* Optional: subtle fades at the edges for polish */}
       <div className="pointer-events-none absolute top-0 left-0 w-24 h-full bg-gradient-to-r from-white/90 dark:from-gray-950/90 to-transparent z-10" />
       <div className="pointer-events-none absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-white/90 dark:from-gray-950/90 to-transparent z-10" />
     </div>
