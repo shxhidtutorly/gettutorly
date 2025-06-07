@@ -219,9 +219,9 @@ const MathChat = () => {
                           <Calculator className="h-4 w-4 text-green-500" />
                           <span className="font-medium">Solution:</span>
                         </div>
-                        <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-100 dark:border-green-900 transition-all shadow">
-                          <MathRenderer content={message.solution} />
-                        </div>
+                        <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-100 dark:border-green-900 transition-all shadow whitespace-pre-line font-mono">
+  {message.solution}
+</div>
                       </motion.div>
                     )}
                     <div className="text-xs text-muted-foreground mt-2 text-right">
