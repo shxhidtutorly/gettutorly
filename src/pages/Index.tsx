@@ -1,12 +1,4 @@
-import ChicagoLogo from "@/src/Chicago-University-Logo.png";
-import GeorgetownLogo from "@/src/Georgetown-University-Logo.png";
-import HarvardLogo from "@/src/Harvard-University-Logo.png";
-import HowardLogo from "@/src/Howard-University-Logo.png";
-import OhioStateLogo from "@/src/Ohio-State-University-Logo.png";
-import OtagoLogo from "@/src/Otago-University-Logo.png";
-import PittsburghLogo from "@/src/Pittsburgh-University-Logo.png";
-import StanfordLogo from "@/src/Stanford-University-Logo.png";
-import WashingtonLogo from "@/src/Washington-University-Logo.png";
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -250,44 +242,31 @@ const Index = () => {
         </section>
 
         {/* Trust Section with University Logos */}
-       <section className="py-16 bg-white dark:bg-gray-950 border-b" data-aos="fade-up">
-  <div className="container mx-auto px-4">
-    <div className="text-center mb-12">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-        Trusted worldwide — used by over 500,000 students from 200+ top institutions in 128+ countries
-      </h2>
-    </div>
-    <div className="relative overflow-hidden">
-      <motion.div 
-        className="flex gap-12 items-center"
-        animate={{ x: [-1000, 0] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      >
-        {[
-          { name: "University of Chicago", logo: ChicagoLogo },
-          { name: "Georgetown University", logo: GeorgetownLogo },
-          { name: "Harvard University", logo: HarvardLogo },
-          { name: "Howard University", logo: HowardLogo },
-          { name: "Ohio State University", logo: OhioStateLogo },
-          { name: "University of Otago", logo: OtagoLogo },
-          { name: "University of Pittsburgh", logo: PittsburghLogo },
-          { name: "Stanford University", logo: StanfordLogo },
-          { name: "University of Washington", logo: WashingtonLogo },
-        ].map((uni, i) => (
-          <div key={i} className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-6 py-3 rounded-lg flex items-center justify-center">
-            <img
-              src={uni.logo}
-              alt={uni.name + " logo"}
-              className="h-10 md:h-12 max-w-[120px] object-contain"
-              style={{ filter: "drop-shadow(0 1px 3px #0002)" }}
-              title={uni.name}
-            />
+        <section className="py-16 bg-white dark:bg-gray-950 border-b" data-aos="fade-up">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                Trusted by over 500,000 students across 128+ countries and 200+ top institutions
+              </h2>
+            </div>
+            
+            {/* Scrolling University Logos */}
+            <div className="relative overflow-hidden">
+              <motion.div 
+                className="flex gap-12 items-center"
+                animate={{ x: [-1000, 0] }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              >
+                {["MIT", "Oxford", "Stanford", "Harvard", "IIT", "Cambridge", "Yale", "Princeton"].map((uni, i) => (
+                  <div key={i} className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-6 py-3 rounded-lg font-semibold text-gray-700 dark:text-gray-300">
+                    {uni}
+                  </div>
+                ))}
+              </motion.div>
+            </div>
           </div>
-        ))}
-      </motion.div>
-    </div>
-  </div>
-</section>
+        </section>
+
         {/* Real Reviews Section */}
         <section className="py-20 bg-gray-50 dark:bg-gray-900">
           <div className="container mx-auto px-4">
