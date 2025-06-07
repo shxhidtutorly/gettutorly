@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -30,9 +31,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Confetti effect (simple SVG, not a package!)
+// Simplified Confetti component to prevent animation issues
 const Confetti = () => (
-  <svg
+  <div
     style={{
       position: "absolute",
       top: -10,
@@ -42,15 +43,16 @@ const Confetti = () => (
       width: 70,
       height: 50,
     }}
-    viewBox="0 0 70 50"
   >
-    <circle cx="10" cy="10" r="3" fill="#fbbf24" />
-    <circle cx="25" cy="20" r="2" fill="#60a5fa" />
-    <circle cx="40" cy="8" r="2.5" fill="#a7f3d0" />
-    <circle cx="60" cy="15" r="3" fill="#f472b6" />
-    <circle cx="35" cy="35" r="2.5" fill="#fcd34d" />
-    <circle cx="55" cy="28" r="2" fill="#f87171" />
-  </svg>
+    <svg viewBox="0 0 70 50" width="70" height="50">
+      <circle cx="10" cy="10" r="3" fill="#fbbf24" />
+      <circle cx="25" cy="20" r="2" fill="#60a5fa" />
+      <circle cx="40" cy="8" r="2.5" fill="#a7f3d0" />
+      <circle cx="60" cy="15" r="3" fill="#f472b6" />
+      <circle cx="35" cy="35" r="2.5" fill="#fcd34d" />
+      <circle cx="55" cy="28" r="2" fill="#f87171" />
+    </svg>
+  </div>
 );
 
 const Dashboard = () => {
@@ -186,7 +188,17 @@ const Dashboard = () => {
             className="mb-6 md:mb-8"
           >
             <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
-              Welcome back, {getUserDisplayName()}! <span className="animate-waving-hand text-2xl origin-bottom">👋</span>
+              Welcome back, {getUserDisplayName()}! 
+              <span 
+                className="text-2xl animate-bounce"
+                style={{
+                  display: 'inline-block',
+                  animationDuration: '2s',
+                  animationIterationCount: 'infinite'
+                }}
+              >
+                👋
+              </span>
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">Here's your learning progress overview</p>
           </motion.div>
@@ -201,11 +213,7 @@ const Dashboard = () => {
             <Flame className="h-4 w-4 md:h-5 md:w-5 text-orange-400 animate-pulse" />
             <span className="font-semibold text-orange-300 text-sm md:text-base flex items-center gap-1">
               {stats.streakDays}-day streak!
-              <motion.span
-                animate={{ scale: [1, 1.25, 1] }}
-                transition={{ repeat: Infinity, duration: 1.2, repeatType: "reverse" }}
-                className="ml-1"
-              >🔥</motion.span>
+              <span className="ml-1 text-base">🔥</span>
             </span>
             <Badge className="ml-2 bg-orange-600/30 border-orange-400 text-orange-100 text-xs">
               Keep it up!
@@ -215,13 +223,16 @@ const Dashboard = () => {
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
             {/* Study Hours */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #2563eb44' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-blue-900/20">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+              <Card className="dark:bg-card transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-500/30">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Study Hours</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.totalStudyHours.toFixed(1)}h <span className="text-blue-400">⏰</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+                        {stats.totalStudyHours.toFixed(1)}h 
+                        <span className="text-blue-400">⏰</span>
+                      </p>
                     </div>
                     <Clock className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
                   </div>
@@ -230,13 +241,16 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Sessions */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #10b98144' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-green-900/20">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+              <Card className="dark:bg-card transition-all shadow-lg shadow-green-900/20 hover:shadow-green-500/30">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Sessions</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.sessionCount} <span className="text-green-400">🎯</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+                        {stats.sessionCount} 
+                        <span className="text-green-400">🎯</span>
+                      </p>
                     </div>
                     <Target className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
                   </div>
@@ -245,13 +259,16 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Quizzes */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #facc1544' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-yellow-900/20">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+              <Card className="dark:bg-card transition-all shadow-lg shadow-yellow-900/20 hover:shadow-yellow-500/30">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.quizzesCompleted} <span className="text-yellow-400">❓</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+                        {stats.quizzesCompleted} 
+                        <span className="text-yellow-400">❓</span>
+                      </p>
                     </div>
                     <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
                   </div>
@@ -260,13 +277,16 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Summaries */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #a78bfa44' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-purple-900/20">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+              <Card className="dark:bg-card transition-all shadow-lg shadow-purple-900/20 hover:shadow-purple-500/30">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Created</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.summariesGenerated + stats.notesCreated} <span className="text-purple-400">📝</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+                        {stats.summariesGenerated + stats.notesCreated} 
+                        <span className="text-purple-400">📝</span>
+                      </p>
                     </div>
                     <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-500" />
                   </div>
@@ -282,18 +302,19 @@ const Dashboard = () => {
                 <Sparkles className="text-yellow-400 animate-pulse h-5 w-5 mr-1" />
                 <CardTitle className="text-base md:text-lg flex items-center gap-1">
                   Today's Activity
-                  <span className="animate-bounce text-xl ml-1">🌟</span>
+                  <span className="text-xl ml-1">🌟</span>
                 </CardTitle>
-                <motion.span
-                  initial={{ scale: 0.7, opacity: 0 }}
-                  animate={{ scale: showConfetti ? 1.15 : 0.7, opacity: showConfetti ? 1 : 0 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-                  className="relative"
-                >
-                  <AnimatePresence>
-                    {showConfetti && <Confetti />}
-                  </AnimatePresence>
-                </motion.span>
+                {showConfetti && (
+                  <motion.div
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: 1.15, opacity: 1 }}
+                    exit={{ scale: 0.7, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 12 }}
+                    className="relative"
+                  >
+                    <Confetti />
+                  </motion.div>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -305,23 +326,11 @@ const Dashboard = () => {
                       transition={{ delay: 0.08 * idx + 0.16, type: "spring", stiffness: 120 }}
                     >
                       <div className={`rounded-lg p-4 md:p-6 ${stat.bg} shadow-md flex flex-col items-center justify-center`}>
-                        <motion.span
-                          animate={{ scale: [1, 1.12, 1] }}
-                          transition={{ repeat: Infinity, duration: 1.7 + idx * 0.2, repeatType: "reverse" }}
-                          className="text-2xl md:text-3xl mb-1"
-                        >{stat.emoji}</motion.span>
-                        <motion.p
-                          className={`text-xl md:text-2xl font-extrabold ${stat.color} mb-0`}
-                          animate={{ y: [0, -5, 0] }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 1.4 + idx * 0.2,
-                            repeatType: "reverse"
-                          }}
-                        >
+                        <span className="text-2xl md:text-3xl mb-1">{stat.emoji}</span>
+                        <p className={`text-xl md:text-2xl font-extrabold ${stat.color} mb-0`}>
                           {stat.value}
-                        </motion.p>
-                        <p className="text-xs md:text-sm text-muted-foreground font-semibold drop-shadow">{stat.label}</p>
+                        </p>
+                        <p className="text-xs md:text-sm text-muted-foreground font-semibold">{stat.label}</p>
                       </div>
                     </motion.div>
                   ))}
@@ -340,16 +349,12 @@ const Dashboard = () => {
               {studyTools.map((tool, idx) => (
                 <motion.div
                   key={tool.title}
-                  whileHover={{
-                    scale: 1.08,
-                    boxShadow: '0 4px 32px #38bdf8bb',
-                    rotate: [0, 3, -3, 0]
-                  }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 160 }}
                 >
                   <Card
-                    className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105 shadow-md"
+                    className="cursor-pointer dark:bg-card transition-transform hover:scale-105 shadow-md hover:shadow-lg"
                     onClick={() => navigate(tool.route)}
                   >
                     <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
@@ -373,12 +378,12 @@ const Dashboard = () => {
               {quickActions.map((action, idx) => (
                 <motion.div
                   key={action.title}
-                  whileHover={{ scale: 1.04, boxShadow: '0 2px 28px #3b82f6aa' }}
+                  whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 160 }}
                 >
                   <Card
-                    className="hover-glow cursor-pointer dark:bg-card shadow-md"
+                    className="cursor-pointer dark:bg-card shadow-md hover:shadow-lg"
                     onClick={() => navigate(action.route)}
                   >
                     <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
@@ -396,28 +401,6 @@ const Dashboard = () => {
 
       <Footer />
       <BottomNav />
-
-      {/* Custom CSS for waving hand */}
-      <style>{`
-        @keyframes wave {
-          0% { transform: rotate(0.0deg);}
-          10% { transform: rotate(14deg);}
-          20% { transform: rotate(-8deg);}
-          30% { transform: rotate(14deg);}
-          40% { transform: rotate(-4deg);}
-          50% { transform: rotate(10.0deg);}
-          60% { transform: rotate(0.0deg);}
-          100% { transform: rotate(0.0deg);}
-        }
-        .animate-waving-hand {
-          display: inline-block;
-          animation: wave 2s infinite;
-          transform-origin: 70% 70%;
-        }
-        .hover-glow:hover {
-          box-shadow: 0 2px 32px #3b82f6cc !important;
-        }
-      `}</style>
     </div>
   );
 };

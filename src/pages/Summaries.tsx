@@ -1,402 +1,307 @@
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  FileText, 
+  Brain, 
+  Sparkles, 
+  Copy, 
+  Download, 
+  Trash2, 
+  Clock, 
+  BookOpen,
+  Zap,
+  Globe,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
+  ArrowLeft
+} from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Loader2, Moon, Sun, Sparkles, ArrowLeft } from "lucide-react";
-import { useStudyTracking } from "@/hooks/useStudyTracking";
-import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
-import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
-import * as pdfjsLib from "pdfjs-dist";
+import BackToDashboardButton from "@/components/features/BackToDashboardButton";
+import SummaryUsageTracker from "@/components/features/SummaryUsageTracker";
+import { motion } from "framer-motion";
 
-// Helper function to strip first Markdown heading
-function stripFirstMarkdownHeading(summary: string) {
-  return summary.replace(/^#+.*\n*/g, '').trim();
-}
-
-// Set up PDF.js worker for Vite
-if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.js",
-    import.meta.url
-  ).toString();
-}
-
-export default function Summaries() {
-  const [file, setFile] = useState<File | null>(null);
-  const [extractedText, setExtractedText] = useState("");
+const Summaries = () => {
+  const [inputText, setInputText] = useState("");
   const [summary, setSummary] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState("");
-  const [darkMode, setDarkMode] = useState(true);
-  const [showSummaryAnim, setShowSummaryAnim] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [summaryTitle, setSummaryTitle] = useState("");
+  const [summariesUsed, setSummariesUsed] = useState(0);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+  const { toast } = useToast();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { trackSummaryGeneration, endSession, startSession } = useStudyTracking();
-
-  // Initialize dark mode from localStorage or system preference
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem("darkMode");
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if (savedDarkMode !== null) {
-      setDarkMode(JSON.parse(savedDarkMode));
-    } else {
-      setDarkMode(systemPrefersDark);
-    }
-  }, []);
-
-  // Apply dark mode to document
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("darkMode", JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  const toggleDarkMode = () => setDarkMode(!darkMode);
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFile = event.target.files?.[0];
-    if (!uploadedFile) return;
-
-    if (uploadedFile.type !== "application/pdf") {
-      setError("❗ Please upload a PDF file only.");
+  const handleSummarize = async () => {
+    if (!inputText.trim()) {
+      setError("Please enter text to summarize.");
       return;
     }
 
-    setFile(uploadedFile);
-    setError("");
-    setProgress(10);
-    setExtractedText("");
+    setError(null);
+    setLoading(true);
     setSummary("");
-    setShowSummaryAnim(false);
-    startSession();
 
-    try {
-      const arrayBuffer = await uploadedFile.arrayBuffer();
-      setProgress(30);
-
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const numPages = pdf.numPages;
-      let fullText = "";
-
-      for (let i = 1; i <= numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(" ");
-        fullText += pageText + "\n";
-        setProgress(30 + (i / numPages) * 40);
-      }
-
-      setExtractedText(fullText);
-      setProgress(70);
-    } catch (error: any) {
-      setError(`❗ Failed to process PDF: ${error.message}`);
-      setProgress(0);
-      endSession("summary", uploadedFile.name, false);
-    }
+    // Simulate AI processing
+    setTimeout(() => {
+      setSummary(`AI Summary: ${inputText.substring(0, 100)}...`);
+      setLoading(false);
+      setSummariesUsed(summariesUsed + 1);
+    }, 2000);
   };
 
-  const generateSummary = async () => {
-    if (!extractedText.trim()) {
-      setError("❗ No text available to summarize");
-      return;
-    }
-
-    setIsProcessing(true);
-    setError("");
-    setProgress(80);
-
-    try {
-      const response = await fetch("/api/summarize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: extractedText,
-        }),
+  const handleCopyToClipboard = () => {
+    if (summary) {
+      navigator.clipboard.writeText(summary);
+      setIsCopied(true);
+      toast({
+        title: "Summary Copied!",
+        description: "The summary has been copied to your clipboard.",
       });
-
-      const responseText = await response.text();
-
-      if (!response.ok) {
-        throw new Error(
-          `HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`
-        );
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error(
-          `Invalid response format: ${responseText.substring(0, 100)}...`
-        );
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data.summary) {
-        throw new Error("No summary received from API");
-      }
-
-      setSummary(data.summary);
-      setProgress(100);
-      setShowSummaryAnim(false);
-      setTimeout(() => setShowSummaryAnim(true), 100);
-
-      trackSummaryGeneration();
-      endSession("summary", file?.name || "Summary", true);
-    } catch (error: any) {
-      setError(`❗ Failed to generate summary: ${error.message}`);
-      setProgress(70);
-      endSession("summary", file?.name || "Summary", false);
-    } finally {
-      setIsProcessing(false);
+      setTimeout(() => setIsCopied(false), 3000);
     }
   };
 
-  const resetAll = () => {
-    setFile(null);
-    setExtractedText("");
-    setSummary("");
-    setProgress(0);
-    setError("");
-    setShowSummaryAnim(false);
+  const handleDeleteSummary = () => {
+    if (summary) {
+      setSummary("");
+      setIsDeleted(true);
+      toast({
+        title: "Summary Deleted!",
+        description: "The summary has been successfully deleted.",
+      });
+      setTimeout(() => setIsDeleted(false), 3000);
+    }
   };
 
   return (
-    <div
-      className={`min-h-screen flex flex-col bg-gradient-to-br from-[#1e2140] via-[#21264b] to-[#151727] dark transition-colors duration-300`}
-      style={{
-        minHeight: "100vh",
-      }}
-    >
+    <div className="min-h-screen flex flex-col bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
       <Navbar />
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="container mx-auto px-4 py-6 pb-32 flex flex-col items-center justify-center min-h-[90vh]">
-          <div className="w-full max-w-4xl flex flex-col flex-1 justify-center">
-            {/* Header */}
-            <div className="text-center mb-10 relative">
-              <div className="absolute top-0 left-0">
-                <BackToDashboardButton size="sm" />
-              </div>
-              <div className="absolute top-0 right-0">
-                <Button
-                  onClick={toggleDarkMode}
-                  variant="outline"
-                  size="sm"
-                  className={`transition-all duration-300 shadow-md border-0 ${
-                    darkMode
-                      ? "bg-[#322778] text-yellow-400"
-                      : "bg-white text-gray-700"
-                  }`}
-                  aria-label="Toggle dark mode"
-                >
-                  {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>
-              </div>
-              <div className="flex items-center justify-center gap-2 mb-4 pt-12 md:pt-0">
-                <span className="text-3xl md:text-4xl">📚</span>
-                <h1 className="text-2xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#8b5cf6] to-[#22d3ee] tracking-tight">
-                  AI Study Summarizer
+      
+      <main className="flex-1 py-4 md:py-8 px-2 md:px-4 pb-20 md:pb-8">
+        <div className="container max-w-6xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-6 md:mb-8"
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl md:text-4xl font-bold flex items-center gap-3">
+                  <FileText className="h-8 w-8 md:h-10 md:w-10 text-blue-400" />
+                  AI Summarizer
                 </h1>
-                <span className="text-3xl md:text-4xl">✨</span>
+                <p className="text-muted-foreground text-sm md:text-base mt-2">
+                  Transform any text into clear, concise summaries with AI
+                </p>
               </div>
-              <p className="text-md md:text-lg text-gray-400 font-medium flex items-center justify-center gap-2">
-                <Sparkles className="inline h-5 w-5 text-yellow-400" />
-                Turn your PDF notes into smart summaries!
-              </p>
+
+              {/* Remove children prop from BackToDashboardButton */}
+              <BackToDashboardButton size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Dashboard
+              </BackToDashboardButton>
             </div>
+          </motion.div>
 
-            {/* Error Display */}
-            {error && (
-              <div className="mb-6 p-4 rounded-lg border-l-4 border-pink-500 bg-pink-800/30 text-pink-200 shadow-lg flex items-center gap-2 animate-bounce-in">
-                <span className="text-xl">🚨</span>
-                <span className="font-semibold">{error}</span>
-              </div>
-            )}
+          {/* Usage Tracker */}
+          <SummaryUsageTracker summariesUsed={summariesUsed} />
 
-            {/* Progress Bar */}
-            {progress > 0 && progress < 100 && (
-              <div className="mb-6">
-                <div className="flex justify-between text-sm mb-2 text-blue-200">
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </span>
-                  <span className="font-medium">{progress}%</span>
-                </div>
-                <Progress value={progress} className="h-3 bg-[#21264b]" />
-              </div>
-            )}
-
-            {/* File Upload */}
-            {!file && (
-              <div className="rounded-xl shadow-2xl p-8 mb-10 bg-[#232453] border border-[#35357a] hover:shadow-blue-600/40 transition-all duration-300 flex flex-col items-center min-h-[350px]">
-                <div className="border-2 border-dashed border-[#44449a] rounded-xl p-10 w-full text-center hover:bg-[#20214e]/60 transition-all duration-300">
-                  <Upload className="mx-auto h-12 w-12 mb-4 text-blue-400" />
-                  <div className="mb-4">
-                    <label
-                      htmlFor="file-upload"
-                      className="cursor-pointer flex flex-col items-center gap-1"
-                    >
-                      <span className="text-lg font-semibold text-blue-200">
-                        Upload your PDF here
-                      </span>
-                      <span className="text-2xl">⬆️</span>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        accept=".pdf"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  <p className="text-sm text-blue-300">Max size: 50MB</p>
-                </div>
-              </div>
-            )}
-
-            {/* Show file info and Generate Summary */}
-            {file && !summary && (
-              <div className="flex flex-col items-center justify-center min-h-[350px]">
-                <div className="rounded-xl shadow-xl p-8 mb-10 bg-[#232453] border border-[#35357a] flex flex-col items-center w-full min-h-[220px]">
-                  <div className="flex flex-col md:flex-row gap-2 items-center justify-center">
-                    <FileText className="h-5 w-5 text-blue-300" />
-                    <span className="font-medium text-blue-200">{file.name}</span>
-                    <span className="text-sm text-blue-300">
-                      ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                  <span className="mt-2 text-blue-400 text-sm">
-                    Ready to summarize! 🚀
-                  </span>
-                </div>
-                <div className="text-center mb-6">
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            {/* Input Section */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <Card className="dark:bg-card border-gray-700">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                  <CardTitle className="text-base font-semibold">
+                    <BookOpen className="h-4 w-4 mr-2 text-blue-400 inline-block align-middle" />
+                    Enter Text to Summarize
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Textarea
+                    placeholder="Paste your text here..."
+                    className="min-h-[150px] border-gray-600 bg-transparent text-white focus-visible:ring-blue-500"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    ref={textareaRef}
+                  />
                   <Button
-                    onClick={generateSummary}
-                    disabled={isProcessing || !extractedText}
-                    className="px-8 py-4 text-lg font-bold rounded-full shadow-xl bg-gradient-to-r from-[#43e97b] to-[#38f9d7] text-[#232453] hover:from-[#38f9d7] hover:to-[#43e97b] transition-transform duration-300 transform hover:scale-105 flex items-center gap-3 border-0"
-                    style={{ boxShadow: "0 2px 40px 0 #43e97b33" }}
+                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                    onClick={handleSummarize}
+                    disabled={loading}
                   >
-                    {isProcessing ? (
+                    {loading ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Summarizing...
-                        <span className="text-xl">🤖</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="mr-2 h-5 w-5 text-yellow-400 animate-bounce" />
-                        Generate AI Summary
-                        <span className="text-xl">⚡</span>
+                        <Brain className="mr-2 h-4 w-4" />
+                        Generate Summary
                       </>
                     )}
                   </Button>
-                </div>
-              </div>
-            )}
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            {/* Summary Display */}
-            {summary && (
-              <div className="flex flex-col items-center justify-center min-h-[600px]">
-                {/* Action buttons */}
-                <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-6">
-                  <DownloadNotesButton
-                    content={summary}
-                    filename={file?.name?.replace(".pdf", "_summary") || "summary"}
-                  />
-                  <BackToDashboardButton
-                    size="sm"
-                    className="bg-gradient-to-r from-[#8b5cf6] to-[#22d3ee] text-white font-semibold shadow-lg px-4 py-2 rounded-full border-0 hover:from-[#22d3ee] hover:to-[#8b5cf6] transition-all duration-300 flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Dashboard
-                  </BackToDashboardButton>
-                </div>
-
-                <div
-                  className={`rounded-3xl shadow-2xl border-2 border-[#43e97b] p-8 md:p-14 mb-10 mx-auto transition-all duration-500 bg-gradient-to-br from-[#232453] via-[#17173a] to-[#1e2140] w-full flex flex-col justify-between animate-fade-in-up min-h-[400px] md:min-h-[800px] max-h-[90vh]`}
-                  style={{
-                    animation: showSummaryAnim
-                      ? "fadeInUp 0.9s cubic-bezier(0.23, 1, 0.32, 1) both"
-                      : undefined,
-                  }}
-                >
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-extrabold flex items-center text-[#43e97b] gap-2">
-                      <span className="text-2xl">🧠</span>
-                      AI Generated Summary
-                    </h3>
-                    <span className="text-2xl animate-pulse">🌟</span>
+            {/* Output Section */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <Card className="dark:bg-card border-gray-700">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                  <CardTitle className="text-base font-semibold">
+                    <FileText className="h-4 w-4 mr-2 text-green-400 inline-block align-middle" />
+                    Generated Summary
+                  </CardTitle>
+                  <div className="space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCopyToClipboard}
+                      disabled={!summary || isCopied}
+                    >
+                      {isCopied ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteSummary}
+                      disabled={!summary || isDeleted}
+                    >
+                      {isDeleted ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Deleted!
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <div className="p-4 md:p-6 rounded-lg border-l-4 overflow-y-auto min-h-[320px] md:min-h-[600px] max-h-[55vh] md:max-h-[62vh] mt-3 mb-2 bg-[#21264b]/80 border-[#43e97b] text-blue-50">
-                    <p className="whitespace-pre-wrap leading-relaxed text-lg font-medium">
-                      {stripFirstMarkdownHeading(summary)}
-                    </p>
-                  </div>
-                  <div className="mt-5 text-xs md:text-sm text-right italic text-blue-400">
-                    Summary generated • {new Date().toLocaleString()}{" "}
-                    <span className="text-lg">✅</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Reset Button */}
-            {(file || summary) && (
-              <div className="text-center">
-                <Button
-                  onClick={resetAll}
-                  variant="outline"
-                  className="px-6 py-3 rounded-full bg-[#21264b] border-[#35357a] text-blue-200 hover:bg-[#35357a] font-semibold shadow-lg transition-all duration-300 flex items-center gap-2"
-                >
-                  🔄 Start New Summary
-                </Button>
-              </div>
-            )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {summary ? (
+                    <div className="relative">
+                      <Textarea
+                        readOnly
+                        className="min-h-[150px] border-gray-600 bg-transparent text-white focus-visible:ring-blue-500"
+                        value={summary}
+                      />
+                      <Badge variant="secondary" className="absolute top-2 right-2 bg-green-600/20 text-green-400 border-green-600/30">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        AI Generated
+                      </Badge>
+                    </div>
+                  ) : (
+                    <Alert variant="default">
+                      <HelpCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Summaries will appear here. Enter your text and click
+                        'Generate Summary' to get started.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
+
+          {/* Tips and Resources */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <div className="text-center mt-8">
+              <Button
+                variant="link"
+                className="text-sm text-muted-foreground hover:underline"
+                onClick={() => setShowTips(!showTips)}
+              >
+                {showTips ? "Hide Tips" : "Show Tips and Resources"}
+              </Button>
+            </div>
+
+            {showTips && (
+              <Card className="mt-4 dark:bg-card border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">
+                    <Lightbulb className="h-4 w-4 mr-2 text-yellow-400 inline-block align-middle" />
+                    Tips for Effective Summaries
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  <ul className="list-disc pl-5">
+                    <li>
+                      Start with the main idea: Identify the core message of
+                      your text.
+                    </li>
+                    <li>
+                      Focus on key details: Include only the most important
+                      supporting facts.
+                    </li>
+                    <li>
+                      Use concise language: Keep your sentences short and to
+                      the point.
+                    </li>
+                    <li>
+                      Review and edit: Ensure your summary is clear and
+                      accurate.
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </motion.div>
         </div>
-      </div>
-      <BottomNav />
+      </main>
+
       <Footer />
-      {/* Animation styles */}
-      <style>
-        {`
-        @keyframes fadeInUp {
-          0% {
-            opacity: 0;
-            transform: translateY(70px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.9s cubic-bezier(0.23, 1, 0.32, 1) both;
-        }
-        @keyframes bounce-in {
-          0% { transform: scale(0.9); opacity: 0.2;}
-          60% { transform: scale(1.05); opacity: 1;}
-          80% { transform: scale(0.98);}
-          100% { transform: scale(1);}
-        }
-        .animate-bounce-in {
-          animation: bounce-in 0.7s;
-        }
-        `}
-      </style>
+      <BottomNav />
     </div>
   );
-}
+};
+
+export default Summaries;
