@@ -7,7 +7,7 @@ import FileUploader from "@/components/features/FileUploader";
 import NotesDisplay from "@/components/features/NotesDisplay";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Loader2, Download, Sparkles, Layers } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Download, Sparkles } from "lucide-react";
 import { ExtractionResult } from "@/lib/fileExtractor";
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
@@ -48,7 +48,7 @@ const AINotesGenerator = () => {
       setTimeout(() => setNotesProgress(0), 1000);
 
       toast({
-        title: "Notes generated successfully!",
+        title: "Notes generated successfully! 🎉",
         description: "Your AI-powered study notes are ready.",
       });
     } catch (error) {
@@ -65,8 +65,9 @@ const AINotesGenerator = () => {
     }
   };
 
+  // No longer used, but kept for NotesDisplay prop compatibility
   const handleFlashcardsGenerated = (flashcards: Flashcard[]) => {
-    console.log("Flashcards generated:", flashcards.length);
+    // you can handle flashcards here if needed
   };
 
   const startOver = () => {
@@ -76,62 +77,93 @@ const AINotesGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-white">
+    <div
+      className="min-h-screen flex flex-col text-white relative"
+      style={{
+        background: "linear-gradient(135deg, #232946 0%, #18122B 100%)",
+        transition: "background 0.5s",
+      }}
+    >
       <Navbar />
 
       <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
-          <div className="text-center mb-6 md:mb-8">
+          {/* Back to Dashboard button top left */}
+          <div className="mb-4 flex items-center">
+            <BackToDashboardButton />
+          </div>
+          <div
+            className="text-center mb-6 md:mb-8"
+            style={{
+              animation: "fadeInDown 0.85s",
+              transition: "all 0.3s",
+            }}
+          >
             <div className="flex items-center justify-center mb-4">
-              <BookOpen className="h-6 w-6 md:h-8 md:w-8 mr-3 text-primary" />
-              <h1 className="text-2xl md:text-3xl font-bold">AI Notes Generator</h1>
+              <span className="text-3xl md:text-4xl mr-2" role="img" aria-label="sparkles">
+                ✨
+              </span>
+              <BookOpen className="h-8 w-8 md:h-10 md:w-10 mr-3 text-primary" />
+              <h1
+                className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 bg-clip-text text-transparent"
+                style={{
+                  letterSpacing: "0.03em",
+                  textShadow: "0 2px 12px rgba(255,255,255,0.1)",
+                }}
+              >
+                AI Notes Generator
+              </h1>
+              <span className="text-3xl md:text-4xl ml-2" role="img" aria-label="books">
+                📚
+              </span>
             </div>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">
-              Upload your study materials and let AI transform them into structured, comprehensive notes
+            <p className="max-w-2xl mx-auto text-base md:text-lg font-medium text-white/80">
+              Turn any study file into detailed AI-powered notes, flashcards, and quizzes — all in one place.
             </p>
           </div>
 
           {!extractedFile && !note && (
-            <FileUploader
-              onFileProcessed={handleFileProcessed}
-              isProcessing={isGeneratingNotes}
-            />
+            <div
+              className="animate-fadeInUp"
+              style={{
+                boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.25)",
+                borderRadius: "1.25rem",
+                background: "rgba(255,255,255,0.01)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              <FileUploader
+                onFileProcessed={handleFileProcessed}
+                isProcessing={isGeneratingNotes}
+              />
+            </div>
           )}
 
           {isGeneratingNotes && (
             <div className="max-w-2xl mx-auto mb-8">
               <div className="text-center mb-4">
-                <Loader2 className="w-6 h-6 md:w-8 md:h-8 animate-spin mx-auto mb-2" />
-                <h3 className="text-base md:text-lg font-semibold">Generating AI Notes...</h3>
-                <p className="text-muted-foreground text-sm md:text-base">
+                <Loader2 className="w-8 h-8 md:w-12 md:h-12 animate-spin mx-auto mb-2 text-yellow-400" />
+                <h3 className="text-lg md:text-xl font-bold tracking-wide">
+                  Creating AI Notes... <span role="img" aria-label="robot">🤖</span>
+                </h3>
+                <p className="text-white/70 text-base md:text-lg">
                   Our AI is analyzing your content and creating structured study notes
                 </p>
               </div>
-              <Progress value={notesProgress} className="h-3" />
-              <p className="text-sm text-center text-muted-foreground mt-2">
+              <Progress value={notesProgress} className="h-3 bg-gradient-to-r from-yellow-400 to-pink-500" />
+              <p className="text-base text-center text-white/70 mt-2">
                 {notesProgress < 30
-                  ? "Processing file..."
+                  ? "Processing file... ⏳"
                   : notesProgress < 80
-                  ? "Generating notes..."
-                  : "Finalizing..."}
+                  ? "Generating notes... 📝"
+                  : "Finalizing... 🚀"}
               </p>
             </div>
           )}
 
           {note && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
-                <BackToDashboardButton />
-                <Button
-                  onClick={startOver}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Upload Another File
-                </Button>
-              </div>
-
+            <div className="space-y-8 animate-fadeInUp">
+              {/* Only keep Back to Dashboard button on top left, so nothing here */}
               {/* Action buttons after notes are generated */}
               <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
                 <DownloadNotesButton
@@ -148,25 +180,15 @@ const AINotesGenerator = () => {
                   <Sparkles className="w-4 h-4" />
                   Generate AI Quiz
                 </QuizFromNotesButton>
-                <Button
-                  variant="secondary"
-                  className="flex items-center gap-2"
-                  onClick={() => {
-                    handleFlashcardsGenerated([
-                      { question: "Flashcard Q1", answer: "A1" },
-                      { question: "Flashcard Q2", answer: "A2" },
-                    ]);
-                  }}
-                >
-                  <Layers className="w-4 h-4" />
-                  Generate AI Flashcards
-                </Button>
+                {/* "Generate AI Flashcards" button removed as requested */}
               </div>
 
               <NotesDisplay
                 note={note}
                 onFlashcardsGenerated={handleFlashcardsGenerated}
               />
+
+              {/* Upload Another File button removed, as well as Back to Dashboard duplicate */}
             </div>
           )}
         </div>
@@ -174,6 +196,24 @@ const AINotesGenerator = () => {
 
       <Footer />
       <BottomNav />
+
+      {/* CSS Keyframes for fadeInDown/fadeInUp */}
+      <style jsx global>{`
+        @keyframes fadeInDown {
+          0% { opacity: 0; transform: translateY(-32px);}
+          100% { opacity: 1; transform: translateY(0);}
+        }
+        @keyframes fadeInUp {
+          0% { opacity: 0; transform: translateY(32px);}
+          100% { opacity: 1; transform: translateY(0);}
+        }
+        .animate-fadeInDown {
+          animation: fadeInDown 0.85s;
+        }
+        .animate-fadeInUp {
+          animation: fadeInUp 0.85s;
+        }
+      `}</style>
     </div>
   );
 };
