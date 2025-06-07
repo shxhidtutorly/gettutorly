@@ -13,7 +13,6 @@ import MathRenderer from "@/components/features/MathRenderer";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-// Emoji assets
 const EMOJI_MATH = "🧮";
 const EMOJI_SOLVE = "🟣";
 const EMOJI_HISTORY = "📜";
@@ -22,7 +21,6 @@ const EMOJI_ERROR = "❌";
 const EMOJI_SUCCESS = "✅";
 const EMOJI_EMPTY = "🪐";
 
-// Message interface
 interface MathChatMessage {
   id: string;
   problem: string;
@@ -31,7 +29,6 @@ interface MathChatMessage {
   isLoading?: boolean;
 }
 
-// Utility to filter out <think>...</think> blocks in solutions
 const filterSolution = (text: string) =>
   text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 
@@ -43,7 +40,6 @@ const MathChat = () => {
   const { trackMathProblemSolved, startSession, endSession } = useStudyTracking();
   const navigate = useNavigate();
 
-  // Solve math via API
   const solveMathProblem = async (mathProblem: string): Promise<string> => {
     const response = await fetch('/api/math-solver', {
       method: 'POST',
@@ -55,7 +51,6 @@ const MathChat = () => {
     return data.plainSolution;
   };
 
-  // Handle submit
   const handleSubmit = async () => {
     if (!problem.trim()) {
       toast({
@@ -106,7 +101,6 @@ const MathChat = () => {
     }
   };
 
-  // Clear history with confirmation
   const handleClearHistory = () => {
     setMessages([]);
     toast({
