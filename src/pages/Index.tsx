@@ -250,46 +250,71 @@ const Index = () => {
         </section>
 
         {/* Trust Section with University Logos */}
-        <section className="py-16 bg-white dark:bg-gray-950 border-b" data-aos="fade-up">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                Empowering learners from 200+ leading institutions across 128 countries — trusted by over 500,000 students
-              </h2>
-            </div>
-            
-            {/* Scrolling University Logos */}
-            <div className="relative overflow-hidden">
-              <motion.div 
-                className="flex gap-12 items-center"
-                animate={{ x: [-1000, 0] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                {[
-  { name: "Boston University", logo: BostonLogo },
-  { name: "University of Chicago", logo: ChicagoLogo },
-  { name: "Georgetown University", logo: GeorgetownLogo },
-  { name: "Harvard University", logo: HarvardLogo },
-  { name: "Howard University", logo: HowardLogo },
-  { name: "Ohio State University", logo: OhioStateLogo },
-  { name: "University of Otago", logo: OtagoLogo },
-  { name: "University of Pittsburgh", logo: PittsburghLogo },
-  { name: "Stanford University", logo: StanfordLogo },
-].map((uni, i) => (
-  <div key={i} className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-6 py-3 rounded-lg flex items-center justify-center">
-    <img
-      src={uni.logo}
-      alt={uni.name + " logo"}
-      className="h-10 md:h-12 max-w-[120px] object-contain"
-      style={{ filter: "drop-shadow(0 1px 3px #0002)" }}
-      title={uni.name}
-    />
-  </div>
-))}
-              </motion.div>
-            </div>
+<section className="py-16 bg-white dark:bg-gray-950 border-b" data-aos="fade-up">
+  <div className="container mx-auto px-4">
+    <div className="text-center mb-12">
+      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+        Empowering learners from 200+ leading institutions across 128 countries — trusted by over 500,000 students
+      </h2>
+    </div>
+    <div className="relative overflow-hidden">
+      <motion.div
+        className="flex gap-16 items-center will-change-transform"
+        style={{ minWidth: "min-content" }}
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{
+          repeat: Infinity,
+          repeatType: "loop",
+          duration: 45,
+          ease: "linear"
+        }}
+        onUpdate={latest => {
+          // This is handled by Framer Motion for an infinite loop
+        }}
+      >
+        {/* Duplicate array for seamless looping */}
+        {[
+          { name: "Boston University", logo: BostonLogo },
+          { name: "University of Chicago", logo: ChicagoLogo },
+          { name: "Georgetown University", logo: GeorgetownLogo },
+          { name: "Harvard University", logo: HarvardLogo },
+          { name: "Howard University", logo: HowardLogo },
+          { name: "Ohio State University", logo: OhioStateLogo },
+          { name: "University of Otago", logo: OtagoLogo },
+          { name: "University of Pittsburgh", logo: PittsburghLogo },
+          { name: "Stanford University", logo: StanfordLogo },
+        ].concat([
+          { name: "Boston University", logo: BostonLogo },
+          { name: "University of Chicago", logo: ChicagoLogo },
+          { name: "Georgetown University", logo: GeorgetownLogo },
+          { name: "Harvard University", logo: HarvardLogo },
+          { name: "Howard University", logo: HowardLogo },
+          { name: "Ohio State University", logo: OhioStateLogo },
+          { name: "University of Otago", logo: OtagoLogo },
+          { name: "University of Pittsburgh", logo: PittsburghLogo },
+          { name: "Stanford University", logo: StanfordLogo },
+        ]).map((uni, i) => (
+          <div
+            key={i}
+            className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-8 py-4 mx-2 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-2xl"
+            style={{ minWidth: 180 }}
+            title={uni.name}
+          >
+            <img
+              src={uni.logo}
+              alt={uni.name + " logo"}
+              className="h-16 md:h-20 max-w-[180px] object-contain transition-all duration-300"
+              style={{ filter: "drop-shadow(0 2px 6px #0003)" }}
+            />
           </div>
-        </section>
+        ))}
+      </motion.div>
+      {/* Gradient Fades for edges */}
+      <div className="pointer-events-none absolute top-0 left-0 w-24 h-full bg-gradient-to-r from-white/90 dark:from-gray-950/90 to-transparent z-10" />
+      <div className="pointer-events-none absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-white/90 dark:from-gray-950/90 to-transparent z-10" />
+    </div>
+  </div>
+</section>
 
         {/* Real Reviews Section */}
         <section className="py-20 bg-gray-50 dark:bg-gray-900">
