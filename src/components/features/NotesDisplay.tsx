@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { FileText, Sparkles, Loader2, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { AINote, generateFlashcardsAI, Flashcard } from "@/lib/aiNotesService";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm"; // For tables, strikethrough, task lists, etc.
 
 interface NotesDisplayProps {
   note: AINote;
@@ -20,17 +21,12 @@ const NotesDisplay = ({ note, onFlashcardsGenerated }: NotesDisplayProps) => {
 
   const handleGenerateFlashcards = async () => {
     setIsGeneratingFlashcards(true);
-    
     try {
       const flashcards = await generateFlashcardsAI(note.content);
-      
-      // Save to localStorage
       localStorage.setItem('flashcards', JSON.stringify(flashcards));
       localStorage.setItem('flashcards-source', note.title);
-      
       setFlashcardsGenerated(true);
       onFlashcardsGenerated(flashcards);
-      
       toast({
         title: "Flashcards generated!",
         description: `Created ${flashcards.length} flashcards from your notes.`
@@ -45,40 +41,6 @@ const NotesDisplay = ({ note, onFlashcardsGenerated }: NotesDisplayProps) => {
     } finally {
       setIsGeneratingFlashcards(false);
     }
-  };
-
-  const formatContent = (content: string) => {
-    return content.split('\n').map((line, index) => {
-      const trimmedLine = line.trim();
-      if (!trimmedLine) return <br key={index} />;
-      
-      // Headers
-      if (trimmedLine.startsWith('# ')) {
-        return <h2 key={index} className="text-xl font-bold mt-6 mb-3">{trimmedLine.slice(2)}</h2>;
-      }
-      if (trimmedLine.startsWith('## ')) {
-        return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{trimmedLine.slice(3)}</h3>;
-      }
-      if (trimmedLine.startsWith('### ')) {
-        return <h4 key={index} className="text-md font-semibold mt-3 mb-2">{trimmedLine.slice(4)}</h4>;
-      }
-      
-      // Bullet points
-      if (trimmedLine.startsWith('• ') || trimmedLine.startsWith('- ')) {
-        return <li key={index} className="ml-4 mb-1">{trimmedLine.slice(2)}</li>;
-      }
-      
-      // Bold text
-      const boldText = trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      
-      return (
-        <p 
-          key={index} 
-          className="mb-2 leading-relaxed" 
-          dangerouslySetInnerHTML={{ __html: boldText }}
-        />
-      );
-    });
   };
 
   return (
@@ -96,7 +58,6 @@ const NotesDisplay = ({ note, onFlashcardsGenerated }: NotesDisplayProps) => {
               <span>{new Date(note.timestamp).toLocaleDateString()}</span>
             </div>
           </div>
-          
           <div className="flex flex-col gap-2">
             {!flashcardsGenerated && (
               <Button 
@@ -117,7 +78,6 @@ const NotesDisplay = ({ note, onFlashcardsGenerated }: NotesDisplayProps) => {
                 )}
               </Button>
             )}
-            
             {flashcardsGenerated && (
               <div className="text-center">
                 <Badge variant="default" className="mb-2">
@@ -139,12 +99,12 @@ const NotesDisplay = ({ note, onFlashcardsGenerated }: NotesDisplayProps) => {
           </div>
         </div>
       </CardHeader>
-      
       <Separator />
-      
       <CardContent className="p-6">
         <div className="prose prose-gray dark:prose-invert max-w-none">
-          {formatContent(note.content)}
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {note.content}
+          </ReactMarkdown>
         </div>
       </CardContent>
     </Card>
