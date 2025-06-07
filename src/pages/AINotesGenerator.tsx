@@ -104,15 +104,20 @@ const AINotesGenerator = () => {
                 ✨
               </span>
               <BookOpen className="h-8 w-8 md:h-10 md:w-10 mr-3 text-primary" />
-              <h1
-                className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 bg-clip-text text-transparent"
-                style={{
-                  letterSpacing: "0.03em",
-                  textShadow: "0 2px 12px rgba(255,255,255,0.1)",
-                }}
-              >
-                AI Notes Generator
-              </h1>
+             <h1
+  className="text-3xl md:text-4xl font-black"
+  style={{
+    background: "linear-gradient(90deg, #a78bfa 0%, #f472b6 50%, #fde68a 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+    color: "#fff",
+    textShadow: "0 1px 2px rgba(0,0,0,0.10)", // very minimal shadow for readability
+    letterSpacing: "0.03em",
+  }}
+>
+  AI Notes Generator
+</h1>
               <span className="text-3xl md:text-4xl ml-2" role="img" aria-label="books">
                 📚
               </span>
