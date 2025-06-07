@@ -1,5 +1,24 @@
-
 console.log('🚀 Starting Math Solver API import...');
+
+function cleanMathBotOutput(input) {
+  return input
+    // Remove LaTeX delimiters (\[ \], \( \)), $ and $$
+    .replace(/\\\[|\\\]|\\\(|\\\)/g, '')
+    .replace(/\$\$?/g, '')
+    // Remove Markdown bold (**bold**)
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    // Remove Markdown italics (*italic*)
+    .replace(/\*(.*?)\*/g, '$1')
+    // Remove inline code ticks
+    .replace(/`/g, '')
+    // Remove double backslashes used for LaTeX
+    .replace(/\\\\/g, '\\')
+    // Remove // comments at the start of lines (optional)
+    .replace(/^\/\/.*$/gm, '')
+    // Remove empty lines
+    .replace(/^\s*[\r\n]/gm, '')
+    .trim();
+}
 
 export default async function handler(req, res) {
   console.log('=== MATH SOLVER API ROUTE START ===');
@@ -103,12 +122,14 @@ Provide a clear, step-by-step solution with proper mathematical notation.`;
     
     const data = await response.json();
     const solution = data.choices[0].message.content;
-    
+    const plainSolution = cleanMathBotOutput(solution);
+
     console.log('✅ Math solution received:', solution.substring(0, 100) + '...');
     console.log('=== MATH SOLVER API ROUTE SUCCESS ===');
     
     return res.status(200).json({
       solution: solution,
+      plainSolution: plainSolution,
       model: data.model || 'together-ai'
     });
     
