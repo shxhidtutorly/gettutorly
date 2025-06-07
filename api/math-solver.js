@@ -1,6 +1,5 @@
 console.log('🚀 Starting Math Solver API import...');
 
-// Filter function to remove LaTeX, Markdown, and extra formatting
 function cleanMathBotOutput(input) {
   return input
     // Remove LaTeX delimiters (\[ \], \( \)), $ and $$
@@ -14,10 +13,12 @@ function cleanMathBotOutput(input) {
     .replace(/`/g, '')
     // Remove double backslashes used for LaTeX
     .replace(/\\\\/g, '\\')
-    // Remove // comments at the start of lines (optional)
+    // Remove // comments at the start of lines
     .replace(/^\/\/.*$/gm, '')
-    // Remove HTML <think>...</think> blocks (if any)
+    // Remove <think>...</think> blocks
     .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    // Remove leading #'s (markdown headings)
+    .replace(/^#+\s*/gm, '')
     // Remove empty lines
     .replace(/^\s*[\r\n]/gm, '')
     .trim();
@@ -27,17 +28,14 @@ export default async function handler(req, res) {
   console.log('=== MATH SOLVER API ROUTE START ===');
   console.log('Method:', req.method);
 
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle OPTIONS request for CORS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Only allow POST requests
   if (req.method !== 'POST') {
     console.log('❌ Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
@@ -47,7 +45,6 @@ export default async function handler(req, res) {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     const { problem } = req.body;
 
-    // Validate required fields
     if (!problem || typeof problem !== 'string') {
       console.log('❌ Invalid problem:', problem);
       return res.status(400).json({
@@ -64,8 +61,6 @@ ${problem}
 Provide a clear, step-by-step solution with proper mathematical notation.`;
 
     console.log('🤖 Calling TogetherAI...');
-
-    // Try DeepSeek R1 Distill LLaMA 70B first
     let response;
     try {
       response = await fetch('https://api.together.xyz/v1/chat/completions', {
@@ -92,8 +87,6 @@ Provide a clear, step-by-step solution with proper mathematical notation.`;
       });
     } catch (error) {
       console.log('⚠️ Primary model failed, trying fallback...');
-
-      // Fallback to Meta Llama 3.3 70B
       response = await fetch('https://api.together.xyz/v1/chat/completions', {
         method: 'POST',
         headers: {
