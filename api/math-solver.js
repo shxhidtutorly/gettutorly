@@ -70,7 +70,7 @@ Provide a clear, step-by-step solution with proper mathematical notation.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+          model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
           messages: [
             {
               role: 'system',
