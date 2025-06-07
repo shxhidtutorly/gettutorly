@@ -67,7 +67,7 @@ const Index = () => {
     if (currentUser) {
       navigate("/dashboard");
     } else {
-      navigate("/signin");
+      navigate("/dashboard");
     }
   };
 
@@ -108,7 +108,7 @@ const Index = () => {
           >
             <Brain className="h-8 w-8 text-purple-500" />
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              GetTutorly
+              Tutorly
             </span>
           </motion.div>
           
@@ -126,12 +126,7 @@ const Index = () => {
               <UserProfileButton />
             ) : (
               <div className="flex gap-2">
-                <Button 
-                  variant="ghost"
-                  onClick={() => navigate("/signin")}
-                >
-                  Sign In
-                </Button>
+                <LoginButton variant="ghost" />
                 <Button 
                   className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
                   onClick={handleGetStarted}
