@@ -221,8 +221,12 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Study Hours</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.totalStudyHours.toFixed(1)}h <span className="text-blue-400">⏰</span></p>
-                    </div>
+<p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+  {stats.totalStudyHours < 1
+    ? Math.round(stats.totalStudyHours * 60)
+    : Number(stats.totalStudyHours).toFixed(1)}
+  {stats.totalStudyHours < 1 ? "min" : "h"} <span className="text-blue-400">⏰</span>
+</p>                    </div>
                     <Clock className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
                   </div>
                 </CardContent>
