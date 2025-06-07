@@ -7,7 +7,7 @@ import FileUploader from "@/components/features/FileUploader";
 import NotesDisplay from "@/components/features/NotesDisplay";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Loader2, Download, Sparkles } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Download, Sparkles, RefreshCcw } from "lucide-react";
 import { ExtractionResult } from "@/lib/fileExtractor";
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
@@ -105,19 +105,19 @@ const AINotesGenerator = () => {
               </span>
               <BookOpen className="h-8 w-8 md:h-10 md:w-10 mr-3 text-primary" />
              <h1
-  className="text-3xl md:text-4xl font-black"
-  style={{
-    background: "linear-gradient(90deg, #a78bfa 0%, #f472b6 50%, #fde68a 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-    color: "#fff",
-    textShadow: "0 1px 2px rgba(0,0,0,0.10)", // very minimal shadow for readability
-    letterSpacing: "0.03em",
-  }}
->
-  AI Notes Generator
-</h1>
+                className="text-3xl md:text-4xl font-black"
+                style={{
+                  background: "linear-gradient(90deg, #a78bfa 0%, #f472b6 50%, #fde68a 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  color: "#fff",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.10)", // very minimal shadow for readability
+                  letterSpacing: "0.03em",
+                }}
+              >
+                AI Notes Generator
+              </h1>
               <span className="text-3xl md:text-4xl ml-2" role="img" aria-label="books">
                 📚
               </span>
@@ -186,6 +186,16 @@ const AINotesGenerator = () => {
                   Generate AI Quiz
                 </QuizFromNotesButton>
                 {/* "Generate AI Flashcards" button removed as requested */}
+
+                {/* NEW BUTTON: Upload Another File */}
+                <Button
+                  onClick={startOver}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  Upload Another File
+                </Button>
               </div>
 
               <NotesDisplay
