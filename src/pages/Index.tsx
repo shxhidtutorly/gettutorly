@@ -1,4 +1,12 @@
-
+import BostonLogo from "@/components/ui/Boston-University-Logo.png";
+import ChicagoLogo from "@/components/ui/Chicago-University-Logo.png";
+import GeorgetownLogo from "@/components/ui/Georgetown-University-Logo.png";
+import HarvardLogo from "@/components/ui/Harvard-University-Logo.png";
+import HowardLogo from "@/components/ui/Howard-University-Logo.png";
+import OhioStateLogo from "@/components/ui/Ohio-State-University-Logo.png";
+import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
+import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
+import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -246,7 +254,7 @@ const Index = () => {
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                Trusted by over 500,000 students across 128+ countries and 200+ top institutions
+                Empowering learners from 200+ leading institutions across 128 countries — trusted by over 500,000 students
               </h2>
             </div>
             
@@ -257,11 +265,27 @@ const Index = () => {
                 animate={{ x: [-1000, 0] }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
               >
-                {["MIT", "Oxford", "Stanford", "Harvard", "IIT", "Cambridge", "Yale", "Princeton"].map((uni, i) => (
-                  <div key={i} className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-6 py-3 rounded-lg font-semibold text-gray-700 dark:text-gray-300">
-                    {uni}
-                  </div>
-                ))}
+                {[
+  { name: "Boston University", logo: BostonLogo },
+  { name: "University of Chicago", logo: ChicagoLogo },
+  { name: "Georgetown University", logo: GeorgetownLogo },
+  { name: "Harvard University", logo: HarvardLogo },
+  { name: "Howard University", logo: HowardLogo },
+  { name: "Ohio State University", logo: OhioStateLogo },
+  { name: "University of Otago", logo: OtagoLogo },
+  { name: "University of Pittsburgh", logo: PittsburghLogo },
+  { name: "Stanford University", logo: StanfordLogo },
+].map((uni, i) => (
+  <div key={i} className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 px-6 py-3 rounded-lg flex items-center justify-center">
+    <img
+      src={uni.logo}
+      alt={uni.name + " logo"}
+      className="h-10 md:h-12 max-w-[120px] object-contain"
+      style={{ filter: "drop-shadow(0 1px 3px #0002)" }}
+      title={uni.name}
+    />
+  </div>
+))}
               </motion.div>
             </div>
           </div>
