@@ -14,40 +14,27 @@ export interface Flashcard {
 }
 
 export async function generateNotesAI(text: string, filename: string): Promise<AINote> {
-  // Updated prompt as requested
-  const prompt = `You are a top-tier AI study assistant. Your task is to generate detailed and well-structured study notes from the given content.
+  // Structured prompt for detailed Markdown notes
+  const prompt = `You are a top-tier AI study assistant. Your task is to generate **detailed and well-structured study notes** from the given content.
 
 Instructions:
-- Do NOT omit or overly summarize important content — include as much relevant detail as possible.
-- Organize the notes using clear and consistent headings, subheadings, and bullet points.
+- Do **not** omit or overly summarize important content — include as much relevant detail as possible.
+- Organize the notes using **clear and consistent headings**, subheadings, and bullet points.
 - Ensure the notes cover:
-  - All main ideas and key concepts
-  - Important definitions, examples, and explanations
-  - Any lists, processes, or formulas mentioned
-- If the content is long or complex, break the notes into logical sections and subsections.
-- Prioritize clarity, completeness, and usefulness for exam preparation and in-depth revision.
+  - All **main ideas** and **key concepts**
+  - Important **definitions**, **examples**, and **explanations**
+  - Any **lists**, **processes**, or **formulas** mentioned
+- If the content is long or complex, break the notes into **logical sections and subsections**.
+- Prioritize **clarity, completeness, and usefulness** for exam preparation and in-depth revision.
 - The final output should feel like comprehensive classroom notes taken by a top student.
+- Use proper Markdown formatting for all structure (e.g., #, ##, ###, -, *, 1., etc.).
 
 Here is the content to convert into notes:
 
 ${text}
 `;
 
-  function cleanMarkdownSymbols(str: string): string {
-    return str
-      .replace(/[*`'"]/g, "") // Remove *, `, ', and "
-      .replace(/^\s*-\s+/gm, "") // Remove leading dash bullet points
-      .replace(/^\s*\d+\.\s+/gm, "") // Remove ordered list numbering
-      .replace(/^\s*•\s+/gm, "") // Remove bullet dots
-      .replace(/_{2,}/g, "") // Remove long underscores
-      .replace(/#+\s*/g, "") // Remove markdown headings
-      .replace(/\s{2,}/g, " ") // Remove double spaces
-      .replace(/^\s+/gm, "") // Remove leading whitespace from each line
-      .trim();
-  }
-
   try {
-    // Check if we have the /api/ai endpoint
     let response;
     try {
       response = await fetch('/api/ai', {
@@ -69,14 +56,12 @@ ${text}
     }
 
     const data = await response.json();
-
-    // Clean up the AI output to remove markdown symbols
-    const cleanedContent = cleanMarkdownSymbols(data.response || data.summary || 'Notes generated successfully');
+    // DO NOT CLEAN MARKDOWN! Render as Markdown in your UI for structure
 
     const note: AINote = {
       id: Date.now().toString(),
       title: `Notes from ${filename}`,
-      content: cleanedContent,
+      content: data.response || data.summary || 'Notes generated successfully',
       timestamp: new Date().toISOString(),
       filename
     };
