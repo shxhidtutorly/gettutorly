@@ -119,7 +119,7 @@ const Index = () => {
                Tutorly
               </span>
 
-            </span>
+
           </motion.div>
           
           <div className="flex items-center gap-4">
