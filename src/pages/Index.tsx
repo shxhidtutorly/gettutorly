@@ -116,10 +116,8 @@ const Index = () => {
           >
             <Brain className="h-8 w-8 text-purple-500" />
             <span className="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
-               Tutorly
-              </span>
-
-
+              Tutorly
+            </span>
           </motion.div>
           
           <div className="flex items-center gap-4">
@@ -181,7 +179,7 @@ const Index = () => {
                 
               <h1 className="text-5xl md:text-7xl font-extrabold leading-tight text-center mb-6 text-white">
   Your Personal
-  <span className=""text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
+  <span className="text-lg md:text-xl text-white font-medium text-center drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
     AI Tutor
   </span>
 </h1>
