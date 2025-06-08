@@ -177,12 +177,13 @@ const Index = () => {
                   <span className="text-sm font-semibold text-purple-200">AI-Powered Learning Platform</span>
                 </div>
                 
-               <h1 className="text-5xl md:text-7xl font-extrabold leading-tight text-center mb-6 text-white">
+              <h1 className="text-5xl md:text-7xl font-extrabold leading-tight text-center mb-6 text-white">
   Your Personal
-  <span className="block text-transparent bg-gradient-to-r from-fuchsia-400 via-pink-400 to-blue-400 bg-clip-text">
+  <span className="block text-blue-400">
     AI Tutor
   </span>
 </h1>
+
          
                 <p className="text-xl md:text-2xl text-gray-300 mb-4 font-medium">
                   Study Smarter. Learn Faster.
