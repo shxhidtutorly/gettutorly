@@ -1,11 +1,10 @@
 
-import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface AuthContextType {
-  currentUser: User | null;
+  currentUser: any | null;
   loading: boolean;
   signUp: (email: string, password: string, displayName?: string) => Promise<any | null>;
   signIn: (email?: string, password?: string) => Promise<any | null>;
@@ -25,52 +24,18 @@ export function useAuth() {
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoaded } = useUser();
+  const { signOut: clerkSignOut } = useClerkAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setCurrentUser(session?.user ?? null);
-      setLoading(false);
-    };
-
-    getInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setCurrentUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const signUp = async (email: string, password: string, displayName?: string) => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: displayName || email.split('@')[0]
-          }
-        }
-      });
-
-      if (error) throw error;
-
+      // Clerk signup will be handled by Clerk components
       toast({
-        title: "Account created",
-        description: "Please check your email to verify your account.",
+        title: "Sign up with Clerk",
+        description: "Please use the sign up form.",
       });
-
-      return data.user;
+      return null;
     } catch (error: any) {
       toast({
         title: "Sign up failed",
@@ -78,42 +43,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         variant: "destructive",
       });
       return null;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signIn = async (email?: string, password?: string) => {
     try {
-      setLoading(true);
-
-      if (email && password) {
-        // Email/password sign in
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Sign in successful",
-          description: `Welcome back!`,
-        });
-
-        return data.user;
-      } else {
-        // Google OAuth sign in
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/auth/callback`
-          }
-        });
-
-        if (error) throw error;
-        return null; // OAuth redirect, no immediate user object
-      }
+      // Clerk signin will be handled by Clerk components
+      toast({
+        title: "Sign in with Clerk",
+        description: "Please use the sign in form.",
+      });
+      return null;
     } catch (error: any) {
       toast({
         title: "Sign in failed",
@@ -121,18 +61,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         variant: "destructive",
       });
       return null;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setLoading(true);
-      const { error } = await supabase.auth.signOut();
-
-      if (error) throw error;
-
+      await clerkSignOut();
       toast({
         title: "Signed out",
         description: "You have been signed out successfully.",
@@ -143,25 +77,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message || "Could not sign out.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
       toast({
-        title: "Password reset email sent",
-        description: "Check your email for the reset link.",
+        title: "Password reset",
+        description: "Please use Clerk's password reset feature.",
       });
-
       return true;
     } catch (error: any) {
       toast({
@@ -170,26 +94,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         variant: "destructive",
       });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   const updateUserProfile = async (userData: { name?: string; avatar_url?: string }) => {
     try {
-      setLoading(true);
-
-      const { error } = await supabase.auth.updateUser({
-        data: userData
-      });
-
-      if (error) throw error;
-
+      // This will be handled by Clerk's user profile
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        title: "Profile update",
+        description: "Please use Clerk's profile management.",
       });
-
       return true;
     } catch (error: any) {
       toast({
@@ -198,15 +112,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         variant: "destructive",
       });
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <AuthContext.Provider value={{
-      currentUser,
-      loading,
+      currentUser: user,
+      loading: !isLoaded,
       signUp,
       signIn,
       signOut,

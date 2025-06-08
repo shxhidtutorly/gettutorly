@@ -1,209 +1,50 @@
 
+import { SignIn, SignUp } from "@clerk/clerk-react";
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogIn, User, Mail, Lock, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AuthForm = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    displayName: "",
-  });
-  const [error, setError] = useState<string | null>(null);
-  
-  const { signIn, signUp, resetPassword, loading } = useAuth();
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleGoogleSignIn = async () => {
-    setError(null);
-    try {
-      await signIn();
-    } catch (error) {
-      // Error is handled by the hook
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    
-    // Basic validation
-    if (!formData.email) {
-      setError("Please enter your email address");
-      return;
-    }
-    
-    if (!formData.password) {
-      setError("Please enter your password");
-      return;
-    }
-    
-    if (isSignUp && !formData.displayName) {
-      setError("Please enter your name");
-      return;
-    }
-    
-    try {
-      if (isSignUp) {
-        await signUp(formData.email, formData.password, formData.displayName);
-      } else {
-        await signIn(formData.email, formData.password);
-      }
-    } catch (error) {
-      // Error is handled by the hook
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!formData.email) {
-      setError("Please enter your email address");
-      return;
-    }
-    
-    try {
-      await resetPassword(formData.email);
-    } catch (error) {
-      // Error is handled by the hook
-    }
-  };
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>{isSignUp ? "Create Account" : "Sign In"}</CardTitle>
+        <CardTitle>Welcome to GetTutorly</CardTitle>
         <CardDescription>
-          {isSignUp 
-            ? "Create a new account to get started" 
-            : "Sign in to access your account"}
+          Sign in or create an account to get started
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleGoogleSignIn} 
-            disabled={loading}
-          >
-            <LogIn className="mr-2 h-4 w-4" />
-            Sign in with Google
-          </Button>
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="displayName"
-                    name="displayName"
-                    placeholder="John Doe"
-                    className="pl-8"
-                    value={formData.displayName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  className="pl-8"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                {!isSignUp && (
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="px-0 text-xs" 
-                    onClick={handleForgotPassword}
-                  >
-                    Forgot password?
-                  </Button>
-                )}
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="pl-8"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
-            </Button>
-          </form>
-        </div>
+        <Tabs defaultValue="signin" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+          <TabsContent value="signin" className="space-y-4">
+            <SignIn 
+              appearance={{
+                elements: {
+                  formButtonPrimary: "bg-primary hover:bg-primary/90",
+                  card: "shadow-none border-none",
+                  headerTitle: "text-2xl font-bold",
+                  headerSubtitle: "text-muted-foreground"
+                }
+              }}
+            />
+          </TabsContent>
+          <TabsContent value="signup" className="space-y-4">
+            <SignUp 
+              appearance={{
+                elements: {
+                  formButtonPrimary: "bg-primary hover:bg-primary/90",
+                  card: "shadow-none border-none",
+                  headerTitle: "text-2xl font-bold",
+                  headerSubtitle: "text-muted-foreground"
+                }
+              }}
+            />
+          </TabsContent>
+        </Tabs>
       </CardContent>
-      <CardFooter className="flex flex-col">
-        <p className="text-sm text-center text-muted-foreground">
-          {isSignUp 
-            ? "Already have an account?" 
-            : "Don't have an account?"
-          }
-          <Button 
-            variant="link" 
-            className="pl-1 h-auto p-0" 
-            onClick={() => setIsSignUp(!isSignUp)}
-          >
-            {isSignUp ? "Sign In" : "Create Account"}
-          </Button>
-        </p>
-      </CardFooter>
     </Card>
   );
 };

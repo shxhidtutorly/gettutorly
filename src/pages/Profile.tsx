@@ -1,132 +1,30 @@
 
-import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   User, 
   Mail, 
-  Phone, 
-  MapPin, 
-  Save, 
-  Lock, 
-  AlertCircle,
-  LogOut
+  Settings
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { updateUserProfile, changePassword, logOut } from "@/lib/auth";
 
 const Profile = () => {
-  const { currentUser } = useAuth();
-  const { toast } = useToast();
+  const { user, isLoaded } = useUser();
   const navigate = useNavigate();
-  
-  // Profile form state
-  const [profileData, setProfileData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    location: ''
-  });
-  
-  // Password form state
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Initialize profile data
-  useEffect(() => {
-    if (currentUser) {
-      setProfileData({
-        name: currentUser.user_metadata?.name || currentUser.user_metadata?.full_name || '',
-        email: currentUser.email || '',
-        phone: currentUser.user_metadata?.phone || '',
-        location: currentUser.user_metadata?.location || ''
-      });
-    }
-  }, [currentUser]);
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsUpdating(true);
-
-    try {
-      await updateUserProfile({
-        name: profileData.name
-      });
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully."
-      });
-    } catch (error: any) {
-      setError(error.message || 'Failed to update profile');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError("New passwords don't match");
-      return;
-    }
-
-    if (passwordData.newPassword.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return;
-    }
-
-    setIsChangingPassword(true);
-
-    try {
-      await changePassword(passwordData.currentPassword, passwordData.newPassword);
-      
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      
-      toast({
-        title: "Password changed",
-        description: "Your password has been changed successfully."
-      });
-    } catch (error: any) {
-      setError(error.message || 'Failed to change password');
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await logOut();
-      navigate('/');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
-
-  if (!currentUser) {
+  if (!user) {
     return <div>Please sign in to view your profile.</div>;
   }
 
@@ -143,13 +41,6 @@ const Profile = () => {
             </p>
           </div>
 
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="grid gap-6">
             {/* Profile Information */}
             <Card>
@@ -159,167 +50,65 @@ const Profile = () => {
                   Profile Information
                 </CardTitle>
                 <CardDescription>
-                  Update your personal information
+                  Your account information managed by Clerk
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <div className="relative">
-                        <User className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="name"
-                          placeholder="Your full name"
-                          className="pl-8"
-                          value={profileData.name}
-                          onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="your@email.com"
-                          className="pl-8"
-                          value={profileData.email}
-                          disabled
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Email cannot be changed
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="phone"
-                          placeholder="+1 (555) 123-4567"
-                          className="pl-8"
-                          value={profileData.phone}
-                          onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Location</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="location"
-                          placeholder="City, Country"
-                          className="pl-8"
-                          value={profileData.location}
-                          onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button type="submit" disabled={isUpdating} className="w-full md:w-auto">
-                    <Save className="mr-2 h-4 w-4" />
-                    {isUpdating ? "Updating..." : "Save Changes"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Password Change */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lock className="h-5 w-5" />
-                  Change Password
-                </CardTitle>
-                <CardDescription>
-                  Update your account password
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="currentPassword"
-                        type="password"
-                        placeholder="Enter current password"
-                        className="pl-8"
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    {user.profileImageUrl ? (
+                      <img 
+                        src={user.profileImageUrl} 
+                        alt="Profile" 
+                        className="h-16 w-16 rounded-full object-cover"
                       />
-                    </div>
+                    ) : (
+                      <User className="h-8 w-8 text-primary" />
+                    )}
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          placeholder="Enter new password"
-                          className="pl-8"
-                          value={passwordData.newPassword}
-                          onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="confirmPassword"
-                          type="password"
-                          placeholder="Confirm new password"
-                          className="pl-8"
-                          value={passwordData.confirmPassword}
-                          onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        />
-                      </div>
-                    </div>
+                  <div>
+                    <h3 className="font-semibold">{user.fullName || 'User'}</h3>
+                    <p className="text-muted-foreground flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      {user.primaryEmailAddress?.emailAddress}
+                    </p>
                   </div>
-                  
-                  <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
-                    <Lock className="mr-2 h-4 w-4" />
-                    {isChangingPassword ? "Changing..." : "Change Password"}
+                </div>
+                
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => {
+                      // Clerk's user button handles profile management
+                      alert("Use the user profile button in the top navigation to manage your account settings.");
+                    }}
+                    className="w-full md:w-auto"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Manage Account with Clerk
                   </Button>
-                </form>
+                </div>
               </CardContent>
             </Card>
 
             {/* Account Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Account Actions</CardTitle>
+                <CardTitle>Account Information</CardTitle>
                 <CardDescription>
-                  Manage your account
+                  Account management is handled by Clerk
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  To update your profile information, change your password, or manage your account settings, 
+                  please use the user profile button in the navigation bar above.
+                </p>
                 <Button 
                   variant="outline" 
-                  onClick={handleSignOut}
+                  onClick={() => navigate('/dashboard')}
                   className="w-full md:w-auto"
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
+                  Back to Dashboard
                 </Button>
               </CardContent>
             </Card>

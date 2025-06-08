@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,14 +20,14 @@ import Summaries from "./pages/Summaries";
 import MicroLessons from "./pages/MicroLessons";
 import AIAssistant from "./pages/AIAssistant";
 import StudyTechniques from "./pages/StudyTechniques";
-import ResetPassword from "./pages/ResetPassword";
-import AuthCallback from "./pages/AuthCallback";
 import TermsOfService from "./pages/terms-of-service";
 import Support from "./pages/Support";
 import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
 import MathChat from "./pages/MathChat";
+import SignInPage from "./pages/SignIn";
+import SignUpPage from "./pages/SignUp";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
@@ -55,6 +56,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/signin" element={<SignInPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -62,8 +65,6 @@ const App = () => (
               } />
               <Route path="/home" element={<Navigate to="/dashboard" replace />} />
               <Route path="/landing" element={<Index />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/library" element={
                 <ProtectedRoute>
                   <Library />
@@ -75,10 +76,10 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/math-chat" element={
-  <ProtectedRoute>
-    <MathChat />
-  </ProtectedRoute>
-} />
+                <ProtectedRoute>
+                  <MathChat />
+                </ProtectedRoute>
+              } />
               <Route path="/study-plans" element={
                 <ProtectedRoute>
                   <StudyPlans />
