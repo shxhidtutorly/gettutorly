@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 // Study Plans Operations
@@ -241,6 +240,74 @@ export const getUserAINotes = async () => {
     return data || [];
   } catch (error) {
     console.error("Error getting AI notes:", error);
+    return [];
+  }
+};
+
+// Store Audio Notes
+export const storeAudioNotes = async (audioData: {
+  title: string;
+  filename: string;
+  audioUrl: string;
+  transcription: string;
+  aiNotes: string;
+  aiSummary: string;
+  duration?: number;
+  fileSize?: number;
+}) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('audio_notes')
+      .insert([{
+        user_id: user.id,
+        title: audioData.title,
+        filename: audioData.filename,
+        audio_url: audioData.audioUrl,
+        transcription: audioData.transcription,
+        ai_notes: audioData.aiNotes,
+        ai_summary: audioData.aiSummary,
+        duration: audioData.duration || null,
+        file_size: audioData.fileSize || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    // Log activity
+    await logUserActivity('audio_notes_generated', { 
+      title: audioData.title,
+      filename: audioData.filename 
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error storing audio notes:", error);
+    throw error;
+  }
+};
+
+// Get user audio notes
+export const getUserAudioNotes = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('audio_notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting audio notes:", error);
     return [];
   }
 };

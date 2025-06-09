@@ -25,6 +25,7 @@ import Support from "./pages/Support";
 import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
+import AudioNotes from "./pages/AudioNotes";
 import MathChat from "./pages/MathChat";
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
@@ -73,6 +74,11 @@ const App = () => (
               <Route path="/ai-notes" element={
                 <ProtectedRoute>
                   <AINotesGenerator />
+                </ProtectedRoute>
+              } />
+              <Route path="/audio-notes" element={
+                <ProtectedRoute>
+                  <AudioNotes />
                 </ProtectedRoute>
               } />
               <Route path="/math-chat" element={
