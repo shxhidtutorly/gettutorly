@@ -411,9 +411,9 @@ const DoubtChain = () => {
           >
             <div className="flex items-center justify-center gap-2 mb-4">
               <Brain className="h-8 w-8 text-purple-500" />
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                AI Doubt Chain
-              </h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-[0_1px_8px_rgba(139,92,246,0.5)]">
+  AI Doubt Chain
+</h1>
             </div>
             <p className="text-muted-foreground">
               Break down complex concepts into simple, understandable parts
