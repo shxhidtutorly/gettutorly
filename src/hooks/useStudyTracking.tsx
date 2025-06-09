@@ -76,6 +76,21 @@ export const useStudyTracking = () => {
     }
   };
 
+  // Wrapper functions for compatibility
+  const trackSummaryGeneration = () => trackActivity('summary_generated');
+  const trackQuizCompletion = () => trackActivity('quiz_completed');
+  const trackNotesCreation = () => trackActivity('notes_created');
+  const trackMathProblemSolved = () => trackActivity('math_problem_solved');
+
+  const startSession = () => trackActivity('study_session_started');
+  const endSession = (type: string, title: string, completed: boolean) => {
+    trackActivity('study_session_ended', { type, title, completed });
+  };
+
+  const addSession = (sessionData: any) => {
+    trackActivity('study_session_added', sessionData);
+  };
+
   // Load user stats
   useEffect(() => {
     const loadStats = async () => {
@@ -143,5 +158,12 @@ export const useStudyTracking = () => {
   return {
     stats,
     trackActivity,
+    trackSummaryGeneration,
+    trackQuizCompletion, 
+    trackNotesCreation,
+    trackMathProblemSolved,
+    startSession,
+    endSession,
+    addSession,
   };
 };

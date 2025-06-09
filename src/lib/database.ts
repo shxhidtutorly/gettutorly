@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Get current user ID (Clerk user ID)
 const getCurrentUserId = () => {
   // This will be set by the auth context
-  return window.clerkUserId || null;
+  return (window as any).clerkUserId || null;
 };
 
 // STUDY MATERIALS OPERATIONS
@@ -167,67 +167,15 @@ export const logUserActivity = async (userId: string, action: string, details: a
   }
 };
 
-// Store Audio Notes
-export const storeAudioNotes = async (userId: string, audioData: {
-  title: string;
-  filename: string;
-  audioUrl: string;
-  transcription: string;
-  aiNotes: string;
-  aiSummary: string;
-  duration?: number;
-  fileSize?: number;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('audio_notes')
-      .insert([{
-        user_id: userId,
-        title: audioData.title,
-        filename: audioData.filename,
-        audio_url: audioData.audioUrl,
-        transcription: audioData.transcription,
-        ai_notes: audioData.aiNotes,
-        ai_summary: audioData.aiSummary,
-        duration: audioData.duration || null,
-        file_size: audioData.fileSize || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-      
-    if (error) throw error;
-    
-    // Log activity
-    await logUserActivity(userId, 'audio_notes_generated', { 
-      title: audioData.title,
-      filename: audioData.filename 
-    });
-    
-    return data;
-  } catch (error) {
-    console.error("Error storing audio notes:", error);
-    throw error;
-  }
-};
+// Store Audio Notes (commented out since audio_notes table doesn't exist in types)
+// export const storeAudioNotes = async (userId: string, audioData: any) => {
+//   // Implementation removed until audio_notes table is added to types
+// };
 
-// Get user audio notes
-export const getUserAudioNotes = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('audio_notes')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error getting audio notes:", error);
-    return [];
-  }
-};
+// Get user audio notes (commented out)
+// export const getUserAudioNotes = async (userId: string) => {
+//   // Implementation removed until audio_notes table is added to types
+// };
 
 // Store AI Notes (for AI Notes Generator)
 export const storeAINotes = async (userId: string, notesData: {

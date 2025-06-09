@@ -18,6 +18,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set global user ID for database operations
+    if (user?.id) {
+      (window as any).clerkUserId = user.id;
+    }
+
     const setupUser = async () => {
       if (isSignedIn && user) {
         try {
@@ -49,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         setCurrentUser(null);
+        (window as any).clerkUserId = null;
       }
       setLoading(false);
     };
@@ -59,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     await clerkSignOut();
     setCurrentUser(null);
+    (window as any).clerkUserId = null;
   };
 
   const value = {

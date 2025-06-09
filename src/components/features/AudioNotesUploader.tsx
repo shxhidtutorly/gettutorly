@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ const AudioNotesUploader = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const { currentUser } = useAuth();
-  const { addSession } = useStudyTracking();
+  const { trackActivity } = useStudyTracking();
   const { toast } = useToast();
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -88,11 +87,10 @@ const AudioNotesUploader = () => {
       setAudioNotes(audioNote);
       
       // Track session
-      addSession({
+      trackActivity('audio_notes_generated', {
         title: audioNote.title,
-        type: 'audio-notes',
-        duration: 5, // Estimate
-        completed: true,
+        filename: file.name,
+        duration: 5
       });
 
       setProgress(100);
@@ -113,7 +111,7 @@ const AudioNotesUploader = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [currentUser, addSession, toast]);
+  }, [currentUser, trackActivity, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

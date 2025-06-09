@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Use the actual Supabase project configuration
@@ -11,7 +12,7 @@ const supabase = createClient(
   {
     auth: {
       autoRefreshToken: true,
-      persistSession: true,
+      persistSession: false, // Disable persistence to avoid multiple client issues
     },
     realtime: {
       params: {
