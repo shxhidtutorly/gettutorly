@@ -147,6 +147,77 @@ export const getStudyProgress = async (userId: string, materialId?: string) => {
   }
 };
 
+// STUDY PLANS OPERATIONS
+export const createStudyPlan = async (planData: any) => {
+  try {
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('study_plans')
+      .insert([{
+        user_id: userId,
+        title: planData.title,
+        description: planData.description,
+        due_date: planData.due_date,
+        sessions: planData.sessions || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    // Log the activity
+    await logUserActivity(userId, 'study_plan_created', {
+      plan_id: data.id,
+      title: planData.title
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating study plan:", error);
+    throw error;
+  }
+};
+
+export const getUserStudyPlans = async () => {
+  try {
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('study_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting user study plans:", error);
+    throw error;
+  }
+};
+
+// USER ACTIVITY LOGS
+export const getUserActivityLogs = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting user activity logs:", error);
+    throw error;
+  }
+};
+
 // ACTIVITY LOGGING
 export const logUserActivity = async (userId: string, action: string, details: any = {}) => {
   try {
@@ -166,16 +237,6 @@ export const logUserActivity = async (userId: string, action: string, details: a
     return false;
   }
 };
-
-// Store Audio Notes (commented out since audio_notes table doesn't exist in types)
-// export const storeAudioNotes = async (userId: string, audioData: any) => {
-//   // Implementation removed until audio_notes table is added to types
-// };
-
-// Get user audio notes (commented out)
-// export const getUserAudioNotes = async (userId: string) => {
-//   // Implementation removed until audio_notes table is added to types
-// };
 
 // Store AI Notes (for AI Notes Generator)
 export const storeAINotes = async (userId: string, notesData: {

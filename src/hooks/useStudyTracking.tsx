@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface StudyStats {
@@ -13,8 +13,16 @@ interface StudyStats {
   streakDays: number;
 }
 
+export interface StudySession {
+  id: string;
+  type: string;
+  title: string;
+  completed: boolean;
+  date: string;
+}
+
 export const useStudyTracking = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [stats, setStats] = useState<StudyStats>({
     totalStudyHours: 0,
     sessionCount: 0,
@@ -25,16 +33,18 @@ export const useStudyTracking = () => {
     streakDays: 1,
   });
 
+  const [sessions, setSessions] = useState<StudySession[]>([]);
+
   // Track activity
   const trackActivity = async (activityType: string, details: any = {}) => {
-    if (!user?.id) return;
+    if (!currentUser?.id) return;
 
     try {
       // Insert activity log
       const { error } = await supabase
         .from('user_activity_logs')
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           action: activityType,
           details: details,
           timestamp: new Date().toISOString()
@@ -89,19 +99,29 @@ export const useStudyTracking = () => {
 
   const addSession = (sessionData: any) => {
     trackActivity('study_session_added', sessionData);
+    const newSession: StudySession = {
+      id: Date.now().toString(),
+      type: sessionData.type || 'study',
+      title: sessionData.title || 'Study Session',
+      completed: sessionData.completed || false,
+      date: new Date().toISOString()
+    };
+    setSessions(prev => [newSession, ...prev]);
   };
+
+  const getSessions = () => sessions;
 
   // Load user stats
   useEffect(() => {
     const loadStats = async () => {
-      if (!user?.id) return;
+      if (!currentUser?.id) return;
 
       try {
         // Get activity logs for stats calculation
         const { data: activities, error } = await supabase
           .from('user_activity_logs')
           .select('action, details, timestamp')
-          .eq('user_id', user.id)
+          .eq('user_id', currentUser.id)
           .order('timestamp', { ascending: false });
 
         if (error) {
@@ -124,7 +144,7 @@ export const useStudyTracking = () => {
         const { data: progressData } = await supabase
           .from('study_progress')
           .select('time_spent')
-          .eq('user_id', user.id);
+          .eq('user_id', currentUser.id);
 
         const totalStudyHours = (progressData?.reduce((total, p) => total + (p.time_spent || 0), 0) || 0) / 3600;
 
@@ -153,7 +173,7 @@ export const useStudyTracking = () => {
     };
 
     loadStats();
-  }, [user?.id]);
+  }, [currentUser?.id]);
 
   return {
     stats,
@@ -165,5 +185,6 @@ export const useStudyTracking = () => {
     startSession,
     endSession,
     addSession,
+    getSessions,
   };
 };
