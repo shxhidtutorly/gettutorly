@@ -86,38 +86,25 @@ const AINotesGenerator = () => {
     >
       <Navbar />
 
-      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
-        <div className="container max-w-6xl mx-auto">
-          {/* Back to Dashboard button top left */}
-          <div className="mb-4 flex items-center">
-            <BackToDashboardButton />
-          </div>
-          <div
-            className="text-center mb-6 md:mb-8"
-            style={{
-              animation: "fadeInDown 0.85s",
-              transition: "all 0.3s",
-            }}
-          >
-            <div className="flex items-center justify-center mb-4">
-              <span className="text-3xl md:text-4xl mr-2" role="img" aria-label="sparkles">
-                ✨
-              </span>
-              <BookOpen className="h-8 w-8 md:h-10 md:w-10 mr-3 text-primary" />
-             <h1
-                className="text-3xl md:text-4xl font-black"
-                style={{
-                  background: "linear-gradient(90deg, #a78bfa 0%, #f472b6 50%, #fde68a 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  color: "#fff",
-                  textShadow: "0 1px 2px rgba(0,0,0,0.10)", // very minimal shadow for readability
-                  letterSpacing: "0.03em",
-                }}
-              >
-                AI Notes Generator
-              </h1>
+<main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
+  <div className="container max-w-6xl mx-auto">
+    {/* Back to Dashboard button top left */}
+    <div className="mb-4 flex items-center">
+      <BackToDashboardButton />
+    </div>
+
+    <div
+      className="text-center mb-6 md:mb-8 animate-fadeInDown transition-all duration-300"
+    >
+      <div className="flex items-center justify-center mb-4">
+        <span className="text-3xl md:text-4xl mr-2" role="img" aria-label="sparkles">
+          ✨
+        </span>
+        <BookOpen className="h-8 w-8 md:h-10 md:w-10 mr-3 text-primary" />
+        <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-300 bg-clip-text text-transparent drop-shadow-sm tracking-wide">
+          AI Notes Generator
+        </h1>
+    
               <span className="text-3xl md:text-4xl ml-2" role="img" aria-label="books">
                 📚
               </span>
