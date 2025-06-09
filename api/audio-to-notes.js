@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     // Poll for completion
     let transcript;
     let attempts = 0;
-    const maxAttempts = 60; // 5 minutes max
+    const maxAttempts = 160; // 15 minutes max
 
     while (attempts < maxAttempts) {
       const statusResponse = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
