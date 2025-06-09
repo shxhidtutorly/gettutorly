@@ -181,34 +181,43 @@ export default function Summaries() {
       }}
     >
       <Navbar />
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="container mx-auto px-4 py-6 pb-32 flex flex-col items-center justify-center min-h-[90vh]">
-          <div className="w-full max-w-4xl flex flex-col flex-1 justify-center">
-            {/* Header */}
-            <div className="text-center mb-10 relative">
-              <div className="absolute top-0 left-0">
-                <BackToDashboardButton size="sm" />
-              </div>
-              <div className="absolute top-0 right-0">
-                <Button
-                  onClick={toggleDarkMode}
-                  variant="outline"
-                  size="sm"
-                  className={`transition-all duration-300 shadow-md border-0 ${
-                    darkMode
-                      ? "bg-[#322778] text-yellow-400"
-                      : "bg-white text-gray-700"
-                  }`}
-                  aria-label="Toggle dark mode"
-                >
-                  {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>
-              </div>
-              <div className="flex items-center justify-center gap-2 mb-4 pt-12 md:pt-0">
-                <span className="text-3xl md:text-4xl">📚</span>
-                <h1 className="text-2xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#8b5cf6] to-[#22d3ee] tracking-tight">
-                  AI Study Summarizer
-                </h1>
+
+<div className="flex-1 flex flex-col justify-center">
+  <div className="container mx-auto px-4 py-6 pb-32 flex flex-col items-center justify-center min-h-[90vh]">
+    <div className="w-full max-w-4xl flex flex-col flex-1 justify-center">
+
+      {/* Header */}
+      <div className="text-center mb-10 relative">
+        
+        {/* Back button (top-left) */}
+        <div className="absolute top-0 left-0">
+          <BackToDashboardButton size="sm" />
+        </div>
+
+        {/* Toggle Dark Mode Button (top-right) */}
+        <div className="absolute top-0 right-0">
+          <Button
+            onClick={toggleDarkMode}
+            variant="outline"
+            size="sm"
+            className={`transition-all duration-300 shadow-md border-0 ${
+              darkMode
+                ? "bg-[#322778] text-yellow-400"
+                : "bg-gray-900 text-white"
+            }`}
+            aria-label="Toggle dark mode"
+          >
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {/* Title */}
+        <div className="flex items-center justify-center gap-2 mb-4 pt-12 md:pt-0">
+          <span className="text-3xl md:text-4xl">📚</span>
+          <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight drop-shadow-sm">
+            AI Study Summarizer
+          </h1>
+       
                 <span className="text-3xl md:text-4xl">✨</span>
               </div>
               <p className="text-md md:text-lg text-gray-400 font-medium flex items-center justify-center gap-2">
