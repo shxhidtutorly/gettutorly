@@ -101,7 +101,7 @@ const AINotesGenerator = () => {
           ✨
         </span>
         <BookOpen className="h-8 w-8 md:h-10 md:w-10 mr-3 text-primary" />
-        <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-300 bg-clip-text text-transparent drop-shadow-sm tracking-wide">
+         <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-sm tracking-wide">
           AI Notes Generator
         </h1>
     
