@@ -22,10 +22,10 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import ProgressStatCard from "@/components/progress/ProgressStatCard";
-import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
+import MaterialProgressCard  from "@/components/progress/MaterialProgressCard";
 import WeeklyStudyHoursChart from "@/components/progress/WeeklyStudyHoursChart";
-import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
-import { LearningInsightCard } from "@/components/progress/LearningInsightCard";
+import MonthlyProgressChart from "@/components/progress/MonthlyProgressChart";
+import  LearningInsightCard  from "@/components/progress/LearningInsightCard";
 import { useStudyTracking, StudySession } from "@/hooks/useStudyTracking";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
