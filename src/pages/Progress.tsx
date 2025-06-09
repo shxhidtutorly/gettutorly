@@ -21,7 +21,7 @@ import {
   Download,
   ArrowLeft,
 } from "lucide-react";
-import { ProgressStatCard } from "@/components/progress/ProgressStatCard";
+import ProgressStatCard from "@/components/progress/ProgressStatCard";
 import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
 import { WeeklyStudyHoursChart } from "@/components/progress/WeeklyStudyHoursChart";
 import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
