@@ -136,49 +136,50 @@ const MathChat = () => {
 
       <Navbar />
 
-      {/* Top Buttons Row: Back to Dashboard (left), Clear History (right) */}
-      <div className="w-full flex justify-between items-center absolute top-4 left-0 px-4 z-20">
-        {/* Back to Dashboard Button */}
-        <Button
-          variant="ghost"
-          className="flex items-center gap-2 text-primary shadow-md bg-white/80 dark:bg-gray-900/90 backdrop-blur px-3 py-2 rounded-full animate-fadeIn text-base font-bold"
-          onClick={() => navigate("/dashboard")}
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span className="ml-1">Back to Dashboard</span>
-        </Button>
-        {/* Clear History Button */}
-        <Button
-          variant="destructive"
-          className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2 rounded-full shadow-lg"
-          onClick={handleClearHistory}
-        >
-          <Trash2 className="h-4 w-4" />
-          <span>{EMOJI_CLEAR} Clear History</span>
-        </Button>
-      </div>
+{/* Top Buttons Row */}
+<div className="w-full flex justify-between items-center absolute top-4 left-0 px-4 z-20">
+  {/* Back to Dashboard Button */}
+  <Button
+    variant="ghost"
+    className="flex items-center gap-2 text-white shadow-md bg-white/10 dark:bg-white/10 backdrop-blur px-3 py-2 rounded-full animate-fadeIn text-base font-bold"
+    onClick={() => navigate("/dashboard")}
+  >
+    <ArrowLeft className="h-5 w-5" />
+    <span className="ml-1">Back to Dashboard</span>
+  </Button>
 
-      <main className="flex-1 py-6 px-2 md:px-0 pb-20 md:pb-8 flex flex-col">
-        <div className="container max-w-2xl mx-auto">
+  {/* Clear History Button */}
+  <Button
+    variant="destructive"
+    className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2 rounded-full shadow-lg"
+    onClick={handleClearHistory}
+  >
+    <Trash2 className="h-4 w-4" />
+    <span>{EMOJI_CLEAR} Clear History</span>
+  </Button>
+</div>
 
-          {/* Title & Subtitle */}
-          <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-7"
-          >
-            <div className="flex items-center justify-center mb-4 gap-2">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 180 }}
-              >
-                <span className="text-4xl mr-1">{EMOJI_MATH}</span>
-              </motion.div>
-              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-indigo-500 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent animate-gradient drop-shadow">
-                Math Chat Assistant
-              </h1>
+<main className="flex-1 py-6 px-2 md:px-0 pb-20 md:pb-8 flex flex-col">
+  <div className="container max-w-2xl mx-auto">
+    {/* Title & Subtitle */}
+    <motion.div
+      initial={{ opacity: 0, y: -30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="text-center mb-7"
+    >
+      <div className="flex items-center justify-center mb-4 gap-2">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 180 }}
+        >
+          <span className="text-4xl mr-1">{EMOJI_MATH}</span>
+        </motion.div>
+
+        <h1 className="text-4xl font-extrabold text-white drop-shadow-sm">
+          Math Chat Assistant
+        </h1>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
