@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import ProgressStatCard from "@/components/progress/ProgressStatCard";
 import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
-import { WeeklyStudyHoursChart } from "@/components/progress/WeeklyStudyHoursChart";
+import WeeklyStudyHoursChart from "@/components/progress/WeeklyStudyHoursChart";
 import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
 import { LearningInsightCard } from "@/components/progress/LearningInsightCard";
 import { useStudyTracking, StudySession } from "@/hooks/useStudyTracking";
