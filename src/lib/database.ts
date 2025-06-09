@@ -1,251 +1,174 @@
-import { supabase } from '@/lib/supabase';
 
-// Study Plans Operations
-export const createStudyPlan = async (planData: {
-  title: string;
-  description?: string;
-  sessions: any[];
-  due_date?: string;
-}) => {
+import { supabase } from '@/integrations/supabase/client';
+
+// Get current user ID (Clerk user ID)
+const getCurrentUserId = () => {
+  // This will be set by the auth context
+  return window.clerkUserId || null;
+};
+
+// STUDY MATERIALS OPERATIONS
+export const saveStudyMaterial = async (userId: string, materialData: any) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
     const { data, error } = await supabase
-      .from('study_plans')
+      .from('study_materials')
       .insert([{
-        user_id: user.id,
-        title: planData.title,
-        description: planData.description || '',
-        sessions: planData.sessions,
-        due_date: planData.due_date || null,
+        user_id: userId,
+        title: materialData.title,
+        file_name: materialData.file_name,
+        file_url: materialData.file_url,
+        content_type: materialData.content_type,
+        size: materialData.size,
+        metadata: materialData.metadata || {},
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       }])
       .select()
       .single();
       
     if (error) throw error;
-    return data;
+    
+    // Log the activity
+    await logUserActivity(userId, 'material_uploaded', {
+      material_id: data.id,
+      title: materialData.title,
+      file_name: materialData.file_name
+    });
+    
+    return data.id;
   } catch (error) {
-    console.error("Error creating study plan:", error);
+    console.error("Error saving study material:", error);
     throw error;
   }
 };
 
-export const getUserStudyPlans = async () => {
+export const getUserStudyMaterials = async (userId: string) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('study_plans')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error getting study plans:", error);
-    return [];
-  }
-};
-
-// Study Materials Operations
-export const getUserStudyMaterials = async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
     const { data, error } = await supabase
       .from('study_materials')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error("Error getting study materials:", error);
-    return [];
+    console.error("Error getting user study materials:", error);
+    throw error;
   }
 };
 
-// Update user profile
-export const updateUserProfile = async (updates: {
-  name?: string;
-  email?: string;
-  phone_number?: string;
-  location?: string;
-}) => {
+// NOTES OPERATIONS
+export const createNote = async (userId: string, noteData: any) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
     const { data, error } = await supabase
-      .from('users')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id)
+      .from('notes')
+      .insert([{
+        user_id: userId,
+        title: noteData.title,
+        content: noteData.content,
+        material_id: noteData.material_id || null,
+        created_at: new Date().toISOString(),
+      }])
       .select()
       .single();
       
     if (error) throw error;
-    return data;
+    
+    // Log the activity
+    await logUserActivity(userId, 'notes_created', {
+      note_id: data.id,
+      title: noteData.title
+    });
+    
+    return data.id;
   } catch (error) {
-    console.error("Error updating profile:", error);
+    console.error("Error creating note:", error);
     throw error;
   }
 };
 
-// Get user study progress
-export const getUserStudyProgress = async () => {
+export const getUserNotes = async (userId: string) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
     const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting user notes:", error);
+    throw error;
+  }
+};
+
+// STUDY PROGRESS TRACKING
+export const updateStudyProgress = async (userId: string, materialId: string, progressData: any) => {
+  try {
+    const { error } = await supabase
+      .from('study_progress')
+      .upsert([{
+        user_id: userId,
+        material_id: materialId,
+        progress_percentage: progressData.progress_percentage || 0,
+        last_position: progressData.last_position || 0,
+        time_spent: progressData.time_spent || 0,
+        completed: progressData.completed || false,
+        last_updated: new Date().toISOString(),
+      }]);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error updating study progress:", error);
+    throw error;
+  }
+};
+
+export const getStudyProgress = async (userId: string, materialId?: string) => {
+  try {
+    let query = supabase
       .from('study_progress')
       .select('*')
-      .eq('user_id', user.id)
-      .order('last_updated', { ascending: false });
+      .eq('user_id', userId);
       
+    if (materialId) {
+      query = query.eq('material_id', materialId);
+    }
+    
+    const { data, error } = await query;
+    
     if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error getting study progress:", error);
-    return [];
-  }
-};
-
-// Get user activity logs
-export const getUserActivityLogs = async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('user_activity_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('timestamp', { ascending: false })
-      .limit(50);
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error getting user activity logs:", error);
-    return [];
-  }
-};
-
-// Log user activity
-export const logUserActivity = async (actionType: string, details: any = {}) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase
-      .from('user_activity_logs')
-      .insert([{
-        user_id: user.id,
-        action_type: actionType,
-        details: details,
-        timestamp: new Date().toISOString()
-      }]);
-      
-    if (error) throw error;
-    
-    // Update activity streak
-    const today = new Date().toDateString();
-    localStorage.setItem('lastActivityDate', today);
-    
-  } catch (error) {
-    console.error("Error logging user activity:", error);
-  }
-};
-
-// Search study materials
-export const searchStudyMaterials = async (query: string) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('study_materials')
-      .select('*')
-      .eq('user_id', user.id)
-      .or(`title.ilike.%${query}%,file_name.ilike.%${query}%,content_type.ilike.%${query}%`)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error searching materials:", error);
-    return [];
-  }
-};
-
-// Store AI Notes
-export const storeAINotes = async (notesData: {
-  title: string;
-  content: string;
-  filename: string;
-}) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('ai_notes')
-      .insert([{
-        user_id: user.id,
-        title: notesData.title,
-        content: notesData.content,
-        source_filename: notesData.filename,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-      
-    if (error) throw error;
-    
-    // Log activity
-    await logUserActivity('ai_notes_generated', { title: notesData.title });
-    
-    return data;
-  } catch (error) {
-    console.error("Error storing AI notes:", error);
     throw error;
   }
 };
 
-// Get user AI notes
-export const getUserAINotes = async () => {
+// ACTIVITY LOGGING
+export const logUserActivity = async (userId: string, action: string, details: any = {}) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('ai_notes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    const { error } = await supabase
+      .from('user_activity_logs')
+      .insert({
+        user_id: userId,
+        action: action,
+        details: details,
+        timestamp: new Date().toISOString()
+      });
       
     if (error) throw error;
-    return data || [];
+    return true;
   } catch (error) {
-    console.error("Error getting AI notes:", error);
-    return [];
+    console.error("Error logging user activity:", error);
+    return false;
   }
 };
 
 // Store Audio Notes
-export const storeAudioNotes = async (audioData: {
+export const storeAudioNotes = async (userId: string, audioData: {
   title: string;
   filename: string;
   audioUrl: string;
@@ -256,13 +179,10 @@ export const storeAudioNotes = async (audioData: {
   fileSize?: number;
 }) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
     const { data, error } = await supabase
       .from('audio_notes')
       .insert([{
-        user_id: user.id,
+        user_id: userId,
         title: audioData.title,
         filename: audioData.filename,
         audio_url: audioData.audioUrl,
@@ -280,7 +200,7 @@ export const storeAudioNotes = async (audioData: {
     if (error) throw error;
     
     // Log activity
-    await logUserActivity('audio_notes_generated', { 
+    await logUserActivity(userId, 'audio_notes_generated', { 
       title: audioData.title,
       filename: audioData.filename 
     });
@@ -293,21 +213,110 @@ export const storeAudioNotes = async (audioData: {
 };
 
 // Get user audio notes
-export const getUserAudioNotes = async () => {
+export const getUserAudioNotes = async (userId: string) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
     const { data, error } = await supabase
       .from('audio_notes')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error getting audio notes:", error);
+    return [];
+  }
+};
+
+// Store AI Notes (for AI Notes Generator)
+export const storeAINotes = async (userId: string, notesData: {
+  title: string;
+  content: string;
+  filename: string;
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([{
+        user_id: userId,
+        title: notesData.title,
+        content: notesData.content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    // Log activity
+    await logUserActivity(userId, 'ai_notes_generated', { title: notesData.title });
+    
+    return data;
+  } catch (error) {
+    console.error("Error storing AI notes:", error);
+    throw error;
+  }
+};
+
+// Get user AI notes
+export const getUserAINotes = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting AI notes:", error);
+    return [];
+  }
+};
+
+// Update user profile
+export const updateUserProfile = async (userId: string, updates: {
+  name?: string;
+  email?: string;
+  phone_number?: string;
+  location?: string;
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    throw error;
+  }
+};
+
+// Search study materials
+export const searchStudyMaterials = async (userId: string, query: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_materials')
+      .select('*')
+      .eq('user_id', userId)
+      .or(`title.ilike.%${query}%,file_name.ilike.%${query}%,content_type.ilike.%${query}%`)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error searching materials:", error);
     return [];
   }
 };
