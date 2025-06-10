@@ -51,7 +51,7 @@ const Quiz = () => {
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(quiz?.questions.length || 0).fill(-1));
   const [showResults, setShowResults] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [questionTransition, setQuestionTransition] = useState(false);
