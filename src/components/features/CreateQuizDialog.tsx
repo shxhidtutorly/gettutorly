@@ -1,21 +1,4 @@
-
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, ListChecks, X, CheckCircle } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 
 interface QuizQuestion {
   question: string;
@@ -38,7 +21,6 @@ const CreateQuizDialog = ({ onSave, trigger }: CreateQuizDialogProps) => {
       correctAnswer: 0
     }
   ]);
-  const { toast } = useToast();
 
   const handleAddQuestion = () => {
     setQuestions([
@@ -54,12 +36,6 @@ const CreateQuizDialog = ({ onSave, trigger }: CreateQuizDialogProps) => {
   const handleRemoveQuestion = (index: number) => {
     if (questions.length > 1) {
       setQuestions(questions.filter((_, i) => i !== index));
-    } else {
-      toast({
-        title: "Cannot remove question",
-        description: "A quiz must have at least one question",
-        variant: "destructive"
-      });
     }
   };
 
@@ -75,43 +51,29 @@ const CreateQuizDialog = ({ onSave, trigger }: CreateQuizDialogProps) => {
     setQuestions(updatedQuestions);
   };
 
-  const handleCorrectAnswerChange = (questionIndex: number, optionIndex: number) => {
+  const handleCorrectAnswerChange = (questionIndex: number, value: string) => {
     const updatedQuestions = [...questions];
-    updatedQuestions[questionIndex].correctAnswer = optionIndex;
+    updatedQuestions[questionIndex].correctAnswer = parseInt(value);
     setQuestions(updatedQuestions);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate quiz name
+  const handleSubmit = () => {
     if (!quizName.trim()) {
-      toast({
-        title: "Quiz name required",
-        description: "Please enter a name for your quiz",
-        variant: "destructive"
-      });
+      alert("Please enter a quiz name");
       return;
     }
 
-    // Check if questions are complete
     const incompleteQuestions = questions.filter(q => 
       !q.question.trim() || q.options.some(opt => !opt.trim())
     );
     
     if (incompleteQuestions.length > 0) {
-      toast({
-        title: "Incomplete questions",
-        description: "Please complete all questions and options",
-        variant: "destructive"
-      });
+      alert("Please complete all questions and options");
       return;
     }
 
-    // Save the quiz
     onSave(quizName, questions);
     
-    // Reset form
     setQuizName("");
     setQuestions([{
       question: "",
@@ -119,121 +81,128 @@ const CreateQuizDialog = ({ onSave, trigger }: CreateQuizDialogProps) => {
       correctAnswer: 0
     }]);
     setIsOpen(false);
-    
-    toast({
-      title: "Quiz created",
-      description: `Created ${questions.length} questions in "${quizName}"`,
-    });
   };
 
+  if (!isOpen) {
+    return (
+      <button 
+        onClick={() => setIsOpen(true)}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2"
+      >
+        <span className="text-lg">+</span> Create New Quiz
+      </button>
+    );
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button className="spark-button-primary button-click-effect">
-            <Plus className="mr-2 h-4 w-4" /> Create New Quiz
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-spark-primary" />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <span className="text-blue-600">📝</span>
             Create New Quiz
-          </DialogTitle>
-          <DialogDescription>
-            Create a quiz with multiple-choice questions
-          </DialogDescription>
-        </DialogHeader>
+          </h2>
+          <p className="text-gray-600 mt-1">Create a quiz with multiple-choice questions</p>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+        <div className="p-6 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="quizName">Quiz Name</Label>
-            <Input
-              id="quizName"
+            <label className="block text-sm font-medium">Quiz Name</label>
+            <input
+              type="text"
               value={quizName}
               onChange={(e) => setQuizName(e.target.value)}
               placeholder="e.g., Biology 101 Quiz"
-              className="w-full"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium">Questions</h4>
-              <span className="text-sm text-muted-foreground">{questions.length} questions</span>
+              <span className="text-sm text-gray-500">{questions.length} questions</span>
             </div>
             
             {questions.map((question, qIndex) => (
-              <div key={qIndex} className="p-4 border rounded-lg space-y-4 bg-muted/30">
+              <div key={qIndex} className="p-4 border rounded-lg space-y-4 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <h5 className="text-sm font-medium">Question {qIndex + 1}</h5>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
+                    className="text-red-500 hover:text-red-700 p-1"
                     onClick={() => handleRemoveQuestion(qIndex)}
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    ✕
+                  </button>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor={`question-${qIndex}`}>Question</Label>
-                  <Textarea
-                    id={`question-${qIndex}`}
+                  <label className="block text-sm font-medium">Question</label>
+                  <textarea
                     value={question.question}
                     onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
                     placeholder="Enter your question here"
-                    className="w-full min-h-[60px]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[60px]"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Options (select the correct answer)</Label>
-                  <RadioGroup value={question.correctAnswer.toString()} onValueChange={(v) => handleCorrectAnswerChange(qIndex, parseInt(v))}>
-                    {question.options.map((option, oIndex) => (
-                      <div key={oIndex} className="flex items-center space-x-2 bg-white p-2 rounded-md border my-2">
-                        <RadioGroupItem value={oIndex.toString()} id={`q${qIndex}-o${oIndex}`} />
-                        <div className="flex-1">
-                          <Input
-                            value={option}
-                            onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                            placeholder={`Option ${oIndex + 1}`}
-                            className="border-0 focus-visible:ring-0"
-                          />
-                        </div>
-                        {question.correctAnswer === oIndex && (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        )}
-                      </div>
-                    ))}
-                  </RadioGroup>
+                  <label className="block text-sm font-medium">Options (select the correct answer)</label>
+                  {question.options.map((option, oIndex) => (
+                    <div key={oIndex} className="flex items-center space-x-2 bg-white p-2 rounded-md border">
+                      <input
+                        type="radio"
+                        name={`correct-answer-${qIndex}`}
+                        value={oIndex}
+                        checked={question.correctAnswer === oIndex}
+                        onChange={(e) => handleCorrectAnswerChange(qIndex, e.target.value)}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
+                        placeholder={`Option ${oIndex + 1}`}
+                        className="flex-1 px-2 py-1 border-0 focus:outline-none"
+                      />
+                      {question.correctAnswer === oIndex && (
+                        <span className="text-green-500">✓</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
             
-            <Button
+            <button
               type="button"
-              variant="outline"
-              className="w-full border-dashed"
+              className="w-full border-2 border-dashed border-gray-300 rounded-md py-3 text-gray-600 hover:border-gray-400 hover:text-gray-700 flex items-center justify-center gap-2"
               onClick={handleAddQuestion}
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <span className="text-lg">+</span>
               Add Question
-            </Button>
+            </button>
           </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Create Quiz</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+        
+        <div className="p-6 border-t flex justify-end gap-3">
+          <button
+            type="button"
+            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            onClick={handleSubmit}
+          >
+            Create Quiz
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
