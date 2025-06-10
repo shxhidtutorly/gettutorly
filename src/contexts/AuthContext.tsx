@@ -18,6 +18,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    /**
+     * Sets up user authentication and profile with validation and error handling
+     * Validates user data and handles authentication errors gracefully
+     */
     const setupUser = async () => {
       // Don't proceed if Clerk isn't loaded yet
       if (!isLoaded) {
@@ -26,20 +30,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (isSignedIn && user) {
         try {
+          // Validate user ID before proceeding
+          if (!user.id || typeof user.id !== 'string') {
+            console.error('Invalid user ID from Clerk:', user.id);
+            setCurrentUser(null);
+            setLoading(false);
+            return;
+          }
+
           // Set global user ID for database operations
           (window as any).clerkUserId = user.id;
 
-          // First try to get existing profile
-          let profile = await getUserProfile(user.id);
+          // First try to get existing profile with validation
+          const profileResult = await getUserProfile(user.id);
           
-          // If no profile exists, create one
+          let profile = null;
+          if (profileResult.success) {
+            profile = profileResult.data;
+          } else if (profileResult.code === 'INVALID_ID' || profileResult.code === 'INVALID_UUID') {
+            console.error('Invalid user ID format:', user.id);
+            setCurrentUser(null);
+            setLoading(false);
+            return;
+          }
+          
+          // If no profile exists, create one with validation
           if (!profile) {
             console.log('Creating new user profile for:', user.id);
-            profile = await createUserProfile(user.id, {
+            const createResult = await createUserProfile(user.id, {
               email: user.emailAddresses[0]?.emailAddress || '',
               name: user.fullName || user.firstName || '',
               avatar_url: user.imageUrl || '',
             });
+
+            if (createResult.success) {
+              profile = createResult.data;
+            } else {
+              console.error('Failed to create user profile:', createResult.error);
+              // Continue with Clerk data even if profile creation fails
+            }
           }
 
           // Set current user with both Clerk and Supabase data

@@ -1,9 +1,26 @@
 import { supabase } from '@/integrations/supabase/client';
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/i;
+
+/**
+ * Validates if a string is a valid UUID format
+ */
+const isValidUUID = (id: string): boolean => {
+  return typeof id === 'string' && id.length === 36 && UUID_REGEX.test(id);
+};
+
+/**
+ * Logs detailed error context for database operations
+ */
+const logDetailedError = (operation: string, userId: string, error: any) => {
+  console.error(`Error ${operation} for userId=${userId} – code=${error.code || 'UNKNOWN'}, message=${error.message || 'No message'}, hint=${error.hint || 'No hint'}`, error);
+};
+
 // Helper function to convert Clerk user ID to UUID (same as in supabaseAuth.ts)
 const convertClerkIdToUuid = (clerkId: string): string => {
   // If it's already a UUID, return it
-  if (clerkId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+  if (isValidUUID(clerkId)) {
     return clerkId;
   }
   
@@ -25,10 +42,57 @@ const getCurrentUserId = () => {
   return (window as any).clerkUserId || null;
 };
 
+/**
+ * Loads user activity logs with UUID validation and error handling
+ * Validates user ID format before making database queries
+ */
+export const loadUserActivityLogs = async (userId: string) => {
+  try {
+    // Validate input
+    if (!userId || typeof userId !== 'string') {
+      return { success: false, error: "Invalid user ID", code: "INVALID_ID", data: [] };
+    }
+
+    const dbUserId = convertClerkIdToUuid(userId);
+    
+    // Validate UUID format before querying
+    if (!isValidUUID(dbUserId)) {
+      return { success: false, error: "Invalid user ID format", code: "INVALID_UUID", data: [] };
+    }
+    
+    console.log('Loading user activity logs for ID:', dbUserId);
+    
+    const { data, error } = await supabase
+      .from('user_activity_logs')
+      .select('*')
+      .eq('user_id', dbUserId)
+      .order('timestamp', { ascending: false });
+      
+    if (error) {
+      logDetailedError('loadUserActivityLogs', dbUserId, error);
+      return { success: false, error: error.message || 'Failed to load activity logs', code: error.code || 'UNKNOWN_ERROR', data: [] };
+    }
+    
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error("Error loading user activity logs:", error);
+    return { success: false, error: error.message || 'Failed to load activity logs', code: 'UNKNOWN_ERROR', data: [] };
+  }
+};
+
 // STUDY MATERIALS OPERATIONS
 export const saveStudyMaterial = async (userId: string, materialData: any) => {
   try {
+    // Validate input
+    if (!userId || typeof userId !== 'string') {
+      return { success: false, error: "Invalid user ID", code: "INVALID_ID" };
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      return { success: false, error: "Invalid user ID format", code: "INVALID_UUID" };
+    }
     
     const { data, error } = await supabase
       .from('study_materials')
@@ -45,7 +109,10 @@ export const saveStudyMaterial = async (userId: string, materialData: any) => {
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('saveStudyMaterial', dbUserId, error);
+      throw error;
+    }
     
     // Log the activity
     await logUserActivity(userId, 'material_uploaded', {
@@ -63,7 +130,15 @@ export const saveStudyMaterial = async (userId: string, materialData: any) => {
 
 export const getUserStudyMaterials = async (userId: string) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      return [];
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      return [];
+    }
     
     const { data, error } = await supabase
       .from('study_materials')
@@ -71,7 +146,10 @@ export const getUserStudyMaterials = async (userId: string) => {
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('getUserStudyMaterials', dbUserId, error);
+      throw error;
+    }
     return data || [];
   } catch (error) {
     console.error("Error getting user study materials:", error);
@@ -82,7 +160,15 @@ export const getUserStudyMaterials = async (userId: string) => {
 // NOTES OPERATIONS
 export const createNote = async (userId: string, noteData: any) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      throw new Error("Invalid user ID");
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      throw new Error("Invalid user ID format");
+    }
     
     const { data, error } = await supabase
       .from('notes')
@@ -96,7 +182,10 @@ export const createNote = async (userId: string, noteData: any) => {
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('createNote', dbUserId, error);
+      throw error;
+    }
     
     await logUserActivity(userId, 'notes_created', {
       note_id: data.id,
@@ -112,7 +201,15 @@ export const createNote = async (userId: string, noteData: any) => {
 
 export const getUserNotes = async (userId: string) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      return [];
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      return [];
+    }
     
     const { data, error } = await supabase
       .from('notes')
@@ -120,7 +217,10 @@ export const getUserNotes = async (userId: string) => {
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('getUserNotes', dbUserId, error);
+      throw error;
+    }
     return data || [];
   } catch (error) {
     console.error("Error getting user notes:", error);
@@ -131,7 +231,15 @@ export const getUserNotes = async (userId: string) => {
 // STUDY PROGRESS TRACKING
 export const updateStudyProgress = async (userId: string, materialId: string, progressData: any) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      throw new Error("Invalid user ID");
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      throw new Error("Invalid user ID format");
+    }
     
     const { error } = await supabase
       .from('study_progress')
@@ -145,7 +253,10 @@ export const updateStudyProgress = async (userId: string, materialId: string, pr
         last_updated: new Date().toISOString(),
       }]);
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('updateStudyProgress', dbUserId, error);
+      throw error;
+    }
     return true;
   } catch (error) {
     console.error("Error updating study progress:", error);
@@ -155,7 +266,15 @@ export const updateStudyProgress = async (userId: string, materialId: string, pr
 
 export const getStudyProgress = async (userId: string, materialId?: string) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      return [];
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      return [];
+    }
     
     let query = supabase
       .from('study_progress')
@@ -168,7 +287,10 @@ export const getStudyProgress = async (userId: string, materialId?: string) => {
     
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      logDetailedError('getStudyProgress', dbUserId, error);
+      throw error;
+    }
     return data || [];
   } catch (error) {
     console.error("Error getting study progress:", error);
@@ -181,6 +303,10 @@ export const createStudyPlan = async (planData: any) => {
   try {
     const userId = getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
+
+    if (!isValidUUID(convertClerkIdToUuid(userId))) {
+      throw new Error('Invalid user ID format');
+    }
 
     const dbUserId = convertClerkIdToUuid(userId);
 
@@ -198,7 +324,10 @@ export const createStudyPlan = async (planData: any) => {
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('createStudyPlan', dbUserId, error);
+      throw error;
+    }
     
     await logUserActivity(userId, 'study_plan_created', {
       plan_id: data.id,
@@ -217,6 +346,10 @@ export const getUserStudyPlans = async () => {
     const userId = getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
+    if (!isValidUUID(convertClerkIdToUuid(userId))) {
+      throw new Error('Invalid user ID format');
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
 
     const { data, error } = await supabase
@@ -225,7 +358,10 @@ export const getUserStudyPlans = async () => {
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('getUserStudyPlans', dbUserId, error);
+      throw error;
+    }
     return data || [];
   } catch (error) {
     console.error("Error getting user study plans:", error);
@@ -235,27 +371,23 @@ export const getUserStudyPlans = async () => {
 
 // USER ACTIVITY LOGS
 export const getUserActivityLogs = async (userId: string) => {
-  try {
-    const dbUserId = convertClerkIdToUuid(userId);
-    
-    const { data, error } = await supabase
-      .from('user_activity_logs')
-      .select('*')
-      .eq('user_id', dbUserId)
-      .order('timestamp', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error getting user activity logs:", error);
-    throw error;
-  }
+  return loadUserActivityLogs(userId);
 };
 
 // ACTIVITY LOGGING
 export const logUserActivity = async (userId: string, action: string, details: any = {}) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      console.warn('Invalid user ID for activity logging:', userId);
+      return false;
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      console.warn('Invalid UUID format for activity logging:', dbUserId);
+      return false;
+    }
     
     const { error } = await supabase
       .from('user_activity_logs')
@@ -266,7 +398,10 @@ export const logUserActivity = async (userId: string, action: string, details: a
         timestamp: new Date().toISOString()
       });
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('logUserActivity', dbUserId, error);
+      return false;
+    }
     return true;
   } catch (error) {
     console.error("Error logging user activity:", error);
@@ -281,7 +416,15 @@ export const storeAINotes = async (userId: string, notesData: {
   filename: string;
 }) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      throw new Error("Invalid user ID");
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      throw new Error("Invalid user ID format");
+    }
     
     const { data, error } = await supabase
       .from('notes')
@@ -295,7 +438,10 @@ export const storeAINotes = async (userId: string, notesData: {
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('storeAINotes', dbUserId, error);
+      throw error;
+    }
     
     await logUserActivity(userId, 'ai_notes_generated', { title: notesData.title });
     
@@ -309,7 +455,15 @@ export const storeAINotes = async (userId: string, notesData: {
 // Get user AI notes
 export const getUserAINotes = async (userId: string) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      return [];
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      return [];
+    }
     
     const { data, error } = await supabase
       .from('notes')
@@ -317,7 +471,10 @@ export const getUserAINotes = async (userId: string) => {
       .eq('user_id', dbUserId)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('getUserAINotes', dbUserId, error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error("Error getting AI notes:", error);
@@ -333,7 +490,15 @@ export const updateUserProfile = async (userId: string, updates: {
   location?: string;
 }) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      throw new Error("Invalid user ID");
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      throw new Error("Invalid user ID format");
+    }
     
     const { data, error } = await supabase
       .from('users')
@@ -345,7 +510,10 @@ export const updateUserProfile = async (userId: string, updates: {
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('updateUserProfile', dbUserId, error);
+      throw error;
+    }
     return data;
   } catch (error) {
     console.error("Error updating profile:", error);
@@ -356,7 +524,15 @@ export const updateUserProfile = async (userId: string, updates: {
 // Search study materials
 export const searchStudyMaterials = async (userId: string, query: string) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      return [];
+    }
+
     const dbUserId = convertClerkIdToUuid(userId);
+    
+    if (!isValidUUID(dbUserId)) {
+      return [];
+    }
     
     const { data, error } = await supabase
       .from('study_materials')
@@ -365,7 +541,10 @@ export const searchStudyMaterials = async (userId: string, query: string) => {
       .or(`title.ilike.%${query}%,file_name.ilike.%${query}%,content_type.ilike.%${query}%`)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      logDetailedError('searchStudyMaterials', dbUserId, error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error("Error searching materials:", error);
@@ -377,3 +556,5 @@ export const searchStudyMaterials = async (userId: string, query: string) => {
 export const getUserStudyProgress = async (userId: string) => {
   return getStudyProgress(userId);
 };
+
+</edits_to_apply>
