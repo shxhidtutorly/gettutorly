@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,14 +36,14 @@ export const useStudyTracking = () => {
 
   // Track activity
   const trackActivity = async (activityType: string, details: any = {}) => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.clerkUserId) return; // Use clerkUserId instead of id
 
     try {
       // Insert activity log
       const { error } = await supabase
         .from('user_activity_logs')
         .insert({
-          user_id: currentUser.id,
+          clerk_user_id: currentUser.clerkUserId, // Use clerk_user_id
           action: activityType,
           details: details,
           timestamp: new Date().toISOString()
@@ -114,14 +113,14 @@ export const useStudyTracking = () => {
   // Load user stats
   useEffect(() => {
     const loadStats = async () => {
-      if (!currentUser?.id) return;
+      if (!currentUser?.clerkUserId) return; // Use clerkUserId instead of id
 
       try {
         // Get activity logs for stats calculation
         const { data: activities, error } = await supabase
           .from('user_activity_logs')
           .select('action, details, timestamp')
-          .eq('user_id', currentUser.id)
+          .eq('clerk_user_id', currentUser.clerkUserId) // Use clerk_user_id
           .order('timestamp', { ascending: false });
 
         if (error) {
@@ -144,7 +143,7 @@ export const useStudyTracking = () => {
         const { data: progressData } = await supabase
           .from('study_progress')
           .select('time_spent')
-          .eq('user_id', currentUser.id);
+          .eq('clerk_user_id', currentUser.clerkUserId); // Use clerk_user_id
 
         const totalStudyHours = (progressData?.reduce((total, p) => total + (p.time_spent || 0), 0) || 0) / 3600;
 
@@ -173,7 +172,7 @@ export const useStudyTracking = () => {
     };
 
     loadStats();
-  }, [currentUser?.id]);
+  }, [currentUser?.clerkUserId]); // Use clerkUserId instead of id
 
   return {
     stats,
