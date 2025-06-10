@@ -556,5 +556,3 @@ export const searchStudyMaterials = async (userId: string, query: string) => {
 export const getUserStudyProgress = async (userId: string) => {
   return getStudyProgress(userId);
 };
-
-</edits_to_apply>
