@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -54,7 +55,7 @@ const Confetti = () => (
 );
 
 const Dashboard = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
   const { stats } = useStudyTracking();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -74,8 +75,29 @@ const Dashboard = () => {
     return 'User';
   };
 
+  // Show loading state while authentication is being checked
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show sign-in message only after loading is complete and user is not authenticated
   if (!currentUser) {
-    return <div>Please sign in to view your dashboard.</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Welcome to GetTutorly</h2>
+          <p className="text-lg mb-6">Please sign in to view your dashboard.</p>
+          <Button onClick={() => navigate('/')}>Go to Sign In</Button>
+        </div>
+      </div>
+    );
   }
 
   // Cool emoji icons for stats
