@@ -26,55 +26,84 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({
     {
       title: 'Overview',
       content:
-        'This Refund Policy applies to all subscription purchases made on the Tutorly platform, which offers AI-based educational features including study summaries, flashcards, quizzes, and more.'
+        'This Refund Policy reflects Tutorly’s unwavering commitment to our customers—our learners. We understand that trust is the foundation of any great product, especially in education. We aim to make our refund and cancellation policy transparent, flexible, and supportive to ensure our users feel safe and confident using our platform.'
     },
     {
-      title: 'Subscription Plans & Billing',
+      title: 'Subscription & Billing',
       content: [
-        'Plans Offered: Monthly (auto-renewed monthly) and Annual (auto-renewed yearly).',
-        'Automatic Renewal: Subscriptions renew automatically unless canceled before the next billing cycle.',
-        'Billing Dates: Charges are processed on the same calendar date each cycle.'
+        'Tutorly offers both Monthly and Annual subscription plans, which renew automatically unless canceled in advance.',
+        'All charges are processed on the same calendar date of your original purchase each month/year, depending on the plan.',
+        'You can manage, pause, or cancel your subscription anytime directly from your account dashboard or by contacting our support team.'
       ]
     },
     {
       title: 'Cancellation Process',
       content: [
-        'Cancel via Account: Go to Account Settings → Billing → Cancel Subscription → Confirm Cancellation.',
-        `Cancel via Email: Send a cancellation request to ${supportEmail} with subject "Cancel My Subscription".`,
-        'Access After Cancellation: You retain access until the current billing period ends.',
-        'No Mid-Term Refunds: Cancellation takes effect at the end of the billing period without partial refunds.'
+        'We support hassle-free cancellations. If you decide Tutorly is not right for you, you can cancel your subscription anytime.',
+        'How to cancel:',
+        '- Visit Account Settings > Billing > Cancel Subscription.',
+        `- Alternatively, email us at ${supportEmail} with the subject “Cancel My Subscription.”`,
+        'After canceling, your premium access continues until the end of your current billing cycle. You won’t be billed again unless you reactivate.',
+        'No cancellation fees apply. You’re always welcome to return in the future.'
       ]
     },
     {
-      title: 'Refund Policy',
+      title: 'Buyer Support and Consumer Right to Cancel',
       content: [
-        'Refunds are available only under specific circumstances and are not guaranteed.',
-        'Eligible Refunds:',
-        '- Service disruption for more than 7 consecutive days due to technical issues.',
-        '- Duplicate or unauthorized charges due to platform error.',
-        'Non-Refundable Situations:',
-        '- Forgotten cancellation or change of mind.',
-        '- Dissatisfaction with features or platform usage.',
-        '- Requests made 30+ days after billing date.',
-        'All refund decisions are at the sole discretion of Tutorly.'
+        'We believe buyers should be protected, respected, and empowered. This section is dedicated to upholding your consumer rights and ensuring you receive fair treatment.',
+        '',
+        '**Your Right to Cancel:**',
+        'You have the right to cancel your subscription at any time for any reason. We will never lock you into a service you don’t find valuable. If you cancel within 7 days of purchase and have not heavily used the service, you may request a refund, and we will prioritize resolving the request with fairness.',
+        '',
+        '**Fair Refund Evaluation:**',
+        'We evaluate refund requests on a case-by-case basis and may consider:',
+        '- If there was a technical failure that prevented you from accessing features for a sustained period.',
+        '- If you were billed erroneously or more than once.',
+        '- If your account was compromised or misused.',
+        '- If you didn’t receive the product/service as reasonably expected.',
+        '',
+        '**Supportive Refund Window:**',
+        'Requests submitted within 14 days of the transaction will receive priority consideration. However, even after this period, we encourage you to reach out. We value dialogue over denial.',
+        '',
+        '**Refund Process & Timeline:**',
+        '- Once approved, refunds are issued to the original payment method within 5–10 business days.',
+        '- You will be notified via email when the refund has been processed.',
+        '- We do not charge fees for processing refunds.',
+        '',
+        '**Our Promise:**',
+        'We understand that subscriptions can be forgotten, financial conditions can change, and expectations may evolve. If you believe your case deserves a second look, we promise to review it with empathy. Refunds aren’t just about money—they’re about trust, and we take that seriously.',
+        '',
+        'Please reach out to us anytime you feel unsure, disappointed, or need help. We exist because of our learners and will always strive to be worthy of your trust.'
       ]
     }
   ];
 
-  const handleCancelSubscription = () => openModal('You need to have an active subscription to cancel it.');
-  const handleContactSupport = () => window.open(`mailto:${supportEmail}?subject=Subscription%20Cancellation`, '_blank');
-  const handleRefundRequest = () => openModal('You need to have an active subscription to request a refund.');
-  const handleBackToHome = () => (window.location.href = '/');
+  const handleCancelSubscription = () => {
+    openModal('You need to have an active subscription to cancel it.');
+  };
+
+  const handleContactSupport = () => {
+    window.open(`mailto:${supportEmail}?subject=Subscription%20Cancellation`, '_blank');
+  };
+
+  const handleRefundRequest = () => {
+    openModal('You need to have an active subscription to request a refund.');
+  };
+
+  const handleBackToHome = () => {
+    window.location.href = '/';
+  };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col relative">
+    <div className="min-h-screen bg-black flex flex-col relative text-gray-200">
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
           <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-xl px-8 py-7 max-w-sm w-full text-center">
             <p className="text-lg text-gray-200 mb-6">{modal.message}</p>
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold transition-colors duration-200"
               onClick={closeModal}
+              autoFocus
             >
               OK
             </button>
@@ -85,34 +114,32 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({
       <div className="flex items-center p-6">
         <button
           onClick={handleBackToHome}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700"
+          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:from-blue-600 hover:to-purple-700 transition-colors duration-200"
         >
           ← Back to Home Page
         </button>
       </div>
 
-      <main className="flex-1 flex justify-center">
+      <main className="flex-1 flex items-start justify-center">
         <div className="w-full max-w-5xl mx-auto p-8 bg-gray-900 rounded-xl shadow-lg border border-gray-800 mt-4 mb-12">
           <section className="mb-10">
             <button
-              className="w-full flex items-center justify-between bg-gray-800 hover:bg-gray-700 text-white px-5 py-4 rounded-lg"
+              className="w-full flex items-center justify-between bg-gray-800 hover:bg-gray-700 text-left text-white px-5 py-4 rounded-lg transition-colors duration-200"
               onClick={() => setShowFaq(!showFaq)}
-              aria-expanded={showFaq}
-              aria-controls="faq-answer"
             >
-              <span className="text-xl font-semibold">
-                How to Cancel Your Tutorly Subscription?
-              </span>
+              <span className="text-xl font-semibold">How to Cancel Your Tutorly Subscription?</span>
               <span className={`transform text-2xl ${showFaq ? 'rotate-180' : ''}`}>▼</span>
             </button>
             {showFaq && (
-              <div className="bg-gray-950 border border-gray-800 mt-2 px-5 py-6 rounded-lg text-gray-200">
-                <p className="mb-4 font-medium">Steps for iOS Users:</p>
+              <div className="bg-gray-950 border border-gray-800 mt-2 px-5 py-6 rounded-lg text-gray-300">
+                <p className="mb-4 font-medium">Steps to Cancel Your Subscription:</p>
                 <ol className="list-decimal list-inside space-y-1 mb-4">
-                  <li>Go to <strong>Settings</strong> → Your name → <strong>Subscriptions</strong></li>
-                  <li>Select <strong>Tutorly</strong> and tap <strong>Cancel Subscription</strong></li>
+                  <li>Go to <span className="font-semibold">Settings</span> on your device.</li>
+                  <li>Tap your <span className="font-semibold">Apple ID / Account Name</span>.</li>
+                  <li>Open <span className="font-semibold">Subscriptions</span>.</li>
+                  <li>Select <span className="font-semibold">Tutorly</span> and tap <span className="font-semibold">Cancel Subscription</span>.</li>
                 </ol>
-                <p className="text-xs text-gray-500">This applies to subscriptions managed via Apple. For direct billing, cancel via the app or support email.</p>
+                <p className="text-sm text-gray-400">Applies to Apple/iOS billing. For web, use your Tutorly account settings.</p>
               </div>
             )}
           </section>
@@ -120,15 +147,13 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({
           <div className="space-y-10">
             {policySections.map((section, index) => (
               <section key={index} className="border-b border-gray-800 pb-6">
-                <h2 className={`text-2xl font-semibold mb-4 ${
-                  section.title.toLowerCase().includes('refund') ? 'text-red-400' : 'text-blue-400'
-                }`}>
+                <h2 className="text-2xl font-semibold text-blue-400 mb-4">
                   {section.title}
                 </h2>
                 {Array.isArray(section.content) ? (
-                  <ul className="list-disc space-y-2 pl-5 text-gray-200">
-                    {section.content.map((item, idx) => (
-                      <li key={idx}>{item}</li>
+                  <ul className="space-y-3 pl-5 list-disc text-gray-200 leading-relaxed">
+                    {section.content.map((item, i) => (
+                      <li key={i}>{item}</li>
                     ))}
                   </ul>
                 ) : (
@@ -140,34 +165,47 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({
             <section className="bg-gray-800 p-6 rounded-lg">
               <h2 className="text-xl font-semibold text-blue-300 mb-4">Quick Actions</h2>
               <div className="flex flex-wrap gap-4">
-                <button onClick={handleCancelSubscription} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium">Cancel Subscription</button>
-                <button onClick={handleContactSupport} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium">Contact Support</button>
-                <button onClick={handleRefundRequest} className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-medium">Request Refund</button>
+                <button
+                  onClick={handleCancelSubscription}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium"
+                >
+                  Cancel Subscription
+                </button>
+                <button
+                  onClick={handleContactSupport}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium"
+                >
+                  Contact Support
+                </button>
+                <button
+                  onClick={handleRefundRequest}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-medium"
+                >
+                  Request Refund
+                </button>
               </div>
             </section>
 
             <section className="bg-blue-950 p-6 rounded-lg border border-blue-800">
               <h2 className="text-xl font-semibold text-blue-300 mb-4">Need Help?</h2>
-              <div className="space-y-2 text-gray-200">
-                <p><strong>Email:</strong> <a href={`mailto:${supportEmail}`} className="text-blue-400 hover:underline">{supportEmail}</a></p>
-                <p><strong>Support Center:</strong> <a href={supportUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{supportUrl}</a></p>
-                <p><strong>Typical Response Time:</strong> 1–2 business days</p>
-              </div>
+              <p><strong>Email:</strong> <a href={`mailto:${supportEmail}`} className="text-blue-400 underline">{supportEmail}</a></p>
+              <p><strong>Support Center:</strong> <a href={supportUrl} className="text-blue-400 underline" target="_blank" rel="noopener noreferrer">{supportUrl}</a></p>
+              <p><strong>Response Time:</strong> Within 1–2 business days</p>
             </section>
 
             <section className="bg-yellow-900 p-6 rounded-lg border border-yellow-700">
               <h2 className="text-xl font-semibold text-yellow-300 mb-4">Important Notes</h2>
-              <ul className="text-gray-200 list-disc pl-5 space-y-2">
-                <li>Refunds are issued back to your original payment method within 5–10 business days after approval.</li>
-                <li>Access to premium content ends when your billing cycle expires.</li>
-                <li>Export your data before canceling if you need future access.</li>
-                <li>All refund decisions are final and at the discretion of Tutorly.</li>
+              <ul className="space-y-2 text-gray-200 pl-5 list-disc">
+                <li>Refunds are processed via your original payment method within 5–10 business days after approval.</li>
+                <li>Make sure to export your data before canceling if you want to keep it.</li>
+                <li>Premium content may be deleted 30 days after your subscription ends.</li>
+                <li>We reserve the right to modify or update this policy based on user needs and platform updates.</li>
               </ul>
             </section>
           </div>
 
           <footer className="mt-12 pt-6 border-t border-gray-800 text-center text-sm text-gray-500">
-            <p>Last updated on: {lastUpdated}</p>
+            <p>This policy was last updated on {lastUpdated} and is designed to align with global consumer protection standards.</p>
           </footer>
         </div>
       </main>
