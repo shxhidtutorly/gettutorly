@@ -13,9 +13,9 @@ const LoginButton = ({ variant = "default", size = "default" }: LoginButtonProps
       <Button
         variant={variant}
         size={size}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center gap-2 transition-colors duration-200"
+        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200"
       >
-        <LogIn size={16} />
+        <LogIn size={16} className="stroke-white" />
         <span>Sign in to GetTutorly</span>
       </Button>
     </SignInButton>
