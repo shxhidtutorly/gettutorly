@@ -80,24 +80,62 @@ const Index = () => {
   };
 
   const generateAISummary = async () => {
-    if (!aiDemoText.trim()) {
-      toast({
-        title: "Please enter some text",
-        description: "Add some content to summarize"
-      });
-      return;
-    }
-    
-    setAiDemoResult("Generating summary...");
-    
-    // Simulate AI response
-    setTimeout(() => {
-      setAiDemoResult(`📝 **AI Summary**: This text discusses ${aiDemoText.split(' ').slice(0, 3).join(' ')}... Key points include the main concepts and important details that enhance understanding and retention.`);
-    }, 2000);
-  };
+  if (!aiDemoText.trim()) {
+    toast({
+      title: "Please enter some text",
+      description: "Add some content to summarize",
+    });
+    return;
+  }
 
-  return (
-    <div className="min-h-screen flex flex-col bg-background dark:bg-black">
+  setAiDemoResult("🔄 Generating summary...");
+
+  try {
+    const response = await fetch("/api/summarize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: aiDemoText,
+      }),
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`
+      );
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(
+        `Invalid response format: ${responseText.substring(0, 100)}...`
+      );
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    if (!data.summary) {
+      throw new Error("No summary received from API");
+    }
+
+    setAiDemoResult(`📝 **AI Summary**: ${data.summary}`);
+  } catch (error: any) {
+    setAiDemoResult("❌ Failed to generate summary");
+    toast({
+      title: "Error",
+      description: error.message || "Something went wrong",
+    });
+  }
+};
+
       {/* Enhanced Navbar with scroll effect */}
       <motion.header 
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
