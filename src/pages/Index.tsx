@@ -116,8 +116,8 @@ const Index = () => {
   whileHover={{ scale: 1.05 }}
 >
   <img
-    src={Logo}
-    alt="Tutorly Logo"
+    src={logo}
+    alt="Tutorly logo"
     className="h-10 w-auto object-contain"
   />
 </motion.div>
