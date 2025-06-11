@@ -7,7 +7,7 @@ import OhioStateLogo from "@/components/ui/Ohio-State-University-Logo.png";
 import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
 import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
 import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
-import logo from "@/components/ui/logo.jpg;
+import logo from "@/components/ui/logo.jpg";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
