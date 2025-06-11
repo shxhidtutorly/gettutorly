@@ -102,84 +102,27 @@ export default function Summaries() {
     }
   };
 
-  const generateSummary = async () => {
-    if (!extractedText.trim()) {
-      setError("❗ No text available to summarize");
-      return;
-    }
+  const generateAISummary = async () => {
+if (!aiDemoText.trim()) {
+toast({
+title: "Please enter some text",
+description: "Add some content to summarize"
+});
+return;
+}
 
-    setIsProcessing(true);
-    setError("");
-    setProgress(80);
+setAiDemoResult("Generating summary...");  
 
-    try {
-      const response = await fetch("/api/summarize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: extractedText,
-        }),
-      });
+// Simulate AI response  
+setTimeout(() => {  
+  setAiDemoResult(`📝 **AI Summary**: This text discusses ${aiDemoText.split(' ').slice(0, 3).join(' ')}... Key points include the main concepts and important details that enhance understanding and retention.`);  
+}, 2000);
 
-      const responseText = await response.text();
+};
 
-      if (!response.ok) {
-        throw new Error(
-          `HTTP error! status: ${response.status} - ${responseText.substring(0, 100)}`
-        );
-      }
+return (
+<div className="min-h-screen flex flex-col bg-background dark:bg-black">
 
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error(
-          `Invalid response format: ${responseText.substring(0, 100)}...`
-        );
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data.summary) {
-        throw new Error("No summary received from API");
-      }
-
-      setSummary(data.summary);
-      setProgress(100);
-      setShowSummaryAnim(false);
-      setTimeout(() => setShowSummaryAnim(true), 100);
-
-      trackSummaryGeneration();
-      endSession("summary", file?.name || "Summary", true);
-    } catch (error: any) {
-      setError(`❗ Failed to generate summary: ${error.message}`);
-      setProgress(70);
-      endSession("summary", file?.name || "Summary", false);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const resetAll = () => {
-    setFile(null);
-    setExtractedText("");
-    setSummary("");
-    setProgress(0);
-    setError("");
-    setShowSummaryAnim(false);
-  };
-
-  return (
-    <div
-      className={`min-h-screen flex flex-col bg-gradient-to-br from-[#1e2140] via-[#21264b] to-[#151727] dark transition-colors duration-300`}
-      style={{
-        minHeight: "100vh",
-      }}
-    >
       <Navbar />
 
 <div className="flex-1 flex flex-col justify-center">
