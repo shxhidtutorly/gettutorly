@@ -28,7 +28,7 @@ interface StudyPlan {
   due_date?: string;
   created_at: string;
   updated_at: string;
-  user_id: string;
+  clerk_user_id: string; // Ensure this matches your database schema
 }
 
 const StudyPlans = () => {
@@ -53,7 +53,7 @@ const StudyPlans = () => {
   const loadStudyPlans = async () => {
     try {
       setLoading(true);
-      const plans = await getUserStudyPlans();
+      const plans = await getUserStudyPlans(); // Ensure this function uses clerk_user_id
       // Convert sessions from Json to array if needed
       const formattedPlans = plans.map(plan => ({
         ...plan,
@@ -83,7 +83,7 @@ const StudyPlans = () => {
     }
 
     try {
-      const plan = await createStudyPlan(newPlan);
+      const plan = await createStudyPlan({ ...newPlan, clerk_user_id: currentUser.clerkUserId }); // Include clerk_user_id
       const formattedPlan = {
         ...plan,
         sessions: Array.isArray(plan.sessions) ? plan.sessions : []
@@ -168,7 +168,7 @@ const StudyPlans = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="due_date">Due Date</Label>
+                    <Label htmlFor="due_date">Due Date</Label>
                       <Input
                         id="due_date"
                         type="date"
