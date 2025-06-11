@@ -7,7 +7,6 @@ import OhioStateLogo from "@/components/ui/Ohio-State-University-Logo.png";
 import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
 import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
 import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
-import logo from "@/components/ui/logo.png";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -112,15 +111,14 @@ const Index = () => {
       >
         <div className="container flex h-16 items-center justify-between px-4">
           <motion.div 
-  className="flex items-center"
-  whileHover={{ scale: 1.05 }}
->
-  <img
-    src={logo}
-    alt="Tutorly logo"
-    className="h-10 w-auto object-contain"
-  />
-</motion.div>
+            className="flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+          >
+            <Brain className="h-8 w-8 text-purple-500" />
+            <span className="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
+              Tutorly
+            </span>
+          </motion.div>
           
           <div className="flex items-center gap-4">
             <Button
