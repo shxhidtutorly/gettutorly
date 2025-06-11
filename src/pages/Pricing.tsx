@@ -86,27 +86,46 @@ const Pricing = () => {
           </p>
         </div>
 
-        {/* Pricing Toggle */}
-        <div className="flex items-center justify-center mb-12 animate-fade-in-up">
-          <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg">
-            <span className={`px-4 py-2 rounded-full transition-colors ${!isYearly ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-              Monthly
-            </span>
-            <Switch
-              checked={isYearly}
-              onCheckedChange={setIsYearly}
-              className="data-[state=checked]:bg-spark-primary"
-            />
-            <span className={`px-4 py-2 rounded-full transition-colors ${isYearly ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-              Yearly
-            </span>
-            {isYearly && (
-              <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                Save 44%
-              </div>
-            )}
-          </div>
-        </div>
+       {/* Pricing Toggle - Dark Mode + Updated Style */}
+<div className="flex items-center justify-center mb-12 animate-fade-in-up">
+  <div className="flex items-center space-x-4 bg-[#1e1e1e]/90 backdrop-blur-md rounded-full p-2 shadow-xl border border-gray-700">
+    <span
+      className={`px-4 py-2 rounded-full transition-colors duration-200 ${
+        !isYearly ? 'bg-spark-primary text-white font-semibold' : 'text-gray-400'
+      }`}
+    >
+      Monthly
+    </span>
+
+    {/* Custom Toggle Switch */}
+    <button
+      onClick={() => setIsYearly(!isYearly)}
+      className={`relative w-14 h-8 flex items-center rounded-full transition-colors duration-300 ${
+        isYearly ? 'bg-spark-primary' : 'bg-gray-600'
+      }`}
+    >
+      <span
+        className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+          isYearly ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+
+    <span
+      className={`px-4 py-2 rounded-full transition-colors duration-200 ${
+        isYearly ? 'bg-spark-primary text-white font-semibold' : 'text-gray-400'
+      }`}
+    >
+      Yearly
+    </span>
+
+    {isYearly && (
+      <div className="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-sm font-medium border border-green-400">
+        Save 44%
+      </div>
+    )}
+  </div>
+</div>
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
