@@ -29,6 +29,7 @@ import AudioNotes from "./pages/AudioNotes";
 import MathChat from "./pages/MathChat";
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
+import Pricing from "./pages/Pricing";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/signin" element={<SignInPage />} />
               <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />

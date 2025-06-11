@@ -185,6 +185,7 @@ export type Database = {
       user_activity_logs: {
         Row: {
           action: string
+          clerk_user_id: string | null
           details: Json | null
           id: string
           timestamp: string | null
@@ -192,6 +193,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          clerk_user_id?: string | null
           details?: Json | null
           id?: string
           timestamp?: string | null
@@ -199,6 +201,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          clerk_user_id?: string | null
           details?: Json | null
           id?: string
           timestamp?: string | null
