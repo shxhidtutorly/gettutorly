@@ -51,7 +51,7 @@ const Quiz = () => {
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(quiz?.questions.length || 0).fill(-1));
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [questionTransition, setQuestionTransition] = useState(false);
@@ -173,10 +173,27 @@ const Quiz = () => {
     });
   };
 
+  // Enhanced answer selection handler
   const handleAnswerSelect = (answerIndex: number) => {
     const newAnswers = [...selectedAnswers];
     newAnswers[currentQuestion] = answerIndex;
     setSelectedAnswers(newAnswers);
+    
+    // Add visual feedback
+    const element = document.querySelector(`[data-option-index="${answerIndex}"]`);
+    if (element) {
+      element.classList.add('animate-pulse');
+      setTimeout(() => {
+        element.classList.remove('animate-pulse');
+      }, 300);
+    }
+  };
+
+  // Enhanced click handler for option cards
+  const handleOptionClick = (optionIndex: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleAnswerSelect(optionIndex);
   };
 
   const goToNext = () => {
@@ -577,6 +594,10 @@ const Quiz = () => {
     const currentQ = quiz.questions[currentQuestion];
     const progress = ((currentQuestion + 1) / quiz.questions.length) * 100;
     const questionEmoji = getQuestionEmoji(currentQuestion);
+    
+    // Get current selected answer, ensuring it's a valid string or empty string
+    const currentSelectedAnswer = selectedAnswers[currentQuestion];
+    const radioGroupValue = currentSelectedAnswer >= 0 ? currentSelectedAnswer.toString() : "";
 
     return (
       <div className={`min-h-screen flex flex-col ${gradientBg} animate-fade-in`}>
@@ -628,29 +649,32 @@ const Quiz = () => {
               </CardHeader>
               <CardContent>
                 <RadioGroup
-                  value={selectedAnswers[currentQuestion]?.toString() || ""}
+                  value={radioGroupValue}
                   onValueChange={(value) => handleAnswerSelect(parseInt(value))}
                   className="space-y-4"
                 >
                   {currentQ.options.map((option, index) => (
                     <div
                       key={index}
-                      className={`flex items-center space-x-4 p-4 md:p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]
+                      data-option-index={index}
+                      onClick={(e) => handleOptionClick(index, e)}
+                      className={`flex items-center space-x-4 p-4 md:p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] select-none
                       ${
                         selectedAnswers[currentQuestion] === index
                           ? "border-primary bg-gradient-to-r from-purple-800/70 to-indigo-700/50 scale-[1.02] shadow-xl shadow-purple-500/20"
-                          : "hover:bg-muted/50 border-muted hover:border-muted-foreground/50 hover:shadow-lg"
+                          : "hover:bg-muted/50 border-muted hover:border-muted-foreground/50 hover:shadow-lg bg-slate-800/30"
                       }
                     `}
                     >
                       <RadioGroupItem
                         value={index.toString()}
                         id={`option-${index}`}
-                        className="w-5 h-5"
+                        className="w-5 h-5 pointer-events-none"
+                        checked={selectedAnswers[currentQuestion] === index}
                       />
                       <Label
                         htmlFor={`option-${index}`}
-                        className="flex-1 cursor-pointer text-lg md:text-xl font-semibold text-white leading-relaxed"
+                        className="flex-1 cursor-pointer text-lg md:text-xl font-semibold text-white leading-relaxed pointer-events-none"
                       >
                         <span className="mr-3 text-primary font-bold">
                           {String.fromCharCode(65 + index)}.
