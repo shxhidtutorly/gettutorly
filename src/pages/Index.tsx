@@ -574,134 +574,174 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section className="py-20 bg-white dark:bg-black">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16" data-aos="fade-up">
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Choose Your Plan
-              </h2>
-              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-                Start free, upgrade when you're ready
-              </p>
+{/* Pricing Section */}
+<section className="py-20 bg-white dark:bg-black">
+  <div className="container mx-auto px-4">
+    <div className="text-center mb-16" data-aos="fade-up">
+      <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        Choose Your Plan
+      </h2>
+      <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+        No hidden fees. Just smarter study tools.
+      </p>
 
-              <div className="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                <button
-                  className={`px-6 py-2 rounded-md font-semibold transition-all ${
-                    pricingToggle === "monthly" 
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => setPricingToggle("monthly")}
-                >
-                  Monthly
-                </button>
-                <button
-                  className={`px-6 py-2 rounded-md font-semibold transition-all ${
-                    pricingToggle === "yearly" 
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => setPricingToggle("yearly")}
-                >
-                  Yearly
-                  <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">Save 20%</span>
-                </button>
-              </div>
+      <div className="inline-flex bg-gray-200 dark:bg-gray-800 p-1 rounded-full">
+        <button
+          className={`px-6 py-2 rounded-full font-semibold transition-all ${
+            pricingToggle === "monthly"
+              ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow"
+              : "text-gray-600 dark:text-gray-400"
+          }`}
+          onClick={() => setPricingToggle("monthly")}
+        >
+          Monthly
+        </button>
+        <button
+          className={`px-6 py-2 rounded-full font-semibold transition-all ${
+            pricingToggle === "yearly"
+              ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow"
+              : "text-gray-600 dark:text-gray-400"
+          }`}
+          onClick={() => setPricingToggle("yearly")}
+        >
+          Yearly
+          <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">Save 44%</span>
+        </button>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      {[
+        {
+          name: "Basic",
+          price: {
+            monthly: "$8.99",
+            yearly: "$4.99"
+          },
+          yearlyBill: "$59.88/year",
+          description: "Perfect for individual learners",
+          features: [
+            "4-day free trial",
+            "Unlimited AI Assistant Questions",
+            "Instant answers from uploaded content or the web",
+            "Auto-generated notes, summaries, flashcards, and quizzes",
+            "Unlimited file uploads (PDF, DOCX, MP4, YouTube, etc.)",
+            "Focused Reading Mode",
+            "Unlimited Library Storage"
+          ],
+          cta: "Start Free Trial",
+          popular: false
+        },
+        {
+          name: "Scholar",
+          price: {
+            monthly: "$11.99",
+            yearly: "$7.99"
+          },
+          yearlyBill: "$95.88/year",
+          description: "Best for serious students",
+          features: [
+            "4-day free trial",
+            "All Basic features",
+            "AI Math Expert with step-by-step solutions",
+            "Chrome Extension (Beta) support for learning platforms",
+            "iOS App Access",
+            "5 hrs/month of browser audio recording",
+            "Unlimited live lecture recording via iOS app"
+          ],
+          cta: "Start Free Trial",
+          popular: true
+        },
+        {
+          name: "Premium",
+          price: {
+            monthly: "$13.99",
+            yearly: "$9.99"
+          },
+          yearlyBill: "$119.88/year",
+          description: "For power users and professionals",
+          features: [
+            "4-day free trial",
+            "All Scholar features",
+            "Upload up to 10 files/links at once",
+            "Analyze Images and Diagrams with AI",
+            "10 hrs/month of browser-based audio recording"
+          ],
+          cta: "Start Free Trial",
+          popular: false
+        }
+      ].map((plan, i) => (
+        <motion.div
+          key={i}
+          data-aos="fade-up"
+          data-aos-delay={i * 150}
+          whileHover={{ y: -5 }}
+          className={`relative bg-white dark:bg-gray-800 p-8 rounded-xl border-2 ${
+            plan.popular
+              ? "border-blue-500 shadow-xl"
+              : "border-gray-200 dark:border-gray-700"
+          }`}
+        >
+          {plan.popular && (
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                Most Popular
+              </span>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {[
-                {
-                  name: "Free",
-                  price: { monthly: "$0", yearly: "$0" },
-                  description: "Perfect for getting started",
-                  features: ["5 AI summaries/month", "Basic flashcards", "Community support"],
-                  cta: "Start Free",
-                  popular: false
-                },
-                {
-                  name: "Pro",
-                  price: { monthly: "$9.99", yearly: "$7.99" },
-                  description: "Best for serious students",
-                  features: ["Unlimited AI features", "Advanced quiz generation", "Priority support", "Export options"],
-                  cta: "Start Pro Trial",
-                  popular: true
-                },
-                {
-                  name: "Team",
-                  price: { monthly: "$19.99", yearly: "$15.99" },
-                  description: "For study groups & classes",
-                  features: ["Everything in Pro", "Team collaboration", "Admin dashboard", "Custom integrations"],
-                  cta: "Start Team Trial",
-                  popular: false
-                }
-              ].map((plan, i) => (
-                <motion.div
-                  key={i}
-                  data-aos="fade-up"
-                  data-aos-delay={i * 150}
-                  whileHover={{ y: -5 }}
-                  className={`relative bg-white dark:bg-gray-800 p-8 rounded-xl border-2 ${
-                    plan.popular 
-                      ? "border-purple-500 shadow-xl" 
-                      : "border-gray-200 dark:border-gray-700"
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
-                        Best Value
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="text-center mb-8">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
-                    <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                      {plan.price[pricingToggle]}
-                      <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400">{plan.description}</p>
-                  </div>
-
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature, j) => (
-                      <li key={j} className="flex items-center">
-                        <Check className="h-5 w-5 text-green-500 mr-3" />
-                        <span className="text-gray-700 dark:text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    className={`w-full py-3 ${
-                      plan.popular 
-                        ? "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
-                    onClick={handleGetStarted}
-                  >
-                    {plan.cta}
-                  </Button>
-                </motion.div>
-              ))}
+          <div className="text-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              {plan.name}
+            </h3>
+            <div className="text-4xl font-bold text-gray-900 dark:text-white">
+              {plan.price[pricingToggle]}
+              <span className="text-base text-gray-500 dark:text-gray-400">/month</span>
             </div>
-
-            <div className="text-center mt-12" data-aos="fade-up" data-aos-delay="400">
-              <div className="flex justify-center items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  <span>Secure Checkout</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Cancel Anytime</span>
-                </div>
-              </div>
-            </div>
+            {pricingToggle === "yearly" && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{plan.yearlyBill}</p>
+            )}
+            <p className="text-gray-600 dark:text-gray-400 mt-2">{plan.description}</p>
           </div>
-        </section>
+
+          <ul className="space-y-3 mb-6">
+            {plan.features.map((feature, j) => (
+              <li key={j} className="flex items-start text-gray-700 dark:text-gray-300">
+                <Check className="h-5 w-5 text-green-500 mr-2 mt-1" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+
+          <button
+            onClick={handleGetStarted}
+            className={`w-full py-3 rounded-xl font-semibold transition-colors ${
+              plan.popular
+                ? "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
+            }`}
+          >
+            {plan.cta}
+          </button>
+        </motion.div>
+      ))}
+    </div>
+
+    <div className="text-center mt-12" data-aos="fade-up" data-aos-delay="300">
+      <div className="flex justify-center items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
+          <span>Secure Checkout</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />
+          <span>Cancel Anytime</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
         {/* Final CTA */}
         <section className="py-20 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 dark:from-black dark:via-purple-950 dark:to-black">
