@@ -136,6 +136,13 @@ const Index = () => {
   }
 };
 
+// Make sure this return is wrapped correctly
+return (
+  <div className="min-h-screen flex flex-col bg-background dark:bg-black">
+    {/* Your other JSX like navbar, input box, summary result etc. */}
+  </div>
+);
+
       {/* Enhanced Navbar with scroll effect */}
       <motion.header 
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
