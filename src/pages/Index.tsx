@@ -8,6 +8,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 
 import { useToast } from "@/components/ui/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import LoginButton from "@/components/auth/LoginButton";
