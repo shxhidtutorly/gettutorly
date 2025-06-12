@@ -400,34 +400,35 @@ const Progress = () => {
             )}
           </div>
 
-          {/* Learning Insights */}
-          <div className="animate-fade-in-up">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              💡 Learning Insights
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <LearningInsightCard
-                icon={<CalendarDays />}
-                title="Current Streak"
-                value={`${stats.streakDays} days`}
-                description={`You've been consistent for ${stats.streakDays} consecutive days`}
-                className={cardClass}
-              />
-              <LearningInsightCard
-                icon={<Award />}
-                title="Most Active"
-                value={sessions.length > 0 ? sessions[0]?.type || "None" : "None"}
-                description={`You've been most active with ${
-                  sessions.length > 0 ? sessions[0]?.type || "studying" : "studying"
-                }`}
-                bgColorClass="bg-spark-peach"
-                iconColorClass="text-orange-600"
-                className={cardClass}
-              />
-            </div>
-          </div>
-        </div>
-      </main>
+        {/* Learning Insights */}
+<div className="animate-fade-in-up">
+  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-white">
+    💡 Learning Insights
+  </h2>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <LearningInsightCard
+      icon={<CalendarDays />}
+      title="Current Streak"
+      value={`${stats.streakDays} days`}
+      description={`You've been consistent for ${stats.streakDays} consecutive days`}
+      bgColorClass="bg-[#1e1e1e]" // consistent dark background
+      iconColorClass="text-yellow-500"
+      className={cardClass}
+    />
+    <LearningInsightCard
+      icon={<Award />}
+      title="Most Active"
+      value={sessions.length > 0 ? sessions[0]?.type || "None" : "None"}
+      description={`You've been most active with ${
+        sessions.length > 0 ? sessions[0]?.type || "studying" : "studying"
+      }`}
+      bgColorClass="bg-[#1e1e1e]" // same dark background
+      iconColorClass="text-yellow-500"
+      className={cardClass}
+    />
+  </div>
+</div>
+ </main>
 
       <Footer />
       <BottomNav />
