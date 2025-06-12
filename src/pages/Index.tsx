@@ -19,6 +19,8 @@ import {
   Play,
   Check,
   X,
+  Moon,
+  Sun,
   Calculator,
   Languages,
   PenTool
@@ -40,12 +42,14 @@ import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
 import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
 import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
 
+import { useTheme } from "@/contexts/ThemeContext";
 import CountUp from "react-countup";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
 
 const Index = () => {
+  const { toast } = useToast();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
