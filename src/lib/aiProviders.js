@@ -221,7 +221,7 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'meta-llama/Llama-3-70B-Instruct',
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 4096,
         temperature: 0.3
