@@ -1,217 +1,94 @@
 
-import React, { useState } from 'react';
-import { Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
-import Footer from '@/components/layout/Footer';
+import React, { useState } from 'react'; import { Check, Star } from 'lucide-react'; import { Button } from '@/components/ui/button'; import { Card, CardContent, CardHeader } from '@/components/ui/card'; import { Link } from 'react-router-dom'; import Footer from '@/components/layout/Footer'; import BostonLogo from '@/components/ui/Boston-University-Logo.png'; import ChicagoLogo from '@/components/ui/Chicago-University-Logo.png'; import GeorgetownLogo from '@/components/ui/Georgetown-University-Logo.png'; import HarvardLogo from '@/components/ui/Harvard-University-Logo.png'; import HowardLogo from '@/components/ui/Howard-University-Logo.png'; import OhioStateLogo from '@/components/ui/Ohio-State-University-Logo.png'; import OtagoLogo from '@/components/ui/Otago-University-Logo.png'; import PittsburghLogo from '@/components/ui/Pittsburgh-University-Logo.png'; import StanfordLogo from '@/components/ui/Stanford-University-Logo.png';
 
-const Pricing = () => {
-  const [isYearly, setIsYearly] = useState(true);
+const features = [ 'Math Chat - Solve math problems with AI', 'AI Notes - Generate smart notes from files', 'Summarize - Quickly summarize any text', 'Flashcards - Create and review flashcards', 'Quizzes - Test your knowledge', 'AI Doubt Chain - Break down complex concepts', 'Create Plan - Plan your study sessions', 'AI Assistant - Get personalized help', 'Study Plans - Create study plans', 'View Progress - Track your learning' ];
 
-  const plans = [
-    {
-      name: 'Basic',
-      badge: 'Try for $0',
-      badgeColor: 'bg-green-100 text-green-700',
-      yearlyPrice: 4.99,
-      monthlyPrice: 8.99,
-      yearlyBilled: 59.88,
-      description: 'Perfect for individual learners',
-      features: [
-        'Unlimited AI Assistant Questions',
-        'Instant answers from uploaded content or the web',
-        'Auto-generated notes, summaries, flashcards, and quizzes',
-        'Unlimited file uploads (PDF, DOCX, MP4, YouTube, etc.)',
-        'Focused Reading Mode',
-        'Unlimited Library Storage',
-      ],
-      buttonText: 'Start Free Trial',
-      buttonVariant: 'outline' as const,
-    },
-    {
-      name: 'Scholar',
-      badge: 'Most Popular',
-      badgeColor: 'bg-spark-primary text-white',
-      yearlyPrice: 7.99,
-      monthlyPrice: 11.99,
-      yearlyBilled: 95.88,
-      description: 'Best for serious students',
-      features: [
-        'All Basic features',
-        'AI Math Expert with step-by-step solutions',
-        'Chrome Extension (Beta) support for learning platforms',
-        'iOS App Access',
-        '5 hours/month of browser-based audio recording',
-        'Unlimited live lecture recording via iOS app',
-      ],
-      buttonText: 'Start Free Trial',
-      buttonVariant: 'default' as const,
-      popular: true,
-    },
-    {
-      name: 'Premium',
-      badge: 'Try for $0',
-      badgeColor: 'bg-purple-100 text-purple-700',
-      yearlyPrice: 9.99,
-      monthlyPrice: 13.99,
-      yearlyBilled: 119.88,
-      description: 'For power users and professionals',
-      features: [
-        'All Scholar features',
-        'Upload up to 10 files/links at once',
-        'Analyze Images and Diagrams with AI',
-        '10 hours/month of browser-based audio recording',
-      ],
-      buttonText: 'Start Free Trial',
-      buttonVariant: 'outline' as const,
-    },
-  ];
+const plans = [ { name: 'Basic', priceMonthly: 8.99, priceYearly: 4.99, yearlyBilled: 59.88, badge: 'Starter Plan', buttonText: 'Start Free Trial' }, { name: 'Scholar', priceMonthly: 11.99, priceYearly: 7.99, yearlyBilled: 95.88, badge: 'Most Popular', buttonText: 'Start Free Trial' }, { name: 'Premium', priceMonthly: 13.99, priceYearly: 9.99, yearlyBilled: 119.88, badge: 'Best for Power Users', buttonText: 'Start Free Trial' } ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-spark-gray to-spark-light">
-      <div className="container mx-auto px-4 py-16">
-        {/* Header */}
-        <div className="text-center mb-16 animate-fade-in">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
-            Powerful. Affordable. Built to
-            <span className="text-spark-primary"> Supercharge Learning.</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            No hidden fees. Just smarter study tools.
-          </p>
-        </div>
+const Pricing = () => { const [isYearly, setIsYearly] = useState(true);
 
-        {/* Toggle */}
-        <div className="flex items-center justify-center mb-12 animate-fade-in-up">
-          <div className="flex items-center space-x-4 bg-[#1e1e1e]/90 backdrop-blur-md rounded-full p-2 shadow-xl border border-gray-700">
-            <button
-              onClick={() => setIsYearly(false)}
-              className={`px-4 py-2 rounded-full transition-colors duration-200 ${
-                !isYearly ? 'bg-spark-primary text-white font-semibold' : 'text-gray-400'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setIsYearly(true)}
-              className={`px-4 py-2 rounded-full transition-colors duration-200 ${
-                isYearly ? 'bg-spark-primary text-white font-semibold' : 'text-gray-400'
-              }`}
-            >
-              Yearly
-            </button>
+return ( <div className="min-h-screen bg-gradient-to-b from-[#0d0d0d] via-[#1a1a1a] to-black text-white"> <div className="container mx-auto px-6 py-20 text-center"> <h1 className="text-5xl font-bold mb-4">Tutorly Pricing</h1> <p className="text-lg mb-8 text-gray-300"> Powerful. Affordable. Built to Supercharge Your Learning Journey. </p>
 
+<div className="flex items-center justify-center gap-4 bg-gray-800 p-2 rounded-full w-max mx-auto mb-10">
+      <button
+        onClick={() => setIsYearly(false)}
+        className={`px-6 py-2 rounded-full transition ${
+          !isYearly ? 'bg-spark-primary text-white font-bold' : 'text-gray-400'
+        }`}
+      >
+        Monthly
+      </button>
+      <button
+        onClick={() => setIsYearly(true)}
+        className={`px-6 py-2 rounded-full transition ${
+          isYearly ? 'bg-spark-primary text-white font-bold' : 'text-gray-400'
+        }`}
+      >
+        Yearly <span className="ml-1 text-green-400">Save 44%</span>
+      </button>
+    </div>
+
+    <div className="grid md:grid-cols-3 gap-6 mb-20">
+      {plans.map((plan) => (
+        <Card key={plan.name} className="bg-[#1f1f1f] border border-gray-700 rounded-xl p-6">
+          <CardHeader className="mb-4">
+            <div className="text-sm font-semibold text-spark-primary mb-2">{plan.badge}</div>
+            <h2 className="text-3xl font-bold mb-2">{plan.name}</h2>
+            <div className="text-xl">
+              ${isYearly ? plan.priceYearly : plan.priceMonthly}
+              <span className="text-sm text-gray-400">/month</span>
+            </div>
             {isYearly && (
-              <div className="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-sm font-medium border border-green-400">
-                Save 44%
-              </div>
+              <p className="text-sm text-gray-500">Billed annually (${plan.yearlyBilled}/year)</p>
             )}
-          </div>
-        </div>
-
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          {plans.map((plan, index) => (
-            <Card
-              key={plan.name}
-              className={`relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl ${
-                plan.popular ? 'ring-2 ring-spark-primary shadow-xl scale-105' : 'hover:shadow-lg'
-              } animate-fade-in-up`}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="absolute top-4 left-4 right-4">
-                <div
-                  className={`${plan.badgeColor} px-3 py-1 rounded-full text-xs font-medium text-center`}
-                >
-                  {plan.badge}
-                </div>
+          </CardHeader>
+          <CardContent className="text-left space-y-3">
+            {features.map((f, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-sm">
+                <Check className="text-green-400 w-5 h-5" />
+                {f}
               </div>
+            ))}
+            <Button className="w-full mt-6" asChild>
+              <Link to="/signup">{plan.buttonText}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
 
-              <CardHeader className="pt-16 pb-6 text-center">
-                <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
-                <p className="text-muted-foreground mb-4">{plan.description}</p>
+    <div className="text-center mb-20">
+      <h3 className="text-2xl font-bold mb-4">Trusted by Students from Top Universities</h3>
+      <div className="flex flex-wrap justify-center items-center gap-6 grayscale">
+        {[BostonLogo, ChicagoLogo, GeorgetownLogo, HarvardLogo, HowardLogo, OhioStateLogo, OtagoLogo, PittsburghLogo, StanfordLogo].map((logo, i) => (
+          <img key={i} src={logo} alt="university" className="h-12 md:h-14" />
+        ))}
+      </div>
+    </div>
 
-                <div className="space-y-2">
-                  <div className="text-4xl font-bold text-spark-primary">
-                    ${isYearly ? plan.yearlyPrice : plan.monthlyPrice}
-                    <span className="text-lg text-muted-foreground font-normal">/month</span>
-                  </div>
-                  {isYearly && (
-                    <p className="text-sm text-muted-foreground">
-                      Billed annually (${plan.yearlyBilled}/year)
-                    </p>
-                  )}
-                  <div className="bg-spark-light px-3 py-1 rounded-full text-xs font-medium text-spark-secondary">
-                    4-day free trial
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                <ul className="space-y-3">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start space-x-3">
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  variant={plan.buttonVariant}
-                  size="lg"
-                  className="w-full font-semibold"
-                  asChild
-                >
-                  <Link to="/signup">{plan.buttonText}</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+    <div className="bg-[#141414] p-10 rounded-2xl shadow-lg max-w-5xl mx-auto mb-24">
+      <h3 className="text-3xl font-bold mb-4">What Our Users Say</h3>
+      <div className="grid md:grid-cols-3 gap-6 text-left text-gray-200">
+        <div className="bg-[#1f1f1f] p-4 rounded-xl">
+          <p>“Tutorly helped me ace my finals. The AI Notes and Flashcards saved hours of study time!”</p>
+          <p className="mt-2 text-sm text-gray-400">— Aanya, Harvard University</p>
         </div>
-
-        {/* CTA */}
-        <div className="text-center space-y-8 animate-fade-in-up">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Start Your Free Trial Today
-            </h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of students who are already supercharging their learning with Tutorly's
-              AI-powered tools.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" className="px-8" asChild>
-                <Link to="/signup">Get Started Free</Link>
-              </Button>
-              <Button variant="outline" size="lg" className="px-8">
-                Compare Plans
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8 border-t border-border/50">
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Check className="h-4 w-4 text-green-500" />
-              <span>No setup fees</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Check className="h-4 w-4 text-green-500" />
-              <span>Cancel anytime</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Check className="h-4 w-4 text-green-500" />
-              <span>30-day money back guarantee</span>
-            </div>
-          </div>
+        <div className="bg-[#1f1f1f] p-4 rounded-xl">
+          <p>“I love the Math Chat and Doubt Chain. It explains every step so clearly!”</p>
+          <p className="mt-2 text-sm text-gray-400">— Raj, Stanford University</p>
+        </div>
+        <div className="bg-[#1f1f1f] p-4 rounded-xl">
+          <p>“Flashcards + AI Assistant = my new best friends before every test.”</p>
+          <p className="mt-2 text-sm text-gray-400">— Leah, University of Chicago</p>
         </div>
       </div>
-
-      <Footer />
     </div>
-  );
-};
+  </div>
+
+  <Footer />
+</div>
+
+); };
 
 export default Pricing;
+
