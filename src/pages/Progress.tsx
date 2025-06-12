@@ -425,10 +425,11 @@ const Progress = () => {
       bgColorClass="bg-[#1e1e1e]" // same dark background
       iconColorClass="text-yellow-500"
       className={cardClass}
-     />
+  />
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </main>
 
       <Footer />
       <BottomNav />
