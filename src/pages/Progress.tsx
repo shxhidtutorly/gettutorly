@@ -193,16 +193,17 @@ const Progress = () => {
         id="tutorly-progress-snapshot"
       >
         <div className="container max-w-6xl mx-auto">
-          {/* Title */}
-          <div className="mb-6 md:mb-8 animate-fade-in">
-            <h1 className="text-2xl md:text-4xl font-bold flex items-center gap-3 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#ffd600] via-[#f9484a] to-[#4a90e2] drop-shadow">
-              📈 <BarChart3 className="h-8 w-8 md:h-10 md:w-10 text-spark-primary" />
-              Learning Progress
-            </h1>
-            <p className="text-muted-foreground text-base md:text-lg mt-1">
-              Track your study habits and achievements 🎉
-            </p>
-          </div>
+         {/* Title */}
+<div className="mb-6 md:mb-8 animate-fade-in">
+  <h1 className="text-2xl md:text-4xl font-bold flex items-center gap-3 tracking-tight text-white drop-shadow">
+    📈 <BarChart3 className="h-8 w-8 md:h-10 md:w-10 text-spark-primary" />
+    Learning Progress
+  </h1>
+  <p className="text-muted-foreground text-base md:text-lg mt-1">
+    Track your study habits and achievements 🎉
+  </p>
+</div>
+
 
           {/* Progress Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in-up">
