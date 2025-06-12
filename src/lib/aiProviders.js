@@ -1,10 +1,8 @@
-// src/lib/aiProviders.js
 console.log('📦 Loading aiProviders.js...');
 
 class AIProviderManager {
   constructor() {
     console.log('🔧 Initializing AI Provider Manager...');
-    // Providers are ordered for fallback: together first, then others
     this.providerOrder = ['together', 'gemini', 'groq', 'claude', 'openrouter', 'huggingface'];
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
@@ -26,15 +24,11 @@ class AIProviderManager {
       console.log(`⚠️ No keys found for ${envVar}`);
       return [];
     }
-    const keyArray = keys.split(',').map(key => key.trim()).filter(key => key.length > 0);
-    console.log(`📋 Found ${keyArray.length} keys for ${envVar}`);
-    return keyArray;
+    return keys.split(',').map(key => key.trim()).filter(Boolean);
   }
 
-  // MODEL FALLBACK LOGIC HERE
   async getAIResponse(prompt, model) {
     const requestedProvider = this.getProviderForModel(model);
-    // Fallback order: requested provider first, then others
     const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
     for (const provider of fallbackProviders) {
@@ -43,11 +37,12 @@ class AIProviderManager {
         console.log(`⚠️ No keys for provider: ${provider}, skipping...`);
         continue;
       }
+
       let lastError = null;
+
       for (let i = 0; i < keys.length; i++) {
         try {
           console.log(`🔄 Attempting ${provider} with key ${i + 1}/${keys.length}`);
-          // No "2-3 sentences" constraint!
           const response = await this.callProvider(provider, prompt, keys[i], model);
           console.log(`✅ Success with ${provider} key ${i + 1}`);
           return {
@@ -61,20 +56,21 @@ class AIProviderManager {
           continue;
         }
       }
-      // If all keys for this provider fail, try next provider in order.
+
       console.log(`⚠️ All keys failed for provider: ${provider}, trying next provider...`);
     }
+
     throw new Error(`All API keys failed for all providers.`);
   }
 
   getProviderForModel(model) {
     const modelProviderMap = {
-      'gemini': 'gemini',
-      'groq': 'groq',
-      'claude': 'claude',
-      'openrouter': 'openrouter',
-      'huggingface': 'huggingface',
-      'together': 'together'
+      gemini: 'gemini',
+      groq: 'groq',
+      claude: 'claude',
+      openrouter: 'openrouter',
+      huggingface: 'huggingface',
+      together: 'together'
     };
     return modelProviderMap[model] || model;
   }
@@ -108,21 +104,16 @@ class AIProviderManager {
           temperature: 0.3,
           topK: 20,
           topP: 0.8,
-          maxOutputTokens: 700, // Increased for better output
+          maxOutputTokens: 900
         }
       })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`Gemini API Error Response: ${errorText}`);
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(`Gemini API error: ${data.error.message}`);
-    }
     return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
   }
 
@@ -141,13 +132,11 @@ class AIProviderManager {
       })
     });
 
+    const data = await response.json();
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`Groq API Error Response: ${errorText}`);
-      throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    const data = await response.json();
     return data.choices?.[0]?.message?.content || 'No response from Groq';
   }
 
@@ -167,13 +156,11 @@ class AIProviderManager {
       })
     });
 
+    const data = await response.json();
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`Claude API Error Response: ${errorText}`);
-      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    const data = await response.json();
     return data.content?.[0]?.text || 'No response from Claude';
   }
 
@@ -194,13 +181,11 @@ class AIProviderManager {
       })
     });
 
+    const data = await response.json();
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`OpenRouter API Error Response: ${errorText}`);
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    const data = await response.json();
     return data.choices?.[0]?.message?.content || 'No response from OpenRouter';
   }
 
@@ -214,23 +199,18 @@ class AIProviderManager {
       body: JSON.stringify({
         inputs: prompt,
         parameters: {
-          max_new_tokens: 400, // Less for HuggingFace (API limits)
+          max_new_tokens: 900,
           temperature: 0.3
         }
       })
     });
 
+    const data = await response.json();
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`Hugging Face API Error Response: ${errorText}`);
-      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    const data = await response.json();
-    if (Array.isArray(data)) {
-      return data[0]?.generated_text || 'No response from Hugging Face';
-    }
-    return data.generated_text || 'No response from Hugging Face';
+    return Array.isArray(data) ? data[0]?.generated_text || 'No response from Hugging Face' : data.generated_text || 'No response from Hugging Face';
   }
 
   async callTogether(prompt, apiKey) {
@@ -241,21 +221,29 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+        model: 'meta-llama/Llama-3-70B-Instruct',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 4096, // Maximum for Together
+        max_tokens: 4096,
         temperature: 0.3
       })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`Together.ai API Error Response: ${errorText}`);
-      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${errorText}`);
+    const data = await response.json();
+
+    console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
+    const message = data.choices?.[0]?.message?.content;
+    const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
+    console.log(`📌 Together finish reason: ${finishReason}`);
+
+    if (!message || message.length < 20) {
+      console.warn('⚠️ Short or missing response from Together:', message);
     }
 
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || 'No response from Together.ai';
+    if (!response.ok) {
+      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
+    }
+
+    return message || 'No response from Together.ai';
   }
 }
 
