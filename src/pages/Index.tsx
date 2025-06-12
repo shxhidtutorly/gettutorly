@@ -1,15 +1,28 @@
 import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
+import CountUp from "react-countup";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
-import { 
-  Brain, 
-  BookOpenText, 
-  Sparkles, 
-  BookOpen, 
-  BarChart3, 
-  Zap, 
-  MessageSquare, 
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import LoginButton from "@/components/auth/LoginButton";
+import UserProfileButton from "@/components/auth/UserProfileButton";
+import Footer from "@/components/layout/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+
+import {
+  Brain,
+  BookOpenText,
+  Sparkles,
+  BookOpen,
+  BarChart3,
+  Zap,
+  MessageSquare,
   FileText,
   CheckCircle,
   Star,
@@ -19,18 +32,10 @@ import {
   Play,
   Check,
   X,
-  Moon,
-  Sun,
   Calculator,
   Languages,
-  PenTool
+  PenTool,
 } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import LoginButton from "@/components/auth/LoginButton";
-import UserProfileButton from "@/components/auth/UserProfileButton";
-import Footer from "@/components/layout/Footer";
-import { useAuth } from "@/contexts/AuthContext";
 
 import BostonLogo from "@/components/ui/Boston-University-Logo.png";
 import ChicagoLogo from "@/components/ui/Chicago-University-Logo.png";
@@ -41,11 +46,6 @@ import OhioStateLogo from "@/components/ui/Ohio-State-University-Logo.png";
 import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
 import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
 import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
-
-import { useTheme } from "@/contexts/ThemeContext";
-import CountUp from "react-countup";
-import AOS from "aos";
-import "aos/dist/aos.css";
 
 
 const Index = () => {
