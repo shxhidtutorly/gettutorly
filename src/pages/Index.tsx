@@ -1,21 +1,11 @@
-import BostonLogo from "@/components/ui/Boston-University-Logo.png";
-import ChicagoLogo from "@/components/ui/Chicago-University-Logo.png";
-import GeorgetownLogo from "@/components/ui/Georgetown-University-Logo.png";
-import HarvardLogo from "@/components/ui/Harvard-University-Logo.png";
-import HowardLogo from "@/components/ui/Howard-University-Logo.png";
-import OhioStateLogo from "@/components/ui/Ohio-State-University-Logo.png";
-import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
-import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
-import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import Footer from "@/components/layout/Footer";
-import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+
 import { 
+  Brain, 
   BookOpenText, 
   Sparkles, 
-  Brain, 
   BookOpen, 
   BarChart3, 
   Zap, 
@@ -29,22 +19,31 @@ import {
   Play,
   Check,
   X,
-  Moon,
-  Sun,
   Calculator,
   Languages,
   PenTool
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
+
+import { Button } from "@/components/ui/button";
 import LoginButton from "@/components/auth/LoginButton";
 import UserProfileButton from "@/components/auth/UserProfileButton";
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
+import Footer from "@/components/layout/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+
+import BostonLogo from "@/components/ui/Boston-University-Logo.png";
+import ChicagoLogo from "@/components/ui/Chicago-University-Logo.png";
+import GeorgetownLogo from "@/components/ui/Georgetown-University-Logo.png";
+import HarvardLogo from "@/components/ui/Harvard-University-Logo.png";
+import HowardLogo from "@/components/ui/Howard-University-Logo.png";
+import OhioStateLogo from "@/components/ui/Ohio-State-University-Logo.png";
+import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
+import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
+import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
+
 import CountUp from "react-countup";
 import AOS from "aos";
 import "aos/dist/aos.css";
+
 
 const Index = () => {
   const { toast } = useToast();
@@ -98,54 +97,52 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-black">
-      {/* Enhanced Navbar with scroll effect */}
-      <motion.header 
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          scrollY > 50 
-            ? 'bg-background/95 dark:bg-black/95 backdrop-blur-lg border-b border-border/50' 
-            : 'bg-transparent'
-        }`}
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <div className="container flex h-16 items-center justify-between px-4">
-          <motion.div 
-            className="flex items-center gap-2"
-            whileHover={{ scale: 1.05 }}
+     {/* Enhanced Navbar with scroll effect and no theme toggle */}
+<motion.header 
+  className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+    scrollY > 50 
+      ? 'bg-background/95 dark:bg-black/95 backdrop-blur-lg border-b border-border/50' 
+      : 'bg-transparent'
+  }`}
+  initial={{ y: -100 }}
+  animate={{ y: 0 }}
+  transition={{ duration: 0.6 }}
+>
+  <div className="container flex h-16 items-center justify-between px-4">
+    <motion.div 
+      className="flex items-center gap-2"
+      whileHover={{ scale: 1.05 }}
+    >
+      <Brain className="h-8 w-8 text-purple-500" />
+      <span className="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
+        Tutorly
+      </span>
+    </motion.div>
+
+    <div className="flex items-center gap-4">
+      {currentUser ? (
+        <UserProfileButton />
+      ) : (
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            className="text-white hover:text-purple-400"
+            onClick={() => navigate("/sign-up")}
           >
-            <Brain className="h-8 w-8 text-purple-500" />
-            <span className="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
-              Tutorly
-            </span>
-          </motion.div>
-          
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="rounded-full"
-            >
-              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </Button>
-            
-            {currentUser ? (
-              <UserProfileButton />
-            ) : (
-              <div className="flex gap-2">
-                <LoginButton variant="ghost" />
-                <Button 
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
-                  onClick={handleGetStarted}
-                >
-                  Start Free
-                </Button>
-              </div>
-            )}
-          </div>
+            Login
+          </Button>
+          <Button 
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+            onClick={() => navigate("/sign-up")}
+          >
+            Sign Up
+          </Button>
         </div>
-      </motion.header>
+      )}
+    </div>
+  </div>
+</motion.header>
+
 
       <main className="flex-1 pt-16">
         {/* Hero Section with Animated Gradient */}
