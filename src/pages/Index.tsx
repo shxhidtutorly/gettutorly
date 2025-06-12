@@ -90,6 +90,7 @@ const Index = () => {
       return;
     }
     
+    
     setAiDemoResult("Generating summary...");
     
     // Simulate AI response
