@@ -126,24 +126,25 @@ const Index = () => {
 
     <div className="flex items-center gap-4">
       {currentUser ? (
-        <UserProfileButton />
-      ) : (
-        <div className="flex gap-2">
-          <Button 
-            variant="ghost" 
-            className="text-white hover:text-purple-400"
-            onClick={() => navigate("/sign-up")}
-          >
-            Login
-          </Button>
-          <Button 
-            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
-            onClick={() => navigate("/sign-up")}
-          >
-            Sign Up
-          </Button>
-        </div>
-      )}
+  <UserProfileButton />
+) : (
+  <div className="flex gap-2">
+    <Link to="/signin">
+      <Button variant="ghost" size="sm">
+        Login
+      </Button>
+    </Link>
+    <Link to="/signup">
+      <Button 
+        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+        size="sm"
+      >
+        Sign Up
+      </Button>
+    </Link>
+  </div>
+)}
+
     </div>
   </div>
 </motion.header>
