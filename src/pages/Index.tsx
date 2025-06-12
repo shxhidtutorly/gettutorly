@@ -46,7 +46,6 @@ import "aos/dist/aos.css";
 
 
 const Index = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
