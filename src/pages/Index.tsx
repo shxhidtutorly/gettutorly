@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { useInView } from "react-intersection-observer";
 import CountUp from "react-countup";
 import AOS from "aos";
