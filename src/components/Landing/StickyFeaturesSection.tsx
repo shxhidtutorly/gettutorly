@@ -1,5 +1,5 @@
-
-import { motion, useInView } from "framer-motion";
+import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
 import { useRef } from "react";
 import { Brain, FileText, Zap, MessageSquare, BookOpen, Calculator } from "lucide-react";
 
