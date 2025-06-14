@@ -1,7 +1,7 @@
 
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { Brain, FileText, Zap, MessageSquare, BookOpen, Calculator } from "lucide-react";
+import { Brain, FileText, Zap, MessageSquare, BookOpen, Calculator, Sparkles } from "lucide-react";
 
 const Features = () => {
   const [ref, inView] = useInView({
