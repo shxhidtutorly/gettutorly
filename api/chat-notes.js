@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         'X-Title': 'Tutorly Chat'
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-r1-distill-qwen-1.5b',
+        model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
         messages: messages,
         temperature: 0.7,
         max_tokens: 1000
