@@ -7,6 +7,7 @@ import "aos/dist/aos.css";
 import LandingNavbar from "@/components/Landing/LandingNavbar";
 import Hero from "@/components/Landing/Hero";
 import Features from "@/components/Landing/Features";
+import StickyFeaturesSection from "@/components/Landing/StickyFeaturesSection";
 import PricingSection from "@/components/Landing/PricingSection";
 import FAQSection from "@/components/Landing/FAQSection";
 import LandingFooter from "@/components/Landing/LandingFooter";
@@ -28,6 +29,7 @@ const Index = () => {
       <div id="features">
         <Features />
       </div>
+      <StickyFeaturesSection />
       <PricingSection />
       <FAQSection />
       <LandingFooter />
