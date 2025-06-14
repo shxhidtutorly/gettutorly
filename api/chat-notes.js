@@ -61,11 +61,11 @@ export default async function handler(req, res) {
     
     console.log('🤖 Calling OpenRouter API...');
     
-    // Call OpenRouter API
+    // Call OpenRouter API - using the correct environment variable name
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://gettutorly.com',
         'X-Title': 'Tutorly Chat'
