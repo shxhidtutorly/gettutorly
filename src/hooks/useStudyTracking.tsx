@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +11,7 @@ interface StudyStats {
   notesCreated: number;
   mathProblemsSolved: number;
   streakDays: number;
+  doubtsResolved: number;
 }
 
 export interface StudySession {
@@ -18,6 +20,8 @@ export interface StudySession {
   title: string;
   completed: boolean;
   date: string;
+  timestamp: string;
+  duration: number;
 }
 
 export const useStudyTracking = () => {
@@ -30,20 +34,23 @@ export const useStudyTracking = () => {
     notesCreated: 0,
     mathProblemsSolved: 0,
     streakDays: 1,
+    doubtsResolved: 0,
   });
 
   const [sessions, setSessions] = useState<StudySession[]>([]);
 
-  // Track activity
+  // Track activity with proper clerk user ID
   const trackActivity = async (activityType: string, details: any = {}) => {
-    if (!currentUser?.clerkUserId) return; // Use clerkUserId instead of id
+    if (!currentUser?.id) return;
 
     try {
-      // Insert activity log
+      console.log('Tracking activity:', activityType, 'for user:', currentUser.id);
+      
+      // Insert activity log with clerk_user_id
       const { error } = await supabase
         .from('user_activity_logs')
         .insert({
-          clerk_user_id: currentUser.clerkUserId, // Use clerk_user_id
+          clerk_user_id: currentUser.id,
           action: activityType,
           details: details,
           timestamp: new Date().toISOString()
@@ -53,6 +60,8 @@ export const useStudyTracking = () => {
         console.error('Error tracking activity:', error);
         return;
       }
+
+      console.log('Activity tracked successfully');
 
       // Update stats based on activity type
       setStats(prev => {
@@ -74,6 +83,9 @@ export const useStudyTracking = () => {
             break;
           case 'study_session_started':
             updated.sessionCount += 1;
+            break;
+          case 'doubt_resolved':
+            updated.doubtsResolved += 1;
             break;
         }
         
@@ -103,30 +115,36 @@ export const useStudyTracking = () => {
       type: sessionData.type || 'study',
       title: sessionData.title || 'Study Session',
       completed: sessionData.completed || false,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+      duration: sessionData.duration || 30
     };
     setSessions(prev => [newSession, ...prev]);
   };
 
   const getSessions = () => sessions;
 
-  // Load user stats
+  // Load user stats from database
   useEffect(() => {
     const loadStats = async () => {
-      if (!currentUser?.clerkUserId) return; // Use clerkUserId instead of id
+      if (!currentUser?.id) return;
 
       try {
+        console.log('Loading stats for user:', currentUser.id);
+        
         // Get activity logs for stats calculation
         const { data: activities, error } = await supabase
           .from('user_activity_logs')
           .select('action, details, timestamp')
-          .eq('clerk_user_id', currentUser.clerkUserId) // Use clerk_user_id
+          .eq('clerk_user_id', currentUser.id)
           .order('timestamp', { ascending: false });
 
         if (error) {
           console.error('Error loading stats:', error);
           return;
         }
+
+        console.log('Loaded activities:', activities?.length || 0);
 
         // Calculate stats from activities
         const quizzesCompleted = activities?.filter(a => a.action === 'quiz_completed').length || 0;
@@ -138,16 +156,17 @@ export const useStudyTracking = () => {
         ).length || 0;
         const mathProblemsSolved = activities?.filter(a => a.action === 'math_problem_solved').length || 0;
         const sessionCount = activities?.filter(a => a.action === 'study_session_started').length || 0;
+        const doubtsResolved = activities?.filter(a => a.action === 'doubt_resolved').length || 0;
 
         // Calculate study time from progress records
         const { data: progressData } = await supabase
           .from('study_progress')
           .select('time_spent')
-          .eq('clerk_user_id', currentUser.clerkUserId); // Use clerk_user_id
+          .eq('clerk_user_id', currentUser.id);
 
         const totalStudyHours = (progressData?.reduce((total, p) => total + (p.time_spent || 0), 0) || 0) / 3600;
 
-        // Calculate streak (simplified - just based on recent activity)
+        // Calculate streak (simplified - based on recent activity)
         const recentActivities = activities?.filter(a => {
           const activityDate = new Date(a.timestamp);
           const daysDiff = Math.floor((Date.now() - activityDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -156,7 +175,7 @@ export const useStudyTracking = () => {
 
         const streakDays = Math.max(1, Math.min(7, recentActivities.length));
 
-        setStats({
+        const newStats = {
           totalStudyHours,
           sessionCount,
           quizzesCompleted,
@@ -164,7 +183,11 @@ export const useStudyTracking = () => {
           notesCreated,
           mathProblemsSolved,
           streakDays,
-        });
+          doubtsResolved,
+        };
+
+        console.log('Calculated stats:', newStats);
+        setStats(newStats);
 
       } catch (error) {
         console.error('Error loading user stats:', error);
@@ -172,7 +195,25 @@ export const useStudyTracking = () => {
     };
 
     loadStats();
-  }, [currentUser?.clerkUserId]); // Use clerkUserId instead of id
+
+    // Set up real-time listener for activity logs
+    const channel = supabase
+      .channel('activity_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'user_activity_logs',
+        filter: `clerk_user_id=eq.${currentUser?.id}`
+      }, () => {
+        console.log('Real-time activity update detected, reloading stats');
+        loadStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
 
   return {
     stats,

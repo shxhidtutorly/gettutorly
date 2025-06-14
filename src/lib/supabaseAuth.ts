@@ -7,8 +7,6 @@ const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89ab][0-
 
 /**
  * Validates if a string is a valid UUID format
- * @param id - The ID to validate
- * @returns boolean indicating if the ID is a valid UUID
  */
 const isValidUUID = (id: string): boolean => {
   return typeof id === 'string' && id.length === 36 && UUID_REGEX.test(id);
@@ -16,51 +14,9 @@ const isValidUUID = (id: string): boolean => {
 
 /**
  * Logs detailed error context for Supabase operations
- * @param operation - The operation being performed
- * @param userId - The user ID involved
- * @param error - The error object
  */
 const logDetailedError = (operation: string, userId: string, error: any) => {
   console.error(`Error ${operation} for userId=${userId} – code=${error.code || 'UNKNOWN'}, message=${error.message || 'No message'}, hint=${error.hint || 'No hint'}`, error);
-};
-
-/**
- * Attempts to reload Supabase schema cache when schema errors occur
- */
-const reloadSupabaseSchema = async (): Promise<void> => {
-  try {
-    console.log('Attempting to reload Supabase schema cache...');
-    // Try to reload schema using RPC call
-    const { error } = await supabase.rpc('reload_schema');
-    if (error) {
-      console.warn('Schema reload RPC failed:', error);
-    } else {
-      console.log('Schema reload successful');
-    }
-  } catch (error) {
-    console.warn('Failed to reload schema:', error);
-  }
-};
-
-/**
- * Checks if a column exists in the users table
- * @param columnName - Name of the column to check
- * @returns Promise<boolean> indicating if column exists
- */
-const checkColumnExists = async (columnName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('information_schema.columns')
-      .select('column_name')
-      .eq('table_name', 'users')
-      .eq('column_name', columnName)
-      .single();
-    
-    return !error && !!data;
-  } catch (error) {
-    console.warn(`Failed to check if column ${columnName} exists:`, error);
-    return false;
-  }
 };
 
 // Helper function to convert Clerk user ID to UUID
@@ -71,7 +27,6 @@ const convertClerkIdToUuid = (clerkId: string): string => {
   }
   
   // For Clerk IDs, we'll create a deterministic UUID based on the Clerk ID
-  // This ensures the same Clerk ID always maps to the same UUID
   const hash = clerkId.split('').reduce((a, b) => {
     a = ((a << 5) - a) + b.charCodeAt(0);
     return a & a;
@@ -86,7 +41,6 @@ const convertClerkIdToUuid = (clerkId: string): string => {
 
 /**
  * Creates or updates user profile with validation and error handling
- * Validates UUID format and handles schema errors gracefully
  */
 export const createUserProfile = async (clerkUserId: string, userData: {
   email: string;
@@ -108,22 +62,15 @@ export const createUserProfile = async (clerkUserId: string, userData: {
     
     console.log('Creating user profile with ID:', userId);
     
-    // Check if clerk_id column exists
-    const clerkIdExists = await checkColumnExists('clerk_id');
-    
-    // Prepare data object based on schema
+    // Prepare data object
     const profileData: any = {
       id: userId,
+      clerk_user_id: clerkUserId,
       email: userData.email,
       name: userData.name || userData.email.split('@')[0],
       avatar_url: userData.avatar_url,
       updated_at: new Date().toISOString(),
     };
-
-    // Only include clerk_id if column exists
-    if (clerkIdExists) {
-      profileData.clerk_id = clerkUserId;
-    }
 
     const { data, error } = await supabase
       .from('users')
@@ -133,30 +80,6 @@ export const createUserProfile = async (clerkUserId: string, userData: {
 
     if (error) {
       logDetailedError('createUserProfile', userId, error);
-      
-      // Handle schema-related errors
-      if (error.code === 'PGRST204' || error.message?.includes('clerk_id')) {
-        console.log('Schema error detected, attempting reload...');
-        await reloadSupabaseSchema();
-        
-        // Retry without clerk_id
-        const retryData = { ...profileData };
-        delete retryData.clerk_id;
-        
-        const { data: retryResult, error: retryError } = await supabase
-          .from('users')
-          .upsert(retryData)
-          .select()
-          .single();
-          
-        if (retryError) {
-          logDetailedError('createUserProfile (retry)', userId, retryError);
-          throw retryError;
-        }
-        
-        return { success: true, data: retryResult };
-      }
-      
       throw error;
     }
     
@@ -169,7 +92,6 @@ export const createUserProfile = async (clerkUserId: string, userData: {
 
 /**
  * Gets user profile with UUID validation and schema error handling
- * Validates user ID format before making database queries
  */
 export const getUserProfile = async (clerkUserId: string) => {
   try {
@@ -200,14 +122,6 @@ export const getUserProfile = async (clerkUserId: string) => {
       }
       
       logDetailedError('getUserProfile', userId, error);
-      
-      // Handle schema errors
-      if (error.code === 'PGRST204') {
-        console.log('Schema error detected, attempting reload...');
-        await reloadSupabaseSchema();
-        return { success: false, error: "Schema error, please try again", code: "SCHEMA_ERROR" };
-      }
-      
       return { success: false, error: error.message || 'Failed to get user profile', code: error.code || 'UNKNOWN_ERROR' };
     }
     
@@ -257,7 +171,6 @@ export const updateUserProfile = async (clerkUserId: string, updates: any) => {
 
 /**
  * Logs user activity with validation and error handling
- * Validates user ID and handles schema errors gracefully
  */
 export const logUserActivity = async (clerkUserId: string, action: string, details: any = {}) => {
   try {
@@ -279,6 +192,7 @@ export const logUserActivity = async (clerkUserId: string, action: string, detai
       .from('user_activity_logs')
       .insert({
         user_id: userId,
+        clerk_user_id: clerkUserId,
         action: action,
         details: details,
         timestamp: new Date().toISOString()

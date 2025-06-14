@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -49,7 +48,6 @@ import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
 import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
 import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
 
-
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -92,7 +90,6 @@ const Index = () => {
       return;
     }
     
-    
     setAiDemoResult("Generating summary...");
     
     // Simulate AI response
@@ -103,53 +100,51 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-black">
-     {/* Enhanced Navbar with scroll effect and no theme toggle */}
-<motion.header 
-  className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-    scrollY > 50 
-      ? 'bg-background/95 dark:bg-black/95 backdrop-blur-lg border-b border-border/50' 
-      : 'bg-transparent'
-  }`}
-  initial={{ y: -100 }}
-  animate={{ y: 0 }}
-  transition={{ duration: 0.6 }}
->
-  <div className="container flex h-16 items-center justify-between px-4">
-    <motion.div 
-      className="flex items-center gap-2"
-      whileHover={{ scale: 1.05 }}
-    >
-      <Brain className="h-8 w-8 text-purple-500" />
-      <span className="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
-        Tutorly
-      </span>
-    </motion.div>
-
-    <div className="flex items-center gap-4">
-      {currentUser ? (
-  <UserProfileButton />
-) : (
-  <div className="flex gap-2">
-    <Link to="/signin">
-      <Button variant="ghost" size="sm">
-        Login
-      </Button>
-    </Link>
-    <Link to="/signup">
-      <Button 
-        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
-        size="sm"
+      {/* Enhanced Navbar with scroll effect and no theme toggle */}
+      <motion.header 
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+          scrollY > 50 
+            ? 'bg-background/95 dark:bg-black/95 backdrop-blur-lg border-b border-border/50' 
+            : 'bg-transparent'
+        }`}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.6 }}
       >
-        Sign Up
-      </Button>
-    </Link>
-  </div>
-)}
+        <div className="container flex h-16 items-center justify-between px-4">
+          <motion.div 
+            className="flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+          >
+            <Brain className="h-8 w-8 text-purple-500" />
+            <span className="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
+              Tutorly
+            </span>
+          </motion.div>
 
-    </div>
-  </div>
-</motion.header>
-
+          <div className="flex items-center gap-4">
+            {currentUser ? (
+              <UserProfileButton />
+            ) : (
+              <div className="flex gap-2">
+                <Link to="/signin">
+                  <Button variant="ghost" size="sm">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button 
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                    size="sm"
+                  >
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.header>
 
       <main className="flex-1 pt-16">
         {/* Hero Section with Animated Gradient */}
@@ -181,14 +176,13 @@ const Index = () => {
                   <span className="text-sm font-semibold text-purple-200">AI-Powered Learning Platform</span>
                 </div>
                 
-              <h1 className="text-5xl md:text-7xl font-extrabold leading-tight text-center mb-6 text-white">
-  Your Personal
-  <span className="text-lg md:text-xl text-white font-medium text-center drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
-    AI Tutor
-  </span>
-</h1>
+                <h1 className="text-5xl md:text-7xl font-extrabold leading-tight text-center mb-6 text-white">
+                  Your Personal
+                  <span className="text-lg md:text-xl text-white font-medium text-center drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
+                    AI Tutor
+                  </span>
+                </h1>
 
-         
                 <p className="text-xl md:text-2xl text-gray-300 mb-4 font-medium">
                   Study Smarter. Learn Faster.
                 </p>
@@ -255,68 +249,68 @@ const Index = () => {
         </section>
 
         {/* Trusted by Universities Section */}
-<section className="py-28 bg-white dark:bg-gray-950" data-aos="fade-up">
-  <div className="container mx-auto px-4">
-    <div className="text-center mb-16">
-      <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-        Empowering learners from 200+ leading institutions across 128 countries  Trusted by over 500,000 students
-      </h2>
-    </div>
-    <div className="relative overflow-hidden w-full">
-      <motion.div
-        className="flex gap-20 items-center"
-        style={{ minWidth: "min-content" }}
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{
-          repeat: Infinity,
-          repeatType: "loop",
-          duration: 60,
-          ease: "linear"
-        }}
-      >
-        {/* Duplicate array for seamless looping */}
-        {[
-          { name: "Boston University", logo: BostonLogo },
-          { name: "University of Chicago", logo: ChicagoLogo },
-          { name: "Georgetown University", logo: GeorgetownLogo },
-          { name: "Harvard University", logo: HarvardLogo },
-          { name: "Howard University", logo: HowardLogo },
-          { name: "Ohio State University", logo: OhioStateLogo },
-          { name: "University of Otago", logo: OtagoLogo },
-          { name: "University of Pittsburgh", logo: PittsburghLogo },
-          { name: "Stanford University", logo: StanfordLogo },
-        ].concat([
-          { name: "Boston University", logo: BostonLogo },
-          { name: "University of Chicago", logo: ChicagoLogo },
-          { name: "Georgetown University", logo: GeorgetownLogo },
-          { name: "Harvard University", logo: HarvardLogo },
-          { name: "Howard University", logo: HowardLogo },
-          { name: "Ohio State University", logo: OhioStateLogo },
-          { name: "University of Otago", logo: OtagoLogo },
-          { name: "University of Pittsburgh", logo: PittsburghLogo },
-          { name: "Stanford University", logo: StanfordLogo },
-        ]).map((uni, i) => (
-          <div
-            key={i}
-            className="flex-shrink-0 flex items-center justify-center transition-transform duration-300 hover:scale-110"
-            style={{ minWidth: 220 }}
-            title={uni.name}
-          >
-            <img
-              src={uni.logo}
-              alt={uni.name + " logo"}
-              className="h-24 md:h-32 max-w-[220px] object-contain transition-all duration-300 hover:drop-shadow-lg"
-              style={{ filter: "drop-shadow(0 2px 8px #0002)" }}
-            />
+        <section className="py-28 bg-white dark:bg-gray-950" data-aos="fade-up">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
+                Empowering learners from 200+ leading institutions across 128 countries  Trusted by over 500,000 students
+              </h2>
+            </div>
+            <div className="relative overflow-hidden w-full">
+              <motion.div
+                className="flex gap-20 items-center"
+                style={{ minWidth: "min-content" }}
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{
+                  repeat: Infinity,
+                  repeatType: "loop",
+                  duration: 60,
+                  ease: "linear"
+                }}
+              >
+                {/* Duplicate array for seamless looping */}
+                {[
+                  { name: "Boston University", logo: BostonLogo },
+                  { name: "University of Chicago", logo: ChicagoLogo },
+                  { name: "Georgetown University", logo: GeorgetownLogo },
+                  { name: "Harvard University", logo: HarvardLogo },
+                  { name: "Howard University", logo: HowardLogo },
+                  { name: "Ohio State University", logo: OhioStateLogo },
+                  { name: "University of Otago", logo: OtagoLogo },
+                  { name: "University of Pittsburgh", logo: PittsburghLogo },
+                  { name: "Stanford University", logo: StanfordLogo },
+                ].concat([
+                  { name: "Boston University", logo: BostonLogo },
+                  { name: "University of Chicago", logo: ChicagoLogo },
+                  { name: "Georgetown University", logo: GeorgetownLogo },
+                  { name: "Harvard University", logo: HarvardLogo },
+                  { name: "Howard University", logo: HowardLogo },
+                  { name: "Ohio State University", logo: OhioStateLogo },
+                  { name: "University of Otago", logo: OtagoLogo },
+                  { name: "University of Pittsburgh", logo: PittsburghLogo },
+                  { name: "Stanford University", logo: StanfordLogo },
+                ]).map((uni, i) => (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 flex items-center justify-center transition-transform duration-300 hover:scale-110"
+                    style={{ minWidth: 220 }}
+                    title={uni.name}
+                  >
+                    <img
+                      src={uni.logo}
+                      alt={uni.name + " logo"}
+                      className="h-24 md:h-32 max-w-[220px] object-contain transition-all duration-300 hover:drop-shadow-lg"
+                      style={{ filter: "drop-shadow(0 2px 8px #0002)" }}
+                    />
+                  </div>
+                ))}
+              </motion.div>
+              {/* Optional: subtle fades at the edges for polish */}
+              <div className="pointer-events-none absolute top-0 left-0 w-24 h-full bg-gradient-to-r from-white/90 dark:from-gray-950/90 to-transparent z-10" />
+              <div className="pointer-events-none absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-white/90 dark:from-gray-950/90 to-transparent z-10" />
+            </div>
           </div>
-        ))}
-      </motion.div>
-      {/* Optional: subtle fades at the edges for polish */}
-      <div className="pointer-events-none absolute top-0 left-0 w-24 h-full bg-gradient-to-r from-white/90 dark:from-gray-950/90 to-transparent z-10" />
-      <div className="pointer-events-none absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-white/90 dark:from-gray-950/90 to-transparent z-10" />
-    </div>
-  </div>
-</section>
+        </section>
 
         {/* Real Reviews Section */}
         <section className="py-20 bg-gray-50 dark:bg-gray-900">

@@ -1,35 +1,39 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReactNode } from "react";
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 
 export interface LearningInsightCardProps {
-  icon: ReactNode;
+  icon: React.ReactNode;
   title: string;
-  value: string | number;
+  value: string;
   description: string;
   bgColorClass?: string;
   iconColorClass?: string;
+  className?: string;
 }
 
-const LearningInsightCard = ({ 
-  icon, 
-  title, 
-  value, 
-  description, 
-  bgColorClass = "bg-card", 
-  iconColorClass = "text-primary" 
-}: LearningInsightCardProps) => {
+const LearningInsightCard: React.FC<LearningInsightCardProps> = ({
+  icon,
+  title,
+  value,
+  description,
+  bgColorClass = '',
+  iconColorClass = '',
+  className = ''
+}) => {
   return (
-    <Card className={bgColorClass}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className={iconColorClass}>{icon}</span>
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold mb-2">{value}</div>
-        <p className="text-sm text-muted-foreground">{description}</p>
+    <Card className={className}>
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <div className={`p-3 rounded-lg ${bgColorClass}`}>
+            <div className={iconColorClass}>{icon}</div>
+          </div>
+          <div>
+            <h3 className="font-semibold">{title}</h3>
+            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,315 +1,265 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BookOpenText, 
-  Search, 
-  FileText, 
-  Bookmark,
-  Filter, 
-  MoreVertical,
-  Clock,
+import { Badge } from "@/components/ui/badge";
+import {
+  Search,
+  FolderOpen,
+  FileText,
+  BookOpen,
   Plus,
-  Folder
+  Filter,
+  Grid,
+  List,
+  Download,
+  Eye,
+  Trash2,
+  Calendar,
 } from "lucide-react";
-import CreateFolderDialog from "@/components/features/CreateFolderDialog";
-import DocumentUploader from "@/components/features/DocumentUploader";
-import { useRealTimeStudyMaterials } from "@/hooks/useRealTimeData";
 import { useAuth } from "@/contexts/AuthContext";
-import { searchStudyMaterials } from "@/lib/database";
-import { supabase } from "@/integrations/supabase/client";
+import { getUserStudyMaterials } from "@/lib/database";
 
 const Library = () => {
   const { currentUser } = useAuth();
-  const { materials, loading } = useRealTimeStudyMaterials();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showUploader, setShowUploader] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [bookmarkedMaterials, setBookmarkedMaterials] = useState(new Set());
-  const [folders, setFolders] = useState([]);
-  
   const { toast } = useToast();
   
-  // Search functionality
+  const [materials, setMaterials] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState("grid");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load user's study materials
   useEffect(() => {
-    if (searchTerm && currentUser) {
-      const performSearch = async () => {
-        try {
-          const results = await searchStudyMaterials(searchTerm);
-          setSearchResults(results);
-        } catch (error) {
-          console.error('Search error:', error);
-        }
-      };
-      
-      const timeoutId = setTimeout(performSearch, 300);
-      return () => clearTimeout(timeoutId);
-    } else {
-      setSearchResults([]);
+    if (currentUser?.id) {
+      loadStudyMaterials();
     }
-  }, [searchTerm, currentUser]);
-  
-  const handleBookmark = async (materialId: string) => {
+  }, [currentUser?.id]);
+
+  const loadStudyMaterials = async () => {
+    if (!currentUser?.id) return;
+    
+    setIsLoading(true);
     try {
-      const isBookmarked = bookmarkedMaterials.has(materialId);
-      
-      if (isBookmarked) {
-        setBookmarkedMaterials(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(materialId);
-          return newSet;
-        });
-      } else {
-        setBookmarkedMaterials(prev => new Set(prev).add(materialId));
-      }
-      
-      // Log the bookmark action
-      await supabase.rpc('log_user_activity', {
-        action_type: isBookmarked ? 'material_unbookmarked' : 'material_bookmarked',
-        activity_details: { material_id: materialId }
-      });
-      
-      toast({
-        title: isBookmarked ? "Removed from bookmarks" : "Added to bookmarks",
-        description: "Bookmark updated successfully"
-      });
+      const data = await getUserStudyMaterials(currentUser.id);
+      setMaterials(data || []);
+      console.log('Loaded materials:', data?.length || 0);
     } catch (error) {
-      console.error('Bookmark error:', error);
+      console.error('Error loading study materials:', error);
       toast({
         title: "Error",
-        description: "Failed to update bookmark",
+        description: "Failed to load your study materials.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCreateFolder = (folderData: { name: string; description: string }) => {
-    const newFolder = {
-      id: folders.length + 1,
-      name: folderData.name,
-      description: folderData.description,
-      itemCount: 0
-    };
-    
-    setFolders([...folders, newFolder]);
-    toast({
-      title: "Folder created",
-      description: `"${folderData.name}" folder has been created successfully.`
-    });
-  };
-  
-  const handleUploadMaterial = () => {
-    setShowUploader(true);
-  };
-  
-  const materialsToShow = searchTerm ? searchResults : materials;
-  
-  const renderMaterials = (items: any[]) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {items.map((material) => (
-        <Card key={material.id} className="hover-glow overflow-hidden dark:bg-card">
-          <CardContent className="p-0">
-            <div className="p-4 flex items-start gap-3">
-              <div className={`p-2 rounded-lg ${material.content_type?.includes('pdf') ? 'bg-spark-peach' : 'bg-spark-blue'}`}>
-                <FileText className={`h-6 w-6 ${material.content_type?.includes('pdf') ? 'text-orange-600' : 'text-blue-600'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium line-clamp-2">{material.title}</h3>
-                <div className="flex items-center text-xs text-muted-foreground mt-1">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>Uploaded {new Date(material.created_at).toLocaleDateString()}</span>
-                </div>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 animated-button"
-                onClick={() => handleBookmark(material.id)}
-              >
-                <Bookmark className={`h-4 w-4 ${bookmarkedMaterials.has(material.id) ? 'fill-spark-primary stroke-spark-primary' : 'stroke-muted-foreground'}`} />
-              </Button>
-            </div>
-          </CardContent>
-          <CardFooter className="bg-muted/50 p-2 flex justify-between dark:bg-muted">
-            <Button variant="ghost" size="sm" className="animated-button">Open</Button>
-            <Button variant="ghost" size="sm" className="animated-button">Share</Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
+  const filteredMaterials = materials.filter(material =>
+    material.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    material.file_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const getFileIcon = (contentType) => {
+    if (contentType?.includes('pdf')) return '📄';
+    if (contentType?.includes('image')) return '🖼️';
+    if (contentType?.includes('text')) return '📝';
+    if (contentType?.includes('video')) return '🎥';
+    return '📁';
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'Unknown size';
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
   if (!currentUser) {
-    return <div>Please sign in to access your library.</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
+        <div className="bg-[#202741] rounded-xl p-6 shadow-lg text-center animate-fade-in">
+          <span className="text-3xl">🔒</span>
+          <p className="text-lg mt-4">Please sign in to access your library.</p>
+        </div>
+      </div>
+    );
   }
-  
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#0d1117] text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white transition-colors">
       <Navbar />
-      
+
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
-          {showUploader ? (
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setShowUploader(false)}
-                  className="flex items-center gap-2"
-                >
-                  <BookOpenText className="h-5 w-5 mr-1" />
-                  Back to Library
+          {/* Header */}
+          <div className="mb-8 animate-fade-in">
+            <h1 className="text-4xl font-bold flex items-center gap-3 mb-4 tracking-tight text-white drop-shadow">
+              📚 <BookOpen className="h-10 w-10 text-spark-primary" />
+              Your Library
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage and organize all your study materials in one place
+            </p>
+          </div>
+
+          {/* Controls */}
+          <div className="flex flex-col md:flex-row gap-4 mb-8 animate-fade-in-up">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search your materials..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 animate-fade-in-up">
+            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-8 w-8 text-blue-400" />
+                  <div>
+                    <p className="text-2xl font-bold">{materials.length}</p>
+                    <p className="text-sm text-muted-foreground">Total Materials</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <FolderOpen className="h-8 w-8 text-green-400" />
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {formatFileSize(materials.reduce((total, m) => total + (m.size || 0), 0))}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Total Size</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-8 w-8 text-purple-400" />
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {materials.filter(m => {
+                        const date = new Date(m.created_at);
+                        const today = new Date();
+                        return date.toDateString() === today.toDateString();
+                      }).length}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Added Today</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Materials Grid/List */}
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Loading your materials...</p>
+            </div>
+          ) : filteredMaterials.length === 0 ? (
+            <div className="text-center py-12 animate-fade-in">
+              <FolderOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-2">
+                {materials.length === 0 ? "No materials yet" : "No materials found"}
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                {materials.length === 0 
+                  ? "Upload your first study material to get started"
+                  : "Try adjusting your search query"
+                }
+              </p>
+              {materials.length === 0 && (
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Upload Material
                 </Button>
-              </div>
-              <DocumentUploader />
+              )}
             </div>
           ) : (
-            <>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-fade-in">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-                    <BookOpenText className="h-7 w-7 text-spark-primary" />
-                    Your Library
-                  </h1>
-                  <p className="text-muted-foreground">All your study materials in one place</p>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search materials..."
-                      className="pl-9 dark:bg-muted dark:border-muted"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <Button variant="outline" size="icon" className="animated-button dark:border-muted">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <Tabs defaultValue="all" className="w-full">
-                <div className="flex items-center justify-between">
-                  <TabsList className="dark:bg-muted">
-                    <TabsTrigger value="all">All Materials</TabsTrigger>
-                    <TabsTrigger value="bookmarked">Bookmarked</TabsTrigger>
-                    <TabsTrigger value="recent">Recent</TabsTrigger>
-                    <TabsTrigger value="folders">Folders</TabsTrigger>
-                  </TabsList>
-                  
-                  <div className="flex items-center gap-2">
-                    <CreateFolderDialog onFolderCreate={handleCreateFolder} />
-                    <Button size="sm" className="animated-button" onClick={handleUploadMaterial}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Upload Material
-                    </Button>
-                  </div>
-                </div>
-                
-                <TabsContent value="all" className="mt-6">
-                  {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="animate-pulse h-32 bg-gray-200 rounded-lg dark:bg-muted"></div>
-                      ))}
+            <div className={`${
+              viewMode === "grid" 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                : "space-y-4"
+            } animate-fade-in-up`}>
+              {filteredMaterials.map((material) => (
+                <Card 
+                  key={material.id}
+                  className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none hover:scale-105 transition-transform cursor-pointer"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{getFileIcon(material.content_type)}</span>
+                        <div>
+                          <CardTitle className="text-lg line-clamp-1">{material.title}</CardTitle>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {material.file_name}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  ) : materialsToShow.length > 0 ? (
-                    renderMaterials(materialsToShow)
-                  ) : (
-                    <div className="text-center py-12">
-                      <Folder className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium">No materials found</h3>
-                      <p className="text-muted-foreground mb-6">
-                        {searchTerm 
-                          ? `We couldn't find any materials matching "${searchTerm}"` 
-                          : "Your library is empty. Upload materials to get started."}
-                      </p>
-                      <Button className="animated-button" onClick={handleUploadMaterial}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Upload Materials
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge variant="secondary">
+                        {formatFileSize(material.size)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(material.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4" />
                       </Button>
                     </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="bookmarked" className="mt-6">
-                  {loading ? (
-                    <div className="animate-pulse h-32 bg-gray-200 rounded-lg dark:bg-muted"></div>
-                  ) : (
-                    renderMaterials(materials.filter(m => bookmarkedMaterials.has(m.id)))
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="recent" className="mt-6">
-                  {loading ? (
-                    <div className="animate-pulse h-32 bg-gray-200 rounded-lg dark:bg-muted"></div>
-                  ) : (
-                    renderMaterials([...materials].sort((a, b) => 
-                      new Date(b.updated_at || b.created_at).getTime() - 
-                      new Date(a.updated_at || a.created_at).getTime()
-                    ))
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="folders" className="mt-6">
-                  {folders.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {folders.map((folder) => (
-                        <Card key={folder.id} className="hover-glow overflow-hidden dark:bg-card">
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 rounded-lg bg-spark-light">
-                                <Folder className="h-6 w-6 text-spark-primary" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-medium">{folder.name}</h3>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                  {folder.description || "No description"}
-                                </p>
-                                <div className="flex items-center text-xs text-muted-foreground mt-2">
-                                  <span>{folder.itemCount} {folder.itemCount === 1 ? 'item' : 'items'}</span>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </CardContent>
-                          <CardFooter className="bg-muted/50 p-2 flex justify-between dark:bg-muted">
-                            <Button variant="ghost" size="sm" className="animated-button">Open</Button>
-                            <Button variant="ghost" size="sm" className="animated-button">Share</Button>
-                          </CardFooter>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Folder className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium">No folders found</h3>
-                      <p className="text-muted-foreground mb-6">
-                        You haven't created any folders yet. Create one to organize your materials.
-                      </p>
-                      <CreateFolderDialog 
-                        onFolderCreate={handleCreateFolder}
-                        trigger={<Button className="animated-button"><Plus className="h-4 w-4 mr-2" />Create Folder</Button>}
-                      />
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </main>
-      
+
       <Footer />
       <BottomNav />
     </div>

@@ -1,41 +1,30 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
 export interface MonthlyProgressChartProps {
-  data: Array<{ name: string; hours: number }>;
+  data: { name: string; hours: number }[];
   isLoading: boolean;
+  className?: string;
 }
 
-const MonthlyProgressChart = ({ data, isLoading }: MonthlyProgressChartProps) => {
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Progress</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] flex items-center justify-center">
-            <div className="animate-pulse">Loading...</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+const MonthlyProgressChart: React.FC<MonthlyProgressChartProps> = ({
+  data,
+  isLoading,
+  className = ''
+}) => {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle>Monthly Progress</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={200}>
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey="hours" stroke="#8884d8" strokeWidth={2} />
+            <Line type="monotone" dataKey="hours" stroke="#8884d8" />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>
