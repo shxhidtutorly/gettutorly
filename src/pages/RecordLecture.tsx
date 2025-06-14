@@ -41,7 +41,7 @@ const RecordLecture = () => {
       // Create new lecture session
       const newSessionId = await createLectureSession(currentUser?.id || '', {
         title: `Lecture ${new Date().toLocaleDateString()}`,
-        startTime: new Date(),
+        start_time: new Date(),
       });
       setSessionId(newSessionId);
       
@@ -90,8 +90,8 @@ const RecordLecture = () => {
       if (sessionId) {
         await updateLectureSession(sessionId, {
           transcript,
-          aiNotes: aiNotes.map(note => note.content).join('\n\n'),
-          endTime: new Date(),
+          ai_notes: aiNotes.map(note => note.content).join('\n\n'),
+          end_time: new Date(),
         });
       }
       

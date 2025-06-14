@@ -21,7 +21,7 @@ export const createLectureSession = async (userId: string, sessionData: Partial<
       .insert([{
         user_id: userId,
         title: sessionData.title || `Lecture ${new Date().toLocaleDateString()}`,
-        start_time: sessionData.startTime || new Date(),
+        start_time: sessionData.start_time || new Date(),
         transcript: '',
         ai_notes: '',
         created_at: new Date(),
