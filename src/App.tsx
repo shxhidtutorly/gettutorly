@@ -44,7 +44,7 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="tutorly-theme">
+      <ThemeProvider>
         <AuthProvider>
           <div className="min-h-screen bg-background">
             <Routes>
