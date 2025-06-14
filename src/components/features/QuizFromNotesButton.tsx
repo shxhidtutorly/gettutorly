@@ -8,9 +8,10 @@ import { useToast } from "@/components/ui/use-toast";
 interface QuizFromNotesButtonProps {
   notesContent: string;
   notesTitle: string;
+  children?: React.ReactNode;
 }
 
-export const QuizFromNotesButton = ({ notesContent, notesTitle }: QuizFromNotesButtonProps) => {
+export const QuizFromNotesButton = ({ notesContent, notesTitle, children }: QuizFromNotesButtonProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -81,12 +82,16 @@ export const QuizFromNotesButton = ({ notesContent, notesTitle }: QuizFromNotesB
       disabled={isGenerating}
       className="flex items-center gap-2"
     >
-      {isGenerating ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Brain className="h-4 w-4" />
+      {children || (
+        <>
+          {isGenerating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Brain className="h-4 w-4" />
+          )}
+          {isGenerating ? 'Generating Quiz...' : 'Generate AI Quiz'}
+        </>
       )}
-      {isGenerating ? 'Generating Quiz...' : 'Generate AI Quiz'}
     </Button>
   );
 };

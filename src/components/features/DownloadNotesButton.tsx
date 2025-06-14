@@ -7,12 +7,14 @@ interface DownloadNotesButtonProps {
   content: string;
   filename?: string;
   format?: 'txt' | 'pdf';
+  children?: React.ReactNode;
 }
 
 export const DownloadNotesButton = ({ 
   content, 
   filename = "study-notes", 
-  format = 'txt' 
+  format = 'txt',
+  children
 }: DownloadNotesButtonProps) => {
   const { toast } = useToast();
 
@@ -79,8 +81,12 @@ export const DownloadNotesButton = ({
       className="flex items-center gap-2"
       variant="outline"
     >
-      {format === 'pdf' ? <FileText className="h-4 w-4" /> : <Download className="h-4 w-4" />}
-      Download as {format.toUpperCase()}
+      {children || (
+        <>
+          {format === 'pdf' ? <FileText className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+          Download as {format.toUpperCase()}
+        </>
+      )}
     </Button>
   );
 };

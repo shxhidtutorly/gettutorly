@@ -5,7 +5,7 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthContextProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import App from "./App.tsx";
 import "./index.css";
@@ -24,10 +24,10 @@ createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ThemeProvider>
-            <AuthContextProvider>
+            <AuthProvider>
               <App />
               <Toaster />
-            </AuthContextProvider>
+            </AuthProvider>
           </ThemeProvider>
         </BrowserRouter>
       </QueryClientProvider>
