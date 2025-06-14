@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       notes: {
         Row: {
+          clerk_user_id: string | null
           content: string
           created_at: string | null
           id: string
@@ -20,6 +21,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           content: string
           created_at?: string | null
           id?: string
@@ -29,6 +31,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           content?: string
           created_at?: string | null
           id?: string
@@ -56,6 +59,7 @@ export type Database = {
       }
       study_materials: {
         Row: {
+          clerk_user_id: string | null
           content_type: string | null
           created_at: string | null
           file_name: string | null
@@ -68,6 +72,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           content_type?: string | null
           created_at?: string | null
           file_name?: string | null
@@ -80,6 +85,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           content_type?: string | null
           created_at?: string | null
           file_name?: string | null
@@ -103,6 +109,7 @@ export type Database = {
       }
       study_plans: {
         Row: {
+          clerk_user_id: string | null
           created_at: string
           description: string | null
           due_date: string | null
@@ -113,6 +120,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          clerk_user_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -123,6 +131,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          clerk_user_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -136,6 +145,7 @@ export type Database = {
       }
       study_progress: {
         Row: {
+          clerk_user_id: string | null
           completed: boolean | null
           id: string
           last_position: number | null
@@ -146,6 +156,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           completed?: boolean | null
           id?: string
           last_position?: number | null
@@ -156,6 +167,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           completed?: boolean | null
           id?: string
           last_position?: number | null
