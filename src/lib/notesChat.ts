@@ -18,7 +18,7 @@ export const saveChatMessage = async (
 ): Promise<ChatMessage | null> => {
   try {
     const { data, error } = await supabase
-      .from('note_chats')
+      .from('note_chats' as any)
       .insert([{
         user_id: userId,
         note_id: noteId,
@@ -34,7 +34,7 @@ export const saveChatMessage = async (
       throw error;
     }
     
-    return data;
+    return data as ChatMessage;
   } catch (error) {
     console.error("Error saving chat message:", error);
     throw error;
@@ -44,7 +44,7 @@ export const saveChatMessage = async (
 export const getChatHistory = async (userId: string, noteId: string): Promise<ChatMessage[]> => {
   try {
     const { data, error } = await supabase
-      .from('note_chats')
+      .from('note_chats' as any)
       .select('*')
       .eq('user_id', userId)
       .eq('note_id', noteId)
@@ -55,7 +55,7 @@ export const getChatHistory = async (userId: string, noteId: string): Promise<Ch
       throw error;
     }
     
-    return data || [];
+    return (data as ChatMessage[]) || [];
   } catch (error) {
     console.error("Error getting chat history:", error);
     return [];
