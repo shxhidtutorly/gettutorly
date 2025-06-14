@@ -18,15 +18,13 @@ export const createLectureSession = async (userId: string, sessionData: Partial<
   try {
     const { data, error } = await supabase
       .from('lecture_sessions')
-      .insert([{
+      .insert({
         user_id: userId,
         title: sessionData.title || `Lecture ${new Date().toLocaleDateString()}`,
-        start_time: sessionData.start_time || new Date(),
+        start_time: (sessionData.start_time || new Date()).toISOString(),
         transcript: '',
         ai_notes: '',
-        created_at: new Date(),
-        updated_at: new Date(),
-      }])
+      })
       .select('id')
       .single();
 
@@ -40,12 +38,25 @@ export const createLectureSession = async (userId: string, sessionData: Partial<
 
 export const updateLectureSession = async (sessionId: string, updates: Partial<LectureSession>) => {
   try {
+    const updateData: any = { ...updates };
+    
+    // Convert Date objects to ISO strings for Supabase
+    if (updateData.start_time instanceof Date) {
+      updateData.start_time = updateData.start_time.toISOString();
+    }
+    if (updateData.end_time instanceof Date) {
+      updateData.end_time = updateData.end_time.toISOString();
+    }
+    if (updateData.created_at instanceof Date) {
+      updateData.created_at = updateData.created_at.toISOString();
+    }
+    if (updateData.updated_at instanceof Date) {
+      updateData.updated_at = updateData.updated_at.toISOString();
+    }
+
     const { error } = await supabase
       .from('lecture_sessions')
-      .update({
-        ...updates,
-        updated_at: new Date(),
-      })
+      .update(updateData)
       .eq('id', sessionId);
 
     if (error) throw error;
