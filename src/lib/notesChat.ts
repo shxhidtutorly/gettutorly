@@ -34,7 +34,7 @@ export const saveChatMessage = async (
       throw error;
     }
     
-    return data as ChatMessage;
+    return data as unknown as ChatMessage;
   } catch (error) {
     console.error("Error saving chat message:", error);
     throw error;
@@ -55,7 +55,7 @@ export const getChatHistory = async (userId: string, noteId: string): Promise<Ch
       throw error;
     }
     
-    return (data as ChatMessage[]) || [];
+    return (data as unknown as ChatMessage[]) || [];
   } catch (error) {
     console.error("Error getting chat history:", error);
     return [];

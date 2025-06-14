@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -151,6 +150,11 @@ const App = () => (
               } />
               <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
               
+              <Route path="/notes-chat/:noteId" element={
+                <ProtectedRoute>
+                  <NotesChatPage />
+                </ProtectedRoute>
+              } />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/support" element={<Support />} />
               <Route path="/cancellation" element={<Cancellation />} />

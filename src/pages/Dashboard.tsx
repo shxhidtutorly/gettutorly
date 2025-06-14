@@ -156,7 +156,7 @@ const Dashboard = () => {
       title: "Notes Chat",
       desc: "Chat with your uploaded notes",
       icon: <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-green-400 mx-auto mb-2" />,
-      route: "/ai-notes"
+      route: "/notes-chat/sample-note"
     },
     {
       title: "Summarize",
