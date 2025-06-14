@@ -1,15 +1,16 @@
-import { BookOpenIcon, InstagramIcon } from "lucide-react";
+
+import { InstagramIcon } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
 import { Separator } from "@/components/ui/separator";
+import Logo from "@/components/ui/Logo";
 
 const Footer = () => {
   return (
     <footer className="bg-white border-t border-spark-light py-6 dark:bg-card dark:border-muted">
       <div className="container">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <BookOpenIcon className="h-5 w-5 text-spark-primary" />
-            <span className="text-lg font-bold dark:text-white">Tutorly</span>
+          <div className="mb-4 md:mb-0">
+            <Logo size="md" />
           </div>
           <div className="flex items-center gap-6">
             <a
@@ -18,7 +19,7 @@ const Footer = () => {
             >
               Help
             </a>
-            <a href="/privacy" className="text-sm text-muted-foreground ...">Privacy</a>
+            <a href="/privacy" className="text-sm text-muted-foreground dark:text-gray-400 hover:text-spark-primary dark:hover:text-spark-primary transition-colors">Privacy</a>
             <a
               href="https://gettutorly.com/terms-of-service"
               target="_blank"

@@ -14,15 +14,16 @@ import {
   Moon,
   Sun,
   Sparkles,
-  SquareStack // <-- REPLACEMENT HERE
+  SquareStack
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/ThemeContext";
+import Logo from "@/components/ui/Logo";
 
 const navbarLinks = [
   { href: "/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
-  { href: "/flashcards", icon: <SquareStack className="h-4 w-4" />, label: "Flashcards" }, // <-- REPLACEMENT HERE
+  { href: "/flashcards", icon: <SquareStack className="h-4 w-4" />, label: "Flashcards" },
   { href: "/study-plans", icon: <CalendarDays className="h-4 w-4" />, label: "Study Plans" },
   { href: "/progress", icon: <BarChart3 className="h-4 w-4" />, label: "Progress" },
   { href: "/ai-assistant", icon: <Sparkles className="h-4 w-4" />, label: "AI Assistant" }
@@ -58,8 +59,8 @@ const Navbar = () => {
     >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center gap-2 hover-lift" aria-label="Home">
-            <span className="text-xl font-bold dark:text-foreground">Tutorly</span>
+          <Link to="/" className="hover-lift" aria-label="Home">
+            <Logo size="md" />
           </Link>
           {!isLandingPage && (
             <nav className="hidden md:flex items-center gap-6 ml-6">
