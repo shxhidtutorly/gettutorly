@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +24,8 @@ import {
   CheckCircle,
   Calculator,
   Sparkles,
-  StickyNote
+  StickyNote,
+  Crown
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
@@ -74,6 +74,11 @@ const Dashboard = () => {
     if (currentUser?.email) return currentUser.email.split('@')[0];
     return 'User';
   };
+
+  // Check subscription status
+  const subscriptionStatus = currentUser?.profile?.subscription_status;
+  const subscriptionPlan = currentUser?.profile?.subscription_plan;
+  const hasActiveSubscription = subscriptionStatus === 'active';
 
   // Show loading state while authentication is being checked
   if (loading) {
@@ -200,17 +205,46 @@ const Dashboard = () => {
       <main className="flex-1 py-4 md:py-8 px-2 md:px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
 
-          {/* Welcome Section */}
+          {/* Welcome Section with Subscription Status */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
             className="mb-6 md:mb-8"
           >
-            <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
-              Welcome back, {getUserDisplayName()}! <span className="animate-waving-hand text-2xl origin-bottom">👋</span>
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base">Here's your learning progress overview</p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
+                  Welcome back, {getUserDisplayName()}! <span className="animate-waving-hand text-2xl origin-bottom">👋</span>
+                </h1>
+                <p className="text-muted-foreground text-sm md:text-base">Here's your learning progress overview</p>
+              </div>
+              
+              {/* Subscription Status */}
+              <div className="flex flex-col items-start md:items-end gap-2">
+                {hasActiveSubscription ? (
+                  <div className="flex items-center gap-2">
+                    <Crown className="h-5 w-5 text-yellow-400" />
+                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0">
+                      {subscriptionPlan} Plan
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Badge variant="outline" className="text-gray-400 border-gray-600">
+                      No Active Subscription
+                    </Badge>
+                    <Button 
+                      size="sm" 
+                      onClick={() => navigate('/pricing')}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                    >
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
 
           {/* Study Streak */}
