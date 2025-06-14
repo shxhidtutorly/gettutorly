@@ -1,13 +1,16 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Sparkles, Loader2, ExternalLink } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Sparkles, Loader2, ExternalLink, MessageCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { AINote, generateFlashcardsAI, Flashcard } from "@/lib/aiNotesService";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm"; // For tables, strikethrough, task lists, etc.
+import remarkGfm from "remark-gfm";
+import NotesChat from "./NotesChat";
 
 interface NotesDisplayProps {
   note: AINote;
@@ -44,70 +47,98 @@ const NotesDisplay = ({ note, onFlashcardsGenerated }: NotesDisplayProps) => {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              {note.title}
-            </CardTitle>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="secondary">{note.filename}</Badge>
-              <span>•</span>
-              <span>{new Date(note.timestamp).toLocaleDateString()}</span>
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                {note.title}
+              </CardTitle>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Badge variant="secondary">{note.filename}</Badge>
+                <span>•</span>
+                <span>{new Date(note.timestamp).toLocaleDateString()}</span>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            {!flashcardsGenerated && (
-              <Button 
-                onClick={handleGenerateFlashcards}
-                disabled={isGeneratingFlashcards}
-                className="flex items-center gap-2"
-              >
-                {isGeneratingFlashcards ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Generate Flashcards
-                  </>
-                )}
-              </Button>
-            )}
-            {flashcardsGenerated && (
-              <div className="text-center">
-                <Badge variant="default" className="mb-2">
-                  ✅ Flashcards Generated
-                </Badge>
+            <div className="flex flex-col gap-2">
+              {!flashcardsGenerated && (
                 <Button 
-                  asChild 
-                  variant="outline" 
-                  size="sm"
+                  onClick={handleGenerateFlashcards}
+                  disabled={isGeneratingFlashcards}
                   className="flex items-center gap-2"
                 >
-                  <a href="/flashcards">
-                    View Flashcards
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  {isGeneratingFlashcards ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate Flashcards
+                    </>
+                  )}
                 </Button>
-              </div>
-            )}
+              )}
+              {flashcardsGenerated && (
+                <div className="text-center">
+                  <Badge variant="default" className="mb-2">
+                    ✅ Flashcards Generated
+                  </Badge>
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <a href="/flashcards">
+                      View Flashcards
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <Separator />
-      <CardContent className="p-6">
-        <div className="prose prose-gray dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {note.content}
-          </ReactMarkdown>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+      </Card>
+
+      <Tabs defaultValue="notes" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="notes" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Notes
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            Chat with Notes
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="notes">
+          <Card>
+            <Separator />
+            <CardContent className="p-6">
+              <div className="prose prose-gray dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {note.content}
+                </ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="chat">
+          <NotesChat 
+            noteId={note.id || `note-${Date.now()}`}
+            noteContent={note.content}
+            noteTitle={note.title}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

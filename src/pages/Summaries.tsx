@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -8,6 +9,7 @@ import { Upload, FileText, Loader2, Moon, Sun, Sparkles, ArrowLeft } from "lucid
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
 import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
+import { useToast } from "@/components/ui/use-toast";
 import * as pdfjsLib from "pdfjs-dist";
 
 // Helper function to strip first Markdown heading
@@ -34,6 +36,7 @@ export default function Summaries() {
   const [showSummaryAnim, setShowSummaryAnim] = useState(false);
 
   const { trackSummaryGeneration, endSession, startSession } = useStudyTracking();
+  const { toast } = useToast();
 
   // Initialize dark mode from localStorage or system preference
   useEffect(() => {
@@ -102,65 +105,112 @@ export default function Summaries() {
     }
   };
 
-  const generateAISummary = async () => {
-if (!aiDemoText.trim()) {
-toast({
-title: "Please enter some text",
-description: "Add some content to summarize"
-});
-return;
-}
+  const generateSummary = async () => {
+    if (!extractedText.trim()) {
+      toast({
+        title: "No content to summarize",
+        description: "Please upload a valid PDF file first.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-setAiDemoResult("Generating summary...");  
+    setIsProcessing(true);
+    setProgress(85);
 
-// Simulate AI response  
-setTimeout(() => {  
-  setAiDemoResult(`📝 **AI Summary**: This text discusses ${aiDemoText.split(' ').slice(0, 3).join(' ')}... Key points include the main concepts and important details that enhance understanding and retention.`);  
-}, 2000);
+    try {
+      // Call your existing AI summary API
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: extractedText,
+          filename: file?.name || 'document'
+        }),
+      });
 
-};
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
 
-return (
-<div className="min-h-screen flex flex-col bg-background dark:bg-black">
+      const data = await response.json();
+      setSummary(data.summary || data.response);
+      setProgress(100);
+      setShowSummaryAnim(true);
 
+      trackSummaryGeneration();
+      endSession("summary", file?.name || 'document', true);
+
+      toast({
+        title: "Summary generated successfully! 🎉",
+        description: "Your AI-powered summary is ready.",
+      });
+
+      setTimeout(() => setProgress(0), 1000);
+    } catch (error: any) {
+      setError(`❗ Failed to generate summary: ${error.message}`);
+      setProgress(0);
+      endSession("summary", file?.name || 'document', false);
+      toast({
+        variant: "destructive",
+        title: "Error generating summary",
+        description: error.message || "Please try again"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const resetAll = () => {
+    setFile(null);
+    setExtractedText("");
+    setSummary("");
+    setProgress(0);
+    setError("");
+    setShowSummaryAnim(false);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background dark:bg-black">
       <Navbar />
 
-<div className="flex-1 flex flex-col justify-center">
-  <div className="container mx-auto px-4 py-6 pb-32 flex flex-col items-center justify-center min-h-[90vh]">
-    <div className="w-full max-w-4xl flex flex-col flex-1 justify-center">
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="container mx-auto px-4 py-6 pb-32 flex flex-col items-center justify-center min-h-[90vh]">
+          <div className="w-full max-w-4xl flex flex-col flex-1 justify-center">
 
-      {/* Header */}
-      <div className="text-center mb-10 relative">
-        
-        {/* Back button (top-left) */}
-        <div className="absolute top-0 left-0">
-          <BackToDashboardButton size="sm" />
-        </div>
+            {/* Header */}
+            <div className="text-center mb-10 relative">
+              
+              {/* Back button (top-left) */}
+              <div className="absolute top-0 left-0">
+                <BackToDashboardButton size="sm" />
+              </div>
 
-        {/* Toggle Dark Mode Button (top-right) */}
-        <div className="absolute top-0 right-0">
-          <Button
-            onClick={toggleDarkMode}
-            variant="outline"
-            size="sm"
-            className={`transition-all duration-300 shadow-md border-0 ${
-              darkMode
-                ? "bg-[#322778] text-yellow-400"
-                : "bg-gray-900 text-white"
-            }`}
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-        </div>
+              {/* Toggle Dark Mode Button (top-right) */}
+              <div className="absolute top-0 right-0">
+                <Button
+                  onClick={toggleDarkMode}
+                  variant="outline"
+                  size="sm"
+                  className={`transition-all duration-300 shadow-md border-0 ${
+                    darkMode
+                      ? "bg-[#322778] text-yellow-400"
+                      : "bg-gray-900 text-white"
+                  }`}
+                  aria-label="Toggle dark mode"
+                >
+                  {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+              </div>
 
-        {/* Title */}
-        <div className="flex items-center justify-center gap-2 mb-4 pt-12 md:pt-0">
-          <span className="text-3xl md:text-4xl">📚</span>
-          <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight drop-shadow-sm">
-            AI Study Summarizer
-          </h1>
-       
+              {/* Title */}
+              <div className="flex items-center justify-center gap-2 mb-4 pt-12 md:pt-0">
+                <span className="text-3xl md:text-4xl">📚</span>
+                <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight drop-shadow-sm">
+                  AI Study Summarizer
+                </h1>
                 <span className="text-3xl md:text-4xl">✨</span>
               </div>
               <p className="text-md md:text-lg text-gray-400 font-medium flex items-center justify-center gap-2">
