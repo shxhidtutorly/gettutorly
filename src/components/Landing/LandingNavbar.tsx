@@ -71,30 +71,29 @@ const LandingNavbar = () => {
             ))}
           </div>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Desktop CTA - Fixed Layout */}
+          <div className="hidden md:flex items-center justify-end gap-x-4">
             {currentUser ? (
               <Button
                 onClick={() => navigate("/dashboard")}
-                className="bg-white text-purple-700 hover:bg-white/90"
+                className="bg-white text-purple-700 hover:bg-gray-100 transition-all py-2 px-4 rounded-lg text-sm"
               >
                 Dashboard
               </Button>
             ) : (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/signin")}
-                  className="text-white hover:text-purple-300"
+                <Link 
+                  to="/signin" 
+                  className="text-white text-sm hover:underline transition-all"
                 >
-                  Sign In
-                </Button>
-                <Button
-                  onClick={() => navigate("/dashboard")}
-                  className="bg-white text-purple-700 hover:bg-white/90"
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="bg-white text-black text-sm px-4 py-2 rounded-lg hover:bg-gray-100 transition-all"
                 >
-                  Get Started
-                </Button>
+                  Sign Up
+                </Link>
               </>
             )}
           </div>
@@ -126,7 +125,7 @@ const LandingNavbar = () => {
                   {link.name}
                 </button>
               ))}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
                 {currentUser ? (
                   <Button
                     onClick={() => navigate("/dashboard")}
@@ -135,21 +134,20 @@ const LandingNavbar = () => {
                     Dashboard
                   </Button>
                 ) : (
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate("/signin")}
-                      className="w-full"
+                  <>
+                    <Link
+                      to="/signin"
+                      className="block w-full text-center py-2 px-4 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all"
                     >
-                      Sign In
-                    </Button>
-                    <Button
-                      onClick={() => navigate("/dashboard")}
-                      className="w-full bg-purple-600 text-white"
+                      Login
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="block w-full text-center py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all"
                     >
-                      Get Started
-                    </Button>
-                  </div>
+                      Sign Up
+                    </Link>
+                  </>
                 )}
               </div>
             </div>

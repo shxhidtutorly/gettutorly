@@ -30,7 +30,7 @@ const Logo: React.FC<LogoProps> = ({
     <div className={`flex items-center gap-2 ${className}`}>
       <div className="bg-white p-1 rounded-full shadow-md">
         <img
-          src="/src/components/ui/finallogo.png"
+          src="/public/logo.png"
           alt="Tutorly Logo"
           className={`${sizeClasses[size]} rounded-full object-cover`}
         />

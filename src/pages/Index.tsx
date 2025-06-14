@@ -23,13 +23,13 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen scroll-smooth">
       <LandingNavbar />
       <Hero />
+      <StickyFeaturesSection />
       <div id="features">
         <Features />
       </div>
-      <StickyFeaturesSection />
       <PricingSection />
       <FAQSection />
       <LandingFooter />
