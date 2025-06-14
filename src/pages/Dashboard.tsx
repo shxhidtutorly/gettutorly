@@ -25,7 +25,8 @@ import {
   Calculator,
   Sparkles,
   StickyNote,
-  Crown
+  Crown,
+  MessageCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
@@ -137,7 +138,7 @@ const Dashboard = () => {
     },
   ];
 
-  // Study Tools including Summarize
+  // Study Tools including Summarize and Notes Chat
   const studyTools = [
     {
       title: "Math Chat",
@@ -149,6 +150,12 @@ const Dashboard = () => {
       title: "AI Notes",
       desc: "Generate smart notes from files",
       icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      route: "/ai-notes"
+    },
+    {
+      title: "Notes Chat",
+      desc: "Chat with your uploaded notes",
+      icon: <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-green-400 mx-auto mb-2" />,
       route: "/ai-notes"
     },
     {
@@ -396,7 +403,7 @@ const Dashboard = () => {
               <Sparkles className="text-pink-400 animate-pulse h-5 w-5" />
               Study Tools
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
               {studyTools.map((tool, idx) => (
                 <motion.div
                   key={tool.title}

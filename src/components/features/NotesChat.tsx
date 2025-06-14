@@ -9,6 +9,7 @@ import { MessageCircle, Send, Bot, User, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, getChatHistory, saveChatMessage, sendChatMessage } from "@/lib/notesChat";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface NotesChatProps {
   noteId: string;
@@ -123,127 +124,227 @@ const NotesChat = ({ noteId, noteContent, noteTitle }: NotesChatProps) => {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto bg-gradient-to-br from-[#232453] to-[#1a1a2e] border-[#35357a]">
-      <CardHeader className="border-b border-[#35357a]">
-        <CardTitle className="flex items-center gap-2 text-white">
-          <MessageCircle className="w-5 h-5 text-purple-400" />
-          Chat with Your Notes
-          <span className="text-sm font-normal text-gray-300">- {noteTitle}</span>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="p-0">
-        {/* Chat Messages Area */}
-        <ScrollArea className="h-96 p-4" ref={scrollAreaRef}>
-          {isLoadingHistory ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full max-w-4xl mx-auto"
+    >
+      <Card className="bg-gradient-to-br from-[#232453] to-[#1a1a2e] border-[#35357a] shadow-2xl">
+        <CardHeader className="border-b border-[#35357a] bg-gradient-to-r from-purple-600/20 to-blue-600/20">
+          <CardTitle className="flex items-center gap-3 text-white">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            >
+              <MessageCircle className="w-6 h-6 text-purple-400" />
+            </motion.div>
+            <div>
+              <div className="text-lg font-bold">Chat with Your Notes</div>
+              <div className="text-sm font-normal text-gray-300 opacity-80">
+                Ask questions about: {noteTitle}
+              </div>
             </div>
-          ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-center">
-              <Bot className="w-12 h-12 text-purple-400 mb-2" />
-              <p className="text-gray-300 mb-1">Ask your AI tutor anything about these notes!</p>
-              <p className="text-sm text-gray-400">Start a conversation to get personalized help.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={message.id || index}
-                  className={`flex gap-3 ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  } animate-fadeIn`}
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          {/* Chat Messages Area */}
+          <ScrollArea className="h-[500px] p-6" ref={scrollAreaRef}>
+            {isLoadingHistory ? (
+              <motion.div 
+                className="flex items-center justify-center h-32"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <div className="flex space-x-2">
+                  <motion.div
+                    className="w-3 h-3 bg-purple-400 rounded-full"
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.8, delay: 0 }}
+                  />
+                  <motion.div
+                    className="w-3 h-3 bg-purple-400 rounded-full"
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.8, delay: 0.1 }}
+                  />
+                  <motion.div
+                    className="w-3 h-3 bg-purple-400 rounded-full"
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }}
+                  />
+                </div>
+              </motion.div>
+            ) : messages.length === 0 ? (
+              <motion.div 
+                className="flex flex-col items-center justify-center h-32 text-center"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="mb-4"
                 >
-                  {message.role === 'assistant' && (
-                    <Avatar className="w-8 h-8 bg-purple-600">
-                      <AvatarFallback>
-                        <Bot className="w-4 h-4 text-white" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  
-                  <div
-                    className={`max-w-[70%] rounded-lg px-3 py-2 ${
-                      message.role === 'user'
-                        ? 'bg-purple-600 text-white ml-auto'
-                        : 'bg-[#2a2a3e] text-gray-100 border border-[#35357a]'
-                    } shadow-lg`}
+                  <Bot className="w-16 h-16 text-purple-400" />
+                </motion.div>
+                <p className="text-gray-300 mb-2 text-lg font-medium">Ask your AI tutor anything about these notes!</p>
+                <p className="text-sm text-gray-400">Start a conversation to get personalized help and explanations.</p>
+              </motion.div>
+            ) : (
+              <div className="space-y-6">
+                <AnimatePresence>
+                  {messages.map((message, index) => (
+                    <motion.div
+                      key={message.id || index}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className={`flex gap-4 ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      {message.role === 'assistant' && (
+                        <motion.div
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Avatar className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-800 shadow-lg">
+                            <AvatarFallback>
+                              <Bot className="w-5 h-5 text-white" />
+                            </AvatarFallback>
+                          </Avatar>
+                        </motion.div>
+                      )}
+                      
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                          message.role === 'user'
+                            ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white ml-auto shadow-lg shadow-purple-500/25'
+                            : 'bg-[#2a2a3e] text-gray-100 border border-[#35357a] shadow-lg shadow-black/20'
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">
+                          {message.message}
+                        </p>
+                        <p className={`text-xs ${
+                          message.role === 'user' ? 'text-purple-200' : 'text-gray-400'
+                        }`}>
+                          {formatTimestamp(message.created_at)}
+                        </p>
+                      </motion.div>
+                      
+                      {message.role === 'user' && (
+                        <motion.div
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Avatar className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 shadow-lg">
+                            <AvatarFallback>
+                              <User className="w-5 h-5 text-white" />
+                            </AvatarFallback>
+                          </Avatar>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                
+                {/* Loading indicator for AI response */}
+                {isLoading && (
+                  <motion.div 
+                    className="flex gap-4 justify-start"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                   >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {message.message}
-                    </p>
-                    <p className={`text-xs mt-1 ${
-                      message.role === 'user' ? 'text-purple-200' : 'text-gray-400'
-                    }`}>
-                      {formatTimestamp(message.created_at)}
-                    </p>
-                  </div>
-                  
-                  {message.role === 'user' && (
-                    <Avatar className="w-8 h-8 bg-blue-600">
+                    <Avatar className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-800 shadow-lg">
                       <AvatarFallback>
-                        <User className="w-4 h-4 text-white" />
+                        <Bot className="w-5 h-5 text-white" />
                       </AvatarFallback>
                     </Avatar>
-                  )}
-                </div>
-              ))}
-              
-              {/* Loading indicator for AI response */}
-              {isLoading && (
-                <div className="flex gap-3 justify-start animate-fadeIn">
-                  <Avatar className="w-8 h-8 bg-purple-600">
-                    <AvatarFallback>
-                      <Bot className="w-4 h-4 text-white" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="bg-[#2a2a3e] border border-[#35357a] rounded-lg px-3 py-2 shadow-lg">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="bg-[#2a2a3e] border border-[#35357a] rounded-2xl px-4 py-3 shadow-lg">
+                      <div className="flex space-x-2">
+                        <motion.div
+                          className="w-2 h-2 bg-purple-400 rounded-full"
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
+                        />
+                        <motion.div
+                          className="w-2 h-2 bg-purple-400 rounded-full"
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 0.6, delay: 0.1 }}
+                        />
+                        <motion.div
+                          className="w-2 h-2 bg-purple-400 rounded-full"
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </ScrollArea>
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </ScrollArea>
 
-        {/* Input Area */}
-        <div className="border-t border-[#35357a] p-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Ask a question about your notes..."
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={isLoading}
-              className="flex-1 bg-[#2a2a3e] border-[#35357a] text-white placeholder-gray-400 focus:border-purple-400"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={isLoading || !inputMessage.trim()}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+          {/* Input Area */}
+          <motion.div 
+            className="border-t border-[#35357a] p-6 bg-gradient-to-r from-[#1a1a2e]/50 to-[#232453]/50"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex gap-3 mb-4">
+              <Input
+                placeholder="Ask a question about your notes..."
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+                className="flex-1 bg-[#2a2a3e] border-[#35357a] text-white placeholder-gray-400 focus:border-purple-400 focus:ring-purple-400/25 rounded-xl h-12 px-4 shadow-inner"
+              />
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={isLoading || !inputMessage.trim()}
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white h-12 px-6 rounded-xl shadow-lg transition-all duration-200"
+                >
+                  <Send className="w-5 h-5" />
+                </Button>
+              </motion.div>
+            </div>
+            
+            {/* Bonus: Generate Flashcards Button */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="pt-3 border-t border-[#35357a]/50"
             >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-          
-          {/* Bonus: Generate Flashcards Button */}
-          <div className="mt-3 pt-3 border-t border-[#35357a]/50">
-            <Button
-              variant="outline"
-              className="w-full bg-transparent border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white transition-all duration-200"
-              disabled
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Generate Flashcards from this Chat (Coming Soon)
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent border-purple-400/50 text-purple-400 hover:bg-purple-400/10 hover:border-purple-400 hover:text-purple-300 transition-all duration-200 rounded-xl h-10"
+                  disabled
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Flashcards from this Chat (Coming Soon)
+                </Button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 

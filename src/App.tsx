@@ -30,6 +30,7 @@ import MathChat from "./pages/MathChat";
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
 import Pricing from "./pages/Pricing";
+import NotesChatPage from "./pages/NotesChat";
 import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
