@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,7 +19,7 @@ const logDetailedError = (operation: string, userId: string, error: any) => {
 };
 
 // Helper function to convert Clerk user ID to UUID
-const convertClerkIdToUuid = (clerkId: string): string => {
+export const convertClerkIdToUuid = (clerkId: string): string => {
   // If it's already a UUID, return it
   if (isValidUUID(clerkId)) {
     return clerkId;

@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { convertClerkIdToUuid } from './supabaseAuth';
 
 export interface ChatMessage {
   id: string;
@@ -11,14 +12,15 @@ export interface ChatMessage {
 }
 
 export const saveChatMessage = async (
-  userId: string, 
+  clerkUserId: string, 
   noteId: string, 
   role: 'user' | 'assistant', 
   message: string
 ): Promise<ChatMessage | null> => {
   try {
+    const userId = convertClerkIdToUuid(clerkUserId);
     const { data, error } = await supabase
-      .from('note_chats' as any)
+      .from('note_chats')
       .insert([{
         user_id: userId,
         note_id: noteId,
@@ -34,17 +36,18 @@ export const saveChatMessage = async (
       throw error;
     }
     
-    return data as unknown as ChatMessage;
+    return data as ChatMessage;
   } catch (error) {
     console.error("Error saving chat message:", error);
     throw error;
   }
 };
 
-export const getChatHistory = async (userId: string, noteId: string): Promise<ChatMessage[]> => {
+export const getChatHistory = async (clerkUserId: string, noteId: string): Promise<ChatMessage[]> => {
   try {
+    const userId = convertClerkIdToUuid(clerkUserId);
     const { data, error } = await supabase
-      .from('note_chats' as any)
+      .from('note_chats')
       .select('*')
       .eq('user_id', userId)
       .eq('note_id', noteId)
@@ -55,7 +58,7 @@ export const getChatHistory = async (userId: string, noteId: string): Promise<Ch
       throw error;
     }
     
-    return (data as unknown as ChatMessage[]) || [];
+    return (data as ChatMessage[]) || [];
   } catch (error) {
     console.error("Error getting chat history:", error);
     return [];
