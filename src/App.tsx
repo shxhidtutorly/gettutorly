@@ -1,174 +1,185 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+
+import { Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ThemeProvider } from "./contexts/ThemeContext";
-import { AuthProvider } from "./contexts/AuthContext";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Library from "./pages/Library";
-import StudyPlans from "./pages/StudyPlans";
-import Progress from "./pages/Progress";
-import Profile from "./pages/Profile";
-import NotFound from "./pages/NotFound";
-import Chat from "./pages/Chat";
-import Flashcards from "./pages/Flashcards";
-import Quiz from "./pages/Quiz";
-import Summaries from "./pages/Summaries";
-import MicroLessons from "./pages/MicroLessons";
-import AIAssistant from "./pages/AIAssistant";
-import StudyTechniques from "./pages/StudyTechniques";
-import TermsOfService from "./pages/terms-of-service";
-import Support from "./pages/Support";
-import Cancellation from "./pages/Cancellation";
-import Privacy from "./pages/Privacy";
-import AINotesGenerator from "./pages/AINotesGenerator";
-import AudioNotes from "./pages/AudioNotes";
-import MathChat from "./pages/MathChat";
-import SignInPage from "./pages/SignIn";
-import SignUpPage from "./pages/SignUp";
-import Pricing from "./pages/Pricing";
-import NotesChatPage from "./pages/NotesChat";
-import "./css/animations.css";
-import "./css/darkMode.css";
-import "./css/mobile.css";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import DoubtChain from "./pages/DoubtChain";
-import DoubtBookmarks from "./pages/DoubtBookmarks";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
-// Create a new QueryClient instance
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// Import pages
+import Index from "@/pages/Index";
+import About from "@/pages/About";
+import FAQ from "@/pages/FAQ";
+import SignIn from "@/pages/SignIn";
+import SignUp from "@/pages/SignUp";
+import Dashboard from "@/pages/Dashboard";
+import AINotesGenerator from "@/pages/AINotesGenerator";
+import AudioNotes from "@/pages/AudioNotes";
+import Flashcards from "@/pages/Flashcards";
+import StudyPlans from "@/pages/StudyPlans";
+import Progress from "@/pages/Progress";
+import AIAssistant from "@/pages/AIAssistant";
+import MathChat from "@/pages/MathChat";
+import Chat from "@/pages/Chat";
+import NotesChat from "@/pages/NotesChat";
+import Quiz from "@/pages/Quiz";
+import Summaries from "@/pages/Summaries";
+import Library from "@/pages/Library";
+import Profile from "@/pages/Profile";
+import Pricing from "@/pages/Pricing";
+import Privacy from "@/pages/Privacy";
+import Support from "@/pages/Support";
+import StudyTechniques from "@/pages/StudyTechniques";
+import MicroLessons from "@/pages/MicroLessons";
+import DoubtChain from "@/pages/DoubtChain";
+import DoubtBookmarks from "@/pages/DoubtBookmarks";
+import TermsOfService from "@/pages/terms-of-service";
+import Cancellation from "@/pages/Cancellation";
+import NotFound from "@/pages/NotFound";
 
-// Document title update
-document.title = "Tutorly - Smart Learning Platform";
+import "./App.css";
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <BrowserRouter>
+const queryClient = new QueryClient();
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="tutorly-theme">
+        <AuthProvider>
+          <div className="min-h-screen bg-background">
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Index />} />
-              <Route path="/signin" element={<SignInPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/cancellation" element={<Cancellation />} />
+              
+              {/* Auth routes */}
+              <Route path="/signin" element={<SignIn />} />
+              <Route path="/signup" element={<SignUp />} />
+              
+              {/* Protected routes */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
               } />
-              <Route path="/home" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/landing" element={<Index />} />
-              <Route path="/library" element={
-                <ProtectedRoute>
-                  <Library />
-                </ProtectedRoute>
-              } />
+              
               <Route path="/ai-notes" element={
                 <ProtectedRoute>
                   <AINotesGenerator />
                 </ProtectedRoute>
               } />
+              
               <Route path="/audio-notes" element={
                 <ProtectedRoute>
                   <AudioNotes />
                 </ProtectedRoute>
               } />
-              <Route path="/math-chat" element={
-                <ProtectedRoute>
-                  <MathChat />
-                </ProtectedRoute>
-              } />
-              <Route path="/study-plans" element={
-                <ProtectedRoute>
-                  <StudyPlans />
-                </ProtectedRoute>
-              } />
-              <Route path="/progress" element={
-                <ProtectedRoute>
-                  <Progress />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/chat" element={
-                <ProtectedRoute>
-                  <Chat />
-                </ProtectedRoute>
-              } />
-              <Route path="/ai-assistant" element={
-                <ProtectedRoute>
-                  <AIAssistant />
-                </ProtectedRoute>
-              } />
+              
               <Route path="/flashcards" element={
                 <ProtectedRoute>
                   <Flashcards />
                 </ProtectedRoute>
               } />
+              
+              <Route path="/study-plans" element={
+                <ProtectedRoute>
+                  <StudyPlans />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/progress" element={
+                <ProtectedRoute>
+                  <Progress />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/ai-assistant" element={
+                <ProtectedRoute>
+                  <AIAssistant />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/math-chat" element={
+                <ProtectedRoute>
+                  <MathChat />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/chat" element={
+                <ProtectedRoute>
+                  <Chat />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/notes-chat" element={
+                <ProtectedRoute>
+                  <NotesChat />
+                </ProtectedRoute>
+              } />
+              
               <Route path="/quiz" element={
                 <ProtectedRoute>
                   <Quiz />
                 </ProtectedRoute>
               } />
+              
               <Route path="/summaries" element={
                 <ProtectedRoute>
                   <Summaries />
                 </ProtectedRoute>
               } />
-              <Route path="/micro-lessons" element={
+              
+              <Route path="/library" element={
                 <ProtectedRoute>
-                  <MicroLessons />
+                  <Library />
                 </ProtectedRoute>
               } />
+              
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              
               <Route path="/study-techniques" element={
                 <ProtectedRoute>
                   <StudyTechniques />
                 </ProtectedRoute>
               } />
+              
+              <Route path="/micro-lessons" element={
+                <ProtectedRoute>
+                  <MicroLessons />
+                </ProtectedRoute>
+              } />
+              
               <Route path="/doubt-chain" element={
                 <ProtectedRoute>
                   <DoubtChain />
                 </ProtectedRoute>
               } />
+              
               <Route path="/doubt-bookmarks" element={
                 <ProtectedRoute>
                   <DoubtBookmarks />
                 </ProtectedRoute>
               } />
-              <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
               
-              <Route path="/notes-chat/:noteId" element={
-                <ProtectedRoute>
-                  <NotesChatPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/cancellation" element={<Cancellation />} />
-              <Route path="/Privacy" element={<Privacy />} />
-
+              {/* 404 route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+            <Toaster />
+          </div>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
