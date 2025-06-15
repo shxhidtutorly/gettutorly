@@ -20,14 +20,10 @@ import {
   X,
   Calendar,
   BarChart3,
-  Settings,
-  Award,
-  Star,
-  CheckCircle2
+  Settings
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import CountUp from "react-countup";
 
 interface StudyStats {
   totalStudyTime?: number;
@@ -43,17 +39,18 @@ const TutorlyDashboard = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [studyStats, setStudyStats] = useState<StudyStats>({
-    totalStudyTime: 124,
-    completedMaterials: 12,
-    totalMaterials: 18,
-    averageScore: 87,
-    streak: 7,
-    notesCreated: 23,
-    quizzesCompleted: 15
+    totalStudyTime: 0,
+    completedMaterials: 0,
+    totalMaterials: 0,
+    averageScore: 0,
+    streak: 0,
+    notesCreated: 0,
+    quizzesCompleted: 0
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    // Load stats from localStorage or API
     const savedStats = localStorage.getItem('tutorly-study-stats');
     if (savedStats) {
       setStudyStats(JSON.parse(savedStats));
@@ -79,16 +76,14 @@ const TutorlyDashboard = () => {
       title: "AI Notes Generator",
       description: "Transform any content into smart study notes",
       icon: FileText,
-      color: "from-blue-500 to-indigo-600",
-      bgGlow: "group-hover:shadow-blue-500/25",
+      color: "from-blue-500 to-purple-600",
       path: "/ai-notes-generator"
     },
     {
       title: "Smart Flashcards",
       description: "Create and review AI-powered flashcards",
       icon: Brain,
-      color: "from-emerald-500 to-teal-600",
-      bgGlow: "group-hover:shadow-emerald-500/25",
+      color: "from-green-500 to-blue-500",
       path: "/flashcards"
     },
     {
@@ -96,7 +91,6 @@ const TutorlyDashboard = () => {
       description: "Test your knowledge with adaptive quizzes",
       icon: Target,
       color: "from-orange-500 to-red-500",
-      bgGlow: "group-hover:shadow-orange-500/25",
       path: "/quiz"
     },
     {
@@ -104,7 +98,6 @@ const TutorlyDashboard = () => {
       description: "Track your learning journey",
       icon: TrendingUp,
       color: "from-purple-500 to-pink-500",
-      bgGlow: "group-hover:shadow-purple-500/25",
       path: "/progress"
     },
     {
@@ -112,7 +105,6 @@ const TutorlyDashboard = () => {
       description: "Get instant help with any subject",
       icon: MessageCircle,
       color: "from-cyan-500 to-blue-500",
-      bgGlow: "group-hover:shadow-cyan-500/25",
       path: "/dashboard"
     },
     {
@@ -120,52 +112,12 @@ const TutorlyDashboard = () => {
       description: "Personalized learning schedules",
       icon: Calendar,
       color: "from-indigo-500 to-purple-500",
-      bgGlow: "group-hover:shadow-indigo-500/25",
       path: "/study-plans"
     }
   ];
 
-  const statCards = [
-    {
-      title: "Study Time",
-      value: formatStudyTime(studyStats.totalStudyTime || 0),
-      icon: Clock,
-      color: "from-purple-500 to-purple-600",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20",
-      borderColor: "border-purple-200 dark:border-purple-800",
-      textColor: "text-purple-600 dark:text-purple-400"
-    },
-    {
-      title: "Materials",
-      value: `${studyStats.completedMaterials || 0}/${studyStats.totalMaterials || 0}`,
-      icon: BookOpen,
-      color: "from-blue-500 to-blue-600",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
-      borderColor: "border-blue-200 dark:border-blue-800",
-      textColor: "text-blue-600 dark:text-blue-400"
-    },
-    {
-      title: "Quizzes",
-      value: studyStats.quizzesCompleted || 0,
-      icon: Target,
-      color: "from-emerald-500 to-emerald-600",
-      bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-      borderColor: "border-emerald-200 dark:border-emerald-800",
-      textColor: "text-emerald-600 dark:text-emerald-400"
-    },
-    {
-      title: "Streak",
-      value: `${studyStats.streak || 0} days`,
-      icon: Zap,
-      color: "from-orange-500 to-orange-600",
-      bgColor: "bg-orange-50 dark:bg-orange-900/20",
-      borderColor: "border-orange-200 dark:border-orange-800",
-      textColor: "text-orange-600 dark:text-orange-400"
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 text-white overflow-hidden">
       <Navbar />
       
       {/* Mobile Sidebar Overlay */}
@@ -176,47 +128,44 @@ const TutorlyDashboard = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/50 z-40"
           />
         )}
       </AnimatePresence>
 
       <div className="flex h-[calc(100vh-80px)] overflow-hidden">
-        {/* Enhanced Sidebar */}
+        {/* Sidebar */}
         <AnimatePresence>
           {(sidebarOpen || !isMobile) && (
             <motion.aside
               initial={isMobile ? { x: -300 } : { x: 0 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.3 }}
               className={`${
                 isMobile ? "fixed top-0 left-0 h-full z-50 w-80" : "relative w-80"
-              } bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col shadow-xl`}
+              } bg-slate-800/70 backdrop-blur-sm border-r border-slate-700/50 flex flex-col shadow-2xl`}
             >
               {/* Sidebar Header */}
-              <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50">
+              <div className="p-6 border-b border-slate-700/50">
                 <div className="flex items-center justify-between">
-                  <motion.div 
-                    className="flex items-center space-x-3"
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
                       <Brain className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                      <h2 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
                         Dashboard
                       </h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Welcome back!</p>
+                      <p className="text-xs text-gray-400">Welcome back!</p>
                     </div>
-                  </motion.div>
+                  </div>
                   {isMobile && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setSidebarOpen(false)}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      className="text-gray-400 hover:text-white"
                     >
                       <X className="w-5 h-5" />
                     </Button>
@@ -224,12 +173,9 @@ const TutorlyDashboard = () => {
                 </div>
               </div>
 
-              {/* Navigation */}
+              {/* Quick Navigation */}
               <div className="flex-1 p-4 overflow-y-auto">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 mb-3">
-                    Quick Actions
-                  </p>
+                <nav className="space-y-2">
                   {quickActions.map((action, index) => (
                     <motion.button
                       key={action.title}
@@ -239,26 +185,26 @@ const TutorlyDashboard = () => {
                       }}
                       whileHover={{ scale: 1.02, x: 4 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center space-x-3 px-3 py-3 rounded-xl transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 group"
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-gray-300 hover:text-white hover:bg-slate-700/50 group border border-transparent hover:border-slate-600/50"
                     >
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm`}>
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
                         <action.icon className="w-4 h-4 text-white" />
                       </div>
                       <div className="text-left flex-1">
                         <p className="text-sm font-medium">{action.title}</p>
-                        <p className="text-xs text-slate-400 truncate">{action.description}</p>
+                        <p className="text-xs text-gray-500 truncate">{action.description}</p>
                       </div>
                     </motion.button>
                   ))}
-                </div>
+                </nav>
               </div>
 
               {/* Sidebar Footer */}
-              <div className="p-4 border-t border-slate-200/50 dark:border-slate-700/50">
+              <div className="p-4 border-t border-slate-700/50">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                  className="w-full justify-start text-gray-400 hover:text-white"
                   onClick={() => navigate("/settings")}
                 >
                   <Settings className="w-4 h-4 mr-2" />
@@ -286,181 +232,134 @@ const TutorlyDashboard = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setSidebarOpen(true)}
-                      className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      className="text-gray-400 hover:text-white"
                     >
                       <Menu className="w-5 h-5" />
                     </Button>
                   )}
                   <div>
-                    <motion.h1 
-                      className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 via-purple-800 to-blue-800 dark:from-white dark:via-purple-300 dark:to-blue-300 bg-clip-text text-transparent mb-2"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                    >
+                    <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-blue-400 bg-clip-text text-transparent mb-2">
                       Welcome to Tutorly
-                    </motion.h1>
-                    <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl">
+                    </h1>
+                    <p className="text-lg text-gray-300 max-w-2xl">
                       Your AI-powered learning companion. Track progress, generate notes, and master any subject.
                     </p>
                   </div>
                 </div>
-                <motion.div 
-                  className="flex gap-3"
-                  whileHover={{ scale: 1.02 }}
-                >
+                <div className="flex gap-3">
                   <Button
                     onClick={() => navigate("/pricing")}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl"
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-6 py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl"
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
                     Upgrade to Pro
                   </Button>
-                </motion.div>
+                </div>
               </div>
             </motion.div>
 
-            {/* Enhanced Stats Overview */}
+            {/* Stats Overview */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8"
             >
-              {statCards.map((stat, index) => (
-                <motion.div
-                  key={stat.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1 * index }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className="group"
-                >
-                  <Card className={`${stat.bgColor} ${stat.borderColor} border-2 hover:shadow-lg transition-all duration-300 rounded-2xl backdrop-blur-sm`}>
-                    <CardContent className="p-4 lg:p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <p className="text-slate-600 dark:text-slate-400 text-xs lg:text-sm font-medium uppercase tracking-wide">
-                            {stat.title}
-                          </p>
-                          <motion.p 
-                            className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.3 + index * 0.1, type: "spring" }}
-                          >
-                            {typeof stat.value === 'number' ? (
-                              <CountUp end={stat.value} duration={2} />
-                            ) : (
-                              stat.value
-                            )}
-                          </motion.p>
-                        </div>
-                        <motion.div 
-                          className={`w-12 lg:w-14 h-12 lg:h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
-                          whileHover={{ rotate: 5 }}
-                        >
-                          <stat.icon className="w-6 lg:w-7 h-6 lg:h-7 text-white" />
-                        </motion.div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-400 text-xs lg:text-sm font-medium">Study Time</p>
+                      <p className="text-lg lg:text-2xl font-bold text-white">
+                        {formatStudyTime(studyStats.totalStudyTime || 0)}
+                      </p>
+                    </div>
+                    <Clock className="w-6 lg:w-8 h-6 lg:h-8 text-purple-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-blue-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-400 text-xs lg:text-sm font-medium">Materials</p>
+                      <p className="text-lg lg:text-2xl font-bold text-white">
+                        {studyStats.completedMaterials || 0}/{studyStats.totalMaterials || 0}
+                      </p>
+                    </div>
+                    <BookOpen className="w-6 lg:w-8 h-6 lg:h-8 text-blue-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-green-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-400 text-xs lg:text-sm font-medium">Quizzes</p>
+                      <p className="text-lg lg:text-2xl font-bold text-white">
+                        {studyStats.quizzesCompleted || 0}
+                      </p>
+                    </div>
+                    <Target className="w-6 lg:w-8 h-6 lg:h-8 text-green-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-400 text-xs lg:text-sm font-medium">Streak</p>
+                      <p className="text-lg lg:text-2xl font-bold text-white">
+                        {studyStats.streak || 0} days
+                      </p>
+                    </div>
+                    <Zap className="w-6 lg:w-8 h-6 lg:h-8 text-orange-400" />
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
 
-            {/* Enhanced Progress Section */}
+            {/* Progress Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               className="mb-8"
             >
-              <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 rounded-2xl shadow-xl">
+              <Card className="bg-slate-800/50 border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-3 text-slate-900 dark:text-white text-lg lg:text-xl">
-                    <motion.div 
-                      className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center"
-                      whileHover={{ rotate: 5, scale: 1.1 }}
-                    >
-                      <BarChart3 className="w-5 h-5 text-white" />
-                    </motion.div>
+                  <CardTitle className="flex items-center gap-2 text-white text-lg lg:text-xl">
+                    <BarChart3 className="w-5 lg:w-6 h-5 lg:h-6 text-purple-400" />
                     Learning Progress
-                    {getProgressPercentage() > 50 && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.5, type: "spring" }}
-                      >
-                        <Award className="w-5 h-5 text-yellow-500" />
-                      </motion.div>
-                    )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-600 dark:text-slate-300 text-sm lg:text-base font-medium">Overall Completion</span>
-                    <div className="flex items-center gap-2">
-                      <motion.span 
-                        className="text-slate-900 dark:text-white font-bold text-sm lg:text-base"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.4 }}
-                      >
-                        <CountUp end={getProgressPercentage()} duration={2} />%
-                      </motion.span>
-                      {getProgressPercentage() > 75 && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 1 }}
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        </motion.div>
-                      )}
-                    </div>
+                    <span className="text-gray-300 text-sm lg:text-base">Overall Completion</span>
+                    <span className="text-white font-semibold text-sm lg:text-base">{getProgressPercentage()}%</span>
                   </div>
-                  <div className="relative">
-                    <Progress 
-                      value={getProgressPercentage()} 
-                      className="h-3 lg:h-4 bg-slate-200 dark:bg-slate-700" 
-                    />
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${getProgressPercentage()}%` }}
-                      transition={{ duration: 2, ease: "easeOut" }}
-                      style={{ height: '100%' }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs lg:text-sm text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Star className="w-3 h-3 text-yellow-500" />
-                      Keep going! You're making great progress.
-                    </span>
+                  <Progress value={getProgressPercentage()} className="h-2 lg:h-3" />
+                  <div className="flex justify-between text-xs lg:text-sm text-gray-400">
+                    <span>Keep going! You're making great progress.</span>
                     <span>{studyStats.completedMaterials || 0} completed</span>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Enhanced Quick Actions Grid */}
+            {/* Quick Actions Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <div className="flex items-center gap-3 mb-6">
-                <motion.div 
-                  className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center"
-                  whileHover={{ rotate: 5 }}
-                >
-                  <Sparkles className="w-4 h-4 text-white" />
-                </motion.div>
-                <h2 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">
-                  Quick Actions
-                </h2>
-              </div>
+              <h2 className="text-xl lg:text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Sparkles className="w-5 lg:w-6 h-5 lg:h-6 text-purple-400" />
+                Quick Actions
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                 {quickActions.map((action, index) => (
                   <motion.div
@@ -470,39 +369,21 @@ const TutorlyDashboard = () => {
                     transition={{ duration: 0.6, delay: 0.1 * index }}
                     whileHover={{ scale: 1.02, y: -4 }}
                     whileTap={{ scale: 0.98 }}
-                    className="group"
                   >
                     <Card 
-                      className={`bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 cursor-pointer h-full rounded-2xl shadow-lg hover:shadow-xl ${action.bgGlow}`}
+                      className="bg-slate-800/50 border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 cursor-pointer group h-full rounded-2xl shadow-xl hover:shadow-2xl backdrop-blur-sm"
                       onClick={() => navigate(action.path)}
                     >
                       <CardContent className="p-4 lg:p-6 h-full flex flex-col">
-                        <motion.div 
-                          className={`w-12 lg:w-14 h-12 lg:h-14 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}
-                          whileHover={{ rotate: 5 }}
-                        >
-                          <action.icon className="w-6 lg:w-7 h-6 lg:h-7 text-white" />
-                        </motion.div>
-                        <h3 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        <div className={`w-10 lg:w-12 h-10 lg:h-12 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
+                          <action.icon className="w-5 lg:w-6 h-5 lg:h-6 text-white" />
+                        </div>
+                        <h3 className="text-base lg:text-lg font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">
                           {action.title}
                         </h3>
-                        <p className="text-slate-600 dark:text-slate-400 text-xs lg:text-sm flex-grow leading-relaxed">
+                        <p className="text-gray-400 text-xs lg:text-sm flex-grow">
                           {action.description}
                         </p>
-                        <motion.div 
-                          className="mt-4 flex items-center text-purple-600 dark:text-purple-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                          initial={{ x: -10 }}
-                          whileHover={{ x: 0 }}
-                        >
-                          <span>Get started</span>
-                          <motion.span
-                            className="ml-1"
-                            animate={{ x: [0, 4, 0] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                          >
-                            →
-                          </motion.span>
-                        </motion.div>
                       </CardContent>
                     </Card>
                   </motion.div>
