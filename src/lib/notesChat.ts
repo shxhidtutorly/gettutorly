@@ -21,13 +21,12 @@ export const saveChatMessage = async (
     const userId = convertClerkIdToUuid(clerkUserId);
     const { data, error } = await supabase
       .from('note_chats')
-      .insert([{
+      .insert({
         user_id: userId,
         note_id: noteId,
         role: role,
         message: message,
-        created_at: new Date().toISOString(),
-      }])
+      })
       .select()
       .single();
       

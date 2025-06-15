@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,15 +45,38 @@ const NotesChatPage = () => {
       
       const userId = convertClerkIdToUuid(currentUser.id);
       
-      // Query Supabase for the note content
-      const { data, error } = await supabase
-        .from('ai_notes')
-        .select('title, content, file_name')
-        .eq('user_id', userId)
+      // First try to get from study_materials table
+      let { data, error } = await supabase
+        .from('study_materials')
+        .select('title, file_name, metadata')
+        .eq('clerk_user_id', currentUser.id)
         .eq('id', noteId)
         .single();
       
-      if (error) {
+      if (error && error.code === 'PGRST116') {
+        // If not found in study_materials, try notes table
+        const notesResult = await supabase
+          .from('notes')
+          .select('title, content')
+          .eq('clerk_user_id', currentUser.id)
+          .eq('id', noteId)
+          .single();
+        
+        if (notesResult.error) {
+          console.error('Error loading note:', notesResult.error);
+          setError("Note not found");
+          toast({
+            variant: "destructive",
+            title: "Note not found",
+            description: "The requested note could not be found."
+          });
+          return;
+        }
+        
+        data = notesResult.data;
+        setNoteTitle(data.title || "Untitled Note");
+        setNoteContent(data.content || "");
+      } else if (error) {
         console.error('Error loading note:', error);
         setError("Failed to load note content");
         toast({
@@ -63,20 +85,12 @@ const NotesChatPage = () => {
           description: "Could not load the note content. Please try again."
         });
         return;
+      } else {
+        // Found in study_materials
+        setNoteTitle(data.title || data.file_name || "Untitled Note");
+        // For study materials, we'll use a placeholder content since actual content extraction would need file processing
+        setNoteContent(data.metadata?.extractedText || "This is a study material. Upload a document with text content for better AI responses.");
       }
-      
-      if (!data) {
-        setError("Note not found");
-        toast({
-          variant: "destructive",
-          title: "Note not found",
-          description: "The requested note could not be found."
-        });
-        return;
-      }
-      
-      setNoteTitle(data.title || data.file_name || "Untitled Note");
-      setNoteContent(data.content || "");
       
     } catch (error) {
       console.error('Error loading note:', error);
@@ -151,7 +165,6 @@ const NotesChatPage = () => {
       
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
-          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -176,8 +189,7 @@ const NotesChatPage = () => {
             <p className="text-gray-400">Ask your AI tutor questions about your uploaded notes and get instant help.</p>
           </motion.div>
 
-          {/* Notes Chat Component */}
-          {noteId && noteContent && (
+          {noteId && (
             <NotesChat 
               noteId={noteId}
               noteContent={noteContent}
@@ -185,7 +197,6 @@ const NotesChatPage = () => {
             />
           )}
 
-          {/* Help Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
