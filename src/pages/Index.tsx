@@ -36,28 +36,67 @@ import {
   Calculator,
   Languages,
   PenTool,
+  Crown,
 } from "lucide-react";
 
-import BostonLogo from "@/components/ui/Boston-University-Logo.png";
-import ChicagoLogo from "@/components/ui/Chicago-University-Logo.png";
-import GeorgetownLogo from "@/components/ui/Georgetown-University-Logo.png";
-import HarvardLogo from "@/components/ui/Harvard-University-Logo.png";
-import HowardLogo from "@/components/ui/Howard-University-Logo.png";
-import OhioStateLogo from "@/components/ui/Ohio-State-University-Logo.png";
-import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
-import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
-import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
+declare global {
+  interface Window {
+    Paddle: {
+      Environment: {
+        set: (env: string) => void;
+      };
+      Setup: (config: { token: string }) => void;
+      Checkout: {
+        open: (config: {
+          items?: Array<{ priceId: string; quantity: number }>;
+          product?: string;
+          customer?: { email?: string };
+          customData?: Record<string, any>;
+          successUrl?: string;
+          settings?: {
+            allowLogout: boolean;
+            displayMode: string;
+            theme: string;
+            locale: string;
+          };
+        }) => void;
+      };
+    };
+  }
+}
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [paddleLoaded, setPaddleLoaded] = useState(false);
 
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  // Load Paddle.js script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+    script.async = true;
+    script.onload = () => {
+      if (window.Paddle) {
+        window.Paddle.Environment.set('production');
+        window.Paddle.Setup({
+          token: 'live_70323ea9dfbc69d45414c712687'
+        });
+        setPaddleLoaded(true);
+      }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
@@ -87,6 +126,35 @@ const Index = () => {
     } else {
       navigate("/dashboard");
     }
+  };
+
+  const handlePaddleCheckout = (priceId: string, planName: string) => {
+    if (!paddleLoaded || !window.Paddle) {
+      toast({
+        title: "Loading checkout...",
+        description: "Please wait a moment while we prepare your checkout."
+      });
+      return;
+    }
+
+    const customerEmail = user?.email || undefined;
+    const baseUrl = window.location.origin;
+
+    window.Paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: customerEmail ? { email: customerEmail } : undefined,
+      customData: {
+        userId: user?.id || 'guest',
+        planName: planName
+      },
+      successUrl: `${baseUrl}/dashboard?payment=success`,
+      settings: {
+        allowLogout: false,
+        displayMode: 'overlay',
+        theme: 'dark',
+        locale: 'en'
+      }
+    });
   };
 
   const generateAISummary = async () => {
@@ -580,118 +648,162 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Pricing Section */}
+        {/* Updated Pricing Section */}
         <section className="py-20 bg-white dark:bg-black">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16" data-aos="fade-up">
               <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
                 Choose Your Plan
               </h2>
-              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-                Start free, upgrade when you're ready
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                Simple pricing for powerful study tools
               </p>
-
-              <div className="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                <button
-                  className={`px-6 py-2 rounded-md font-semibold transition-all ${
-                    pricingToggle === "monthly" 
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => setPricingToggle("monthly")}
-                >
-                  Monthly
-                </button>
-                <button
-                  className={`px-6 py-2 rounded-md font-semibold transition-all ${
-                    pricingToggle === "yearly" 
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => setPricingToggle("yearly")}
-                >
-                  Yearly
-                  <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">Save 20%</span>
-                </button>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {[
-                {
-                  name: "Free",
-                  price: { monthly: "$0", yearly: "$0" },
-                  description: "Perfect for getting started",
-                  features: ["5 AI summaries/month", "Basic flashcards", "Community support"],
-                  cta: "Start Free",
-                  popular: false
-                },
-                {
-                  name: "Pro",
-                  price: { monthly: "$9.99", yearly: "$7.99" },
-                  description: "Best for serious students",
-                  features: ["Unlimited AI features", "Advanced quiz generation", "Priority support", "Export options"],
-                  cta: "Start Pro Trial",
-                  popular: true
-                },
-                {
-                  name: "Team",
-                  price: { monthly: "$19.99", yearly: "$15.99" },
-                  description: "For study groups & classes",
-                  features: ["Everything in Pro", "Team collaboration", "Admin dashboard", "Custom integrations"],
-                  cta: "Start Team Trial",
-                  popular: false
-                }
-              ].map((plan, i) => (
-                <motion.div
-                  key={i}
-                  data-aos="fade-up"
-                  data-aos-delay={i * 150}
-                  whileHover={{ y: -5 }}
-                  className={`relative bg-white dark:bg-gray-800 p-8 rounded-xl border-2 ${
-                    plan.popular 
-                      ? "border-purple-500 shadow-xl" 
-                      : "border-gray-200 dark:border-gray-700"
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
-                        Best Value
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="text-center mb-8">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
-                    <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                      {plan.price[pricingToggle]}
-                      <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400">{plan.description}</p>
+              {/* Plan 1: Tutorly Pro - Monthly */}
+              <motion.div
+                data-aos="fade-up"
+                data-aos-delay="0"
+                whileHover={{ y: -5, scale: 1.02 }}
+                className="relative bg-white dark:bg-gray-800 p-8 rounded-xl border-2 border-blue-500/20 hover:border-blue-500/50 transition-all duration-300 shadow-lg"
+              >
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 px-3 py-1 rounded-full mb-4">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-blue-400">Pro</span>
                   </div>
+                  
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Tutorly Pro</h3>
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    $5.99
+                    <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
+                  </div>
+                  <p className="text-blue-500 font-medium">4-day free trial</p>
+                </div>
 
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature, j) => (
-                      <li key={j} className="flex items-center">
-                        <Check className="h-5 w-5 text-green-500 mr-3" />
-                        <span className="text-gray-700 dark:text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">Access to AI assistant</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">Smart quizzes and progress tracking</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">Doubt-solving tool</span>
+                  </li>
+                </ul>
 
-                  <Button
-                    className={`w-full py-3 ${
-                      plan.popular 
-                        ? "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
-                    onClick={handleGetStarted}
-                  >
-                    {plan.cta}
-                  </Button>
-                </motion.div>
-              ))}
+                <Button
+                  onClick={() => handlePaddleCheckout('pri_01jxq0pfrjcd0gkj08cmqv6rb1', 'Tutorly Pro Monthly')}
+                  disabled={!paddleLoaded}
+                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                >
+                  {paddleLoaded ? 'Start Free Trial' : 'Loading...'}
+                </Button>
+              </motion.div>
+
+              {/* Plan 2: Tutorly Premium - Monthly */}
+              <motion.div
+                data-aos="fade-up"
+                data-aos-delay="150"
+                whileHover={{ y: -5, scale: 1.02 }}
+                className="relative bg-white dark:bg-gray-800 p-8 rounded-xl border-2 border-purple-500 shadow-xl"
+              >
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+                    <Crown className="w-4 h-4" />
+                    Most Popular
+                  </span>
+                </div>
+
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/30 px-3 py-1 rounded-full mb-4">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-purple-400">Premium</span>
+                  </div>
+                  
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Tutorly Premium</h3>
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    $9.99
+                    <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
+                  </div>
+                  <p className="text-purple-500 font-medium">4-day free trial</p>
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">Everything in Pro</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">+ Personalized study planning</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">+ Deeper AI help</span>
+                  </li>
+                </ul>
+
+                <Button
+                  onClick={() => handlePaddleCheckout('pri_01jxq0wydxwg59kmha33h213ab', 'Tutorly Premium Monthly')}
+                  disabled={!paddleLoaded}
+                  className="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold"
+                >
+                  {paddleLoaded ? 'Unlock Premium' : 'Loading...'}
+                </Button>
+              </motion.div>
+
+              {/* Plan 3: Tutorly Max - Annual */}
+              <motion.div
+                data-aos="fade-up"
+                data-aos-delay="300"
+                whileHover={{ y: -5, scale: 1.02 }}
+                className="relative bg-white dark:bg-gray-800 p-8 rounded-xl border-2 border-green-500/20 hover:border-green-500/50 transition-all duration-300 shadow-lg"
+              >
+                <div className="absolute -top-4 right-4">
+                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                    Best Value
+                  </span>
+                </div>
+
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-500/30 px-3 py-1 rounded-full mb-4">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-semibold text-green-400">Max</span>
+                  </div>
+                  
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Tutorly Max</h3>
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    $36.00
+                    <span className="text-lg text-gray-600 dark:text-gray-400">/year</span>
+                  </div>
+                  <p className="text-green-500 font-medium">4-day free trial</p>
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">All Premium features</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-700 dark:text-gray-300">Billed yearly (best value)</span>
+                  </li>
+                </ul>
+
+                <Button
+                  onClick={() => handlePaddleCheckout('pri_01jxq11xb6dpkzgqr27fxkejc3', 'Tutorly Max Annual')}
+                  disabled={!paddleLoaded}
+                  className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-semibold"
+                >
+                  {paddleLoaded ? 'Go Max Yearly' : 'Loading...'}
+                </Button>
+              </motion.div>
             </div>
 
             <div className="text-center mt-12" data-aos="fade-up" data-aos-delay="400">
