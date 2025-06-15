@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth as useClerkAuth, useUser, useSession, useOrganization } from '@clerk/clerk-react';
 import { createUserProfile, getUserProfile } from '@/lib/supabaseAuth';
@@ -26,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // We're only doing this client-side
       if (typeof window === 'undefined' || !isSignedIn || !user) return;
       // Clerk v5 gets token with this:
-      const token = await window.Clerk?.session?.getToken?.({ template: "supabase" }) 
+      const token = await (window as any).Clerk?.session?.getToken?.({ template: "supabase" }) 
         ?? (await (window as any).Clerk?.session?.getToken?.({ template: 'supabase' }));
 
       if (!token) {
