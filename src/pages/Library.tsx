@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
@@ -21,9 +20,11 @@ import {
   Eye,
   Trash2,
   Calendar,
+  Bug,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserStudyMaterials } from "@/lib/database";
+import SupabaseDebugger from "@/components/debug/SupabaseDebugger";
 
 const Library = () => {
   const { currentUser } = useAuth();
@@ -33,6 +34,7 @@ const Library = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(false);
+  const [showDebugger, setShowDebugger] = useState(false);
 
   // Load user's study materials
   useEffect(() => {
@@ -46,14 +48,22 @@ const Library = () => {
     
     setIsLoading(true);
     try {
+      console.log('🔄 Loading study materials for user:', currentUser.id);
       const data = await getUserStudyMaterials(currentUser.id);
       setMaterials(data || []);
-      console.log('Loaded materials:', data?.length || 0);
+      console.log('✅ Loaded materials:', data?.length || 0);
+      
+      if (data?.length === 0) {
+        toast({
+          title: "No materials found",
+          description: "Upload your first study material to get started.",
+        });
+      }
     } catch (error) {
-      console.error('Error loading study materials:', error);
+      console.error('❌ Error loading study materials:', error);
       toast({
         title: "Error",
-        description: "Failed to load your study materials.",
+        description: "Failed to load your study materials. Check console for details.",
         variant: "destructive"
       });
     } finally {
@@ -100,14 +110,32 @@ const Library = () => {
         <div className="container max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8 animate-fade-in">
-            <h1 className="text-4xl font-bold flex items-center gap-3 mb-4 tracking-tight text-white drop-shadow">
-              📚 <BookOpen className="h-10 w-10 text-spark-primary" />
-              Your Library
-            </h1>
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-4xl font-bold flex items-center gap-3 tracking-tight text-white drop-shadow">
+                📚 <BookOpen className="h-10 w-10 text-spark-primary" />
+                Your Library
+              </h1>
+              <Button
+                onClick={() => setShowDebugger(!showDebugger)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Bug className="h-4 w-4" />
+                {showDebugger ? 'Hide' : 'Show'} Debug
+              </Button>
+            </div>
             <p className="text-muted-foreground text-lg">
               Manage and organize all your study materials in one place
             </p>
           </div>
+
+          {/* Debug Panel */}
+          {showDebugger && (
+            <div className="mb-8">
+              <SupabaseDebugger />
+            </div>
+          )}
 
           {/* Controls */}
           <div className="flex flex-col md:flex-row gap-4 mb-8 animate-fade-in-up">

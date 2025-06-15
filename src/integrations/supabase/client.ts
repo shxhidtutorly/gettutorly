@@ -7,16 +7,26 @@ import type { Database } from './types';
 async function fetchClerkToken() {
   // Prefer the Clerk global if available (works outside React component trees)
   if (typeof window !== 'undefined' && (window as any).Clerk?.session?.getToken) {
-    // Always get the token using the "supabase" template
-    return await (window as any).Clerk.session.getToken({ template: 'supabase' });
+    try {
+      // Always get the token using the "supabase" template
+      const token = await (window as any).Clerk.session.getToken({ template: 'supabase' });
+      console.log('🔑 Retrieved Clerk JWT for Supabase:', token ? 'Success' : 'Failed');
+      return token;
+    } catch (error) {
+      console.error('❌ Error getting Clerk token from global:', error);
+      return undefined;
+    }
   }
 
   // If possible, try to use the Clerk getToken from the npm package (only available in React context)
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { getToken } = require('@clerk/clerk-react');
-    return await getToken({ template: 'supabase' });
-  } catch {
+    const token = await getToken({ template: 'supabase' });
+    console.log('🔑 Retrieved Clerk JWT via npm package:', token ? 'Success' : 'Failed');
+    return token;
+  } catch (error) {
+    console.warn('⚠️ Could not get Clerk token via npm package:', error);
     return undefined;
   }
 }
@@ -26,19 +36,65 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Custom fetch: inject Authorization: Bearer <Clerk JWT> if user is authenticated
 async function customFetch(input: RequestInfo, init?: RequestInit) {
-  let token = await fetchClerkToken();
+  const token = await fetchClerkToken();
   
   const headers: HeadersInit = new Headers(init?.headers || {});
+  
+  // Always set the apikey header for Supabase
+  headers.set('apikey', SUPABASE_PUBLISHABLE_KEY);
+  
+  // Add Authorization header if we have a token
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+    console.log('🚀 Making authenticated Supabase request with Clerk JWT');
+  } else {
+    console.log('📡 Making unauthenticated Supabase request');
   }
-  // Use the same url/input as Supabase would
-  return fetch(input, { ...init, headers });
+  
+  // Log the request for debugging
+  const url = typeof input === 'string' ? input : input.url;
+  console.log('📤 Supabase API call:', url, {
+    method: init?.method || 'GET',
+    hasAuth: !!token,
+    headers: Object.fromEntries(headers.entries())
+  });
+  
+  try {
+    const response = await fetch(input, { ...init, headers });
+    
+    if (!response.ok) {
+      console.error('❌ Supabase API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+        hasAuth: !!token
+      });
+      
+      // Try to log the error body
+      try {
+        const errorBody = await response.clone().text();
+        console.error('❌ Error body:', errorBody);
+      } catch (e) {
+        console.error('❌ Could not read error body');
+      }
+    } else {
+      console.log('✅ Supabase API success:', url);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('💥 Network error in Supabase request:', error);
+    throw error;
+  }
 }
 
 // Export the supabase client with custom fetcher
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   global: {
     fetch: customFetch,
+  },
+  auth: {
+    persistSession: false, // We're using Clerk for session management
+    autoRefreshToken: false, // Clerk handles token refresh
   }
 });
