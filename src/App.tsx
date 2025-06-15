@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
-import TutorlyDashboard from "./pages/NewDashboard"; // Updated import
+import TutorlyDashboard from "./pages/TutorlyDashboard"; // Updated import
 import Library from "./pages/Library";
 import StudyPlans from "./pages/StudyPlans";
 import Progress from "./pages/Progress";
@@ -106,7 +106,7 @@ const App = () => (
               } />
               <Route path="/chat" element={
                 <ProtectedRoute>
-                  <Chat />
+                  <TutorlyDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/ai-assistant" element={
