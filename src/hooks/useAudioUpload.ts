@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,16 +36,15 @@ export const useAudioUpload = () => {
     setProgress(0);
 
     try {
-      // Step 1: Convert blob to file and upload to Supabase
       setProgress(10);
-      const file = new File([audioBlob], `lecture-${Date.now()}.mp3`, { 
-        type: 'audio/mpeg' 
-      });
+      const file = new File([audioBlob], `lecture-${Date.now()}.mp3`, { type: 'audio/mpeg' });
 
-      // Use the correct folder structure that matches our RLS policy
+      // FIX RLS: Path must start with user.id for policy to allow insert.
       const fileName = `${user.id}/${Date.now()}.mp3`;
-      
+
+      console.log("🪪 Current user ID:", user.id);
       console.log('📤 Uploading audio file to Supabase with user folder:', fileName);
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('audio-uploads')
         .upload(fileName, file, {
@@ -61,7 +59,6 @@ export const useAudioUpload = () => {
 
       setProgress(25);
 
-      // Step 2: Get public URL
       const { data: publicUrlData } = supabase.storage
         .from('audio-uploads')
         .getPublicUrl(fileName);
@@ -69,7 +66,7 @@ export const useAudioUpload = () => {
       console.log('🔗 Generated public URL:', publicUrlData.publicUrl);
       setProgress(35);
 
-      // Step 3: Send to AssemblyAI for transcription
+      // Step 2: Send to AssemblyAI for transcription
       console.log('🎯 Sending to AssemblyAI for transcription...');
       const transcribeResponse = await fetch('/api/transcribe', {
         method: 'POST',
@@ -86,7 +83,7 @@ export const useAudioUpload = () => {
       console.log('✅ Transcription received:', transcriptText.length, 'characters');
       setProgress(70);
 
-      // Step 4: Send transcript to AI for notes generation
+      // Step 3: Send transcript to AI for notes generation
       console.log('🤖 Generating AI notes with qwen-qwq-32b...');
       const notesPrompt = `You are an expert note-taker and study assistant. Based on this lecture transcription, create comprehensive study notes and a concise summary.
 
