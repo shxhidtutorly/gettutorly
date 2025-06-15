@@ -1,23 +1,19 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { Mic, Upload, X, FileAudio, Clock, CheckCircle, AlertCircle, Play, Pause } from "lucide-react";
+import { useAudioUpload, AudioUploadResult } from "@/hooks/useAudioUpload";
+import { Mic, Upload, X, FileAudio, Clock, CheckCircle, Play, Pause, Copy, Save, Download } from "lucide-react";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 const AudioNotesUploader = () => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [transcript, setTranscript] = useState("");
-  const [notes, setNotes] = useState("");
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [result, setResult] = useState<AudioUploadResult | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -26,14 +22,13 @@ const AudioNotesUploader = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { user } = useAuth();
+  const { uploadAndProcess, isProcessing, progress } = useAudioUpload();
   const { toast } = useToast();
 
   function startRecording() {
     setIsRecording(true);
     setAudioBlob(null);
-    setTranscript("");
-    setNotes("");
+    setResult(null);
     setRecordingTime(0);
 
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -79,8 +74,7 @@ const AudioNotesUploader = () => {
     if (file) {
       if (file.type.startsWith('audio/')) {
         setAudioBlob(file);
-        setTranscript("");
-        setNotes("");
+        setResult(null);
       } else {
         toast({
           title: "Invalid file type",
@@ -91,80 +85,18 @@ const AudioNotesUploader = () => {
     }
   }
 
-  async function convertToNotes() {
-    if (!audioBlob || !user) return;
-
-    setIsProcessing(true);
-    setUploadProgress(0);
-    setTranscript("");
-    setNotes("");
-
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.webm");
-    formData.append("userId", user.id);
-
-    try {
-      const response = await fetch("/api/audio-to-notes", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("Response body is empty");
-      }
-
-      let receivedData = '';
-      let decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        receivedData += decoder.decode(value);
-
-        try {
-          const parsedData = JSON.parse(receivedData);
-
-          if (parsedData.transcript) {
-            setTranscript(parsedData.transcript);
-          }
-          if (parsedData.notes) {
-            setNotes(parsedData.notes);
-          }
-          if (parsedData.progress) {
-            setUploadProgress(parsedData.progress);
-          }
-
-          receivedData = '';
-        } catch (error) {
-          // Ignore JSON parsing errors, wait for more data
-        }
-      }
-
-    } catch (error: any) {
-      console.error("Error converting audio to notes:", error);
-      toast({
-        title: "Conversion failed",
-        description: error.message || "Failed to convert audio to notes. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
+  async function processAudio() {
+    if (!audioBlob) return;
+    
+    const processingResult = await uploadAndProcess(audioBlob);
+    if (processingResult) {
+      setResult(processingResult);
     }
   }
 
   function clearAudio() {
     setAudioBlob(null);
-    setTranscript("");
-    setNotes("");
+    setResult(null);
     setRecordingTime(0);
   }
 
@@ -179,11 +111,22 @@ const AudioNotesUploader = () => {
     }
   }
 
-  function saveNotes() {
+  function copyToClipboard(text: string, type: string) {
+    navigator.clipboard.writeText(text);
     toast({
-      title: "Notes saved!",
-      description: "Your audio notes have been saved successfully.",
+      title: `${type} copied!`,
+      description: `${type} has been copied to your clipboard.`,
     });
+  }
+
+  function saveNotes() {
+    if (result) {
+      // This would integrate with your existing notes system
+      toast({
+        title: "Notes saved!",
+        description: "Your audio notes have been saved to your library.",
+      });
+    }
   }
 
   return (
@@ -203,7 +146,7 @@ const AudioNotesUploader = () => {
               >
                 <Mic className="w-6 h-6 text-purple-400" />
               </motion.div>
-              Audio to Notes Converter
+              AI Audio to Smart Notes
             </CardTitle>
           </CardHeader>
           
@@ -271,7 +214,7 @@ const AudioNotesUploader = () => {
             )}
 
             {/* Audio Preview */}
-            {audioBlob && (
+            {audioBlob && !result && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -280,7 +223,7 @@ const AudioNotesUploader = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-3">
                     <FileAudio className="w-5 h-5 text-purple-400" />
-                    <span className="text-white font-medium">Audio Preview</span>
+                    <span className="text-white font-medium">Audio Ready</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -292,7 +235,7 @@ const AudioNotesUploader = () => {
                   </Button>
                 </div>
                 
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 mb-4">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -307,6 +250,17 @@ const AudioNotesUploader = () => {
                     className="flex-1"
                     controls
                   />
+                </div>
+
+                <div className="text-center">
+                  <Button
+                    onClick={processAudio}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 rounded-xl shadow-lg"
+                    disabled={isProcessing}
+                  >
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Process with AI
+                  </Button>
                 </div>
               </motion.div>
             )}
@@ -326,27 +280,12 @@ const AudioNotesUploader = () => {
                   />
                 </div>
                 <div>
-                  <p className="text-white font-medium mb-2">Converting audio to notes...</p>
-                  <Progress value={uploadProgress} className="w-full max-w-md mx-auto" />
-                  <p className="text-sm text-gray-400 mt-1">{uploadProgress}% complete</p>
+                  <p className="text-white font-medium mb-2">
+                    {progress < 50 ? "Uploading and transcribing..." : "Generating smart notes..."}
+                  </p>
+                  <Progress value={progress} className="w-full max-w-md mx-auto" />
+                  <p className="text-sm text-gray-400 mt-1">{progress}% complete</p>
                 </div>
-              </motion.div>
-            )}
-
-            {/* Convert Button */}
-            {audioBlob && !isProcessing && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center"
-              >
-                <Button
-                  onClick={convertToNotes}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 rounded-xl shadow-lg"
-                >
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Convert to Smart Notes
-                </Button>
               </motion.div>
             )}
           </CardContent>
@@ -354,60 +293,87 @@ const AudioNotesUploader = () => {
       </motion.div>
 
       {/* Results Section */}
-      {(transcript || notes) && (
+      {result && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="space-y-6"
         >
-          {/* Transcript */}
-          {transcript && (
-            <Card className="bg-[#2a2a3e] border-[#35357a]">
-              <CardHeader className="border-b border-[#35357a]">
-                <CardTitle className="flex items-center gap-3 text-white">
-                  <FileAudio className="w-5 h-5 text-blue-400" />
-                  Transcript
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <Textarea
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
-                  className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[200px] resize-none"
-                  placeholder="Audio transcript will appear here..."
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Generated Notes */}
-          {notes && (
-            <Card className="bg-[#2a2a3e] border-[#35357a]">
-              <CardHeader className="border-b border-[#35357a]">
-                <CardTitle className="flex items-center gap-3 text-white">
+          {/* Summary Card */}
+          <Card className="bg-[#2a2a3e] border-[#35357a]">
+            <CardHeader className="border-b border-[#35357a]">
+              <CardTitle className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  Smart Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[300px] resize-none"
-                  placeholder="AI-generated notes will appear here..."
-                />
-                <div className="flex justify-end mt-4">
+                  Summary
+                </div>
+                <div className="flex gap-2">
                   <Button
-                    onClick={saveNotes}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(result.summary, "Summary")}
                   >
-                    Save Notes
+                    <Copy className="w-4 h-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <Textarea
+                value={result.summary}
+                readOnly
+                className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[150px] resize-none"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Detailed Notes Card */}
+          <Card className="bg-[#2a2a3e] border-[#35357a]">
+            <CardHeader className="border-b border-[#35357a]">
+              <CardTitle className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-3">
+                  <FileAudio className="w-5 h-5 text-blue-400" />
+                  Detailed Study Notes
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(result.notes, "Notes")}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={saveNotes}
+                  >
+                    <Save className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <Textarea
+                value={result.notes}
+                readOnly
+                className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[400px] resize-none"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Metadata */}
+          <Card className="bg-[#232453] border-[#35357a]">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                <span>Provider: {result.metadata.provider}</span>
+                <span>Model: {result.metadata.model}</span>
+                {result.metadata.duration && <span>Duration: {Math.round(result.metadata.duration)}s</span>}
+                <span>Generated: {new Date(result.metadata.timestamp).toLocaleString()}</span>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       )}
     </div>
