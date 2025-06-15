@@ -1,15 +1,14 @@
 
 import { motion } from "framer-motion";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import PricingHeader from "@/components/layout/PricingHeader";
 import PaddlePricing from "@/components/payment/PaddlePricing";
 
 const PricingPage = () => {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <Navbar />
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <PricingHeader />
       
-      <main className="pt-20">
+      <main className="pt-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -18,8 +17,6 @@ const PricingPage = () => {
           <PaddlePricing />
         </motion.div>
       </main>
-
-      <Footer />
     </div>
   );
 };
