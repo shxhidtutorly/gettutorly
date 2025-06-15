@@ -44,17 +44,17 @@ const NotesChatPage = () => {
       setError("");
       
       const userId = convertClerkIdToUuid(currentUser.id);
-      
-      // First try to get from study_materials table
+
+      // Try study_materials
       let { data, error } = await supabase
         .from('study_materials')
         .select('title, file_name, metadata')
         .eq('clerk_user_id', currentUser.id)
         .eq('id', noteId)
         .single();
-      
+
       if (error && error.code === 'PGRST116') {
-        // If not found in study_materials, try notes table
+        // Try notes table
         const notesResult = await supabase
           .from('notes')
           .select('title, content')
@@ -72,10 +72,9 @@ const NotesChatPage = () => {
           });
           return;
         }
-        
-        data = notesResult.data;
-        setNoteTitle(data.title || "Untitled Note");
-        setNoteContent(data.content || "");
+        const noteData = notesResult.data;
+        setNoteTitle(noteData.title || "Untitled Note");
+        setNoteContent(noteData.content || "");
       } else if (error) {
         console.error('Error loading note:', error);
         setError("Failed to load note content");
@@ -85,13 +84,15 @@ const NotesChatPage = () => {
           description: "Could not load the note content. Please try again."
         });
         return;
-      } else {
-        // Found in study_materials
+      } else if (data) {
         setNoteTitle(data.title || data.file_name || "Untitled Note");
-        // For study materials, we'll use a placeholder content since actual content extraction would need file processing
-        setNoteContent(data.metadata?.extractedText || "This is a study material. Upload a document with text content for better AI responses.");
+        // SAFETY: `metadata` is possibly null, string, or object
+        const meta = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, any> : {};
+        const extractedText = meta && typeof meta["extractedText"] === "string" ? meta["extractedText"] : "";
+        setNoteContent(extractedText || "This is a study material. Upload a document with text content for better AI responses.");
       }
-      
+      // else not found
+
     } catch (error) {
       console.error('Error loading note:', error);
       setError("Failed to load note");

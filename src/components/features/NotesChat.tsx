@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +40,6 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       // Convert Clerk ID to UUID for Supabase
       const userId = convertClerkIdToUuid(currentUser.id);
 
-      // Try study_materials first (for uploaded PDF/doc)
       let { data, error } = await supabase
         .from('study_materials')
         .select('title,file_name,metadata')
@@ -52,7 +50,9 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       if (data) {
         setNoteTitle(data.title || data.file_name || "Untitled Note");
         setFileName(data.file_name || "");
-        const contextText = data.metadata?.extractedText || "";
+        // SAFETY: metadata may be null, a string, or an object
+        const meta = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, any> : {};
+        const contextText = meta && typeof meta["extractedText"] === "string" ? meta["extractedText"] : "";
         setNoteContent(contextText);
         setContextActive(!!contextText);
         return;
@@ -478,4 +478,3 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
 };
 
 export default NotesChat;
-
