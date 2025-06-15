@@ -69,14 +69,6 @@ export const saveStudyMaterial = async (userId: string, materialData: any) => {
       .single();
       
     if (error) throw error;
-    
-    // Log the activity
-    await logUserActivity('material_uploaded', {
-      material_id: data.id,
-      title: materialData.title,
-      file_name: materialData.file_name
-    });
-    
     return data.id;
   } catch (error) {
     console.error("Error saving study material:", error);
@@ -108,12 +100,6 @@ export const deleteStudyMaterial = async (materialId: string) => {
       .eq('id', materialId);
       
     if (error) throw error;
-    
-    // Log the activity
-    await logUserActivity('material_deleted', {
-      material_id: materialId
-    });
-    
     return true;
   } catch (error) {
     console.error("Error deleting study material:", error);
@@ -135,13 +121,6 @@ export const createNote = async (userId: string, noteData: any) => {
       .single();
       
     if (error) throw error;
-    
-    // Log the activity
-    await logUserActivity('note_created', {
-      note_id: data.id,
-      title: noteData.title
-    });
-    
     return data.id;
   } catch (error) {
     console.error("Error creating note:", error);
@@ -173,104 +152,9 @@ export const deleteNote = async (noteId: string) => {
       .eq('id', noteId);
       
     if (error) throw error;
-    
-    // Log the activity
-    await logUserActivity('note_deleted', {
-      note_id: noteId
-    });
-    
     return true;
   } catch (error) {
     console.error("Error deleting note:", error);
-    throw error;
-  }
-};
-
-// STUDY PROGRESS TRACKING
-export const updateStudyProgress = async (userId: string, materialId: string, progressData: any) => {
-  try {
-    const { error } = await supabase
-      .from('study_progress')
-      .upsert([{
-        user_id: userId,
-        material_id: materialId,
-        ...progressData,
-        last_updated: new Date().toISOString(),
-      }]);
-      
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("Error updating study progress:", error);
-    throw error;
-  }
-};
-
-export const getStudyProgress = async (userId: string, materialId?: string) => {
-  try {
-    let query = supabase
-      .from('study_progress')
-      .select('*')
-      .eq('user_id', userId);
-      
-    if (materialId) {
-      query = query.eq('material_id', materialId);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error getting study progress:", error);
-    throw error;
-  }
-};
-
-// ACTIVITY LOGGING
-export const logUserActivity = async (action: string, details: any) => {
-  try {
-    const { error } = await supabase.rpc('log_user_activity', {
-      action_type: action,
-      activity_details: details
-    });
-      
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("Error logging user activity:", error);
-    return false;
-  }
-};
-
-export const getUserAnalytics = async (userId: string, period: 'day' | 'week' | 'month' = 'week') => {
-  try {
-    const now = new Date();
-    let startDate = new Date();
-    
-    switch (period) {
-      case 'day':
-        startDate.setDate(now.getDate() - 1);
-        break;
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-    }
-    
-    const { data, error } = await supabase
-      .from('user_activity_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('timestamp', startDate.toISOString())
-      .order('timestamp', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error getting user analytics:", error);
     throw error;
   }
 };

@@ -230,6 +230,58 @@ export const getUserStudySessions = async (userId: string) => {
   }
 };
 
+// STUDY PLANS OPERATIONS
+export const getUserStudyPlans = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting user study plans:", error);
+    throw error;
+  }
+};
+
+export const createStudyPlan = async (userId: string, planData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_plans')
+      .insert([{
+        user_id: userId,
+        ...planData,
+        created_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data.id;
+  } catch (error) {
+    console.error("Error creating study plan:", error);
+    throw error;
+  }
+};
+
+export const deleteStudyPlan = async (planId: string) => {
+  try {
+    const { error } = await supabase
+      .from('study_plans')
+      .delete()
+      .eq('id', planId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting study plan:", error);
+    throw error;
+  }
+};
+
 // FILE STORAGE OPERATIONS
 export const uploadFile = async (userId: string, file: File) => {
   try {
