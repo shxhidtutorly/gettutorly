@@ -6,30 +6,7 @@ import { Check, Crown, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { motion } from "framer-motion";
 
-declare global {
-  interface Window {
-    Paddle: {
-      Environment: {
-        set: (env: string) => void;
-      };
-      Setup: (config: { token: string }) => void;
-      Checkout: {
-        open: (config: {
-          items: Array<{ priceId: string; quantity: number }>;
-          customer?: { email?: string };
-          customData?: Record<string, any>;
-          successUrl?: string;
-          settings?: {
-            allowLogout: boolean;
-            displayMode: string;
-            theme: string;
-            locale: string;
-          };
-        }) => void;
-      };
-    };
-  }
-}
+// Remove the duplicate global declaration since it's already in Index.tsx
 
 const PaddlePricing = () => {
   const { user } = useAuth();
