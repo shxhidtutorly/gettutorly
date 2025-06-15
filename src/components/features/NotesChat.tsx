@@ -437,7 +437,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                 </Button>
               </motion.div>
             </motion.div>
-          </div>
+          </motion.div>
         </CardContent>
       </Card>
     </motion.div>
