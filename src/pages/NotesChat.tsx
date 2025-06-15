@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -11,12 +12,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, MessageCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { convertClerkIdToUuid } from "@/lib/supabaseAuth";
 
 const NotesChatPage = () => {
   const { noteId } = useParams();
   const navigate = useNavigate();
-  const { currentUser, loading } = useAuth();
+  const { user, loading } = useAuth();
   const { toast } = useToast();
   const [noteContent, setNoteContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
@@ -24,32 +24,30 @@ const NotesChatPage = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loading && !currentUser) {
+    if (!loading && !user) {
       navigate('/signin');
       return;
     }
 
-    if (currentUser && noteId) {
+    if (user && noteId) {
       loadNoteContent();
     } else if (!noteId) {
       navigate('/ai-notes');
     }
-  }, [currentUser, loading, noteId, navigate]);
+  }, [user, loading, noteId, navigate]);
 
   const loadNoteContent = async () => {
-    if (!currentUser || !noteId) return;
+    if (!user || !noteId) return;
     
     try {
       setIsLoading(true);
       setError("");
-      
-      const userId = convertClerkIdToUuid(currentUser.id);
 
       // Try study_materials
       let { data, error } = await supabase
         .from('study_materials')
         .select('title, file_name, metadata')
-        .eq('clerk_user_id', currentUser.id)
+        .eq('user_id', user.id)
         .eq('id', noteId)
         .single();
 
@@ -58,7 +56,7 @@ const NotesChatPage = () => {
         const notesResult = await supabase
           .from('notes')
           .select('title, content')
-          .eq('clerk_user_id', currentUser.id)
+          .eq('user_id', user.id)
           .eq('id', noteId)
           .single();
         
@@ -86,12 +84,10 @@ const NotesChatPage = () => {
         return;
       } else if (data) {
         setNoteTitle(data.title || data.file_name || "Untitled Note");
-        // SAFETY: `metadata` is possibly null, string, or object
         const meta = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, any> : {};
         const extractedText = meta && typeof meta["extractedText"] === "string" ? meta["extractedText"] : "";
         setNoteContent(extractedText || "This is a study material. Upload a document with text content for better AI responses.");
       }
-      // else not found
 
     } catch (error) {
       console.error('Error loading note:', error);
@@ -117,7 +113,7 @@ const NotesChatPage = () => {
     );
   }
 
-  if (!currentUser) {
+  if (!user) {
     return null;
   }
 

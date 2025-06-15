@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,15 +7,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Bot, User, Sparkles, X, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { ChatMessage, getChatHistory, saveChatMessage } from "@/lib/notesChat";
 import { supabase } from "@/integrations/supabase/client";
-import { convertClerkIdToUuid } from "@/lib/supabaseAuth";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NotesChatProps {
   noteId: string;
-  noteContent?: string; // Not required: Always found from DB!
+  noteContent?: string;
   noteTitle?: string;
 }
 
@@ -30,27 +30,24 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   const [contextActive, setContextActive] = useState<boolean>(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Fetch note content and title for context, based on noteId and user
   useEffect(() => {
     const fetchNote = async () => {
-      if (!currentUser || !noteId) return;
-      // Convert Clerk ID to UUID for Supabase
-      const userId = convertClerkIdToUuid(currentUser.id);
+      if (!user || !noteId) return;
 
       let { data, error } = await supabase
         .from('study_materials')
         .select('title,file_name,metadata')
-        .eq('clerk_user_id', currentUser.id)
+        .eq('user_id', user.id)
         .eq('id', noteId)
         .single();
 
       if (data) {
         setNoteTitle(data.title || data.file_name || "Untitled Note");
         setFileName(data.file_name || "");
-        // SAFETY: metadata may be null, a string, or an object
         const meta = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, any> : {};
         const contextText = meta && typeof meta["extractedText"] === "string" ? meta["extractedText"] : "";
         setNoteContent(contextText);
@@ -62,12 +59,12 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
         let result = await supabase
           .from('notes')
           .select('title,content')
-          .eq('clerk_user_id', currentUser.id)
+          .eq('user_id', user.id)
           .eq('id', noteId)
           .single();
         if (result.data) {
           setNoteTitle(result.data.title || "Untitled Note");
-          setFileName(""); // no file_name for "notes"
+          setFileName("");
           setNoteContent(result.data.content || "");
           setContextActive(!!result.data.content);
         }
@@ -75,16 +72,14 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
     };
 
     fetchNote();
-    // eslint-disable-next-line
-  }, [currentUser, noteId]);
+  }, [user, noteId]);
 
   // Load chat history from DB
   useEffect(() => {
-    if (currentUser && noteId) {
+    if (user && noteId) {
       loadChatHistory();
     }
-    // eslint-disable-next-line
-  }, [currentUser, noteId]);
+  }, [user, noteId]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -93,10 +88,10 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   }, [messages]);
 
   const loadChatHistory = async () => {
-    if (!currentUser) return;
+    if (!user) return;
     try {
       setIsLoadingHistory(true);
-      const history = await getChatHistory(currentUser.id, noteId);
+      const history = await getChatHistory(user.id, noteId);
       setMessages(history);
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -130,7 +125,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       content: userMessage
     });
 
-    // Use the same model as the notes generator ("together" for markdown docs, or "gemini" fallback)
+    // Use the same model as the notes generator
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -149,7 +144,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !currentUser || isLoading) return;
+    if (!inputMessage.trim() || !user || isLoading) return;
 
     const userMessage = inputMessage.trim();
     setInputMessage("");
@@ -159,7 +154,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       // Add user message to state immediately
       const tempUserMessage: ChatMessage = {
         id: `temp-${Date.now()}`,
-        clerk_user_id: currentUser.id,
+        user_id: user.id,
         note_id: noteId,
         role: 'user',
         message: userMessage,
@@ -168,7 +163,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       setMessages(prev => [...prev, tempUserMessage]);
 
       // Save to DB
-      await saveChatMessage(currentUser.id, noteId, 'user', userMessage);
+      await saveChatMessage(user.id, noteId, 'user', userMessage);
 
       // AI response
       const aiResponse = await sendMessageToAI(userMessage, messages);
@@ -176,7 +171,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       // Show AI message
       const aiMessage: ChatMessage = {
         id: `temp-ai-${Date.now()}`,
-        clerk_user_id: currentUser.id,
+        user_id: user.id,
         note_id: noteId,
         role: 'assistant',
         message: aiResponse,
@@ -188,7 +183,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
         aiMessage
       ]);
       // Save AI to DB
-      await saveChatMessage(currentUser.id, noteId, 'assistant', aiResponse);
+      await saveChatMessage(user.id, noteId, 'assistant', aiResponse);
 
     } catch (error) {
       console.error('Failed to send message:', error);
