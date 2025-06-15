@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Get the current user's Clerk ID from the global window or context
@@ -405,6 +404,72 @@ export const deleteFile = async (filePath: string) => {
     return true;
   } catch (error) {
     console.error('Error deleting file:', error);
+    throw error;
+  }
+};
+
+// --- STUDY PLANS OPERATIONS ---
+
+/**
+ * Create a new study plan for the given Clerk user.
+ * @param {object} planData Should include: title, description, due_date, sessions, clerk_user_id
+ * @returns The newly created plan.
+ */
+export const createStudyPlan = async (planData: {
+  title: string;
+  description?: string;
+  due_date?: string;
+  sessions?: any[];
+  clerk_user_id: string;
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_plans')
+      .insert([
+        {
+          title: planData.title,
+          description: planData.description ?? '',
+          due_date: planData.due_date ?? '',
+          sessions: planData.sessions ?? [],
+          clerk_user_id: planData.clerk_user_id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      ])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('❌ Error creating study plan:', error);
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error in createStudyPlan:", error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch all study plans for the given Clerk user.
+ * @param {string} clerkUserId
+ * @returns Array of study plans for the user.
+ */
+export const getUserStudyPlans = async (clerkUserId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_plans')
+      .select('*')
+      .eq('clerk_user_id', clerkUserId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Error fetching study plans:', error);
+      throw error;
+    }
+    return data || [];
+  } catch (error) {
+    console.error("Error in getUserStudyPlans:", error);
     throw error;
   }
 };
