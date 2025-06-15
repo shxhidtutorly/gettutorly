@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 const SignUpPage = () => {
   const { user, signUp, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -21,10 +23,11 @@ const SignUpPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user && !loading) {
-      navigate("/dashboard");
+    // Only redirect if user is authenticated and they're specifically on the signup page
+    if (user && !loading && location.pathname === '/signup') {
+      navigate("/dashboard", { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,54 +136,61 @@ const SignUpPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-gray-300">Full Name</Label>
+              <Label htmlFor="signup-fullname" className="text-gray-300">Full Name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  id="fullName"
+                  id="signup-fullname"
+                  name="fullName"
                   type="text"
                   placeholder="Enter your full name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                   required
+                  autoComplete="name"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Label htmlFor="signup-email" className="text-gray-300">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  id="email"
+                  id="signup-email"
+                  name="email"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
+              <Label htmlFor="signup-password" className="text-gray-300">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  id="password"
+                  id="signup-password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                   required
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-300"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

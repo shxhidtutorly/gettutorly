@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 const SignInPage = () => {
   const { user, signIn, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,10 +21,13 @@ const SignInPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user && !loading) {
-      navigate("/dashboard");
+    // Only redirect if user is authenticated and they're specifically on the signin page
+    if (user && !loading && location.pathname === '/signin') {
+      // Check if there's a redirect URL in the location state, otherwise go to dashboard
+      const redirectTo = location.state?.from?.pathname || '/dashboard';
+      navigate(redirectTo, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +44,10 @@ const SignInPage = () => {
     
     if (error) {
       setError(error);
+    } else {
+      // Redirect to the page they were trying to access, or dashboard
+      const redirectTo = location.state?.from?.pathname || '/dashboard';
+      navigate(redirectTo, { replace: true });
     }
     
     setIsSubmitting(false);
@@ -48,10 +56,11 @@ const SignInPage = () => {
   const handleGoogleSignIn = async () => {
     try {
       setError("");
+      const redirectTo = location.state?.from?.pathname || '/dashboard';
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}${redirectTo}`
         }
       });
       

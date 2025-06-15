@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import AuthStateHandler from "@/components/auth/AuthStateHandler";
 
 // Lazy load components
 const Index = lazy(() => import("@/pages/Index"));
@@ -56,124 +57,127 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Suspense fallback={<LoadingSpinner />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/signin" element={<SignIn />} />
-                  <Route path="/signup" element={<SignUp />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/success" element={<PaymentSuccess />} />
-                  <Route path="/cancel" element={<PaymentCancel />} />
-                  
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  
-                  <Route
-                    path="/tutorly-dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <TutorlyDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
+              <AuthStateHandler>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    {/* Public routes - accessible to everyone */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/signin" element={<SignIn />} />
+                    <Route path="/signup" element={<SignUp />} />
+                    <Route path="/success" element={<PaymentSuccess />} />
+                    <Route path="/cancel" element={<PaymentCancel />} />
+                    
+                    {/* Protected routes - require authentication */}
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    
+                    <Route
+                      path="/tutorly-dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <TutorlyDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Protected routes */}
-                  <Route
-                    path="/summaries"
-                    element={
-                      <ProtectedRoute>
-                        <Summaries />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/library"
-                    element={
-                      <ProtectedRoute>
-                        <Library />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/flashcards"
-                    element={
-                      <ProtectedRoute>
-                        <Flashcards />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/quiz"
-                    element={
-                      <ProtectedRoute>
-                        <Quiz />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/progress"
-                    element={
-                      <ProtectedRoute>
-                        <Progress />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/ai-notes-generator"
-                    element={
-                      <ProtectedRoute>
-                        <AINotesGenerator />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/doubt-chain"
-                    element={
-                      <ProtectedRoute>
-                        <DoubtChain />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/ai-assistant"
-                    element={
-                      <ProtectedRoute>
-                        <AIAssistant />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/math-chat"
-                    element={
-                      <ProtectedRoute>
-                        <MathChat />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/audio-notes"
-                    element={
-                      <ProtectedRoute>
-                        <AudioNotes />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/study-plans"
-                    element={
-                      <ProtectedRoute>
-                        <StudyPlans />
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
-              </Suspense>
+                    <Route
+                      path="/summaries"
+                      element={
+                        <ProtectedRoute>
+                          <Summaries />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/library"
+                      element={
+                        <ProtectedRoute>
+                          <Library />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/flashcards"
+                      element={
+                        <ProtectedRoute>
+                          <Flashcards />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/quiz"
+                      element={
+                        <ProtectedRoute>
+                          <Quiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/progress"
+                      element={
+                        <ProtectedRoute>
+                          <Progress />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/ai-notes-generator"
+                      element={
+                        <ProtectedRoute>
+                          <AINotesGenerator />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/doubt-chain"
+                      element={
+                        <ProtectedRoute>
+                          <DoubtChain />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/ai-assistant"
+                      element={
+                        <ProtectedRoute>
+                          <AIAssistant />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/math-chat"
+                      element={
+                        <ProtectedRoute>
+                          <MathChat />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/audio-notes"
+                      element={
+                        <ProtectedRoute>
+                          <AudioNotes />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/study-plans"
+                      element={
+                        <ProtectedRoute>
+                          <StudyPlans />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </Suspense>
+              </AuthStateHandler>
             </BrowserRouter>
           </TooltipProvider>
         </ThemeProvider>
