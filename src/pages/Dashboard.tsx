@@ -56,7 +56,7 @@ const Dashboard = () => {
   // Show loading state while authentication is being checked
   if (loading || statsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-lg">Loading your dashboard...</p>
@@ -68,7 +68,7 @@ const Dashboard = () => {
   // Show sign-in message only after loading is complete and user is not authenticated
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Welcome to Tutorly</h2>
           <p className="text-lg mb-6">Please sign in to view your dashboard.</p>
@@ -78,34 +78,34 @@ const Dashboard = () => {
     );
   }
 
-  // Cool emoji icons for stats
+  // Activity stats with clean icons
   const activityStats = [
     {
       label: "Summaries",
       value: stats.summaries_created,
       color: "text-blue-500",
-      emoji: "📝",
+      icon: "📝",
       bg: "bg-gradient-to-br from-blue-500/60 to-blue-400/30",
     },
     {
       label: "AI Notes",
       value: stats.notes_created,
       color: "text-green-500",
-      emoji: "🧠",
+      icon: "✨",
       bg: "bg-gradient-to-br from-green-400/60 to-green-300/30",
     },
     {
       label: "Quizzes",
       value: stats.quizzes_taken,
       color: "text-yellow-500",
-      emoji: "❓",
+      icon: "❓",
       bg: "bg-gradient-to-br from-yellow-400/60 to-yellow-300/30",
     },
     {
       label: "Flashcards",
       value: stats.flashcards_created,
       color: "text-purple-500",
-      emoji: "⚡",
+      icon: "⚡",
       bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
     },
   ];
@@ -115,14 +115,14 @@ const Dashboard = () => {
     {
       title: "Math Chat",
       desc: "Solve math problems with AI",
-      icon: <Calculator className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      icon: <Calculator className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/math-chat"
     },
     {
       title: "AI Notes",
       desc: "Generate smart notes from files",
-      icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
-      route: "/ai-notes"
+      icon: <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      route: "/ai-notes-generator"
     },
     {
       title: "Audio Recap",
@@ -139,13 +139,13 @@ const Dashboard = () => {
     {
       title: "Flashcards",
       desc: "Create and review flashcards",
-      icon: <Zap className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      icon: <Zap className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/flashcards"
     },
     {
       title: "Tests & Quiz",
       desc: "Test your knowledge",
-      icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/quiz"
     },
   ];
@@ -154,25 +154,25 @@ const Dashboard = () => {
     {
       title: "Doubt Chain",
       desc: "Break down complex concepts",
-      icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/doubt-chain"
     },
     {
       title: "Library",
       desc: "Browse your materials",
-      icon: <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      icon: <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/library"
     },
     {
       title: "AI Assistant",
       desc: "Get personalized help",
-      icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      icon: <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/ai-assistant"
     },
     {
       title: "Insights",
       desc: "Track your learning",
-      icon: <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      icon: <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/progress"
     }
   ];
@@ -180,10 +180,10 @@ const Dashboard = () => {
   const totalStudyHours = stats.total_study_time / 3600; // Convert seconds to hours
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white relative">
+    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white relative overflow-x-hidden max-w-full">
       <Navbar />
 
-      <main className="flex-1 py-4 md:py-8 px-2 md:px-4 pb-20 md:pb-8">
+      <main className="flex-1 py-4 md:py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
 
           {/* Welcome Section */}
@@ -206,12 +206,12 @@ const Dashboard = () => {
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
             {/* Study Hours */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #2563eb44' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-blue-900/20">
+            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #2563eb44' }} whileTap={{ scale: 0.97 }}>
+              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Study Hours</p>
+                      <p className="text-xs md:text-sm text-gray-400">Study Hours</p>
                       <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
                         {totalStudyHours < 1
                           ? Math.round(totalStudyHours * 60)
@@ -226,12 +226,12 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Materials */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #10b98144' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-green-900/20">
+            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #10b98144' }} whileTap={{ scale: 0.97 }}>
+              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Materials</p>
+                      <p className="text-xs md:text-sm text-gray-400">Materials</p>
                       <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.materials_created} <span className="text-green-400">📚</span></p>
                     </div>
                     <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
@@ -241,12 +241,12 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Quizzes */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #facc1544' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-yellow-900/20">
+            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #facc1544' }} whileTap={{ scale: 0.97 }}>
+              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
+                      <p className="text-xs md:text-sm text-gray-400">Quizzes</p>
                       <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.quizzes_taken} <span className="text-yellow-400">❓</span></p>
                     </div>
                     <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
@@ -256,12 +256,12 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Total Created */}
-            <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #a78bfa44' }} whileTap={{ scale: 0.97 }}>
-              <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-purple-900/20">
+            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #a78bfa44' }} whileTap={{ scale: 0.97 }}>
+              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Created</p>
+                      <p className="text-xs md:text-sm text-gray-400">Created</p>
                       <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
                         {stats.summaries_created + stats.notes_created + stats.flashcards_created} <span className="text-purple-400">📝</span>
                       </p>
@@ -275,7 +275,7 @@ const Dashboard = () => {
 
           {/* Activity Summary */}
           <div className="mb-6 md:mb-8 relative">
-            <Card className="dark:bg-card shadow-xl border-0 relative overflow-visible">
+            <Card className="bg-[#121212] border-slate-700 shadow-xl overflow-visible">
               <CardHeader className="pb-3 flex flex-row items-center gap-2">
                 <Sparkles className="text-yellow-400 animate-pulse h-5 w-5 mr-1" />
                 <CardTitle className="text-base md:text-lg flex items-center gap-1">
@@ -297,7 +297,7 @@ const Dashboard = () => {
                           animate={{ scale: [1, 1.12, 1] }}
                           transition={{ repeat: Infinity, duration: 1.7 + idx * 0.2, repeatType: "reverse" }}
                           className="text-2xl md:text-3xl mb-1"
-                        >{stat.emoji}</motion.span>
+                        >{stat.icon}</motion.span>
                         <motion.p
                           className={`text-xl md:text-2xl font-extrabold ${stat.color} mb-0`}
                           animate={{ y: [0, -5, 0] }}
@@ -309,7 +309,7 @@ const Dashboard = () => {
                         >
                           {stat.value}
                         </motion.p>
-                        <p className="text-xs md:text-sm text-muted-foreground font-semibold drop-shadow">{stat.label}</p>
+                        <p className="text-xs md:text-sm text-gray-400 font-semibold">{stat.label}</p>
                       </div>
                     </motion.div>
                   ))}
@@ -329,21 +329,21 @@ const Dashboard = () => {
                 <motion.div
                   key={tool.title}
                   whileHover={{
-                    scale: 1.08,
+                    scale: 1.05,
                     boxShadow: '0 4px 32px #38bdf8bb',
-                    rotate: [0, 3, -3, 0]
+                    rotate: [0, 1, -1, 0]
                   }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 160 }}
                 >
                   <Card
-                    className="hover-glow cursor-pointer dark:bg-card transition-transform hover:scale-105 shadow-md"
+                    className="bg-[#121212] border-slate-700 hover:border-slate-600 cursor-pointer transition-all hover:shadow-lg"
                     onClick={() => navigate(tool.route)}
                   >
                     <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
                       {tool.icon}
                       <h3 className="font-medium text-sm md:text-base">{tool.title}</h3>
-                      <p className="text-xs md:text-sm text-muted-foreground">{tool.desc}</p>
+                      <p className="text-xs md:text-sm text-gray-400">{tool.desc}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -361,18 +361,18 @@ const Dashboard = () => {
               {quickActions.map((action, idx) => (
                 <motion.div
                   key={action.title}
-                  whileHover={{ scale: 1.04, boxShadow: '0 2px 28px #3b82f6aa' }}
+                  whileHover={{ scale: 1.02, boxShadow: '0 2px 28px #3b82f6aa' }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 160 }}
                 >
                   <Card
-                    className="hover-glow cursor-pointer dark:bg-card shadow-md"
+                    className="bg-[#121212] border-slate-700 hover:border-slate-600 cursor-pointer shadow-md"
                     onClick={() => navigate(action.route)}
                   >
                     <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
                       {action.icon}
                       <h3 className="font-medium text-sm md:text-base">{action.title}</h3>
-                      <p className="text-xs md:text-sm text-muted-foreground">{action.desc}</p>
+                      <p className="text-xs md:text-sm text-gray-400">{action.desc}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -401,9 +401,6 @@ const Dashboard = () => {
           display: inline-block;
           animation: wave 2s infinite;
           transform-origin: 70% 70%;
-        }
-        .hover-glow:hover {
-          box-shadow: 0 2px 32px #3b82f6cc !important;
         }
       `}</style>
     </div>

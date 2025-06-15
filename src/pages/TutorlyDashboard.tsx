@@ -79,7 +79,7 @@ const TutorlyDashboard = () => {
     { id: "flashcards", icon: Zap, label: "Flashcards", route: "/flashcards" },
     { id: "quiz", icon: TestTube, label: "Tests & Quiz", route: "/quiz" },
     { id: "math-chat", icon: Calculator, label: "Math Solver", route: "/math-chat" },
-    { id: "notes", icon: StickyNote, label: "AI Notes", route: "/ai-notes" },
+    { id: "notes", icon: StickyNote, label: "AI Notes", route: "/ai-notes-generator" },
     { id: "audio", icon: Headphones, label: "Audio Recap", route: "/audio-notes" },
     { id: "library", icon: BookMarked, label: "Library", route: "/library" },
     { id: "summaries", icon: FileText, label: "Summaries", route: "/summaries" },
@@ -88,7 +88,7 @@ const TutorlyDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -106,7 +106,7 @@ const TutorlyDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex overflow-hidden max-w-full">
       {/* Sidebar */}
       <AnimatePresence mode="wait">
         {(sidebarOpen || !isMobile) && (
@@ -117,10 +117,10 @@ const TutorlyDashboard = () => {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={`${
               isMobile ? "fixed inset-y-0 left-0 z-50" : "relative"
-            } w-70 bg-slate-800/90 backdrop-blur-sm border-r border-slate-700`}
+            } w-70 bg-[#121212]/90 backdrop-blur-sm border-r border-slate-700 flex flex-col`}
           >
             {/* Sidebar Header */}
-            <div className="p-6 border-b border-slate-700">
+            <div className="p-4 sm:p-6 border-b border-slate-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
@@ -163,7 +163,7 @@ const TutorlyDashboard = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="p-4 space-y-2">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
               {sidebarItems.map((item) => (
                 <motion.button
                   key={item.id}
@@ -193,7 +193,7 @@ const TutorlyDashboard = () => {
             </nav>
 
             {/* Upgrade Section */}
-            <div className="p-4 mt-auto">
+            <div className="p-4">
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30"
@@ -228,9 +228,9 @@ const TutorlyDashboard = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
         {/* Top Bar */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between p-4 sm:p-6 lg:p-8 border-b border-slate-700 bg-[#121212]/50 backdrop-blur-sm">
           <div className="flex items-center space-x-4">
             {isMobile && (
               <Button
@@ -243,26 +243,28 @@ const TutorlyDashboard = () => {
               </Button>
             )}
             <div>
-              <h2 className="text-lg font-semibold text-white">Welcome back, {getUserDisplayName()}!</h2>
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white">Welcome back, {getUserDisplayName()}!</h2>
               <p className="text-sm text-gray-400">Ready to continue learning?</p>
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10">
+            <Button variant="outline" size="sm" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hidden sm:flex">
               <Share className="w-4 h-4 mr-2" />
               Share
             </Button>
             <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600" size="sm">
               <PlusCircle className="w-4 h-4 mr-2" />
-              New Session
+              <span className="hidden sm:inline">New Session</span>
             </Button>
           </div>
         </div>
 
-        {/* Main Dashboard Content - Enhanced Anime Chat */}
-        <main className="flex-1 overflow-hidden">
-          <AnimeChat />
+        {/* Main Dashboard Content */}
+        <main className="flex-1 overflow-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-full">
+            <AnimeChat />
+          </div>
         </main>
       </div>
     </div>
