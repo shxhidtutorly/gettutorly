@@ -61,7 +61,7 @@ export const QuizFromNotesButton = ({ notesContent, notesTitle, children }: Quiz
         description: "Redirecting to quiz page..."
       });
 
-      // Navigate to quiz page
+      // Navigate to quiz page with generated source
       navigate('/quiz?source=generated');
       
     } catch (error) {

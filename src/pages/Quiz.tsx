@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { QuizProgress } from "@/components/quiz/QuizProgress";
 import { QuizResults } from "@/components/quiz/QuizResults";
+import { SavedQuizzes } from "@/components/quiz/SavedQuizzes";
 import {
   HelpCircle,
   ArrowRight,
@@ -20,6 +21,7 @@ import {
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
 import { motion, AnimatePresence } from "framer-motion";
+import { saveQuiz, StoredQuiz, getQuizById } from "@/lib/quizStorage";
 
 interface QuizQuestion {
   question: string;
@@ -54,9 +56,9 @@ const Quiz = () => {
     { question: string; options: string[]; correct: number }[]
   >([{ question: "", options: ["", "", "", ""], correct: 0 }]);
 
-  // Remove local sample quiz logic, only load generated quiz if present
   useEffect(() => {
     const source = searchParams.get("source");
+    const quizId = searchParams.get("id");
 
     if (source === "generated") {
       const savedQuiz = localStorage.getItem("generatedQuiz");
@@ -64,22 +66,59 @@ const Quiz = () => {
         const parsedQuiz = JSON.parse(savedQuiz);
         setQuiz(parsedQuiz);
         setSelectedAnswers(new Array(parsedQuiz.questions.length).fill(-1));
+        
+        // Save to persistent storage
+        saveQuiz({
+          title: parsedQuiz.title,
+          questions: parsedQuiz.questions
+        });
+        
+        // Clear temporary storage
+        localStorage.removeItem("generatedQuiz");
       } else {
         toast({
           variant: "destructive",
           title: "No quiz found",
           description: "Generate a quiz first from your notes."
         });
-        navigate("/dashboard");
+        navigate("/quiz");
+      }
+      setIsLoading(false);
+    } else if (quizId) {
+      const savedQuiz = getQuizById(quizId);
+      if (savedQuiz) {
+        setQuiz({
+          title: savedQuiz.title,
+          questions: savedQuiz.questions,
+          source: "saved"
+        });
+        setSelectedAnswers(new Array(savedQuiz.questions.length).fill(-1));
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Quiz not found",
+          description: "The requested quiz could not be loaded."
+        });
+        navigate("/quiz");
       }
       setIsLoading(false);
     } else {
-      // No sample quiz, no auto-load: show quiz creation options
       setQuiz(null);
       setIsLoading(false);
     }
-    // eslint-disable-next-line
-  }, [searchParams, navigate, toast, startSession]);
+  }, [searchParams, navigate, toast]);
+
+  const handleSavedQuizSelect = (savedQuiz: StoredQuiz) => {
+    setQuiz({
+      title: savedQuiz.title,
+      questions: savedQuiz.questions,
+      source: "saved"
+    });
+    setSelectedAnswers(new Array(savedQuiz.questions.length).fill(-1));
+    setShowResults(false);
+    setQuizStarted(false);
+    setCurrentQuestion(0);
+  };
 
   // Manual quiz creation handlers
   const handleFormQuestionChange = (
@@ -136,18 +175,26 @@ const Quiz = () => {
         return;
       }
     }
-    const newQuiz: Quiz = {
+    
+    // Save to localStorage
+    const savedQuiz = saveQuiz({
       title: quizTitle,
-      questions: formQuestions,
+      questions: formQuestions
+    });
+    
+    const newQuiz: Quiz = {
+      title: savedQuiz.title,
+      questions: savedQuiz.questions,
       source: "manual",
-      timestamp: new Date().toISOString()
+      timestamp: savedQuiz.createdAt
     };
+    
     setQuiz(newQuiz);
     setSelectedAnswers(new Array(newQuiz.questions.length).fill(-1));
     setShowQuizForm(false);
     toast({
       title: "Quiz Created! 🎉",
-      description: "Your quiz is ready to begin."
+      description: "Your quiz has been saved and is ready to begin."
     });
   };
 
@@ -215,6 +262,14 @@ const Quiz = () => {
     setQuizStarted(false);
   };
 
+  const backToQuizList = () => {
+    setQuiz(null);
+    setShowResults(false);
+    setQuizStarted(false);
+    setCurrentQuestion(0);
+    setSelectedAnswers([]);
+  };
+
   const gradientBg = "bg-gradient-to-bl from-[#0A0A0A] via-[#1a1a2e] to-[#16213e]";
 
   if (isLoading) {
@@ -233,49 +288,50 @@ const Quiz = () => {
     );
   }
 
-  // --- Show quiz creation options when no quiz exists ---
+  // Show quiz creation options when no quiz exists
   if (!quiz && !showQuizForm) {
     return (
       <div className={`min-h-screen flex flex-col ${gradientBg}`}>
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-xl mx-auto text-center"
-          >
-            <HelpCircle className="h-14 w-14 mx-auto mb-4 text-gray-400" />
+        <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
+          <div className="container max-w-6xl mx-auto">
             <div className="mb-6">
-              <p className="text-2xl font-bold mb-2 text-white">
-                No Quiz Available
+              <BackToDashboardButton variant="outline" />
+            </div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center mb-8"
+            >
+              <h1 className="text-3xl font-bold text-white mb-4">Quiz Center</h1>
+              <p className="text-gray-400 mb-6">
+                Take existing quizzes or create new ones to test your knowledge
               </p>
-              <p className="text-gray-400 mb-4">
-                Create your own quiz or generate one from your notes using AI!
-              </p>
-            </div>
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <Button
-                onClick={() => setShowQuizForm(true)}
-                className="flex items-center gap-2 text-lg font-semibold bg-purple-600 hover:bg-purple-700"
-                size="lg"
-              >
-                <PlusCircle className="h-5 w-5" />
-                Create Quiz
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => navigate("/ai-notes")}
-                className="flex items-center gap-2 text-lg font-semibold"
-                size="lg"
-              >
-                <Bot className="h-5 w-5" />
-                Create AI Quiz
-              </Button>
-            </div>
-            <div className="mt-8">
-              <BackToDashboardButton />
-            </div>
-          </motion.div>
+              
+              <div className="flex flex-col md:flex-row gap-4 justify-center mb-8">
+                <Button
+                  onClick={() => setShowQuizForm(true)}
+                  className="flex items-center gap-2 text-lg font-semibold bg-purple-600 hover:bg-purple-700"
+                  size="lg"
+                >
+                  <PlusCircle className="h-5 w-5" />
+                  Create Quiz
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate("/ai-notes-generator")}
+                  className="flex items-center gap-2 text-lg font-semibold"
+                  size="lg"
+                >
+                  <Bot className="h-5 w-5" />
+                  Generate AI Quiz
+                </Button>
+              </div>
+            </motion.div>
+
+            <SavedQuizzes onQuizSelect={handleSavedQuizSelect} />
+          </div>
         </main>
         <Footer />
         <BottomNav />
@@ -283,7 +339,7 @@ const Quiz = () => {
     );
   }
 
-  // --- Manual Quiz Creation Form ---
+  // Manual Quiz Creation Form ---
   if (showQuizForm) {
     return (
       <div className={`min-h-screen flex flex-col ${gradientBg}`}>
@@ -399,7 +455,7 @@ const Quiz = () => {
     );
   }
 
-  // --- Results Screen ---
+  // Results Screen ---
   if (showResults && quiz) {
     const score = calculateScore();
 
@@ -409,14 +465,21 @@ const Quiz = () => {
         <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
           <div className="container max-w-4xl mx-auto">
             <div className="absolute left-4 top-4 z-20">
-              <BackToDashboardButton variant="outline" />
+              <Button
+                onClick={backToQuizList}
+                variant="outline"
+                className="border-gray-600 text-white hover:bg-gray-800"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
             </div>
             <QuizResults
               questions={quiz.questions}
               userAnswers={selectedAnswers}
               score={score}
               onRetake={restartQuiz}
-              onGoBack={() => navigate("/dashboard")}
+              onGoBack={backToQuizList}
             />
           </div>
         </main>
@@ -426,7 +489,7 @@ const Quiz = () => {
     );
   }
 
-  // --- Quiz Start Screen ---
+  // Quiz Start Screen ---
   if (quiz && !quizStarted) {
     return (
       <div className={`min-h-screen flex flex-col ${gradientBg}`}>
@@ -464,7 +527,13 @@ const Quiz = () => {
                   Start Quiz
                 </Button>
                 <div className="flex justify-center">
-                  <BackToDashboardButton variant="outline" />
+                  <Button
+                    onClick={backToQuizList}
+                    variant="outline"
+                    className="border-gray-600 text-white hover:bg-gray-800"
+                  >
+                    Back to Quizzes
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -476,7 +545,7 @@ const Quiz = () => {
     );
   }
 
-  // --- Quiz Question Screen ---
+  // Quiz Question Screen ---
   if (quiz && quizStarted) {
     const currentQ = quiz.questions[currentQuestion];
     const answeredQuestions = selectedAnswers
@@ -487,7 +556,14 @@ const Quiz = () => {
       <div className={`min-h-screen flex flex-col ${gradientBg}`}>
         <Navbar />
         <div className="absolute left-4 top-4 z-20">
-          <BackToDashboardButton variant="outline" />
+          <Button
+            onClick={backToQuizList}
+            variant="outline"
+            className="border-gray-600 text-white hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
         </div>
         <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
           <div className="container max-w-4xl mx-auto">
