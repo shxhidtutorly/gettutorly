@@ -23,16 +23,25 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen scroll-smooth">
-      <LandingNavbar />
-      <Hero />
-      <StickyFeaturesSection />
-      <div id="features">
-        <Features />
+    <div className="min-h-screen w-full bg-[#0E0F1A] flex flex-col">
+      {/* Sticky, full-width nav */}
+      <div className="w-full">
+        <LandingNavbar />
       </div>
-      <PricingSection />
-      <FAQSection />
-      <LandingFooter />
+      {/* Main hero/sections, allow full width */}
+      <main className="flex-1 w-full">
+        <Hero />
+        <StickyFeaturesSection />
+        <div id="features">
+          <Features />
+        </div>
+        <PricingSection />
+        <FAQSection />
+      </main>
+      {/* Footer full width */}
+      <div className="w-full">
+        <LandingFooter />
+      </div>
     </div>
   );
 };
