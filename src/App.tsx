@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
+import TutorlyDashboard from "./pages/NewDashboard"; // Updated import
 import Library from "./pages/Library";
 import StudyPlans from "./pages/StudyPlans";
 import Progress from "./pages/Progress";
@@ -63,7 +64,7 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <TutorlyDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/home" element={<Navigate to="/dashboard" replace />} />
