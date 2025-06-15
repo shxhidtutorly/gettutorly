@@ -81,3 +81,39 @@ export const resetPassword = async (email: string) => {
     throw error;
   }
 };
+
+// USER PROFILE HELPERS
+export const createUserProfile = async (userId: string, userData: any) => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .upsert([{
+        id: userId,
+        ...userData,
+        role: userData.role || "student",
+        updated_at: new Date().toISOString(),
+      }]);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error creating user profile:", error);
+    throw error;
+  }
+};
+
+export const getUserProfile = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    throw error;
+  }
+};

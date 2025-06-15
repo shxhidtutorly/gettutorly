@@ -230,17 +230,28 @@ export const getUserStudySessions = async (userId: string) => {
   }
 };
 
-// STUDY PLANS OPERATIONS
+// PLACEHOLDER STUDY PLANS OPERATIONS (until study_plans table is created)
 export const getUserStudyPlans = async (userId: string) => {
   try {
+    // For now, return study materials as placeholder study plans
     const { data, error } = await supabase
-      .from('study_plans')
-      .select('*')
+      .from('study_materials')
+      .select('id, title, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
-    return data || [];
+    
+    // Transform study materials to look like study plans
+    const studyPlans = (data || []).map(material => ({
+      id: material.id,
+      title: material.title,
+      description: "Study plan based on your uploaded materials",
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+      created_at: material.created_at
+    }));
+    
+    return studyPlans;
   } catch (error) {
     console.error("Error getting user study plans:", error);
     throw error;
@@ -249,11 +260,14 @@ export const getUserStudyPlans = async (userId: string) => {
 
 export const createStudyPlan = async (userId: string, planData: any) => {
   try {
+    // For now, create as a study material until study_plans table exists
     const { data, error } = await supabase
-      .from('study_plans')
+      .from('study_materials')
       .insert([{
         user_id: userId,
-        ...planData,
+        title: planData.title,
+        content_type: 'study_plan',
+        metadata: { description: planData.description, due_date: planData.due_date },
         created_at: new Date().toISOString(),
       }])
       .select()
@@ -269,8 +283,9 @@ export const createStudyPlan = async (userId: string, planData: any) => {
 
 export const deleteStudyPlan = async (planId: string) => {
   try {
+    // For now, delete from study_materials
     const { error } = await supabase
-      .from('study_plans')
+      .from('study_materials')
       .delete()
       .eq('id', planId);
       

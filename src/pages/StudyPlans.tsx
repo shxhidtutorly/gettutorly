@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
@@ -38,8 +39,18 @@ const StudyPlans = () => {
     try {
       console.log('🔄 Loading study plans for user:', currentUser.id);
       const data = await getUserStudyPlans(currentUser.id);
-      setPlans(data || []);
-      console.log('✅ Loaded plans:', data?.length || 0);
+      
+      // Ensure the data matches our StudyPlan interface
+      const formattedPlans: StudyPlan[] = (data || []).map((item: any) => ({
+        id: item.id,
+        title: item.title || "Untitled Plan",
+        description: item.description || "No description available",
+        due_date: item.due_date || new Date().toISOString(),
+        created_at: item.created_at || new Date().toISOString()
+      }));
+      
+      setPlans(formattedPlans);
+      console.log('✅ Loaded plans:', formattedPlans.length);
     } catch (error) {
       console.error('❌ Error loading study plans:', error);
       toast({
