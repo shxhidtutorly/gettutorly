@@ -7,13 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen,
-  Target,
   Calendar,
   FileText,
   Brain,
   Zap,
   HelpCircle,
-  Flame,
   TrendingUp,
   Clock,
   CheckCircle,
@@ -22,28 +20,20 @@ import {
   StickyNote,
   Crown,
   MessageCircle,
-  Upload,
   Headphones,
   BarChart3,
   TestTube,
   BookMarked,
-  ArrowRight,
-  Star,
-  Rocket,
-  Heart,
-  Lightbulb,
   Home,
-  User,
   Settings,
-  LogOut,
   Menu,
   X,
   GraduationCap,
   PlusCircle,
-  ChevronRight,
-  Bookmark,
   Share,
-  Download
+  User,
+  Target,
+  Award
 } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
@@ -86,6 +76,48 @@ const TutorlyDashboard = () => {
     { id: "doubt-chain", icon: Brain, label: "Doubt Chain", route: "/doubt-chain" },
   ];
 
+  // Quick stats data
+  const quickStats = [
+    {
+      title: "Study Hours",
+      value: `${Math.round((stats.total_study_time || 0) / 3600)}h`,
+      icon: Clock,
+      color: "text-blue-400",
+      bg: "bg-blue-500/10"
+    },
+    {
+      title: "Materials",
+      value: stats.materials_created || 0,
+      icon: BookOpen,
+      color: "text-green-400",
+      bg: "bg-green-500/10"
+    },
+    {
+      title: "Quizzes",
+      value: stats.quizzes_taken || 0,
+      icon: TestTube,
+      color: "text-purple-400",
+      bg: "bg-purple-500/10"
+    },
+    {
+      title: "Score",
+      value: "85%",
+      icon: Target,
+      color: "text-yellow-400",
+      bg: "bg-yellow-500/10"
+    }
+  ];
+
+  // Study tools for quick access
+  const studyTools = [
+    { title: "AI Notes", icon: Sparkles, route: "/ai-notes-generator", color: "text-purple-400" },
+    { title: "Math Solver", icon: Calculator, route: "/math-chat", color: "text-blue-400" },
+    { title: "Flashcards", icon: Zap, route: "/flashcards", color: "text-yellow-400" },
+    { title: "Quiz", icon: TestTube, route: "/quiz", color: "text-green-400" },
+    { title: "Summaries", icon: FileText, route: "/summaries", color: "text-pink-400" },
+    { title: "Audio Notes", icon: Headphones, route: "/audio-notes", color: "text-cyan-400" }
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
@@ -106,7 +138,7 @@ const TutorlyDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex overflow-hidden max-w-full">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex w-full overflow-hidden">
       {/* Sidebar */}
       <AnimatePresence mode="wait">
         {(sidebarOpen || !isMobile) && (
@@ -117,20 +149,18 @@ const TutorlyDashboard = () => {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={`${
               isMobile ? "fixed inset-y-0 left-0 z-50" : "relative"
-            } w-70 bg-[#121212]/90 backdrop-blur-sm border-r border-slate-700 flex flex-col`}
+            } w-64 bg-[#121212] border-r border-slate-700 flex flex-col`}
           >
             {/* Sidebar Header */}
-            <div className="p-4 sm:p-6 border-b border-slate-700">
+            <div className="p-4 border-b border-slate-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <GraduationCap className="w-6 h-6 text-white" />
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-white" />
                   </div>
-                  <div>
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                      Tutorly
-                    </h1>
-                  </div>
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Tutorly
+                  </h1>
                 </div>
                 {isMobile && (
                   <Button
@@ -139,21 +169,21 @@ const TutorlyDashboard = () => {
                     onClick={() => setSidebarOpen(false)}
                     className="text-gray-400 hover:text-white"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </Button>
                 )}
               </div>
               
               {/* User Profile */}
-              <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-semibold text-white">
+              <div className="mt-3 p-2 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-semibold text-white">
                       {getUserDisplayName().charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-xs font-medium text-white truncate">
                       {getUserDisplayName()}
                     </p>
                     <p className="text-xs text-gray-400">Student</p>
@@ -163,7 +193,7 @@ const TutorlyDashboard = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               {sidebarItems.map((item) => (
                 <motion.button
                   key={item.id}
@@ -174,18 +204,18 @@ const TutorlyDashboard = () => {
                   }}
                   whileHover={{ scale: 1.02, x: 4 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all ${
+                  className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all text-sm ${
                     activeSection === item.id
                       ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30"
                       : "text-gray-400 hover:text-white hover:bg-slate-700/50"
                   }`}
                 >
-                  <item.icon className="w-5 h-5" />
-                  <span className="text-sm font-medium">{item.label}</span>
+                  <item.icon className="w-4 h-4" />
+                  <span className="font-medium">{item.label}</span>
                   {activeSection === item.id && (
                     <motion.div
                       layoutId="activeIndicator"
-                      className="ml-auto w-2 h-2 bg-purple-400 rounded-full"
+                      className="ml-auto w-1.5 h-1.5 bg-purple-400 rounded-full"
                     />
                   )}
                 </motion.button>
@@ -193,19 +223,19 @@ const TutorlyDashboard = () => {
             </nav>
 
             {/* Upgrade Section */}
-            <div className="p-4">
+            <div className="p-3">
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30"
+                className="p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30"
               >
                 <div className="flex items-center space-x-2 mb-2">
-                  <Crown className="w-5 h-5 text-yellow-400" />
-                  <span className="text-sm font-semibold text-yellow-400">Upgrade to Pro</span>
+                  <Crown className="w-4 h-4 text-yellow-400" />
+                  <span className="text-xs font-semibold text-yellow-400">Upgrade to Pro</span>
                 </div>
-                <p className="text-xs text-gray-300 mb-3">Unlock unlimited features</p>
+                <p className="text-xs text-gray-300 mb-2">Unlock unlimited features</p>
                 <Button
                   onClick={() => navigate('/pricing')}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
+                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white text-xs"
                   size="sm"
                 >
                   Upgrade Now
@@ -228,10 +258,10 @@ const TutorlyDashboard = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen w-full overflow-hidden">
         {/* Top Bar */}
-        <div className="flex items-center justify-between p-4 sm:p-6 lg:p-8 border-b border-slate-700 bg-[#121212]/50 backdrop-blur-sm">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-[#121212]/50 backdrop-blur-sm">
+          <div className="flex items-center space-x-3">
             {isMobile && (
               <Button
                 variant="ghost"
@@ -239,31 +269,114 @@ const TutorlyDashboard = () => {
                 onClick={() => setSidebarOpen(true)}
                 className="text-gray-400 hover:text-white"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-4 h-4" />
               </Button>
             )}
             <div>
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white">Welcome back, {getUserDisplayName()}!</h2>
+              <h2 className="text-lg font-semibold text-white">Welcome back, {getUserDisplayName()}!</h2>
               <p className="text-sm text-gray-400">Ready to continue learning?</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <Button variant="outline" size="sm" className="text-blue-400 border-blue-400/50 hover:bg-blue-400/10 hidden sm:flex">
-              <Share className="w-4 h-4 mr-2" />
+              <Share className="w-4 h-4 mr-1" />
               Share
             </Button>
             <Button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600" size="sm">
-              <PlusCircle className="w-4 h-4 mr-2" />
+              <PlusCircle className="w-4 h-4 mr-1" />
               <span className="hidden sm:inline">New Session</span>
             </Button>
           </div>
         </div>
 
-        {/* Main Dashboard Content */}
-        <main className="flex-1 overflow-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="max-w-full">
-            <AnimeChat />
+        {/* Dashboard Content */}
+        <main className="flex-1 overflow-auto p-4 space-y-6">
+          <div className="max-w-7xl mx-auto w-full">
+            {/* Quick Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+            >
+              {quickStats.map((stat, index) => (
+                <motion.div
+                  key={stat.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">{stat.title}</p>
+                          <p className="text-lg font-bold text-white">{stat.value}</p>
+                        </div>
+                        <div className={`p-2 rounded-lg ${stat.bg}`}>
+                          <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Study Tools Grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-6"
+            >
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                Quick Access
+              </h3>
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                {studyTools.map((tool, index) => (
+                  <motion.div
+                    key={tool.title}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4 + index * 0.05 }}
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Card
+                      className="bg-[#121212] border-slate-700 hover:border-slate-600 cursor-pointer transition-all hover:shadow-lg"
+                      onClick={() => navigate(tool.route)}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <tool.icon className={`w-6 h-6 ${tool.color} mx-auto mb-2`} />
+                        <h4 className="text-sm font-medium text-white">{tool.title}</h4>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Main Chat Interface */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="bg-[#121212] rounded-2xl border border-slate-700 p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <MessageCircle className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">AI Assistant</h3>
+                <Badge variant="outline" className="border-green-500/50 text-green-400">
+                  Online
+                </Badge>
+              </div>
+              <AnimeChat />
+            </motion.div>
           </div>
         </main>
       </div>
