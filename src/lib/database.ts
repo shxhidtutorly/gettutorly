@@ -230,7 +230,7 @@ export const getUserStudySessions = async (userId: string) => {
   }
 };
 
-// PLACEHOLDER STUDY PLANS OPERATIONS (until study_plans table is created)
+// STUDY PLANS OPERATIONS
 export const getUserStudyPlans = async (userId: string) => {
   try {
     // For now, return study materials as placeholder study plans
@@ -338,55 +338,6 @@ export const deleteFile = async (filePath: string) => {
     return true;
   } catch (error) {
     console.error('Error deleting file:', error);
-    throw error;
-  }
-};
-
-// Test function for debugging
-export const testSupabaseConnection = async (userId: string) => {
-  try {
-    const results = {
-      materials: { data: null, error: null },
-      notes: { data: null, error: null },
-      sessions: { data: null, error: null }
-    };
-
-    // Test study materials
-    try {
-      const { data, error } = await supabase
-        .from('study_materials')
-        .select('*')
-        .eq('user_id', userId);
-      results.materials = { data, error };
-    } catch (error) {
-      results.materials = { data: null, error };
-    }
-
-    // Test notes
-    try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', userId);
-      results.notes = { data, error };
-    } catch (error) {
-      results.notes = { data: null, error };
-    }
-
-    // Test study sessions
-    try {
-      const { data, error } = await supabase
-        .from('study_sessions')
-        .select('*')
-        .eq('user_id', userId);
-      results.sessions = { data, error };
-    } catch (error) {
-      results.sessions = { data: null, error };
-    }
-
-    return results;
-  } catch (error) {
-    console.error('Error testing Supabase connection:', error);
     throw error;
   }
 };

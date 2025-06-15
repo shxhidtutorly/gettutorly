@@ -7,7 +7,7 @@ import BottomNav from "@/components/layout/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { getUserStudyPlans } from "@/lib/database";
 
 interface StudyPlan {
@@ -19,7 +19,7 @@ interface StudyPlan {
 }
 
 const StudyPlans = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const [plans, setPlans] = useState<StudyPlan[]>([]);
@@ -27,18 +27,18 @@ const StudyPlans = () => {
 
   // Load user's study plans
   useEffect(() => {
-    if (currentUser?.id) {
+    if (user?.id) {
       loadStudyPlans();
     }
-  }, [currentUser?.id]);
+  }, [user?.id]);
 
   const loadStudyPlans = async () => {
-    if (!currentUser?.id) return;
+    if (!user?.id) return;
     
     setIsLoading(true);
     try {
-      console.log('🔄 Loading study plans for user:', currentUser.id);
-      const data = await getUserStudyPlans(currentUser.id);
+      console.log('🔄 Loading study plans for user:', user.id);
+      const data = await getUserStudyPlans(user.id);
       
       // Ensure the data matches our StudyPlan interface
       const formattedPlans: StudyPlan[] = (data || []).map((item: any) => ({
