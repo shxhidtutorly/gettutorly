@@ -49,9 +49,17 @@ import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
 import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
 
 const Index = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const [scrollY, setScrollY] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -74,7 +82,7 @@ const Index = () => {
   }, []);
 
   const handleGetStarted = () => {
-    if (currentUser) {
+    if (user) {
       navigate("/dashboard");
     } else {
       navigate("/dashboard");
@@ -123,7 +131,7 @@ const Index = () => {
           </motion.div>
 
           <div className="flex items-center gap-4">
-            {currentUser ? (
+            {user ? (
               <UserProfileButton />
             ) : (
               <div className="flex gap-2">

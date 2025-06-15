@@ -27,29 +27,29 @@ import { getUserStudyMaterials } from "@/lib/database";
 import SupabaseDebugger from "@/components/debug/SupabaseDebugger";
 
 const Library = () => {
-  const { currentUser } = useAuth();
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
   const { toast } = useToast();
   
-  const [materials, setMaterials] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [isLoading, setIsLoading] = useState(false);
   const [showDebugger, setShowDebugger] = useState(false);
 
   // Load user's study materials
   useEffect(() => {
-    if (currentUser?.id) {
-      loadStudyMaterials();
+    if (user?.id) {
+      loadMaterials();
     }
-  }, [currentUser?.id]);
+  }, [user]);
 
-  const loadStudyMaterials = async () => {
-    if (!currentUser?.id) return;
+  const loadMaterials = async () => {
+    if (!user?.id) return;
     
-    setIsLoading(true);
+    setLoading(true);
     try {
-      console.log('🔄 Loading study materials for user:', currentUser.id);
-      const data = await getUserStudyMaterials(currentUser.id);
+      console.log('🔄 Loading study materials for user:', user.id);
+      const data = await getUserStudyMaterials(user.id);
       setMaterials(data || []);
       console.log('✅ Loaded materials:', data?.length || 0);
       
@@ -67,7 +67,7 @@ const Library = () => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -91,7 +91,7 @@ const Library = () => {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
         <div className="bg-[#202741] rounded-xl p-6 shadow-lg text-center animate-fade-in">
@@ -214,7 +214,7 @@ const Library = () => {
           </div>
 
           {/* Materials Grid/List */}
-          {isLoading ? (
+          {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
               <p>Loading your materials...</p>
