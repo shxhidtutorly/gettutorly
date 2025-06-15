@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Bot, User, Sparkles } from "lucide-react";
+import { MessageCircle, Send, Bot, User, Sparkles, X, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChatMessage, getChatHistory, saveChatMessage, sendChatMessage } from "@/lib/notesChat";
+import { ChatMessage, getChatHistory, saveChatMessage } from "@/lib/notesChat";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NotesChatProps {
@@ -17,14 +17,20 @@ interface NotesChatProps {
   noteTitle: string;
 }
 
-const NotesChat = ({ noteId, noteContent, noteTitle }: NotesChatProps) => {
+const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: NotesChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [noteContent, setNoteContent] = useState(initialNoteContent);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { toast } = useToast();
+
+  // Update note content when prop changes
+  useEffect(() => {
+    setNoteContent(initialNoteContent);
+  }, [initialNoteContent]);
 
   // Load chat history on component mount
   useEffect(() => {
@@ -54,6 +60,51 @@ const NotesChat = ({ noteId, noteContent, noteTitle }: NotesChatProps) => {
     }
   };
 
+  const sendMessageToAI = async (userMessage: string, chatHistory: ChatMessage[]) => {
+    const messages = [];
+    
+    // Add system context if note content exists
+    if (noteContent) {
+      messages.push({
+        role: "system",
+        content: `Use the following notes as reference for all your answers. Base your responses on this content and cite specific parts when relevant:\n\n${noteContent}`
+      });
+    }
+    
+    // Add chat history
+    chatHistory.forEach(msg => {
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.message
+      });
+    });
+    
+    // Add current user message
+    messages.push({
+      role: 'user',
+      content: userMessage
+    });
+
+    const response = await fetch('/api/ai', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages,
+        model: 'gemini'
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to send message');
+    }
+
+    const data = await response.json();
+    return data.response;
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !currentUser || isLoading) return;
 
@@ -76,8 +127,8 @@ const NotesChat = ({ noteId, noteContent, noteTitle }: NotesChatProps) => {
       // Save user message to database
       await saveChatMessage(currentUser.id, noteId, 'user', userMessage);
 
-      // Get AI response
-      const aiResponse = await sendChatMessage(userMessage, noteContent, messages);
+      // Get AI response using the new unified API
+      const aiResponse = await sendMessageToAI(userMessage, messages);
 
       // Add AI response to state
       const aiMessage: ChatMessage = {
@@ -107,6 +158,14 @@ const NotesChat = ({ noteId, noteContent, noteTitle }: NotesChatProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClearContext = () => {
+    setNoteContent("");
+    toast({
+      title: "Context cleared",
+      description: "The AI will no longer reference your note content in responses."
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -139,13 +198,50 @@ const NotesChat = ({ noteId, noteContent, noteTitle }: NotesChatProps) => {
             >
               <MessageCircle className="w-6 h-6 text-purple-400" />
             </motion.div>
-            <div>
+            <div className="flex-1">
               <div className="text-lg font-bold">Chat with Your Notes</div>
               <div className="text-sm font-normal text-gray-300 opacity-80">
                 Ask questions about: {noteTitle}
               </div>
             </div>
           </CardTitle>
+          
+          {/* Context Status */}
+          {noteContent && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between bg-green-900/30 border border-green-500/30 rounded-lg p-3 mt-3"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-green-400" />
+                <p className="text-sm text-green-400">
+                  You're chatting with: <span className="font-semibold">{noteTitle}</span>
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearContext}
+                className="text-green-400 hover:text-green-300 hover:bg-green-500/10 h-6 px-2"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Clear Context
+              </Button>
+            </motion.div>
+          )}
+          
+          {!noteContent && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-orange-900/30 border border-orange-500/30 rounded-lg p-3 mt-3"
+            >
+              <p className="text-sm text-orange-400">
+                No note context active. The AI will respond without reference to specific notes.
+              </p>
+            </motion.div>
+          )}
         </CardHeader>
         
         <CardContent className="p-0">
@@ -341,7 +437,7 @@ const NotesChat = ({ noteId, noteContent, noteTitle }: NotesChatProps) => {
                 </Button>
               </motion.div>
             </motion.div>
-          </motion.div>
+          </div>
         </CardContent>
       </Card>
     </motion.div>
