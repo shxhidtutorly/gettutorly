@@ -57,16 +57,17 @@ export const useAudioUpload = () => {
 
       setProgress(10);
 
-      // Step 2: Upload to Supabase Storage
-      const fileName = `${user.id}/${Date.now()}.mp3`;
+      // Step 2: Upload to Supabase Storage using proper file path structure
+      const filePath = `user-audio/${Date.now()}-${audioFile.name}`;
       console.log("🪪 Current user ID:", user.id);
-      console.log('📤 Uploading audio file to Supabase:', fileName);
+      console.log('📤 Uploading audio file to Supabase:', filePath);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('audio-uploads')
-        .upload(fileName, audioFile, {
+        .upload(filePath, audioFile, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true,
+          contentType: audioFile.type
         });
 
       if (uploadError) {
@@ -81,14 +82,14 @@ export const useAudioUpload = () => {
       console.log('🔒 Generating signed URL for AssemblyAI...');
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('audio-uploads')
-        .createSignedUrl(fileName, 3600); // 1 hour expiry
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
 
       if (signedUrlError) {
         console.error('❌ Signed URL error:', signedUrlError);
         throw new Error(`Failed to generate signed URL: ${signedUrlError.message}`);
       }
 
-      const signedUrl = signedUrlData.signedUrl;
+      const audioUrl = signedUrlData.signedUrl;
       console.log('✅ Signed URL generated for AssemblyAI');
       setProgress(35);
 
@@ -97,7 +98,7 @@ export const useAudioUpload = () => {
       const transcribeResponse = await fetch('/api/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audio_url: signedUrl }),
+        body: JSON.stringify({ audio_url: audioUrl }),
       });
 
       if (!transcribeResponse.ok) {
@@ -110,7 +111,7 @@ export const useAudioUpload = () => {
       console.log('✅ Transcription received:', transcriptText.length, 'characters');
       setProgress(70);
 
-      // Step 5: Generate AI notes using existing prompt
+      // Step 5: Generate AI notes using GROQ with qwen-qwq-32b
       console.log('🤖 Generating AI notes with qwen-qwq-32b...');
       const notesPrompt = `You are an expert note-taker and study assistant. Based on this lecture transcription, create comprehensive study notes and a concise summary.
 
@@ -152,7 +153,7 @@ Format the notes with clear headings and bullet points for easy studying.`;
       // Get public URL for display purposes
       const { data: publicUrlData } = supabase.storage
         .from('audio-uploads')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
       const result: AudioUploadResult = {
         audioUrl: publicUrlData.publicUrl,
