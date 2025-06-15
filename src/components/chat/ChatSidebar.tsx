@@ -15,8 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FileImage,
-  FilePdf,
-  FileSpreadsheet
+  FileSpreadsheet,
+  File // <-- Use the generic File icon for PDFs
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -53,10 +53,14 @@ const ChatSidebar = ({ isCollapsed, onToggle }: ChatSidebarProps) => {
 
   const getFileIcon = (type: string) => {
     switch (type) {
-      case 'pdf': return FilePdf;
-      case 'doc': return FileText;
-      case 'excel': return FileSpreadsheet;
-      default: return FileImage;
+      case 'pdf':
+        return File; // Use generic File icon for PDF
+      case 'doc':
+        return FileText;
+      case 'excel':
+        return FileSpreadsheet;
+      default:
+        return FileImage;
     }
   };
 
