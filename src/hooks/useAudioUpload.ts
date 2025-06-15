@@ -142,7 +142,7 @@ Format the notes with clear headings and bullet points for easy studying.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: notesPrompt,
-          model: 'meta-llama/llama-guard-4-12b'
+          model: 'groq'
         }),
       });
 
