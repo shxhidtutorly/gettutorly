@@ -1,3 +1,4 @@
+
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -18,15 +19,15 @@ const Pricing = lazy(() => import("@/pages/Pricing"));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("@/pages/PaymentCancel"));
 
-// Lazy load other components
+// Lazy load other components - using correct file names
 const Summaries = lazy(() => import("@/pages/Summaries"));
 const Library = lazy(() => import("@/pages/Library"));
-const FlashcardsPage = lazy(() => import("@/pages/FlashcardsPage"));
-const QuizPage = lazy(() => import("@/pages/QuizPage"));
-const ProgressPage = lazy(() => import("@/pages/ProgressPage"));
-const AiNotesGenerator = lazy(() => import("@/pages/AiNotesGenerator"));
+const Flashcards = lazy(() => import("@/pages/Flashcards"));
+const Quiz = lazy(() => import("@/pages/Quiz"));
+const Progress = lazy(() => import("@/pages/Progress"));
+const AINotesGenerator = lazy(() => import("@/pages/AINotesGenerator"));
 const DoubtChain = lazy(() => import("@/pages/DoubtChain"));
-const AiAssistant = lazy(() => import("@/pages/AiAssistant"));
+const AIAssistant = lazy(() => import("@/pages/AIAssistant"));
 const MathChat = lazy(() => import("@/pages/MathChat"));
 const AudioNotes = lazy(() => import("@/pages/AudioNotes"));
 const StudyPlans = lazy(() => import("@/pages/StudyPlans"));
@@ -103,7 +104,7 @@ const App = () => {
                     path="/flashcards"
                     element={
                       <ProtectedRoute>
-                        <FlashcardsPage />
+                        <Flashcards />
                       </ProtectedRoute>
                     }
                   />
@@ -111,7 +112,7 @@ const App = () => {
                     path="/quiz"
                     element={
                       <ProtectedRoute>
-                        <QuizPage />
+                        <Quiz />
                       </ProtectedRoute>
                     }
                   />
@@ -119,7 +120,7 @@ const App = () => {
                     path="/progress"
                     element={
                       <ProtectedRoute>
-                        <ProgressPage />
+                        <Progress />
                       </ProtectedRoute>
                     }
                   />
@@ -127,7 +128,7 @@ const App = () => {
                     path="/ai-notes-generator"
                     element={
                       <ProtectedRoute>
-                        <AiNotesGenerator />
+                        <AINotesGenerator />
                       </ProtectedRoute>
                     }
                   />
@@ -143,7 +144,7 @@ const App = () => {
                     path="/ai-assistant"
                     element={
                       <ProtectedRoute>
-                        <AiAssistant />
+                        <AIAssistant />
                       </ProtectedRoute>
                     }
                   />
