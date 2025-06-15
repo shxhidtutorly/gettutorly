@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -15,8 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileImage,
-  FilePdf,
-  FileSpreadsheet
+  File
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -53,9 +51,9 @@ const ChatSidebar = ({ isCollapsed, onToggle }: ChatSidebarProps) => {
 
   const getFileIcon = (type: string) => {
     switch (type) {
-      case 'pdf': return FilePdf;
+      case 'pdf': return File;
       case 'doc': return FileText;
-      case 'excel': return FileSpreadsheet;
+      case 'excel': return File;
       default: return FileImage;
     }
   };
