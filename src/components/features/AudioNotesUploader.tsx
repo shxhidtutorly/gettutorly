@@ -22,7 +22,7 @@ const AudioNotesUploader = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { uploadAndProcess, isProcessing, progress } = useAudioUpload();
+  const { uploadAndProcess, isProcessing, progress, currentStep } = useAudioUpload();
   const { toast } = useToast();
 
   function startRecording() {
@@ -163,12 +163,6 @@ const AudioNotesUploader = () => {
     }
   }
 
-  const getProgressMessage = () => {
-    if (progress < 25) return "Uploading audio...";
-    if (progress < 70) return "Transcribing with AI...";
-    return "Generating smart notes...";
-  };
-
   return (
     <div className="w-full max-w-4xl mx-auto space-y-4 md:space-y-6 px-2 md:px-0">
       {/* Audio Input Section */}
@@ -308,7 +302,7 @@ const AudioNotesUploader = () => {
               </motion.div>
             )}
 
-            {/* Processing Status */}
+            {/* Processing Status with Step Indicator */}
             {isProcessing && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -324,10 +318,23 @@ const AudioNotesUploader = () => {
                 </div>
                 <div>
                   <p className="text-white font-medium mb-2 text-sm md:text-base">
-                    {getProgressMessage()}
+                    {currentStep || "Processing..."}
                   </p>
                   <Progress value={progress} className="w-full max-w-md mx-auto" />
                   <p className="text-xs md:text-sm text-gray-400 mt-1">{progress}% complete</p>
+                </div>
+                
+                {/* Step indicators */}
+                <div className="flex justify-center space-x-4 text-xs">
+                  <span className={`${progress >= 25 ? 'text-green-400' : 'text-gray-500'}`}>
+                    Uploading
+                  </span>
+                  <span className={`${progress >= 70 ? 'text-green-400' : 'text-gray-500'}`}>
+                    Transcribing
+                  </span>
+                  <span className={`${progress >= 100 ? 'text-green-400' : 'text-gray-500'}`}>
+                    Summarizing
+                  </span>
                 </div>
               </motion.div>
             )}
@@ -351,7 +358,7 @@ const AudioNotesUploader = () => {
           >
             <div className="flex items-center justify-center gap-2 md:gap-3 text-white">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
-              <span className="font-semibold text-sm md:text-base">Transcript and notes generated! 🎉</span>
+              <span className="font-semibold text-sm md:text-base">✅ Notes generated from your lecture!</span>
             </div>
             <Button
               onClick={retryProcessing}

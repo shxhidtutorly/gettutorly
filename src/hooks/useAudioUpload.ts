@@ -22,6 +22,7 @@ export const useAudioUpload = () => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState("");
 
   const uploadAndProcess = async (audioBlobOrUrl: Blob | string): Promise<AudioUploadResult | null> => {
     if (!user) {
@@ -35,11 +36,13 @@ export const useAudioUpload = () => {
 
     setIsProcessing(true);
     setProgress(0);
+    setCurrentStep("Starting...");
 
     try {
+      // Step 1: Convert blob URL to File object
+      setCurrentStep("Preparing audio file...");
       setProgress(5);
       
-      // Step 1: Convert blob URL to File object if needed
       let audioFile: File;
       
       if (typeof audioBlobOrUrl === 'string' && audioBlobOrUrl.startsWith('blob:')) {
@@ -55,9 +58,10 @@ export const useAudioUpload = () => {
         throw new Error('Invalid audio input. Expected Blob or blob URL.');
       }
 
-      setProgress(10);
-
-      // Step 2: Upload to Supabase Storage using proper file path structure
+      // Step 2: Upload to Supabase Storage
+      setCurrentStep("Uploading to cloud storage...");
+      setProgress(15);
+      
       const filePath = `user-audio/${Date.now()}-${audioFile.name}`;
       console.log("🪪 Current user ID:", user.id);
       console.log('📤 Uploading audio file to Supabase:', filePath);
@@ -78,7 +82,10 @@ export const useAudioUpload = () => {
       console.log('✅ Upload successful:', uploadData.path);
       setProgress(25);
 
-      // Step 3: Generate signed URL for AssemblyAI (valid for 1 hour)
+      // Step 3: Generate signed URL for AssemblyAI
+      setCurrentStep("Generating secure access URL...");
+      setProgress(30);
+      
       console.log('🔒 Generating signed URL for AssemblyAI...');
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('audio-uploads')
@@ -94,6 +101,9 @@ export const useAudioUpload = () => {
       setProgress(35);
 
       // Step 4: Send to AssemblyAI for transcription
+      setCurrentStep("Transcribing with AI...");
+      setProgress(40);
+      
       console.log('🎯 Sending to AssemblyAI for transcription...');
       const transcribeResponse = await fetch('/api/transcribe', {
         method: 'POST',
@@ -112,6 +122,9 @@ export const useAudioUpload = () => {
       setProgress(70);
 
       // Step 5: Generate AI notes using GROQ with qwen-qwq-32b
+      setCurrentStep("Generating smart notes...");
+      setProgress(75);
+      
       console.log('🤖 Generating AI notes with qwen-qwq-32b...');
       const notesPrompt = `You are an expert note-taker and study assistant. Based on this lecture transcription, create comprehensive study notes and a concise summary.
 
@@ -146,6 +159,7 @@ Format the notes with clear headings and bullet points for easy studying.`;
       const summary = sections[1]?.trim() || aiContent.substring(0, 500) + '...';
       const notes = sections[2]?.trim() || aiContent;
 
+      setCurrentStep("Finalizing...");
       setProgress(100);
 
       console.log('🎉 Audio processing completed successfully');
@@ -169,8 +183,8 @@ Format the notes with clear headings and bullet points for easy studying.`;
       };
 
       toast({
-        title: "Audio processed successfully! 🎉",
-        description: "Your lecture has been transcribed and notes generated.",
+        title: "✅ Notes generated from your lecture!",
+        description: "Your audio has been transcribed and smart notes created.",
       });
 
       return result;
@@ -186,12 +200,14 @@ Format the notes with clear headings and bullet points for easy studying.`;
     } finally {
       setIsProcessing(false);
       setProgress(0);
+      setCurrentStep("");
     }
   };
 
   return {
     uploadAndProcess,
     isProcessing,
-    progress
+    progress,
+    currentStep
   };
 };
