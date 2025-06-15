@@ -9,25 +9,109 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+declare global {
+  interface Window {
+    Paddle?: {
+      Environment: {
+        set: (env: string) => void;
+      };
+      Setup: (config: { token: string }) => void;
+      Checkout: {
+        open: (config: {
+          items: { priceId: string; quantity: number }[];
+          customer?: { email?: string };
+          customData?: Record<string, any>;
+          successUrl?: string;
+          cancelUrl?: string;
+          settings?: {
+            allowLogout?: boolean;
+            displayMode?: string;
+            theme?: string;
+            locale?: string;
+          };
+        }) => void;
+      };
+    };
+  }
+}
 
 const SignInPage = () => {
   const { user, signIn, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paddleLoaded, setPaddleLoaded] = useState(false);
 
   useEffect(() => {
     // Only redirect if user is authenticated and they're specifically on the signin page
     if (user && !loading && location.pathname === '/signin') {
-      // Check if there's a redirect URL in the location state, otherwise go to dashboard
-      const redirectTo = location.state?.from?.pathname || '/dashboard';
+      const state = location.state as any;
+      const redirectTo = state?.returnTo || '/dashboard';
       navigate(redirectTo, { replace: true });
     }
   }, [user, loading, navigate, location]);
+
+  useEffect(() => {
+    // Load Paddle.js if auto-checkout is needed
+    const state = location.state as any;
+    if (state?.autoCheckout) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+      script.async = true;
+      script.onload = () => {
+        if (window.Paddle) {
+          window.Paddle.Environment.set('production');
+          window.Paddle.Setup({
+            token: 'live_70323ea9dfbc69d45414c712687'
+          });
+          setPaddleLoaded(true);
+        }
+      };
+      document.head.appendChild(script);
+
+      return () => {
+        if (document.head.contains(script)) {
+          document.head.removeChild(script);
+        }
+      };
+    }
+  }, [location.state]);
+
+  const openPaddleCheckout = () => {
+    if (!user || !paddleLoaded || !window.Paddle) return;
+
+    try {
+      window.Paddle.Checkout.open({
+        items: [{ priceId: 'pri_01jxq0pfrjcd0gkj08cmqv6rb1', quantity: 1 }],
+        customer: { email: user.email || '' },
+        customData: {
+          user_id: user.id,
+          planName: 'Basic Plan'
+        },
+        successUrl: 'https://gettutorly.com/pricing?sub=success',
+        cancelUrl: 'https://gettutorly.com/pricing?sub=cancel',
+        settings: {
+          allowLogout: false,
+          displayMode: 'overlay',
+          theme: 'dark',
+          locale: 'en'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to open Paddle checkout:', error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to open checkout, please try again"
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +129,27 @@ const SignInPage = () => {
     if (error) {
       setError(error);
     } else {
-      // Redirect to the page they were trying to access, or dashboard
-      const redirectTo = location.state?.from?.pathname || '/dashboard';
-      navigate(redirectTo, { replace: true });
+      const state = location.state as any;
+      
+      if (state?.autoCheckout) {
+        toast({
+          title: "Login successful!",
+          description: "Opening checkout..."
+        });
+        
+        // Wait a moment for auth state to fully settle
+        setTimeout(() => {
+          if (paddleLoaded) {
+            openPaddleCheckout();
+          } else {
+            navigate('/pricing', { replace: true });
+          }
+        }, 1000);
+      } else {
+        // Redirect to the page they were trying to access, or dashboard
+        const redirectTo = state?.returnTo || '/dashboard';
+        navigate(redirectTo, { replace: true });
+      }
     }
     
     setIsSubmitting(false);
@@ -56,7 +158,8 @@ const SignInPage = () => {
   const handleGoogleSignIn = async () => {
     try {
       setError("");
-      const redirectTo = location.state?.from?.pathname || '/dashboard';
+      const state = location.state as any;
+      const redirectTo = state?.returnTo || '/dashboard';
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

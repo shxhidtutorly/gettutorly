@@ -22,6 +22,7 @@ declare global {
           customer?: { email?: string };
           customData?: Record<string, any>;
           successUrl?: string;
+          cancelUrl?: string;
           settings?: {
             allowLogout?: boolean;
             displayMode?: string;
@@ -76,7 +77,7 @@ const PaddlePricing = () => {
 
     if (!user) {
       toast.info("Please sign in to continue with your subscription");
-      navigate("/signin");
+      navigate("/signin", { state: { returnTo: "/pricing", autoCheckout: true } });
       return;
     }
 
@@ -97,6 +98,7 @@ const PaddlePricing = () => {
           planName: planName
         },
         successUrl: 'https://gettutorly.com/pricing?sub=success',
+        cancelUrl: 'https://gettutorly.com/pricing?sub=cancel',
         settings: {
           allowLogout: false,
           displayMode: 'overlay',

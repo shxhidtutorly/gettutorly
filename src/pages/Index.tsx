@@ -48,17 +48,37 @@ import OtagoLogo from "@/components/ui/Otago-University-Logo.png";
 import PittsburghLogo from "@/components/ui/Pittsburgh-University-Logo.png";
 import StanfordLogo from "@/components/ui/Stanford-University-Logo.png";
 
+declare global {
+  interface Window {
+    Paddle?: {
+      Environment: {
+        set: (env: string) => void;
+      };
+      Setup: (config: { token: string }) => void;
+      Checkout: {
+        open: (config: {
+          items: { priceId: string; quantity: number }[];
+          customer?: { email?: string };
+          customData?: Record<string, any>;
+          successUrl?: string;
+          cancelUrl?: string;
+          settings?: {
+            allowLogout?: boolean;
+            displayMode?: string;
+            theme?: string;
+            locale?: string;
+          };
+        }) => void;
+      };
+    };
+  }
+}
+
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
-
+  const [paddleLoaded, setPaddleLoaded] = useState(false);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const [scrollY, setScrollY] = useState(0);
@@ -78,14 +98,87 @@ const Index = () => {
 
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    // Load Paddle.js script
+    const script = document.createElement('script');
+    script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+    script.async = true;
+    script.onload = () => {
+      if (window.Paddle) {
+        window.Paddle.Environment.set('production');
+        window.Paddle.Setup({
+          token: 'live_70323ea9dfbc69d45414c712687'
+        });
+        setPaddleLoaded(true);
+        console.log('Paddle loaded successfully');
+      }
+    };
+    script.onerror = (error) => {
+      console.error('Failed to load Paddle script:', error);
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
   }, []);
 
   const handleGetStarted = () => {
-    if (user) {
-      navigate("/dashboard");
-    } else {
-      navigate("/dashboard");
+    if (loading) {
+      toast({
+        title: "Please wait",
+        description: "Checking authentication status..."
+      });
+      return;
+    }
+
+    if (!user) {
+      navigate("/signin", { state: { returnTo: "/pricing", autoCheckout: true } });
+      return;
+    }
+
+    if (!paddleLoaded || !window.Paddle) {
+      toast({
+        title: "Loading payment system",
+        description: "Please wait a moment..."
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    toast({
+      title: "Redirecting to checkout",
+      description: "Opening payment window..."
+    });
+
+    try {
+      window.Paddle.Checkout.open({
+        items: [{ priceId: 'pri_01jxq0pfrjcd0gkj08cmqv6rb1', quantity: 1 }],
+        customer: { email: user.email || '' },
+        customData: {
+          user_id: user.id,
+          planName: 'Basic Plan'
+        },
+        successUrl: 'https://gettutorly.com/pricing?sub=success',
+        cancelUrl: 'https://gettutorly.com/pricing?sub=cancel',
+        settings: {
+          allowLogout: false,
+          displayMode: 'overlay',
+          theme: 'dark',
+          locale: 'en'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to open Paddle checkout:', error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to open checkout, please try again"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -210,9 +303,10 @@ const Index = () => {
                   size="lg"
                   className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-lg px-8 py-4 rounded-xl font-semibold shadow-xl"
                   onClick={handleGetStarted}
+                  disabled={isLoading || (user && !paddleLoaded)}
                 >
                   <Zap className="mr-2 h-5 w-5" />
-                  Start Learning Free
+                  {isLoading ? "Opening Checkout..." : "Start Learning Free"}
                 </Button>
                 
                 <Button 
@@ -687,6 +781,7 @@ const Index = () => {
                         : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
                     }`}
                     onClick={handleGetStarted}
+                    disabled={isLoading || (user && !paddleLoaded)}
                   >
                     {plan.cta}
                   </Button>
@@ -727,9 +822,10 @@ const Index = () => {
                 size="lg"
                 className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-xl px-12 py-4 rounded-xl font-semibold shadow-xl"
                 onClick={handleGetStarted}
+                disabled={isLoading || (user && !paddleLoaded)}
               >
                 <Zap className="mr-2 h-6 w-6" />
-                Start Your Free Journey
+                {isLoading ? "Opening Checkout..." : "Start Your Free Journey"}
               </Button>
               
               <p className="text-gray-400 mt-4 text-sm">
