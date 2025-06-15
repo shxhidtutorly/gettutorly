@@ -1,26 +1,27 @@
 
-import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { Navigate } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isLoaded, isSignedIn } = useAuth();
-  const location = useLocation();
+  const { user, loading } = useAuth();
 
-  if (!isLoaded) {
+  if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  if (!isSignedIn) {
-    // Redirect to login page with return URL
-    return <Navigate to="/" state={{ from: location.pathname }} replace />;
+  if (!user) {
+    return <Navigate to="/signin" replace />;
   }
 
   return <>{children}</>;

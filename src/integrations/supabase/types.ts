@@ -9,13 +9,523 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      audio_notes: {
+        Row: {
+          audio_url: string | null
+          created_at: string | null
+          duration: number | null
+          id: string
+          title: string
+          transcript: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          title: string
+          transcript?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          title?: string
+          transcript?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doubt_chain: {
+        Row: {
+          answer: string | null
+          created_at: string | null
+          difficulty: string | null
+          id: string
+          is_bookmarked: boolean | null
+          question: string
+          subject: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          id?: string
+          is_bookmarked?: boolean | null
+          question: string
+          subject?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          id?: string
+          is_bookmarked?: boolean | null
+          question?: string
+          subject?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doubt_chain_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flashcards: {
+        Row: {
+          back_content: string
+          created_at: string | null
+          difficulty: string | null
+          front_content: string
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          back_content: string
+          created_at?: string | null
+          difficulty?: string | null
+          front_content: string
+          id?: string
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          back_content?: string
+          created_at?: string | null
+          difficulty?: string | null
+          front_content?: string
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_chats: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          note_id: string | null
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          note_id?: string | null
+          role: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          note_id?: string | null
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_chats_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_chats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          material_id: string | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          material_id?: string | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          material_id?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          answers: Json | null
+          completed_at: string | null
+          id: string
+          quiz_id: string | null
+          score: number | null
+          total_questions: number | null
+          user_id: string | null
+        }
+        Insert: {
+          answers?: Json | null
+          completed_at?: string | null
+          id?: string
+          quiz_id?: string | null
+          score?: number | null
+          total_questions?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json | null
+          completed_at?: string | null
+          id?: string
+          quiz_id?: string | null
+          score?: number | null
+          total_questions?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          questions: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          questions?: Json | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          questions?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_materials: {
+        Row: {
+          content_type: string | null
+          created_at: string | null
+          file_name: string | null
+          file_path: string | null
+          file_url: string | null
+          id: string
+          metadata: Json | null
+          size: number | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          size?: number | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          size?: number | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_materials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_sessions: {
+        Row: {
+          duration: number | null
+          ended_at: string | null
+          id: string
+          material_id: string | null
+          session_type: string
+          started_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          material_id?: string | null
+          session_type: string
+          started_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          material_id?: string | null
+          session_type?: string
+          started_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      summaries: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          source_material_id: string | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          source_material_id?: string | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          source_material_id?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "summaries_source_material_id_fkey"
+            columns: ["source_material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_stats: {
+        Row: {
+          count: number | null
+          id: string
+          last_updated: string | null
+          stat_type: string
+          user_id: string | null
+        }
+        Insert: {
+          count?: number | null
+          id?: string
+          last_updated?: string | null
+          stat_type: string
+          user_id?: string | null
+        }
+        Update: {
+          count?: number | null
+          id?: string
+          last_updated?: string | null
+          stat_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_dashboard_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          materials_count: number
+          notes_count: number
+          flashcards_count: number
+          quizzes_count: number
+          total_study_time: number
+        }[]
+      }
+      update_user_stat: {
+        Args: { p_user_id: string; p_stat_type: string; p_increment?: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

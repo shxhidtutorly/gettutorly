@@ -1,3 +1,3 @@
 
-// Export from the context directly
-export { useAuth } from "@/contexts/AuthContext";
+// Export from the Supabase context directly
+export { useAuth } from "@/contexts/SupabaseAuthContext";

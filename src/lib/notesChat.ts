@@ -1,10 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { convertClerkIdToUuid } from './supabaseAuth';
 
 export interface ChatMessage {
   id: string;
-  clerk_user_id: string;
+  user_id: string;
   note_id: string;
   role: 'user' | 'assistant';
   message: string;
@@ -12,10 +11,10 @@ export interface ChatMessage {
 }
 
 /**
- * Save a chat message. Always store with clerk_user_id.
+ * Save a chat message
  */
 export const saveChatMessage = async (
-  clerkUserId: string, 
+  userId: string, 
   noteId: string, 
   role: 'user' | 'assistant', 
   message: string
@@ -24,8 +23,7 @@ export const saveChatMessage = async (
     const { data, error } = await supabase
       .from('note_chats')
       .insert({
-        id: crypto.randomUUID(),
-        clerk_user_id: clerkUserId,
+        user_id: userId,
         note_id: noteId,
         role: role,
         message: message,
@@ -46,14 +44,14 @@ export const saveChatMessage = async (
 };
 
 /**
- * Get chat history for a note. Filter by clerk_user_id.
+ * Get chat history for a note
  */
-export const getChatHistory = async (clerkUserId: string, noteId: string): Promise<ChatMessage[]> => {
+export const getChatHistory = async (userId: string, noteId: string): Promise<ChatMessage[]> => {
   try {
     const { data, error } = await supabase
       .from('note_chats')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .eq('note_id', noteId)
       .order('created_at', { ascending: true });
         

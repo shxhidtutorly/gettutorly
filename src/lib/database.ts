@@ -1,84 +1,20 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
-// Get the current user's Clerk ID from the global window or context
-const getCurrentClerkUserId = (): string | null => {
-  // Try to get from global window first
-  if (typeof window !== 'undefined' && (window as any).clerkUserId) {
-    return (window as any).clerkUserId;
-  }
-  
-  // Fallback: try to get from Clerk directly
-  if (typeof window !== 'undefined' && (window as any).Clerk?.user?.id) {
-    return (window as any).Clerk.user.id;
-  }
-  
-  return null;
-};
-
-// Test function to verify Supabase connection
-export const testSupabaseConnection = async (clerkUserId: string) => {
+// USER OPERATIONS
+export const createUserProfile = async (userData: any) => {
   try {
-    console.log('🧪 Testing Supabase connection for user:', clerkUserId);
-    
-    // Test 1: Try to query study_progress
-    const { data: progressData, error: progressError } = await supabase
-      .from('study_progress')
-      .select('time_spent')
-      .eq('clerk_user_id', clerkUserId);
-    
-    console.log('📊 Study progress test:', { data: progressData, error: progressError });
-    
-    // Test 2: Try to query user_activity_logs
-    const { data: activityData, error: activityError } = await supabase
-      .from('user_activity_logs')
-      .select('*')
-      .eq('clerk_user_id', clerkUserId)
-      .limit(5);
-    
-    console.log('📝 Activity logs test:', { data: activityData, error: activityError });
-    
-    // Test 3: Try to query notes
-    const { data: notesData, error: notesError } = await supabase
-      .from('notes')
-      .select('*')
-      .eq('clerk_user_id', clerkUserId)
-      .limit(5);
-    
-    console.log('📓 Notes test:', { data: notesData, error: notesError });
-    
-    return {
-      progress: { data: progressData, error: progressError },
-      activity: { data: activityData, error: activityError },
-      notes: { data: notesData, error: notesError }
-    };
-  } catch (error) {
-    console.error('💥 Supabase connection test failed:', error);
-    throw error;
-  }
-};
-
-// USER OPERATIONS - Updated to use clerk_user_id
-export const createUserProfile = async (clerkUserId: string, userData: any) => {
-  try {
-    console.log('👤 Creating user profile for:', clerkUserId);
-    
     const { data, error } = await supabase
       .from('users')
-      .upsert([{
-        clerk_user_id: clerkUserId,
-        ...userData,
-        role: userData.role || "student",
-        updated_at: new Date().toISOString(),
-      }])
+      .insert([userData])
       .select()
       .single();
       
     if (error) {
-      console.error('❌ Error creating user profile:', error);
+      console.error('Error creating user profile:', error);
       throw error;
     }
     
-    console.log('✅ User profile created:', data);
     return data;
   } catch (error) {
     console.error("Error creating user profile:", error);
@@ -86,22 +22,19 @@ export const createUserProfile = async (clerkUserId: string, userData: any) => {
   }
 };
 
-export const getUserProfile = async (clerkUserId: string) => {
+export const getUserProfile = async (userId: string) => {
   try {
-    console.log('👤 Getting user profile for:', clerkUserId);
-    
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('id', userId)
       .single();
       
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('❌ Error getting user profile:', error);
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error getting user profile:', error);
       throw error;
     }
     
-    console.log('✅ User profile retrieved:', data);
     return data;
   } catch (error) {
     console.error("Error getting user profile:", error);
@@ -109,33 +42,25 @@ export const getUserProfile = async (clerkUserId: string) => {
   }
 };
 
-// STUDY MATERIALS OPERATIONS - Updated to use clerk_user_id
-export const saveStudyMaterial = async (clerkUserId: string, materialData: any) => {
+// STUDY MATERIALS OPERATIONS
+export const saveStudyMaterial = async (materialData: any) => {
   try {
-    console.log('📚 Saving study material for:', clerkUserId);
-    
     const { data, error } = await supabase
       .from('study_materials')
-      .insert([{
-        clerk_user_id: clerkUserId,
-        ...materialData,
-        created_at: new Date().toISOString(),
-      }])
+      .insert([materialData])
       .select()
       .single();
       
     if (error) {
-      console.error('❌ Error saving study material:', error);
+      console.error('Error saving study material:', error);
       throw error;
     }
     
-    console.log('✅ Study material saved:', data);
-    
-    // Log the activity
-    await logUserActivity(clerkUserId, 'material_uploaded', {
-      material_id: data.id,
-      title: materialData.title,
-      file_name: materialData.file_name
+    // Update user stats
+    await supabase.rpc('update_user_stat', {
+      p_user_id: materialData.user_id,
+      p_stat_type: 'materials_created',
+      p_increment: 1
     });
     
     return data.id;
@@ -145,22 +70,19 @@ export const saveStudyMaterial = async (clerkUserId: string, materialData: any) 
   }
 };
 
-export const getUserStudyMaterials = async (clerkUserId: string) => {
+export const getUserStudyMaterials = async (userId: string) => {
   try {
-    console.log('📚 Getting study materials for:', clerkUserId);
-    
     const { data, error } = await supabase
       .from('study_materials')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('❌ Error getting study materials:', error);
+      console.error('Error getting study materials:', error);
       throw error;
     }
     
-    console.log('✅ Study materials retrieved:', data?.length || 0, 'items');
     return data || [];
   } catch (error) {
     console.error("Error getting user study materials:", error);
@@ -168,32 +90,25 @@ export const getUserStudyMaterials = async (clerkUserId: string) => {
   }
 };
 
-// NOTES OPERATIONS - Updated to use clerk_user_id
-export const createNote = async (clerkUserId: string, noteData: any) => {
+// NOTES OPERATIONS
+export const createNote = async (noteData: any) => {
   try {
-    console.log('📝 Creating note for:', clerkUserId);
-    
     const { data, error } = await supabase
       .from('notes')
-      .insert([{
-        clerk_user_id: clerkUserId,
-        ...noteData,
-        created_at: new Date().toISOString(),
-      }])
+      .insert([noteData])
       .select()
       .single();
       
     if (error) {
-      console.error('❌ Error creating note:', error);
+      console.error('Error creating note:', error);
       throw error;
     }
     
-    console.log('✅ Note created:', data);
-    
-    // Log the activity
-    await logUserActivity(clerkUserId, 'note_created', {
-      note_id: data.id,
-      title: noteData.title
+    // Update user stats
+    await supabase.rpc('update_user_stat', {
+      p_user_id: noteData.user_id,
+      p_stat_type: 'notes_created',
+      p_increment: 1
     });
     
     return data.id;
@@ -203,22 +118,19 @@ export const createNote = async (clerkUserId: string, noteData: any) => {
   }
 };
 
-export const getUserNotes = async (clerkUserId: string) => {
+export const getUserNotes = async (userId: string) => {
   try {
-    console.log('📝 Getting notes for:', clerkUserId);
-    
     const { data, error } = await supabase
       .from('notes')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('❌ Error getting notes:', error);
+      console.error('Error getting notes:', error);
       throw error;
     }
     
-    console.log('✅ Notes retrieved:', data?.length || 0, 'items');
     return data || [];
   } catch (error) {
     console.error("Error getting user notes:", error);
@@ -226,135 +138,221 @@ export const getUserNotes = async (clerkUserId: string) => {
   }
 };
 
-// STUDY PROGRESS TRACKING - Updated to use clerk_user_id
-export const updateStudyProgress = async (clerkUserId: string, materialId: string, progressData: any) => {
+// FLASHCARDS OPERATIONS
+export const createFlashcard = async (flashcardData: any) => {
   try {
-    console.log('📈 Updating study progress for:', clerkUserId, 'material:', materialId);
-    
     const { data, error } = await supabase
-      .from('study_progress')
-      .upsert([{
-        clerk_user_id: clerkUserId,
-        material_id: materialId,
-        ...progressData,
-        last_updated: new Date().toISOString(),
-      }])
+      .from('flashcards')
+      .insert([flashcardData])
       .select()
       .single();
       
     if (error) {
-      console.error('❌ Error updating study progress:', error);
+      console.error('Error creating flashcard:', error);
       throw error;
     }
     
-    console.log('✅ Study progress updated:', data);
+    // Update user stats
+    await supabase.rpc('update_user_stat', {
+      p_user_id: flashcardData.user_id,
+      p_stat_type: 'flashcards_created',
+      p_increment: 1
+    });
+    
     return data;
   } catch (error) {
-    console.error("Error updating study progress:", error);
+    console.error("Error creating flashcard:", error);
     throw error;
   }
 };
 
-export const getStudyProgress = async (clerkUserId: string, materialId?: string) => {
+export const getUserFlashcards = async (userId: string) => {
   try {
-    console.log('📈 Getting study progress for:', clerkUserId, materialId ? `material: ${materialId}` : 'all materials');
-    
-    let query = supabase
-      .from('study_progress')
-      .select('*')
-      .eq('clerk_user_id', clerkUserId);
-      
-    if (materialId) {
-      query = query.eq('material_id', materialId);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('❌ Error getting study progress:', error);
-      throw error;
-    }
-    
-    console.log('✅ Study progress retrieved:', data?.length || 0, 'items');
-    return data || [];
-  } catch (error) {
-    console.error("Error getting study progress:", error);
-    throw error;
-  }
-};
-
-// ACTIVITY LOGGING - Updated to use clerk_user_id
-export const logUserActivity = async (clerkUserId: string, action: string, details: any = {}) => {
-  try {
-    console.log('📊 Logging activity for:', clerkUserId, 'action:', action);
-    
-    const { error } = await supabase
-      .from('user_activity_logs')
-      .insert({
-        clerk_user_id: clerkUserId,
-        action: action,
-        details: details,
-        timestamp: new Date().toISOString()
-      });
-      
-    if (error) {
-      console.warn('⚠️ Could not log user activity:', error);
-      return false;
-    }
-    
-    console.log('✅ Activity logged successfully');
-    return true;
-  } catch (error) {
-    console.warn("Warning: Error logging user activity:", error);
-    return false;
-  }
-};
-
-export const getUserAnalytics = async (clerkUserId: string, period: 'day' | 'week' | 'month' = 'week') => {
-  try {
-    console.log('📊 Getting analytics for:', clerkUserId, 'period:', period);
-    
-    const now = new Date();
-    let startDate = new Date();
-    
-    switch (period) {
-      case 'day':
-        startDate.setDate(now.getDate() - 1);
-        break;
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-    }
-    
     const { data, error } = await supabase
-      .from('user_activity_logs')
+      .from('flashcards')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
-      .gte('timestamp', startDate.toISOString())
-      .order('timestamp', { ascending: false });
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('❌ Error getting analytics:', error);
+      console.error('Error getting flashcards:', error);
       throw error;
     }
     
-    console.log('✅ Analytics retrieved:', data?.length || 0, 'activities');
     return data || [];
   } catch (error) {
-    console.error("Error getting user analytics:", error);
+    console.error("Error getting user flashcards:", error);
+    throw error;
+  }
+};
+
+// QUIZ OPERATIONS
+export const createQuiz = async (quizData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('quizzes')
+      .insert([quizData])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating quiz:', error);
+      throw error;
+    }
+    
+    // Update user stats
+    await supabase.rpc('update_user_stat', {
+      p_user_id: quizData.user_id,
+      p_stat_type: 'quizzes_created',
+      p_increment: 1
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating quiz:", error);
+    throw error;
+  }
+};
+
+export const recordQuizAttempt = async (attemptData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('quiz_attempts')
+      .insert([attemptData])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error recording quiz attempt:', error);
+      throw error;
+    }
+    
+    // Update user stats
+    await supabase.rpc('update_user_stat', {
+      p_user_id: attemptData.user_id,
+      p_stat_type: 'quizzes_taken',
+      p_increment: 1
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error recording quiz attempt:", error);
+    throw error;
+  }
+};
+
+// SUMMARIES OPERATIONS
+export const createSummary = async (summaryData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('summaries')
+      .insert([summaryData])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating summary:', error);
+      throw error;
+    }
+    
+    // Update user stats
+    await supabase.rpc('update_user_stat', {
+      p_user_id: summaryData.user_id,
+      p_stat_type: 'summaries_created',
+      p_increment: 1
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating summary:", error);
+    throw error;
+  }
+};
+
+// DOUBT CHAIN OPERATIONS
+export const createDoubt = async (doubtData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('doubt_chain')
+      .insert([doubtData])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating doubt:', error);
+      throw error;
+    }
+    
+    // Update user stats
+    await supabase.rpc('update_user_stat', {
+      p_user_id: doubtData.user_id,
+      p_stat_type: 'doubts_asked',
+      p_increment: 1
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating doubt:", error);
+    throw error;
+  }
+};
+
+// STUDY SESSIONS OPERATIONS
+export const startStudySession = async (sessionData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .insert([sessionData])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error starting study session:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error starting study session:", error);
+    throw error;
+  }
+};
+
+export const endStudySession = async (sessionId: string, duration: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .update({ 
+        duration, 
+        ended_at: new Date().toISOString() 
+      })
+      .eq('id', sessionId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error ending study session:', error);
+      throw error;
+    }
+    
+    // Update total study time stat
+    await supabase.rpc('update_user_stat', {
+      p_user_id: data.user_id,
+      p_stat_type: 'total_study_time',
+      p_increment: duration
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error ending study session:", error);
     throw error;
   }
 };
 
 // FILE STORAGE OPERATIONS
-export const uploadFile = async (clerkUserId: string, file: File) => {
+export const uploadFile = async (userId: string, file: File) => {
   try {
-    console.log('📁 Uploading file for:', clerkUserId, 'file:', file.name);
-    
-    const fileName = `${clerkUserId}/${Date.now()}_${file.name}`;
+    const fileName = `${userId}/${Date.now()}_${file.name}`;
     
     const { data, error } = await supabase.storage
       .from('study-materials')
@@ -364,7 +362,7 @@ export const uploadFile = async (clerkUserId: string, file: File) => {
       });
 
     if (error) {
-      console.error('❌ Error uploading file:', error);
+      console.error('Error uploading file:', error);
       throw error;
     }
 
@@ -372,8 +370,6 @@ export const uploadFile = async (clerkUserId: string, file: File) => {
       .from('study-materials')
       .getPublicUrl(fileName);
 
-    console.log('✅ File uploaded successfully:', fileName);
-    
     return {
       filePath: data.path,
       fileUrl: publicUrl,
@@ -389,90 +385,18 @@ export const uploadFile = async (clerkUserId: string, file: File) => {
 
 export const deleteFile = async (filePath: string) => {
   try {
-    console.log('🗑️ Deleting file:', filePath);
-    
     const { error } = await supabase.storage
       .from('study-materials')
       .remove([filePath]);
 
     if (error) {
-      console.error('❌ Error deleting file:', error);
+      console.error('Error deleting file:', error);
       throw error;
     }
     
-    console.log('✅ File deleted successfully');
     return true;
   } catch (error) {
     console.error('Error deleting file:', error);
-    throw error;
-  }
-};
-
-// --- STUDY PLANS OPERATIONS ---
-
-/**
- * Create a new study plan for the given Clerk user.
- * @param {object} planData Should include: title, description, due_date, sessions, clerk_user_id
- * @returns The newly created plan.
- */
-export const createStudyPlan = async (planData: {
-  title: string;
-  description?: string;
-  due_date?: string;
-  sessions?: any[];
-  clerk_user_id: string;
-  user_id?: string; // Will default to null if not supplied
-}) => {
-  try {
-    // If user_id is not provided, set it to null (should be UUID or null)
-    const record: any = {
-      title: planData.title,
-      description: planData.description ?? '',
-      due_date: planData.due_date ?? '',
-      sessions: planData.sessions ?? [],
-      clerk_user_id: planData.clerk_user_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      user_id: planData.user_id ?? null, // null if unknown!
-    };
-
-    const { data, error } = await supabase
-      .from('study_plans')
-      .insert([record])
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('❌ Error creating study plan:', error);
-      throw error;
-    }
-    return data;
-  } catch (error) {
-    console.error("Error in createStudyPlan:", error);
-    throw error;
-  }
-};
-
-/**
- * Fetch all study plans for the given Clerk user.
- * @param {string} clerkUserId
- * @returns Array of study plans for the user.
- */
-export const getUserStudyPlans = async (clerkUserId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('study_plans')
-      .select('*')
-      .eq('clerk_user_id', clerkUserId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('❌ Error fetching study plans:', error);
-      throw error;
-    }
-    return data || [];
-  } catch (error) {
-    console.error("Error in getUserStudyPlans:", error);
     throw error;
   }
 };

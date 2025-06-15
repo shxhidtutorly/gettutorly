@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -26,40 +26,17 @@ import {
   Sparkles,
   StickyNote,
   Crown,
-  MessageCircle
+  MessageCircle,
+  Users
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useStudyTracking } from "@/hooks/useStudyTracking";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUserStats } from "@/hooks/useUserStats";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Confetti effect (simple SVG, not a package!)
-const Confetti = () => (
-  <svg
-    style={{
-      position: "absolute",
-      top: -10,
-      right: 0,
-      zIndex: 1,
-      pointerEvents: "none",
-      width: 70,
-      height: 50,
-    }}
-    viewBox="0 0 70 50"
-  >
-    <circle cx="10" cy="10" r="3" fill="#fbbf24" />
-    <circle cx="25" cy="20" r="2" fill="#60a5fa" />
-    <circle cx="40" cy="8" r="2.5" fill="#a7f3d0" />
-    <circle cx="60" cy="15" r="3" fill="#f472b6" />
-    <circle cx="35" cy="35" r="2.5" fill="#fcd34d" />
-    <circle cx="55" cy="28" r="2" fill="#f87171" />
-  </svg>
-);
-
 const Dashboard = () => {
-  const { currentUser, loading } = useAuth();
-  const { stats } = useStudyTracking();
+  const { user, loading } = useAuth();
+  const { stats, loading: statsLoading } = useUserStats();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Confetti appears on mount for Today's Activity
@@ -70,19 +47,14 @@ const Dashboard = () => {
   }, []);
 
   const getUserDisplayName = () => {
-    if (currentUser?.user_metadata?.name) return currentUser.user_metadata.name;
-    if (currentUser?.user_metadata?.full_name) return currentUser.user_metadata.full_name;
-    if (currentUser?.email) return currentUser.email.split('@')[0];
+    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+    if (user?.user_metadata?.name) return user.user_metadata.name;
+    if (user?.email) return user.email.split('@')[0];
     return 'User';
   };
 
-  // Check subscription status
-  const subscriptionStatus = currentUser?.profile?.subscription_status;
-  const subscriptionPlan = currentUser?.profile?.subscription_plan;
-  const hasActiveSubscription = subscriptionStatus === 'active';
-
   // Show loading state while authentication is being checked
-  if (loading) {
+  if (loading || statsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
         <div className="text-center">
@@ -94,13 +66,13 @@ const Dashboard = () => {
   }
 
   // Show sign-in message only after loading is complete and user is not authenticated
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Welcome to GetTutorly</h2>
+          <h2 className="text-2xl font-bold mb-4">Welcome to Tutorly</h2>
           <p className="text-lg mb-6">Please sign in to view your dashboard.</p>
-          <Button onClick={() => navigate('/')}>Go to Sign In</Button>
+          <Button onClick={() => navigate('/signin')}>Go to Sign In</Button>
         </div>
       </div>
     );
@@ -110,30 +82,30 @@ const Dashboard = () => {
   const activityStats = [
     {
       label: "Summaries",
-      value: stats.summariesGenerated,
+      value: stats.summaries_created,
       color: "text-blue-500",
       emoji: "📝",
       bg: "bg-gradient-to-br from-blue-500/60 to-blue-400/30",
     },
     {
       label: "AI Notes",
-      value: stats.notesCreated,
+      value: stats.notes_created,
       color: "text-green-500",
       emoji: "🧠",
       bg: "bg-gradient-to-br from-green-400/60 to-green-300/30",
     },
     {
       label: "Quizzes",
-      value: stats.quizzesCompleted,
+      value: stats.quizzes_taken,
       color: "text-yellow-500",
       emoji: "❓",
       bg: "bg-gradient-to-br from-yellow-400/60 to-yellow-300/30",
     },
     {
-      label: "Math Problems",
-      value: stats.mathProblemsSolved,
+      label: "Flashcards",
+      value: stats.flashcards_created,
       color: "text-purple-500",
-      emoji: "➗",
+      emoji: "⚡",
       bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
     },
   ];
@@ -153,10 +125,10 @@ const Dashboard = () => {
       route: "/ai-notes"
     },
     {
-      title: "Notes Chat",
-      desc: "Chat with your uploaded notes",
-      icon: <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-green-400 mx-auto mb-2" />,
-      route: "/notes-chat/sample-note"
+      title: "Audio Recap",
+      desc: "Convert audio to notes",
+      icon: <Users className="h-6 w-6 md:h-8 md:w-8 text-green-400 mx-auto mb-2" />,
+      route: "/audio-notes"
     },
     {
       title: "Summarize",
@@ -171,7 +143,7 @@ const Dashboard = () => {
       route: "/flashcards"
     },
     {
-      title: "Quizzes",
+      title: "Tests & Quiz",
       desc: "Test your knowledge",
       icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
       route: "/quiz"
@@ -180,16 +152,16 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      title: "AI Doubt Chain",
+      title: "Doubt Chain",
       desc: "Break down complex concepts",
       icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
       route: "/doubt-chain"
     },
     {
-      title: "Create Plan",
-      desc: "Plan your study sessions",
-      icon: <Calendar className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
-      route: "/study-plans"
+      title: "Library",
+      desc: "Browse your materials",
+      icon: <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
+      route: "/library"
     },
     {
       title: "AI Assistant",
@@ -198,12 +170,14 @@ const Dashboard = () => {
       route: "/ai-assistant"
     },
     {
-      title: "View Progress",
+      title: "Insights",
       desc: "Track your learning",
       icon: <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-spark-primary mx-auto mb-2" />,
       route: "/progress"
     }
   ];
+
+  const totalStudyHours = stats.total_study_time / 3600; // Convert seconds to hours
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white relative">
@@ -212,7 +186,7 @@ const Dashboard = () => {
       <main className="flex-1 py-4 md:py-8 px-2 md:px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
 
-          {/* Welcome Section with Subscription Status */}
+          {/* Welcome Section */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -226,53 +200,7 @@ const Dashboard = () => {
                 </h1>
                 <p className="text-muted-foreground text-sm md:text-base">Here's your learning progress overview</p>
               </div>
-              
-              {/* Subscription Status */}
-              <div className="flex flex-col items-start md:items-end gap-2">
-                {hasActiveSubscription ? (
-                  <div className="flex items-center gap-2">
-                    <Crown className="h-5 w-5 text-yellow-400" />
-                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0">
-                      {subscriptionPlan} Plan
-                    </Badge>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <Badge variant="outline" className="text-gray-400 border-gray-600">
-                      No Active Subscription
-                    </Badge>
-                    <Button 
-                      size="sm" 
-                      onClick={() => navigate('/pricing')}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                    >
-                      Upgrade to Pro
-                    </Button>
-                  </div>
-                )}
-              </div>
             </div>
-          </motion.div>
-
-          {/* Study Streak */}
-          <motion.div
-            className="flex items-center gap-2 mb-6 md:mb-8"
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ type: "spring", stiffness: 110, delay: 0.2 }}
-          >
-            <Flame className="h-4 w-4 md:h-5 md:w-5 text-orange-400 animate-pulse" />
-            <span className="font-semibold text-orange-300 text-sm md:text-base flex items-center gap-1">
-              {stats.streakDays}-day streak!
-              <motion.span
-                animate={{ scale: [1, 1.25, 1] }}
-                transition={{ repeat: Infinity, duration: 1.2, repeatType: "reverse" }}
-                className="ml-1"
-              >🔥</motion.span>
-            </span>
-            <Badge className="ml-2 bg-orange-600/30 border-orange-400 text-orange-100 text-xs">
-              Keep it up!
-            </Badge>
           </motion.div>
 
           {/* Stats Cards */}
@@ -284,28 +212,29 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Study Hours</p>
-<p className="text-lg md:text-2xl font-bold flex items-center gap-1">
-  {stats.totalStudyHours < 1
-    ? Math.round(stats.totalStudyHours * 60)
-    : Number(stats.totalStudyHours).toFixed(1)}
-  {stats.totalStudyHours < 1 ? "min" : "h"} <span className="text-blue-400">⏰</span>
-</p>                    </div>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+                        {totalStudyHours < 1
+                          ? Math.round(totalStudyHours * 60)
+                          : Number(totalStudyHours).toFixed(1)}
+                        {totalStudyHours < 1 ? "min" : "h"} <span className="text-blue-400">⏰</span>
+                      </p>
+                    </div>
                     <Clock className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Sessions */}
+            {/* Materials */}
             <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #10b98144' }} whileTap={{ scale: 0.97 }}>
               <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-green-900/20">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs md:text-sm text-muted-foreground">Sessions</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.sessionCount} <span className="text-green-400">🎯</span></p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Materials</p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.materials_created} <span className="text-green-400">📚</span></p>
                     </div>
-                    <Target className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
+                    <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
                   </div>
                 </CardContent>
               </Card>
@@ -318,7 +247,7 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Quizzes</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.quizzesCompleted} <span className="text-yellow-400">❓</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.quizzes_taken} <span className="text-yellow-400">❓</span></p>
                     </div>
                     <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
                   </div>
@@ -326,14 +255,16 @@ const Dashboard = () => {
               </Card>
             </motion.div>
 
-            {/* Summaries */}
+            {/* Total Created */}
             <motion.div whileHover={{ scale: 1.08, boxShadow: '0 2px 32px #a78bfa44' }} whileTap={{ scale: 0.97 }}>
               <Card className="hover-glow dark:bg-card transition-all shadow-lg shadow-purple-900/20">
                 <CardContent className="p-3 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-muted-foreground">Created</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.summariesGenerated + stats.notesCreated} <span className="text-purple-400">📝</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+                        {stats.summaries_created + stats.notes_created + stats.flashcards_created} <span className="text-purple-400">📝</span>
+                      </p>
                     </div>
                     <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-500" />
                   </div>
@@ -351,16 +282,6 @@ const Dashboard = () => {
                   Today's Activity
                   <span className="animate-bounce text-xl ml-1">🌟</span>
                 </CardTitle>
-                <motion.span
-                  initial={{ scale: 0.7, opacity: 0 }}
-                  animate={{ scale: showConfetti ? 1.15 : 0.7, opacity: showConfetti ? 1 : 0 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-                  className="relative"
-                >
-                  <AnimatePresence>
-                    {showConfetti && <Confetti />}
-                  </AnimatePresence>
-                </motion.span>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -436,7 +357,7 @@ const Dashboard = () => {
               <Sparkles className="text-cyan-400 animate-pulse h-5 w-5" />
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
               {quickActions.map((action, idx) => (
                 <motion.div
                   key={action.title}
