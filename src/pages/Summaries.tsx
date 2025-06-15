@@ -1,11 +1,12 @@
-
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Loader2, Moon, Sun, Sparkles, ArrowLeft } from "lucide-react";
+import { Upload, FileText, Loader2, Moon, Sun, Sparkles, ArrowLeft, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
 import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
@@ -25,6 +26,116 @@ if (typeof window !== "undefined") {
   ).toString();
 }
 
+// Summary Card Component
+const SummaryCard = ({ summary, filename, onView }: { summary: string, filename: string, onView: () => void }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const previewText = summary.slice(0, 150) + (summary.length > 150 ? "..." : "");
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.3 }}
+      className="group"
+    >
+      <Card className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-[#2a2a5e] hover:border-[#4a4a8e] transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-400" />
+            {filename || "AI Summary"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-300 leading-relaxed mb-4">
+            {isExpanded ? summary : previewText}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center">
+            <div className="flex gap-2">
+              {summary.length > 150 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 h-8 px-3"
+                >
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3 mr-1" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3 mr-1" />
+                      Show More
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button
+                onClick={onView}
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white h-8 px-3"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                View Full
+              </Button>
+            </div>
+            <DownloadNotesButton
+              content={summary}
+              filename={filename?.replace(".pdf", "_summary") || "summary"}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+// Loading Shimmer Component
+const LoadingShimmer = () => (
+  <div className="space-y-4">
+    {[1, 2, 3].map((i) => (
+      <Card key={i} className="bg-[#1a1a2e] border-[#2a2a5e] animate-pulse">
+        <CardHeader>
+          <div className="h-6 bg-gray-700 rounded w-1/3"></div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-700 rounded w-full"></div>
+            <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
+
+// Empty State Component
+const EmptyState = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.5 }}
+    className="text-center py-16"
+  >
+    <div className="mb-6">
+      <div className="mx-auto w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
+        <FileText className="h-10 w-10 text-white" />
+      </div>
+      <h3 className="text-xl font-semibold text-white mb-2">No summaries yet</h3>
+      <p className="text-gray-400 max-w-md mx-auto">
+        Upload a lecture or use AI Notes to generate your first summary and boost your learning.
+      </p>
+    </div>
+    <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white">
+      <Upload className="h-4 w-4 mr-2" />
+      Upload Your First Document
+    </Button>
+  </motion.div>
+);
+
 export default function Summaries() {
   const [file, setFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState("");
@@ -34,6 +145,7 @@ export default function Summaries() {
   const [error, setError] = useState("");
   const [darkMode, setDarkMode] = useState(true);
   const [showSummaryAnim, setShowSummaryAnim] = useState(false);
+  const [viewMode, setViewMode] = useState<'upload' | 'summary' | 'list'>('upload');
 
   const { trackSummaryGeneration, endSession, startSession } = useStudyTracking();
   const { toast } = useToast();
@@ -139,6 +251,7 @@ export default function Summaries() {
       setSummary(data.summary || data.response);
       setProgress(100);
       setShowSummaryAnim(true);
+      setViewMode('summary');
 
       trackSummaryGeneration();
       endSession("summary", file?.name || 'document', true);
@@ -170,15 +283,21 @@ export default function Summaries() {
     setProgress(0);
     setError("");
     setShowSummaryAnim(false);
+    setViewMode('upload');
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background dark:bg-black">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#0a0a0a] via-[#1a0f2e] to-[#0a0a0a]">
       <Navbar />
 
       <div className="flex-1 flex flex-col justify-center">
-        <div className="container mx-auto px-4 py-6 pb-32 flex flex-col items-center justify-center min-h-[90vh]">
-          <div className="w-full max-w-4xl flex flex-col flex-1 justify-center">
+        <div className="container mx-auto px-4 py-6 pb-32">
+          <motion.div 
+            className="w-full max-w-6xl mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
 
             {/* Header */}
             <div className="text-center mb-10 relative">
@@ -194,11 +313,7 @@ export default function Summaries() {
                   onClick={toggleDarkMode}
                   variant="outline"
                   size="sm"
-                  className={`transition-all duration-300 shadow-md border-0 ${
-                    darkMode
-                      ? "bg-[#322778] text-yellow-400"
-                      : "bg-gray-900 text-white"
-                  }`}
+                  className="bg-[#322778] text-yellow-400 border-[#4a4a8e] hover:bg-[#4a4a8e] transition-all duration-300"
                   aria-label="Toggle dark mode"
                 >
                   {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -206,199 +321,208 @@ export default function Summaries() {
               </div>
 
               {/* Title */}
-              <div className="flex items-center justify-center gap-2 mb-4 pt-12 md:pt-0">
-                <span className="text-3xl md:text-4xl">📚</span>
-                <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight drop-shadow-sm">
-                  AI Study Summarizer
-                </h1>
-                <span className="text-3xl md:text-4xl">✨</span>
-              </div>
-              <p className="text-md md:text-lg text-gray-400 font-medium flex items-center justify-center gap-2">
-                <Sparkles className="inline h-5 w-5 text-yellow-400" />
-                Turn your PDF notes into smart summaries!
-              </p>
+              <motion.div 
+                className="pt-12 md:pt-0"
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+              >
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+                    AI Study Summarizer
+                  </h1>
+                </div>
+                <p className="text-lg text-gray-400 font-medium flex items-center justify-center gap-2">
+                  <Sparkles className="inline h-5 w-5 text-purple-400" />
+                  Transform your PDF notes into smart summaries
+                </p>
+              </motion.div>
             </div>
 
             {/* Error Display */}
-            {error && (
-              <div className="mb-6 p-4 rounded-lg border-l-4 border-pink-500 bg-pink-800/30 text-pink-200 shadow-lg flex items-center gap-2 animate-bounce-in">
-                <span className="text-xl">🚨</span>
-                <span className="font-semibold">{error}</span>
-              </div>
-            )}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-900/20 text-red-300 shadow-lg flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-red-400 font-bold">!</span>
+                  </div>
+                  <span className="font-medium">{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Progress Bar */}
-            {progress > 0 && progress < 100 && (
-              <div className="mb-6">
-                <div className="flex justify-between text-sm mb-2 text-blue-200">
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </span>
-                  <span className="font-medium">{progress}%</span>
-                </div>
-                <Progress value={progress} className="h-3 bg-[#21264b]" />
-              </div>
-            )}
-
-            {/* File Upload */}
-            {!file && (
-              <div className="rounded-xl shadow-2xl p-8 mb-10 bg-[#232453] border border-[#35357a] hover:shadow-blue-600/40 transition-all duration-300 flex flex-col items-center min-h-[350px]">
-                <div className="border-2 border-dashed border-[#44449a] rounded-xl p-10 w-full text-center hover:bg-[#20214e]/60 transition-all duration-300">
-                  <Upload className="mx-auto h-12 w-12 mb-4 text-blue-400" />
-                  <div className="mb-4">
-                    <label
-                      htmlFor="file-upload"
-                      className="cursor-pointer flex flex-col items-center gap-1"
-                    >
-                      <span className="text-lg font-semibold text-blue-200">
-                        Upload your PDF here
-                      </span>
-                      <span className="text-2xl">⬆️</span>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        accept=".pdf"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  <p className="text-sm text-blue-300">Max size: 50MB</p>
-                </div>
-              </div>
-            )}
-
-            {/* Show file info and Generate Summary */}
-            {file && !summary && (
-              <div className="flex flex-col items-center justify-center min-h-[350px]">
-                <div className="rounded-xl shadow-xl p-8 mb-10 bg-[#232453] border border-[#35357a] flex flex-col items-center w-full min-h-[220px]">
-                  <div className="flex flex-col md:flex-row gap-2 items-center justify-center">
-                    <FileText className="h-5 w-5 text-blue-300" />
-                    <span className="font-medium text-blue-200">{file.name}</span>
-                    <span className="text-sm text-blue-300">
-                      ({(file.size / 1024 / 1024).toFixed(2)} MB)
+            <AnimatePresence>
+              {progress > 0 && progress < 100 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="mb-6"
+                >
+                  <div className="flex justify-between text-sm mb-3 text-blue-200">
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing your document...
                     </span>
+                    <span className="font-semibold">{progress}%</span>
                   </div>
-                  <span className="mt-2 text-blue-400 text-sm">
-                    Ready to summarize! 🚀
-                  </span>
-                </div>
-                <div className="text-center mb-6">
+                  <Progress value={progress} className="h-2 bg-[#1a1a2e]" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Main Content */}
+            <AnimatePresence mode="wait">
+              {viewMode === 'upload' && !file && (
+                <motion.div
+                  key="upload"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <Card className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-[#2a2a5e] hover:border-[#4a4a8e] transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
+                    <CardContent className="p-8">
+                      <div className="border-2 border-dashed border-[#4a4a8e] rounded-xl p-12 text-center hover:bg-[#1a1a2e]/60 transition-all duration-300">
+                        <Upload className="mx-auto h-16 w-16 mb-6 text-purple-400" />
+                        <div className="mb-6">
+                          <label
+                            htmlFor="file-upload"
+                            className="cursor-pointer flex flex-col items-center gap-3"
+                          >
+                            <span className="text-xl font-semibold text-white">
+                              Upload your PDF document
+                            </span>
+                            <span className="text-2xl">📄</span>
+                            <input
+                              id="file-upload"
+                              type="file"
+                              accept=".pdf"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        <p className="text-sm text-gray-400">Maximum file size: 50MB</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+
+              {file && !summary && (
+                <motion.div
+                  key="generate"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.4 }}
+                  className="text-center"
+                >
+                  <Card className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-[#2a2a5e] p-8 mb-8">
+                    <div className="flex flex-col md:flex-row gap-3 items-center justify-center mb-4">
+                      <FileText className="h-6 w-6 text-blue-400" />
+                      <span className="font-semibold text-white">{file.name}</span>
+                      <span className="text-sm text-gray-400">
+                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                    <p className="text-blue-400 text-sm mb-6">Ready to generate your AI summary! 🚀</p>
+                  </Card>
+
                   <Button
                     onClick={generateSummary}
                     disabled={isProcessing || !extractedText}
-                    className="px-8 py-4 text-lg font-bold rounded-full shadow-xl bg-gradient-to-r from-[#43e97b] to-[#38f9d7] text-[#232453] hover:from-[#38f9d7] hover:to-[#43e97b] transition-transform duration-300 transform hover:scale-105 flex items-center gap-3 border-0"
-                    style={{ boxShadow: "0 2px 40px 0 #43e97b33" }}
+                    className="px-8 py-4 text-lg font-bold rounded-full shadow-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white transition-all duration-300 transform hover:scale-105 flex items-center gap-3"
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Summarizing...
-                        <span className="text-xl">🤖</span>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Generating Summary...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="mr-2 h-5 w-5 text-yellow-400 animate-bounce" />
+                        <Sparkles className="h-5 w-5 animate-pulse" />
                         Generate AI Summary
-                        <span className="text-xl">⚡</span>
                       </>
                     )}
                   </Button>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
 
-            {/* Summary Display */}
-            {summary && (
-              <div className="flex flex-col items-center justify-center min-h-[600px]">
-                {/* Action buttons */}
-                <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-6">
-                  <DownloadNotesButton
-                    content={summary}
-                    filename={file?.name?.replace(".pdf", "_summary") || "summary"}
-                  />
-                  <BackToDashboardButton
-                    size="sm"
-                    className="bg-gradient-to-r from-[#8b5cf6] to-[#22d3ee] text-white font-semibold shadow-lg px-4 py-2 rounded-full border-0 hover:from-[#22d3ee] hover:to-[#8b5cf6] transition-all duration-300 flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Dashboard
-                  </BackToDashboardButton>
-                </div>
-
-                <div
-                  className={`rounded-3xl shadow-2xl border-2 border-[#43e97b] p-8 md:p-14 mb-10 mx-auto transition-all duration-500 bg-gradient-to-br from-[#232453] via-[#17173a] to-[#1e2140] w-full flex flex-col justify-between animate-fade-in-up min-h-[400px] md:min-h-[800px] max-h-[90vh]`}
-                  style={{
-                    animation: showSummaryAnim
-                      ? "fadeInUp 0.9s cubic-bezier(0.23, 1, 0.32, 1) both"
-                      : undefined,
-                  }}
+              {summary && viewMode === 'summary' && (
+                <motion.div
+                  key="summary"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.4 }}
                 >
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-extrabold flex items-center text-[#43e97b] gap-2">
-                      <span className="text-2xl">🧠</span>
-                      AI Generated Summary
-                    </h3>
-                    <span className="text-2xl animate-pulse">🌟</span>
+                  <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-6">
+                    <DownloadNotesButton
+                      content={summary}
+                      filename={file?.name?.replace(".pdf", "_summary") || "summary"}
+                    />
+                    <BackToDashboardButton size="sm" />
                   </div>
-                  <div className="p-4 md:p-6 rounded-lg border-l-4 overflow-y-auto min-h-[320px] md:min-h-[600px] max-h-[55vh] md:max-h-[62vh] mt-3 mb-2 bg-[#21264b]/80 border-[#43e97b] text-blue-50">
-                    <p className="whitespace-pre-wrap leading-relaxed text-lg font-medium">
-                      {stripFirstMarkdownHeading(summary)}
-                    </p>
-                  </div>
-                  <div className="mt-5 text-xs md:text-sm text-right italic text-blue-400">
-                    Summary generated • {new Date().toLocaleString()}{" "}
-                    <span className="text-lg">✅</span>
-                  </div>
-                </div>
-              </div>
-            )}
+
+                  <Card className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-[#2a2a5e] shadow-2xl">
+                    <CardHeader>
+                      <CardTitle className="text-2xl font-bold text-white flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                          <Sparkles className="h-4 w-4 text-white" />
+                        </div>
+                        AI Generated Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="p-6 rounded-xl bg-[#0f0f23]/60 border border-[#2a2a5e] min-h-[400px] overflow-y-auto max-h-[70vh]">
+                        <p className="whitespace-pre-wrap leading-relaxed text-gray-200 text-lg">
+                          {stripFirstMarkdownHeading(summary)}
+                        </p>
+                      </div>
+                      <div className="mt-4 text-xs text-right text-gray-400 italic">
+                        Summary generated • {new Date().toLocaleString()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Reset Button */}
-            {(file || summary) && (
-              <div className="text-center">
-                <Button
-                  onClick={resetAll}
-                  variant="outline"
-                  className="px-6 py-3 rounded-full bg-[#21264b] border-[#35357a] text-blue-200 hover:bg-[#35357a] font-semibold shadow-lg transition-all duration-300 flex items-center gap-2"
+            <AnimatePresence>
+              {(file || summary) && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center mt-8"
                 >
-                  🔄 Start New Summary
-                </Button>
-              </div>
-            )}
-          </div>
+                  <Button
+                    onClick={resetAll}
+                    variant="outline"
+                    className="px-6 py-3 rounded-full bg-[#1a1a2e] border-[#2a2a5e] text-gray-300 hover:bg-[#2a2a5e] hover:text-white font-semibold shadow-lg transition-all duration-300 flex items-center gap-2 mx-auto"
+                  >
+                    🔄 Create New Summary
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
       <BottomNav />
       <Footer />
-      {/* Animation styles */}
-      <style>
-        {`
-        @keyframes fadeInUp {
-          0% {
-            opacity: 0;
-            transform: translateY(70px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.9s cubic-bezier(0.23, 1, 0.32, 1) both;
-        }
-        @keyframes bounce-in {
-          0% { transform: scale(0.9); opacity: 0.2;}
-          60% { transform: scale(1.05); opacity: 1;}
-          80% { transform: scale(0.98);}
-          100% { transform: scale(1);}
-        }
-        .animate-bounce-in {
-          animation: bounce-in 0.7s;
-        }
-        `}
-      </style>
     </div>
   );
 }
