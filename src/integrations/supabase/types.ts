@@ -58,31 +58,31 @@ export type Database = {
       }
       note_chats: {
         Row: {
+          clerk_user_id: string
           created_at: string | null
           id: string
           message: string
           note_id: string
           role: string
           updated_at: string | null
-          user_id: string
         }
         Insert: {
+          clerk_user_id: string
           created_at?: string | null
-          id?: string
+          id: string
           message: string
           note_id: string
           role: string
           updated_at?: string | null
-          user_id: string
         }
         Update: {
+          clerk_user_id?: string
           created_at?: string | null
           id?: string
           message?: string
           note_id?: string
           role?: string
           updated_at?: string | null
-          user_id?: string
         }
         Relationships: []
       }

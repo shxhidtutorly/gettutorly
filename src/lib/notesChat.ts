@@ -4,7 +4,7 @@ import { convertClerkIdToUuid } from './supabaseAuth';
 
 export interface ChatMessage {
   id: string;
-  user_id: string;
+  clerk_user_id: string; // Changed to match actual DB column
   note_id: string;
   role: 'user' | 'assistant';
   message: string;
@@ -12,7 +12,7 @@ export interface ChatMessage {
 }
 
 /**
- * Save a chat message. Always store as user_id (uuid).
+ * Save a chat message. Always store with clerk_user_id.
  */
 export const saveChatMessage = async (
   clerkUserId: string, 
@@ -21,12 +21,10 @@ export const saveChatMessage = async (
   message: string
 ): Promise<ChatMessage | null> => {
   try {
-    // convert Clerk ID to UUID
-    const userId = convertClerkIdToUuid(clerkUserId);
     const { data, error } = await supabase
       .from('note_chats')
       .insert({
-        user_id: userId,  // always UUID
+        clerk_user_id: clerkUserId,  // Use clerk_user_id directly
         note_id: noteId,
         role: role,
         message: message,
@@ -47,15 +45,14 @@ export const saveChatMessage = async (
 };
 
 /**
- * Get chat history for a note. Filter by user_id (uuid).
+ * Get chat history for a note. Filter by clerk_user_id.
  */
 export const getChatHistory = async (clerkUserId: string, noteId: string): Promise<ChatMessage[]> => {
   try {
-    const userId = convertClerkIdToUuid(clerkUserId);
     const { data, error } = await supabase
       .from('note_chats')
       .select('*')
-      .eq('user_id', userId)  // always UUID
+      .eq('clerk_user_id', clerkUserId)  // Use clerk_user_id directly
       .eq('note_id', noteId)
       .order('created_at', { ascending: true });
         
