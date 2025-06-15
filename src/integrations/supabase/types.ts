@@ -400,6 +400,57 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          paddle_customer_id: string | null
+          paddle_subscription_id: string | null
+          plan_name: string
+          status: string
+          subscription_end_date: string | null
+          subscription_start_date: string | null
+          trial_end_date: string | null
+          trial_start_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
+          plan_name: string
+          status?: string
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
+          plan_name?: string
+          status?: string
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       summaries: {
         Row: {
           content: string
@@ -521,6 +572,21 @@ export type Database = {
           quizzes_count: number
           total_study_time: number
         }[]
+      }
+      get_user_subscription: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          plan_name: string
+          status: string
+          trial_end_date: string
+          subscription_end_date: string
+          is_trial: boolean
+        }[]
+      }
+      has_active_subscription: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       update_user_stat: {
         Args: { p_user_id: string; p_stat_type: string; p_increment?: number }

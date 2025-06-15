@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap } from "lucide-react";
+import { Check, Crown, Zap, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -37,6 +37,7 @@ declare global {
 
 const PaddlePricing = () => {
   const { user, loading } = useAuth();
+  const { subscription, hasActiveSubscription, createTrialSubscription } = useSubscription();
   const navigate = useNavigate();
   const [paddleLoaded, setPaddleLoaded] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -69,6 +70,41 @@ const PaddlePricing = () => {
     };
   }, []);
 
+  const handleStartTrial = async (planName: string) => {
+    if (loading) {
+      toast.info("Please wait while we check your authentication status...");
+      return;
+    }
+
+    if (!user) {
+      toast.info("Please sign in to start your trial");
+      navigate("/signin", { state: { returnTo: "/pricing" } });
+      return;
+    }
+
+    if (hasActiveSubscription) {
+      toast.info("You already have an active subscription");
+      return;
+    }
+
+    setLoadingPlan(planName);
+    
+    try {
+      const success = await createTrialSubscription(planName);
+      if (success) {
+        toast.success("🎉 Trial started! Welcome to Tutorly!");
+        navigate("/dashboard");
+      } else {
+        toast.error("Failed to start trial. Please try again.");
+      }
+    } catch (error) {
+      console.error('Trial creation error:', error);
+      toast.error("Failed to start trial. Please try again.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   const handleSubscribe = (priceId: string, planName: string) => {
     if (loading) {
       toast.info("Please wait while we check your authentication status...");
@@ -97,8 +133,8 @@ const PaddlePricing = () => {
           user_id: user.id,
           planName: planName
         },
-        successUrl: 'https://gettutorly.com/pricing?sub=success',
-        cancelUrl: 'https://gettutorly.com/pricing?sub=cancel',
+        successUrl: 'https://gettutorly.com/dashboard?payment=success',
+        cancelUrl: 'https://gettutorly.com/pricing?payment=cancel',
         settings: {
           allowLogout: false,
           displayMode: 'overlay',
@@ -128,7 +164,8 @@ const PaddlePricing = () => {
         "Basic flashcards",
         "Quiz generation",
         "Email support",
-        "Mobile app access"
+        "Mobile app access",
+        "4-day free trial"
       ],
       popular: false,
       color: "from-blue-500 to-blue-600"
@@ -147,7 +184,8 @@ const PaddlePricing = () => {
         "Team collaboration",
         "Export options",
         "Custom integrations",
-        "Analytics dashboard"
+        "Analytics dashboard",
+        "4-day free trial"
       ],
       popular: true,
       color: "from-purple-500 to-purple-600"
@@ -166,7 +204,8 @@ const PaddlePricing = () => {
         "Advanced analytics",
         "Custom branding",
         "API access",
-        "Dedicated support"
+        "Dedicated support",
+        "4-day free trial"
       ],
       popular: false,
       color: "from-green-500 to-green-600",
@@ -182,12 +221,27 @@ const PaddlePricing = () => {
             Choose Your Plan
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-            Unlock your learning potential with AI-powered tools
+            Start with a 4-day free trial, then unlock your learning potential with AI-powered tools
           </p>
-          <Badge variant="outline" className="border-green-500/50 text-green-600 dark:text-green-400">
-            <Crown className="w-4 h-4 mr-2" />
-            Secure Payment by Paddle
-          </Badge>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <Badge variant="outline" className="border-green-500/50 text-green-600 dark:text-green-400">
+              <Crown className="w-4 h-4 mr-2" />
+              Secure Payment by Paddle
+            </Badge>
+            <Badge variant="outline" className="border-blue-500/50 text-blue-600 dark:text-blue-400">
+              <Clock className="w-4 h-4 mr-2" />
+              4-Day Free Trial
+            </Badge>
+          </div>
+
+          {hasActiveSubscription && subscription && (
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg max-w-md mx-auto mb-8">
+              <p className="text-green-800 dark:text-green-200">
+                You have an active {subscription.plan_name} subscription
+                {subscription.is_trial ? " (Trial)" : ""}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -253,23 +307,45 @@ const PaddlePricing = () => {
                     ))}
                   </ul>
 
-                  <Button
-                    onClick={() => handleSubscribe(plan.priceId, `${plan.name} ${plan.subtitle}`)}
-                    disabled={!paddleLoaded || loadingPlan === plan.priceId || loading}
-                    className={`w-full py-3 text-white font-semibold ${
-                      plan.popular
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
-                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
-                    }`}
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    {loadingPlan === plan.priceId ? 'Opening...' : 
-                     !paddleLoaded ? 'Loading...' : 
-                     !user ? 'Sign In to Subscribe' : 'Subscribe Now'}
-                  </Button>
+                  {!hasActiveSubscription ? (
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => handleStartTrial(`${plan.name} ${plan.subtitle}`)}
+                        disabled={loadingPlan === `${plan.name} ${plan.subtitle}` || loading}
+                        className={`w-full py-3 text-white font-semibold ${
+                          plan.popular
+                            ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+                        }`}
+                      >
+                        <Clock className="w-4 h-4 mr-2" />
+                        {loadingPlan === `${plan.name} ${plan.subtitle}` ? 'Starting Trial...' : 
+                         !user ? 'Sign In to Start Trial' : 'Start 4-Day Free Trial'}
+                      </Button>
+                      
+                      <Button
+                        onClick={() => handleSubscribe(plan.priceId, `${plan.name} ${plan.subtitle}`)}
+                        disabled={!paddleLoaded || loadingPlan === plan.priceId || loading}
+                        variant="outline"
+                        className="w-full py-3 border-gray-300 dark:border-gray-600"
+                      >
+                        <Zap className="w-4 h-4 mr-2" />
+                        {loadingPlan === plan.priceId ? 'Opening...' : 
+                         !paddleLoaded ? 'Loading...' : 
+                         !user ? 'Sign In to Subscribe' : 'Subscribe Now'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      disabled
+                      className="w-full py-3 bg-gray-400 text-white cursor-not-allowed"
+                    >
+                      Current Plan
+                    </Button>
+                  )}
 
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">
-                    Cancel anytime • Secure checkout
+                    4-day free trial • No commitment • Cancel anytime
                   </p>
                 </CardContent>
               </Card>

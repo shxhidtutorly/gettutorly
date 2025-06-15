@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useInView } from "react-intersection-observer";
@@ -76,128 +78,36 @@ declare global {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [paddleLoaded, setPaddleLoaded] = useState(false);
-  const { toast } = useToast();
-  const { theme, toggleTheme } = useTheme();
-  const [scrollY, setScrollY] = useState(0);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [showAIDemo, setShowAIDemo] = useState(false);
-  const [aiDemoText, setAiDemoText] = useState("");
-  const [aiDemoResult, setAiDemoResult] = useState("");
-  const [pricingToggle, setPricingToggle] = useState("monthly");
+  const { user, loading: authLoading } = useAuth();
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
 
   useEffect(() => {
-    AOS.init({
-      duration: 800,
-      easing: 'ease-out-cubic',
-      once: true,
-      offset: 100
-    });
+    // Don't redirect while loading
+    if (authLoading || subLoading) return;
 
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll);
-
-    // Load Paddle.js script
-    const script = document.createElement('script');
-    script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
-    script.async = true;
-    script.onload = () => {
-      if (window.Paddle) {
-        window.Paddle.Environment.set('production');
-        window.Paddle.Setup({
-          token: 'live_70323ea9dfbc69d45414c712687'
-        });
-        setPaddleLoaded(true);
-        console.log('Paddle loaded successfully');
+    // If user is authenticated
+    if (user) {
+      // If they have an active subscription, go to dashboard
+      if (hasActiveSubscription) {
+        navigate("/dashboard", { replace: true });
+      } else {
+        // If no subscription, go to pricing
+        navigate("/pricing", { replace: true });
       }
-    };
-    script.onerror = (error) => {
-      console.error('Failed to load Paddle script:', error);
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-    };
-  }, []);
-
-  const handleGetStarted = () => {
-    if (loading) {
-      toast({
-        title: "Please wait",
-        description: "Checking authentication status..."
-      });
-      return;
     }
+  }, [user, hasActiveSubscription, authLoading, subLoading, navigate]);
 
-    if (!user) {
-      navigate("/signin", { state: { returnTo: "/pricing", autoCheckout: true } });
-      return;
-    }
-
-    if (!paddleLoaded || !window.Paddle) {
-      toast({
-        title: "Loading payment system",
-        description: "Please wait a moment..."
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    toast({
-      title: "Redirecting to checkout",
-      description: "Opening payment window..."
-    });
-
-    try {
-      window.Paddle.Checkout.open({
-        items: [{ priceId: 'pri_01jxq0pfrjcd0gkj08cmqv6rb1', quantity: 1 }],
-        customer: { email: user.email || '' },
-        customData: {
-          user_id: user.id,
-          planName: 'Basic Plan'
-        },
-        successUrl: 'https://gettutorly.com/pricing?sub=success',
-        cancelUrl: 'https://gettutorly.com/pricing?sub=cancel',
-        settings: {
-          allowLogout: false,
-          displayMode: 'overlay',
-          theme: 'dark',
-          locale: 'en'
-        }
-      });
-    } catch (error) {
-      console.error('Failed to open Paddle checkout:', error);
-      toast({
-        title: "Payment Error",
-        description: "Failed to open checkout, please try again"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateAISummary = async () => {
-    if (!aiDemoText.trim()) {
-      toast({
-        title: "Please enter some text",
-        description: "Add some content to summarize"
-      });
-      return;
-    }
-    
-    setAiDemoResult("Generating summary...");
-    
-    // Simulate AI response
-    setTimeout(() => {
-      setAiDemoResult(`📝 **AI Summary**: This text discusses ${aiDemoText.split(' ').slice(0, 3).join(' ')}... Key points include the main concepts and important details that enhance understanding and retention.`);
-    }, 2000);
-  };
+  // Show loading while checking auth and subscription status
+  if (authLoading || subLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-black">
