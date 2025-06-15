@@ -16,7 +16,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import LoginButton from "@/components/auth/LoginButton";
 import UserProfileButton from "@/components/auth/UserProfileButton";
 import Footer from "@/components/layout/Footer";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 import {
   Brain,
@@ -80,6 +79,24 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
+  const [scrollY, setScrollY] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [paddleLoaded, setPaddleLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [aiDemoText, setAiDemoText] = useState("");
+  const [aiDemoResult, setAiDemoResult] = useState("");
+  const [pricingToggle, setPricingToggle] = useState<"monthly" | "yearly">("monthly");
+
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: true,
+    });
+
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     // Don't redirect while loading
@@ -96,6 +113,27 @@ const Index = () => {
       }
     }
   }, [user, hasActiveSubscription, authLoading, subLoading, navigate]);
+
+  const handleGetStarted = () => {
+    if (!user) {
+      navigate("/signup");
+    } else if (!hasActiveSubscription) {
+      navigate("/pricing");
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
+  const generateAISummary = async () => {
+    if (!aiDemoText.trim()) return;
+    
+    setAiDemoResult("Generating summary...");
+    
+    // Simple demo response
+    setTimeout(() => {
+      setAiDemoResult("This is a sample AI-generated summary of your text. Our AI would analyze the content and provide key insights, main points, and important details in a concise format.");
+    }, 2000);
+  };
 
   // Show loading while checking auth and subscription status
   if (authLoading || subLoading) {
@@ -189,7 +227,7 @@ const Index = () => {
                 
                 <h1 className="text-5xl md:text-7xl font-extrabold leading-tight text-center mb-6 text-white">
                   Your Personal
-                  <span className="text-lg md:text-xl text-white font-medium text-center drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
+                  <span className="block text-4xl md:text-5xl bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
                     AI Tutor
                   </span>
                 </h1>
@@ -213,10 +251,10 @@ const Index = () => {
                   size="lg"
                   className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-lg px-8 py-4 rounded-xl font-semibold shadow-xl"
                   onClick={handleGetStarted}
-                  disabled={isLoading || (user && !paddleLoaded)}
+                  disabled={isLoading}
                 >
                   <Zap className="mr-2 h-5 w-5" />
-                  {isLoading ? "Opening Checkout..." : "Start Learning Free"}
+                  {isLoading ? "Loading..." : "Start Learning Free"}
                 </Button>
                 
                 <Button 
@@ -732,10 +770,10 @@ const Index = () => {
                 size="lg"
                 className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-xl px-12 py-4 rounded-xl font-semibold shadow-xl"
                 onClick={handleGetStarted}
-                disabled={isLoading || (user && !paddleLoaded)}
+                disabled={isLoading}
               >
                 <Zap className="mr-2 h-6 w-6" />
-                {isLoading ? "Opening Checkout..." : "Start Your Free Journey"}
+                {isLoading ? "Loading..." : "Start Your Free Journey"}
               </Button>
               
               <p className="text-gray-400 mt-4 text-sm">
