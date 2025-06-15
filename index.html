@@ -11,29 +11,10 @@
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="credentialless" />
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
     <title>Tutorly - Your AI Study Partner</title>
-    <script>
-      // Ensure proper MIME type handling for modules
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'SKIP_WAITING') {
-            window.location.reload();
-          }
-        });
-      }
-    </script>
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module">
-      // Error handling for module loading
-      window.addEventListener('error', (e) => {
-        if (e.message && e.message.includes('MIME type')) {
-          console.error('Module loading error:', e);
-          console.error('This usually indicates a routing issue where JS files are being served as HTML');
-        }
-      });
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
