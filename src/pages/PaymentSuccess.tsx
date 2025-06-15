@@ -10,30 +10,16 @@ const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const getBaseUrl = () => {
-    // Use production URL for production environment
-    if (window.location.hostname === 'gettutorly.com' || 
-        window.location.hostname.includes('gettutorly.com')) {
-      return 'https://gettutorly.com';
-    }
-    // Use current origin for development
-    return window.location.origin;
-  };
-
   const handleGoToDashboard = () => {
-    const baseUrl = getBaseUrl();
-    if (baseUrl.includes('gettutorly.com')) {
-      window.location.href = `${baseUrl}/dashboard`;
-    } else {
-      navigate('/dashboard');
-    }
+    // Always redirect to the dashboard
+    navigate('/dashboard');
   };
 
   useEffect(() => {
-    // Auto redirect to dashboard after 10 seconds
+    // Auto redirect to dashboard after 5 seconds
     const timer = setTimeout(() => {
       handleGoToDashboard();
-    }, 10000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, []);

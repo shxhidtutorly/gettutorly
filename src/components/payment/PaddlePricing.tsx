@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,11 +7,10 @@ import { Check, Crown, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { motion } from "framer-motion";
 
-// Remove the duplicate global declaration since it's already in Index.tsx
-
 const PaddlePricing = () => {
   const { user } = useAuth();
   const [paddleLoaded, setPaddleLoaded] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     // Load Paddle.js script
@@ -24,17 +24,23 @@ const PaddlePricing = () => {
           token: 'live_70323ea9dfbc69d45414c712687'
         });
         setPaddleLoaded(true);
+        console.log('Paddle loaded successfully');
       }
+    };
+    script.onerror = (error) => {
+      console.error('Failed to load Paddle script:', error);
     };
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
     };
   }, []);
 
   const getBaseUrl = () => {
-    // Use production URL for production environment
+    // Always use production URL for redirects
     if (window.location.hostname === 'gettutorly.com' || 
         window.location.hostname.includes('gettutorly.com')) {
       return 'https://gettutorly.com';
@@ -49,24 +55,32 @@ const PaddlePricing = () => {
       return;
     }
 
-    const customerEmail = user?.email || 'demo@example.com';
+    setLoading(priceId);
+    const customerEmail = user?.email || '';
     const baseUrl = getBaseUrl();
 
-    window.Paddle.Checkout.open({
-      items: [{ priceId, quantity: 1 }],
-      customer: { email: customerEmail },
-      customData: {
-        userId: user?.id || 'guest',
-        planName: planName
-      },
-      successUrl: `${baseUrl}/success`,
-      settings: {
-        allowLogout: false,
-        displayMode: 'overlay',
-        theme: 'dark',
-        locale: 'en'
-      }
-    });
+    try {
+      window.Paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        customer: { email: customerEmail },
+        customData: {
+          userId: user?.id || 'guest',
+          planName: planName
+        },
+        successUrl: `${baseUrl}/dashboard`,
+        settings: {
+          allowLogout: false,
+          displayMode: 'overlay',
+          theme: 'dark',
+          locale: 'en'
+        }
+      });
+      console.log('Paddle checkout opened for:', planName);
+    } catch (error) {
+      console.error('Failed to open Paddle checkout:', error);
+    } finally {
+      setLoading(null);
+    }
   };
 
   const plans = [
@@ -89,10 +103,10 @@ const PaddlePricing = () => {
     },
     {
       name: "Pro",
-      subtitle: "Monthly",
+      subtitle: "Quarterly",
       price: "$19.99",
       priceId: "pri_01jxq0wydxwg59kmha33h213ab",
-      period: "/month",
+      period: "/quarter",
       description: "Best for serious students",
       features: [
         "Everything in Starter",
@@ -114,7 +128,7 @@ const PaddlePricing = () => {
       period: "/year",
       description: "Save 17% with annual billing",
       features: [
-        "Everything in Pro Monthly",
+        "Everything in Pro Quarterly",
         "2 months free",
         "Priority onboarding",
         "Advanced analytics",
@@ -209,7 +223,7 @@ const PaddlePricing = () => {
 
                   <Button
                     onClick={() => handleSubscribe(plan.priceId, `${plan.name} ${plan.subtitle}`)}
-                    disabled={!paddleLoaded}
+                    disabled={!paddleLoaded || loading === plan.priceId}
                     className={`w-full py-3 text-white font-semibold ${
                       plan.popular
                         ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
@@ -217,7 +231,7 @@ const PaddlePricing = () => {
                     }`}
                   >
                     <Zap className="w-4 h-4 mr-2" />
-                    {paddleLoaded ? 'Subscribe Now' : 'Loading...'}
+                    {loading === plan.priceId ? 'Opening...' : paddleLoaded ? 'Subscribe Now' : 'Loading...'}
                   </Button>
 
                   <p className="text-xs text-gray-500 text-center mt-3">
