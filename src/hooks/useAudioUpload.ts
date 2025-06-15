@@ -43,14 +43,19 @@ export const useAudioUpload = () => {
         type: 'audio/mpeg' 
       });
 
+      // Use the correct folder structure that matches our RLS policy
       const fileName = `${user.id}/${Date.now()}.mp3`;
       
-      console.log('📤 Uploading audio file to Supabase...');
+      console.log('📤 Uploading audio file to Supabase with user folder:', fileName);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('audio-uploads')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 

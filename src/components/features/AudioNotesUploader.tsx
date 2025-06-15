@@ -3,16 +3,16 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useAudioUpload, AudioUploadResult } from "@/hooks/useAudioUpload";
-import { Mic, Upload, X, FileAudio, Clock, CheckCircle, Play, Pause, Copy, Save, Download } from "lucide-react";
+import { Mic, Upload, X, FileAudio, Clock, CheckCircle, Play, Pause, Copy, Save } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 const AudioNotesUploader = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [result, setResult] = useState<AudioUploadResult | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -28,12 +28,15 @@ const AudioNotesUploader = () => {
   function startRecording() {
     setIsRecording(true);
     setAudioBlob(null);
+    setAudioUrl(null);
     setResult(null);
     setRecordingTime(0);
 
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(stream => {
-        mediaRecorderRef.current = new MediaRecorder(stream);
+        mediaRecorderRef.current = new MediaRecorder(stream, {
+          mimeType: 'audio/webm'
+        });
         mediaRecorderRef.current.start();
 
         const audioChunks: Blob[] = [];
@@ -44,8 +47,16 @@ const AudioNotesUploader = () => {
         mediaRecorderRef.current.addEventListener("stop", () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
           setAudioBlob(audioBlob);
+          
+          // Create a URL for the blob
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          
           setIsRecording(false);
           clearInterval(timerRef.current as any);
+          
+          // Stop all tracks
+          stream.getTracks().forEach(track => track.stop());
         });
 
         timerRef.current = setInterval(() => {
@@ -64,7 +75,7 @@ const AudioNotesUploader = () => {
   }
 
   function stopRecording() {
-    if (mediaRecorderRef.current) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
   }
@@ -74,6 +85,8 @@ const AudioNotesUploader = () => {
     if (file) {
       if (file.type.startsWith('audio/')) {
         setAudioBlob(file);
+        const url = URL.createObjectURL(file);
+        setAudioUrl(url);
         setResult(null);
       } else {
         toast({
@@ -96,8 +109,13 @@ const AudioNotesUploader = () => {
 
   function clearAudio() {
     setAudioBlob(null);
+    setAudioUrl(null);
     setResult(null);
     setRecordingTime(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
   }
 
   function togglePlayback() {
@@ -105,7 +123,14 @@ const AudioNotesUploader = () => {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(error => {
+          console.error('Audio playback failed:', error);
+          toast({
+            title: "Playback failed",
+            description: "Could not play audio. Try re-recording or uploading again.",
+            variant: "destructive",
+          });
+        });
       }
       setIsPlaying(!isPlaying);
     }
@@ -121,7 +146,6 @@ const AudioNotesUploader = () => {
 
   function saveNotes() {
     if (result) {
-      // This would integrate with your existing notes system
       toast({
         title: "Notes saved!",
         description: "Your audio notes have been saved to your library.",
@@ -214,7 +238,7 @@ const AudioNotesUploader = () => {
             )}
 
             {/* Audio Preview */}
-            {audioBlob && !result && (
+            {audioBlob && audioUrl && !result && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -246,9 +270,12 @@ const AudioNotesUploader = () => {
                   </Button>
                   <audio
                     ref={audioRef}
-                    src={audioBlob ? URL.createObjectURL(audioBlob) : undefined}
+                    src={audioUrl}
                     className="flex-1"
                     controls
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={() => setIsPlaying(false)}
                   />
                 </div>
 
