@@ -5,12 +5,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+
+declare global {
+  interface Window {
+    Paddle?: {
+      Environment: {
+        set: (env: string) => void;
+      };
+      Setup: (config: { token: string }) => void;
+      Checkout: {
+        open: (config: {
+          items: { priceId: string; quantity: number }[];
+          customer?: { email?: string };
+          customData?: Record<string, any>;
+          successUrl?: string;
+          settings?: {
+            allowLogout?: boolean;
+            displayMode?: string;
+            theme?: string;
+            locale?: string;
+          };
+        }) => void;
+      };
+    };
+  }
+}
 
 const PaddlePricing = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [paddleLoaded, setPaddleLoaded] = useState(false);
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     // Load Paddle.js script
@@ -29,6 +57,7 @@ const PaddlePricing = () => {
     };
     script.onerror = (error) => {
       console.error('Failed to load Paddle script:', error);
+      toast.error("Payment system failed to load. Please refresh the page.");
     };
     document.head.appendChild(script);
 
@@ -39,35 +68,35 @@ const PaddlePricing = () => {
     };
   }, []);
 
-  const getBaseUrl = () => {
-    // Always use production URL for redirects
-    if (window.location.hostname === 'gettutorly.com' || 
-        window.location.hostname.includes('gettutorly.com')) {
-      return 'https://gettutorly.com';
-    }
-    // Use current origin for development
-    return window.location.origin;
-  };
-
   const handleSubscribe = (priceId: string, planName: string) => {
-    if (!paddleLoaded || !window.Paddle) {
-      console.error('Paddle not loaded yet');
+    if (loading) {
+      toast.info("Please wait while we check your authentication status...");
       return;
     }
 
-    setLoading(priceId);
-    const customerEmail = user?.email || '';
-    const baseUrl = getBaseUrl();
+    if (!user) {
+      toast.info("Please sign in to continue with your subscription");
+      navigate("/signin");
+      return;
+    }
+
+    if (!paddleLoaded || !window.Paddle) {
+      toast.error("Payment system is still loading, please try again in a moment");
+      return;
+    }
+
+    setLoadingPlan(priceId);
+    toast.success("Redirecting to checkout...");
 
     try {
       window.Paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
-        customer: { email: customerEmail },
+        customer: { email: user.email || '' },
         customData: {
-          userId: user?.id || 'guest',
+          user_id: user.id,
           planName: planName
         },
-        successUrl: `${baseUrl}/dashboard`,
+        successUrl: 'https://gettutorly.com/pricing?sub=success',
         settings: {
           allowLogout: false,
           displayMode: 'overlay',
@@ -78,8 +107,9 @@ const PaddlePricing = () => {
       console.log('Paddle checkout opened for:', planName);
     } catch (error) {
       console.error('Failed to open Paddle checkout:', error);
+      toast.error("Failed to open checkout, please try again");
     } finally {
-      setLoading(null);
+      setLoadingPlan(null);
     }
   };
 
@@ -146,13 +176,13 @@ const PaddlePricing = () => {
     <div className="py-12 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-4">
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Choose Your Plan
           </h2>
-          <p className="text-xl text-gray-400 mb-8">
+          <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
             Unlock your learning potential with AI-powered tools
           </p>
-          <Badge variant="outline" className="border-green-500/50 text-green-400">
+          <Badge variant="outline" className="border-green-500/50 text-green-600 dark:text-green-400">
             <Crown className="w-4 h-4 mr-2" />
             Secure Payment by Paddle
           </Badge>
@@ -185,7 +215,7 @@ const PaddlePricing = () => {
               )}
 
               <Card 
-                className={`bg-[#121212] border-slate-700 hover:border-slate-600 transition-all relative overflow-hidden ${
+                className={`bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all relative overflow-hidden ${
                   plan.popular ? 'ring-2 ring-purple-500/50' : ''
                 }`}
               >
@@ -193,7 +223,7 @@ const PaddlePricing = () => {
                 
                 <CardHeader className="text-center pb-4 relative z-10">
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    <CardTitle className="text-2xl font-bold text-white">
+                    <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
                       {plan.name}
                     </CardTitle>
                     <Badge variant="outline" className="text-xs">
@@ -201,21 +231,21 @@ const PaddlePricing = () => {
                     </Badge>
                   </div>
                   
-                  <div className="text-4xl font-bold text-white mb-2">
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
                     {plan.price}
-                    <span className="text-lg text-gray-400 font-normal">
+                    <span className="text-lg text-gray-500 dark:text-gray-400 font-normal">
                       {plan.period}
                     </span>
                   </div>
                   
-                  <p className="text-gray-400">{plan.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400">{plan.description}</p>
                 </CardHeader>
 
                 <CardContent className="relative z-10">
                   <ul className="space-y-3 mb-8">
                     {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center text-gray-300">
-                        <Check className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" />
+                      <li key={i} className="flex items-center text-gray-700 dark:text-gray-300">
+                        <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -223,18 +253,20 @@ const PaddlePricing = () => {
 
                   <Button
                     onClick={() => handleSubscribe(plan.priceId, `${plan.name} ${plan.subtitle}`)}
-                    disabled={!paddleLoaded || loading === plan.priceId}
+                    disabled={!paddleLoaded || loadingPlan === plan.priceId || loading}
                     className={`w-full py-3 text-white font-semibold ${
                       plan.popular
                         ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
-                        : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
                     }`}
                   >
                     <Zap className="w-4 h-4 mr-2" />
-                    {loading === plan.priceId ? 'Opening...' : paddleLoaded ? 'Subscribe Now' : 'Loading...'}
+                    {loadingPlan === plan.priceId ? 'Opening...' : 
+                     !paddleLoaded ? 'Loading...' : 
+                     !user ? 'Sign In to Subscribe' : 'Subscribe Now'}
                   </Button>
 
-                  <p className="text-xs text-gray-500 text-center mt-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">
                     Cancel anytime • Secure checkout
                   </p>
                 </CardContent>
@@ -244,9 +276,14 @@ const PaddlePricing = () => {
         </div>
 
         <div className="text-center mt-12">
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             Questions? Contact our support team for help choosing the right plan.
           </p>
+          {!user && (
+            <p className="text-blue-600 dark:text-blue-400 text-sm mt-2">
+              Please sign in to access subscription options
+            </p>
+          )}
         </div>
       </div>
     </div>
