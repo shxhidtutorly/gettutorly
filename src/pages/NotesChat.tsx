@@ -46,24 +46,24 @@ const NotesChatPage = () => {
       const userId = convertClerkIdToUuid(currentUser.id);
       
       // First try to get from study_materials table
-      let { data, error } = await supabase
+      let { data: studyMaterial, error: studyError } = await supabase
         .from('study_materials')
         .select('title, file_name, metadata')
         .eq('clerk_user_id', currentUser.id)
         .eq('id', noteId)
         .single();
       
-      if (error && error.code === 'PGRST116') {
+      if (studyError && studyError.code === 'PGRST116') {
         // If not found in study_materials, try notes table
-        const notesResult = await supabase
+        const { data: noteData, error: noteError } = await supabase
           .from('notes')
           .select('title, content')
           .eq('clerk_user_id', currentUser.id)
           .eq('id', noteId)
           .single();
         
-        if (notesResult.error) {
-          console.error('Error loading note:', notesResult.error);
+        if (noteError) {
+          console.error('Error loading note:', noteError);
           setError("Note not found");
           toast({
             variant: "destructive",
@@ -73,11 +73,10 @@ const NotesChatPage = () => {
           return;
         }
         
-        data = notesResult.data;
-        setNoteTitle(data.title || "Untitled Note");
-        setNoteContent(data.content || "");
-      } else if (error) {
-        console.error('Error loading note:', error);
+        setNoteTitle(noteData.title || "Untitled Note");
+        setNoteContent(noteData.content || "");
+      } else if (studyError) {
+        console.error('Error loading note:', studyError);
         setError("Failed to load note content");
         toast({
           variant: "destructive",
@@ -87,9 +86,13 @@ const NotesChatPage = () => {
         return;
       } else {
         // Found in study_materials
-        setNoteTitle(data.title || data.file_name || "Untitled Note");
-        // For study materials, we'll use a placeholder content since actual content extraction would need file processing
-        setNoteContent(data.metadata?.extractedText || "This is a study material. Upload a document with text content for better AI responses.");
+        setNoteTitle(studyMaterial.title || studyMaterial.file_name || "Untitled Note");
+        // For study materials, extract text from metadata if available
+        let extractedText = "";
+        if (studyMaterial.metadata && typeof studyMaterial.metadata === 'object' && 'extractedText' in studyMaterial.metadata) {
+          extractedText = studyMaterial.metadata.extractedText as string;
+        }
+        setNoteContent(extractedText || "This is a study material. Upload a document with text content for better AI responses.");
       }
       
     } catch (error) {
