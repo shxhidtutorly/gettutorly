@@ -9,53 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      lecture_sessions: {
-        Row: {
-          ai_notes: string | null
-          audio_url: string | null
-          created_at: string
-          end_time: string | null
-          id: string
-          start_time: string
-          title: string
-          transcript: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          ai_notes?: string | null
-          audio_url?: string | null
-          created_at?: string
-          end_time?: string | null
-          id?: string
-          start_time: string
-          title: string
-          transcript?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          ai_notes?: string | null
-          audio_url?: string | null
-          created_at?: string
-          end_time?: string | null
-          id?: string
-          start_time?: string
-          title?: string
-          transcript?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lecture_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       note_chats: {
         Row: {
           created_at: string | null
