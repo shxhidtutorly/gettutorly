@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useAudioUpload, AudioUploadResult } from "@/hooks/useAudioUpload";
-import { Mic, Upload, X, FileAudio, Clock, CheckCircle, Play, Pause, Copy, Save } from "lucide-react";
+import { Mic, Upload, X, FileAudio, Clock, CheckCircle, Play, Pause, Copy, Save, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
@@ -99,9 +99,13 @@ const AudioNotesUploader = () => {
   }
 
   async function processAudio() {
-    if (!audioBlob) return;
+    if (!audioBlob && !audioUrl) return;
     
-    const processingResult = await uploadAndProcess(audioBlob);
+    // Use the blob object if available, otherwise use the blob URL
+    const audioInput = audioBlob || audioUrl;
+    if (!audioInput) return;
+    
+    const processingResult = await uploadAndProcess(audioInput);
     if (processingResult) {
       setResult(processingResult);
     }
@@ -153,8 +157,20 @@ const AudioNotesUploader = () => {
     }
   }
 
+  function retryProcessing() {
+    if (audioBlob || audioUrl) {
+      processAudio();
+    }
+  }
+
+  const getProgressMessage = () => {
+    if (progress < 25) return "Uploading audio...";
+    if (progress < 70) return "Transcribing with AI...";
+    return "Generating smart notes...";
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-4xl mx-auto space-y-4 md:space-y-6 px-2 md:px-0">
       {/* Audio Input Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -162,21 +178,21 @@ const AudioNotesUploader = () => {
         transition={{ duration: 0.5 }}
       >
         <Card className="bg-gradient-to-br from-[#232453] to-[#1a1a2e] border-[#35357a] shadow-xl">
-          <CardHeader className="border-b border-[#35357a] bg-gradient-to-r from-purple-600/20 to-blue-600/20">
-            <CardTitle className="flex items-center gap-3 text-white">
+          <CardHeader className="border-b border-[#35357a] bg-gradient-to-r from-purple-600/20 to-blue-600/20 p-4 md:p-6">
+            <CardTitle className="flex items-center gap-3 text-white text-lg md:text-xl">
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
               >
-                <Mic className="w-6 h-6 text-purple-400" />
+                <Mic className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
               </motion.div>
               AI Audio to Smart Notes
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
             {/* Recording Controls */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-center justify-center">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={isRecording ? stopRecording : startRecording}
@@ -184,24 +200,24 @@ const AudioNotesUploader = () => {
                     isRecording 
                       ? "bg-red-600 hover:bg-red-700" 
                       : "bg-purple-600 hover:bg-purple-700"
-                  } text-white px-8 py-4 rounded-xl shadow-lg transition-all duration-200`}
+                  } text-white px-6 md:px-8 py-3 md:py-4 rounded-xl shadow-lg transition-all duration-200 w-full sm:w-auto`}
                   disabled={isProcessing}
                 >
-                  <Mic className="w-5 h-5 mr-2" />
+                  <Mic className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                   {isRecording ? "Stop Recording" : "Start Recording"}
                 </Button>
               </motion.div>
               
-              <span className="text-gray-400 text-sm">or</span>
+              <span className="text-gray-400 text-sm hidden sm:block">or</span>
               
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   variant="outline"
-                  className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10 px-6 py-4 rounded-xl"
+                  className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10 px-4 md:px-6 py-3 md:py-4 rounded-xl w-full sm:w-auto"
                   disabled={isProcessing}
                 >
-                  <Upload className="w-5 h-5 mr-2" />
+                  <Upload className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                   Upload Audio File
                 </Button>
               </motion.div>
@@ -226,51 +242,51 @@ const AudioNotesUploader = () => {
                   <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ repeat: Infinity, duration: 1 }}
-                    className="w-4 h-4 bg-red-500 rounded-full"
+                    className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full"
                   />
-                  <span className="text-white font-medium">Recording in progress...</span>
+                  <span className="text-white font-medium text-sm md:text-base">Recording in progress...</span>
                 </div>
                 <div className="flex items-center justify-center space-x-2 text-gray-400">
-                  <Clock className="w-4 h-4" />
-                  <span>{Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
+                  <Clock className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="text-sm md:text-base">{Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
                 </div>
               </motion.div>
             )}
 
             {/* Audio Preview */}
-            {audioBlob && audioUrl && !result && (
+            {(audioBlob || audioUrl) && !result && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-[#2a2a3e] border border-[#35357a] rounded-xl p-4"
+                className="bg-[#2a2a3e] border border-[#35357a] rounded-xl p-3 md:p-4"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <FileAudio className="w-5 h-5 text-purple-400" />
-                    <span className="text-white font-medium">Audio Ready</span>
+                  <div className="flex items-center space-x-2 md:space-x-3">
+                    <FileAudio className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                    <span className="text-white font-medium text-sm md:text-base">Audio Ready</span>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearAudio}
-                    className="text-gray-400 hover:text-white"
+                    className="text-gray-400 hover:text-white p-1 md:p-2"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
                 </div>
                 
-                <div className="flex items-center space-x-3 mb-4">
+                <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={togglePlayback}
-                    className="text-purple-400 hover:text-purple-300"
+                    className="text-purple-400 hover:text-purple-300 p-1 md:p-2"
                   >
-                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    {isPlaying ? <Pause className="w-3 h-3 md:w-4 md:h-4" /> : <Play className="w-3 h-3 md:w-4 md:h-4" />}
                   </Button>
                   <audio
                     ref={audioRef}
-                    src={audioUrl}
+                    src={audioUrl || undefined}
                     className="flex-1"
                     controls
                     onPlay={() => setIsPlaying(true)}
@@ -282,10 +298,10 @@ const AudioNotesUploader = () => {
                 <div className="text-center">
                   <Button
                     onClick={processAudio}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 rounded-xl shadow-lg"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 md:px-8 py-2 md:py-3 rounded-xl shadow-lg text-sm md:text-base"
                     disabled={isProcessing}
                   >
-                    <CheckCircle className="w-5 h-5 mr-2" />
+                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                     Process with AI
                   </Button>
                 </div>
@@ -297,21 +313,21 @@ const AudioNotesUploader = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center space-y-4"
+                className="text-center space-y-3 md:space-y-4"
               >
                 <div className="flex justify-center">
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full"
+                    className="w-6 h-6 md:w-8 md:h-8 border-2 border-purple-400 border-t-transparent rounded-full"
                   />
                 </div>
                 <div>
-                  <p className="text-white font-medium mb-2">
-                    {progress < 50 ? "Uploading and transcribing..." : "Generating smart notes..."}
+                  <p className="text-white font-medium mb-2 text-sm md:text-base">
+                    {getProgressMessage()}
                   </p>
                   <Progress value={progress} className="w-full max-w-md mx-auto" />
-                  <p className="text-sm text-gray-400 mt-1">{progress}% complete</p>
+                  <p className="text-xs md:text-sm text-gray-400 mt-1">{progress}% complete</p>
                 </div>
               </motion.div>
             )}
@@ -325,75 +341,97 @@ const AudioNotesUploader = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="space-y-6"
+          className="space-y-4 md:space-y-6"
         >
+          {/* Success Message */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-3 md:p-4 text-center"
+          >
+            <div className="flex items-center justify-center gap-2 md:gap-3 text-white">
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
+              <span className="font-semibold text-sm md:text-base">Transcript and notes generated! 🎉</span>
+            </div>
+            <Button
+              onClick={retryProcessing}
+              variant="ghost"
+              size="sm"
+              className="text-white/80 hover:text-white mt-2 text-xs md:text-sm"
+            >
+              <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+              Regenerate
+            </Button>
+          </motion.div>
+
           {/* Summary Card */}
           <Card className="bg-[#2a2a3e] border-[#35357a]">
-            <CardHeader className="border-b border-[#35357a]">
-              <CardTitle className="flex items-center justify-between text-white">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
+            <CardHeader className="border-b border-[#35357a] p-3 md:p-4">
+              <CardTitle className="flex items-center justify-between text-white text-sm md:text-base">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
                   Summary
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(result.summary, "Summary")}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(result.summary, "Summary")}
+                  className="p-1 md:p-2"
+                >
+                  <Copy className="w-3 h-3 md:w-4 md:h-4" />
+                </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-4">
               <Textarea
                 value={result.summary}
                 readOnly
-                className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[150px] resize-none"
+                className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[120px] md:min-h-[150px] resize-none text-xs md:text-sm"
               />
             </CardContent>
           </Card>
 
           {/* Detailed Notes Card */}
           <Card className="bg-[#2a2a3e] border-[#35357a]">
-            <CardHeader className="border-b border-[#35357a]">
-              <CardTitle className="flex items-center justify-between text-white">
-                <div className="flex items-center gap-3">
-                  <FileAudio className="w-5 h-5 text-blue-400" />
+            <CardHeader className="border-b border-[#35357a] p-3 md:p-4">
+              <CardTitle className="flex items-center justify-between text-white text-sm md:text-base">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <FileAudio className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
                   Detailed Study Notes
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1 md:gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => copyToClipboard(result.notes, "Notes")}
+                    className="p-1 md:p-2"
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={saveNotes}
+                    className="p-1 md:p-2"
                   >
-                    <Save className="w-4 h-4" />
+                    <Save className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
                 </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-4">
               <Textarea
                 value={result.notes}
                 readOnly
-                className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[400px] resize-none"
+                className="bg-[#1a1a2e] border-[#35357a] text-white min-h-[300px] md:min-h-[400px] resize-none text-xs md:text-sm"
               />
             </CardContent>
           </Card>
 
           {/* Metadata */}
           <Card className="bg-[#232453] border-[#35357a]">
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400">
                 <span>Provider: {result.metadata.provider}</span>
                 <span>Model: {result.metadata.model}</span>
                 {result.metadata.duration && <span>Duration: {Math.round(result.metadata.duration)}s</span>}
