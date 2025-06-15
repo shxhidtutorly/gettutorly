@@ -421,21 +421,24 @@ export const createStudyPlan = async (planData: {
   due_date?: string;
   sessions?: any[];
   clerk_user_id: string;
+  user_id?: string; // Will default to null if not supplied
 }) => {
   try {
+    // If user_id is not provided, set it to null (should be UUID or null)
+    const record: any = {
+      title: planData.title,
+      description: planData.description ?? '',
+      due_date: planData.due_date ?? '',
+      sessions: planData.sessions ?? [],
+      clerk_user_id: planData.clerk_user_id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user_id: planData.user_id ?? null, // null if unknown!
+    };
+
     const { data, error } = await supabase
       .from('study_plans')
-      .insert([
-        {
-          title: planData.title,
-          description: planData.description ?? '',
-          due_date: planData.due_date ?? '',
-          sessions: planData.sessions ?? [],
-          clerk_user_id: planData.clerk_user_id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-      ])
+      .insert([record])
       .select('*')
       .single();
 
