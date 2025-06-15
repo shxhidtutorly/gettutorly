@@ -1,14 +1,39 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useSupabaseStorage = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
+  const uploadFile = async (userId: string, file: File) => {
+    if (!file) throw new Error('No file provided');
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('study-materials')
+      .upload(filePath, file);
+
+    if (error) throw error;
+    return data;
+  };
+
+  const deleteFile = async (filePath: string) => {
+    const { error } = await supabase.storage
+      .from('study-materials')
+      .remove([filePath]);
+
+    if (error) throw error;
+    return true;
+  };
+
   const uploadStudyMaterial = async (file: File) => {
-    if (!currentUser) {
+    if (!user) {
       setError('User must be logged in to upload files');
       return null;
     }
@@ -27,7 +52,7 @@ export const useSupabaseStorage = () => {
 
       setProgress(25);
       
-      const result = await uploadFile(currentUser.id, file);
+      const result = await uploadFile(user.id, file);
       
       setProgress(100);
       return result;
@@ -68,14 +93,14 @@ export const useSupabaseStorage = () => {
   };
   
   const listFiles = async (folderPath: string = '') => {
-    if (!currentUser) {
+    if (!user) {
       setError('User must be logged in to list files');
       return null;
     }
     
     try {
       setError(null);
-      const path = folderPath ? `${currentUser.id}/${folderPath}` : `${currentUser.id}`;
+      const path = folderPath ? `${user.id}/${folderPath}` : `${user.id}`;
       
       const { data, error } = await supabase.storage
         .from('study-materials')

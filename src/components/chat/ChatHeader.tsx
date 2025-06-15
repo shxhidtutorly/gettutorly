@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Share, CreditCard, MessageCircle, User, ChevronDown } from 'lucide-react';
@@ -24,11 +25,10 @@ import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 const ChatHeader: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const handleShare = () => {
-    // Copy current URL to clipboard
     navigator.clipboard.writeText(window.location.href);
   };
 

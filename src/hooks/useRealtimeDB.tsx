@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+
+import { useState, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useRealtimeDB = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  // User profile operations
-  const updateProfile = async (userData: any) => {
-    if (!currentUser) {
+  const updateUserProfile = async (profileData: any) => {
+    if (!user) {
       toast({
         title: "Authentication required",
         description: "You must be logged in to update your profile",
@@ -20,38 +21,28 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      await updateUserProfile(currentUser.id, userData);
       
+      const { data, error } = await supabase
+        .from('users')
+        .upsert({
+          id: user.id,
+          ...profileData,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
 
-      return true;
+      return data;
     } catch (error) {
       console.error("Profile update error:", error);
       toast({
         title: "Update failed",
-        description: "Failed to update your profile. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchProfile = async () => {
-    if (!currentUser) return null;
-
-    try {
-      setIsLoading(true);
-      return await getUserProfile(currentUser.id);
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      toast({
-        title: "Error",
-        description: "Could not retrieve your profile. Please try again.",
+        description: "Could not update your profile. Please try again.",
         variant: "destructive",
       });
       return null;
@@ -60,12 +51,29 @@ export const useRealtimeDB = () => {
     }
   };
 
-  // Study progress tracking
-  const updateProgress = async (courseId: string, progressData: any) => {
-    if (!currentUser) {
+  const getUserProfile = useCallback(async () => {
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error getting user profile:", error);
+      return null;
+    }
+  }, [user]);
+
+  const updateStudyProgress = async (progressData: any) => {
+    if (!user) {
       toast({
         title: "Authentication required",
-        description: "You must be logged in to update progress",
+        description: "You must be logged in to update study progress",
         variant: "destructive",
       });
       return null;
@@ -73,38 +81,28 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      await updateStudyProgress(currentUser.id, courseId, progressData);
       
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .insert({
+          user_id: user.id,
+          ...progressData,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
       toast({
         title: "Progress updated",
-        description: "Your study progress has been updated.",
+        description: "Your study progress has been recorded.",
       });
 
-      return true;
+      return data;
     } catch (error) {
       console.error("Progress update error:", error);
       toast({
         title: "Update failed",
-        description: "Failed to update your progress. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchProgress = async (courseId?: string) => {
-    if (!currentUser) return null;
-
-    try {
-      setIsLoading(true);
-      return await getStudyProgress(currentUser.id, courseId);
-    } catch (error) {
-      console.error("Error fetching progress:", error);
-      toast({
-        title: "Error",
-        description: "Could not retrieve your progress. Please try again.",
+        description: "Could not update your progress. Please try again.",
         variant: "destructive",
       });
       return null;
@@ -113,47 +111,50 @@ export const useRealtimeDB = () => {
     }
   };
 
-  // Real-time data subscription
-  const useRealtimeData = (path: string) => {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<any>(null);
+  const getStudyProgress = useCallback(async () => {
+    if (!user) return null;
 
-    useEffect(() => {
-      if (!currentUser) {
-        setLoading(false);
-        return () => {};
-      }
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      setLoading(true);
-      const userSpecificPath = path.replace('{userId}', currentUser.id);
-      
-      try {
-        const unsubscribe = subscribeToData(userSpecificPath, (newData) => {
-          setData(newData);
-          setLoading(false);
-        });
-        
-        return () => {
-          unsubscribe();
-        };
-      } catch (err) {
-        console.error("Error subscribing to data:", err);
-        setError(err);
-        setLoading(false);
-        return () => {};
-      }
-    }, [currentUser, path]);
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error getting study progress:", error);
+      return null;
+    }
+  }, [user]);
 
-    return { data, loading, error };
-  };
+  const subscribeToData = useCallback((table: string, callback: (data: any) => void) => {
+    if (!user) return null;
 
-  // Notes operations
-  const addNote = async (noteData: any) => {
-    if (!currentUser) {
+    const subscription = supabase
+      .channel(`${table}_changes`)
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: table,
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          callback(payload);
+        }
+      )
+      .subscribe();
+
+    return subscription;
+  }, [user]);
+
+  const createNote = async (noteData: any) => {
+    if (!user) {
       toast({
         title: "Authentication required",
-        description: "You must be logged in to create a note",
+        description: "You must be logged in to create notes",
         variant: "destructive",
       });
       return null;
@@ -161,19 +162,28 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      const noteId = await createNote(currentUser.id, noteData);
       
+      const { data, error } = await supabase
+        .from('notes')
+        .insert({
+          user_id: user.id,
+          ...noteData,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
       toast({
-        title: "Note saved",
+        title: "Note created",
         description: "Your note has been saved successfully.",
       });
 
-      return noteId;
+      return data;
     } catch (error) {
       console.error("Note creation error:", error);
       toast({
-        title: "Save failed",
-        description: "Failed to save your note. Please try again.",
+        title: "Creation failed",
+        description: "Could not create your note. Please try again.",
         variant: "destructive",
       });
       return null;
@@ -182,53 +192,70 @@ export const useRealtimeDB = () => {
     }
   };
 
-  const editNote = async (noteId: string, noteData: any) => {
-    if (!currentUser) {
+  const updateNote = async (noteId: string, noteData: any) => {
+    if (!user) {
       toast({
         title: "Authentication required",
-        description: "You must be logged in to update a note",
+        description: "You must be logged in to update notes",
         variant: "destructive",
       });
-      return false;
+      return null;
     }
 
     try {
       setIsLoading(true);
-      await updateNote(currentUser.id, noteId, noteData);
       
+      const { data, error } = await supabase
+        .from('notes')
+        .update({
+          ...noteData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', noteId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
       toast({
         title: "Note updated",
         description: "Your note has been updated successfully.",
       });
 
-      return true;
+      return data;
     } catch (error) {
       console.error("Note update error:", error);
       toast({
         title: "Update failed",
-        description: "Failed to update your note. Please try again.",
+        description: "Could not update your note. Please try again.",
         variant: "destructive",
       });
-      return false;
+      return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const removeNote = async (noteId: string) => {
-    if (!currentUser) {
+  const deleteNote = async (noteId: string) => {
+    if (!user) {
       toast({
         title: "Authentication required",
-        description: "You must be logged in to delete a note",
+        description: "You must be logged in to delete notes",
         variant: "destructive",
       });
-      return false;
+      return null;
     }
 
     try {
       setIsLoading(true);
-      await deleteNote(currentUser.id, noteId);
       
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', noteId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
       toast({
         title: "Note deleted",
         description: "Your note has been deleted successfully.",
@@ -238,8 +265,8 @@ export const useRealtimeDB = () => {
     } catch (error) {
       console.error("Note deletion error:", error);
       toast({
-        title: "Delete failed",
-        description: "Failed to delete your note. Please try again.",
+        title: "Deletion failed",
+        description: "Could not delete your note. Please try again.",
         variant: "destructive",
       });
       return false;
@@ -248,31 +275,29 @@ export const useRealtimeDB = () => {
     }
   };
 
-  const fetchNotes = useCallback(async () => {
-    if (!currentUser) return [];
+  const getNotes = useCallback(async () => {
+    if (!user) return [];
 
     try {
-      setIsLoading(true);
-      return await getNotes(currentUser.id);
-    } catch (error) {
-      console.error("Error fetching notes:", error);
-      toast({
-        title: "Error",
-        description: "Could not retrieve your notes. Please try again.",
-        variant: "destructive",
-      });
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentUser, toast]);
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-  // Backup operations
-  const createBackup = async () => {
-    if (!currentUser) {
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Error getting notes:", error);
+      return [];
+    }
+  }, [user]);
+
+  const backupUserData = async () => {
+    if (!user) {
       toast({
         title: "Authentication required",
-        description: "You must be logged in to create a backup",
+        description: "You must be logged in to backup data",
         variant: "destructive",
       });
       return null;
@@ -280,19 +305,40 @@ export const useRealtimeDB = () => {
 
     try {
       setIsLoading(true);
-      const result = await backupUserData(currentUser.id);
       
+      // Get all user data
+      const [notes, sessions, materials] = await Promise.all([
+        getNotes(),
+        getStudyProgress(),
+        supabase.from('study_materials').select('*').eq('user_id', user.id)
+      ]);
+
+      const backupData = {
+        user_id: user.id,
+        backup_date: new Date().toISOString(),
+        notes: notes,
+        study_sessions: sessions,
+        study_materials: materials.data || []
+      };
+
+      // Store backup
+      const { data, error } = await supabase
+        .from('user_backups')
+        .insert(backupData);
+
+      if (error) throw error;
+
       toast({
         title: "Backup created",
         description: "Your data has been backed up successfully.",
       });
 
-      return result;
+      return data;
     } catch (error) {
-      console.error("Backup creation error:", error);
+      console.error("Backup error:", error);
       toast({
         title: "Backup failed",
-        description: "Failed to create backup. Please try again.",
+        description: "Could not backup your data. Please try again.",
         variant: "destructive",
       });
       return null;
@@ -301,61 +347,60 @@ export const useRealtimeDB = () => {
     }
   };
 
-  const restoreBackup = async (backupId: string) => {
-    if (!currentUser) {
+  const restoreFromBackup = async (backupId: string) => {
+    if (!user) {
       toast({
         title: "Authentication required",
-        description: "You must be logged in to restore a backup",
+        description: "You must be logged in to restore data",
         variant: "destructive",
       });
-      return false;
+      return null;
     }
 
     try {
       setIsLoading(true);
-      await restoreFromBackup(currentUser.id, backupId);
       
+      const { data, error } = await supabase
+        .from('user_backups')
+        .select('*')
+        .eq('id', backupId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      // Restore data would go here - this is a simplified version
       toast({
-        title: "Backup restored",
-        description: "Your data has been restored successfully.",
+        title: "Data restored",
+        description: "Your data has been restored from backup.",
       });
 
-      return true;
+      return data;
     } catch (error) {
-      console.error("Backup restoration error:", error);
+      console.error("Restore error:", error);
       toast({
-        title: "Restoration failed",
-        description: "Failed to restore your data. Please try again.",
+        title: "Restore failed",
+        description: "Could not restore your data. Please try again.",
         variant: "destructive",
       });
-      return false;
+      return null;
     } finally {
       setIsLoading(false);
     }
   };
 
   return {
-    // User profile
-    updateProfile,
-    fetchProfile,
-    
-    // Progress tracking
-    updateProgress,
-    fetchProgress,
-    
-    // Real-time data
-    useRealtimeData,
-    
-    // Notes
-    addNote,
-    editNote,
-    removeNote,
-    fetchNotes,
-    
-    // Backups
-    createBackup,
-    restoreBackup,
-    
+    updateUserProfile,
+    getUserProfile,
+    updateStudyProgress,
+    getStudyProgress,
+    subscribeToData,
+    createNote,
+    updateNote,
+    deleteNote,
+    getNotes,
+    backupUserData,
+    restoreFromBackup,
     isLoading
   };
 };

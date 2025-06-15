@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+
+import { useState, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useFirebaseStorage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleUpload = async (file: File, folder: string = "files") => {
-    if (!currentUser) {
+    if (!user) {
       toast({
         title: "Authentication required",
         description: "You must be logged in to upload files",
@@ -33,7 +35,7 @@ export const useFirebaseStorage = () => {
       setIsUploading(true);
       setProgress(0);
       
-      const filePath = `${currentUser.id}/${folder}/${Date.now()}_${file.name}`;
+      const filePath = `${user.id}/${folder}/${Date.now()}_${file.name}`;
       
       // Simulating progress because Supabase doesn't provide upload progress
       const progressInterval = setInterval(() => {
@@ -88,12 +90,12 @@ export const useFirebaseStorage = () => {
   };
 
   const getUserFiles = useCallback(async (folder: string = "files") => {
-    if (!currentUser) return [];
+    if (!user) return [];
 
     try {
       const { data, error } = await supabase.storage
         .from('files')
-        .list(`${currentUser.id}/${folder}`);
+        .list(`${user.id}/${folder}`);
         
       if (error) throw error;
       
@@ -107,7 +109,7 @@ export const useFirebaseStorage = () => {
       });
       return [];
     }
-  }, [currentUser, toast]);
+  }, [user, toast]);
 
   const getFileURL = (filePath: string) => {
     return supabase.storage
@@ -140,7 +142,7 @@ export const useFirebaseStorage = () => {
   };
 
   const backupFiles = async (folder: string = "files") => {
-    if (!currentUser) {
+    if (!user) {
       toast({
         title: "Authentication required",
         description: "You must be logged in to backup files",
@@ -155,14 +157,14 @@ export const useFirebaseStorage = () => {
       // Get list of user's files
       const { data: filesList, error: listError } = await supabase.storage
         .from('files')
-        .list(`${currentUser.id}/${folder}`);
+        .list(`${user.id}/${folder}`);
         
       if (listError) throw listError;
       
       // Create backup folder with timestamp
-      const backupFolder = `backups/${currentUser.id}/${Date.now()}`;
+      const backupFolder = `backups/${user.id}/${Date.now()}`;
       const copyPromises = filesList?.map(async (fileItem) => {
-        const sourceFile = `${currentUser.id}/${folder}/${fileItem.name}`;
+        const sourceFile = `${user.id}/${folder}/${fileItem.name}`;
         const destFile = `${backupFolder}/${fileItem.name}`;
         
         const { error } = await supabase.storage
