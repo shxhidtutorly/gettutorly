@@ -5,279 +5,134 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
-  Plus,
-  Calendar,
-  Target,
-  Clock,
-  BookOpen,
-  CheckCircle2
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { createStudyPlan, getUserStudyPlans } from "@/lib/database";
+import { getUserStudyPlans } from "@/lib/database";
 
 interface StudyPlan {
   id: string;
   title: string;
   description: string;
-  sessions: any[];
-  due_date?: string;
+  due_date: string;
   created_at: string;
-  updated_at: string;
-  clerk_user_id: string; // Ensure this matches your database schema
 }
 
 const StudyPlans = () => {
   const { currentUser } = useAuth();
-  const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newPlan, setNewPlan] = useState({
-    title: '',
-    description: '',
-    due_date: '',
-    sessions: []
-  });
   const { toast } = useToast();
+  
+  const [plans, setPlans] = useState<StudyPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Load user's study plans
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.id) {
       loadStudyPlans();
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   const loadStudyPlans = async () => {
+    if (!currentUser?.id) return;
+    
+    setIsLoading(true);
     try {
-      setLoading(true);
-      const plans = await getUserStudyPlans(); // Ensure this function uses clerk_user_id
-      // Convert sessions from Json to array if needed
-      const formattedPlans = plans.map(plan => ({
-        ...plan,
-        sessions: Array.isArray(plan.sessions) ? plan.sessions : []
-      })) as StudyPlan[];
-      setStudyPlans(formattedPlans);
+      console.log('🔄 Loading study plans for user:', currentUser.id);
+      const data = await getUserStudyPlans(currentUser.id);
+      setPlans(data || []);
+      console.log('✅ Loaded plans:', data?.length || 0);
     } catch (error) {
-      console.error('Error loading study plans:', error);
+      console.error('❌ Error loading study plans:', error);
       toast({
         title: "Error",
-        description: "Failed to load study plans",
-        variant: "destructive",
+        description: "Failed to load your study plans. Check console for details.",
+        variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  const handleCreatePlan = async () => {
-    if (!newPlan.title.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a title for your study plan",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const plan = await createStudyPlan({ ...newPlan, clerk_user_id: currentUser.clerkUserId }); // Include clerk_user_id
-      const formattedPlan = {
-        ...plan,
-        sessions: Array.isArray(plan.sessions) ? plan.sessions : []
-      } as StudyPlan;
-      setStudyPlans(prev => [formattedPlan, ...prev]);
-      setNewPlan({ title: '', description: '', due_date: '', sessions: [] });
-      setIsDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Study plan created successfully",
-      });
-    } catch (error) {
-      console.error('Error creating study plan:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create study plan",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getTodaySessions = () => {
-    const today = new Date().toDateString();
-    return studyPlans.filter(plan => 
-      plan.due_date && new Date(plan.due_date).toDateString() === today
-    );
-  };
-
-  const getActivePlans = () => {
-    return studyPlans.filter(plan => 
-      !plan.due_date || new Date(plan.due_date) >= new Date()
-    );
-  };
-
-  if (!currentUser) {
-    return <div>Please sign in to view your study plans.</div>;
-  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0d1117] text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white transition-colors">
       <Navbar />
-      
+
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
+          {/* Header */}
           <div className="mb-8 animate-fade-in">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-                  <Target className="h-7 w-7 text-spark-primary" />
-                  Study Plans
-                </h1>
-                <p className="text-muted-foreground">Organize your learning journey</p>
-              </div>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="animated-button">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Plan
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Study Plan</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Title</Label>
-                      <Input
-                        id="title"
-                        value={newPlan.title}
-                        onChange={(e) => setNewPlan({...newPlan, title: e.target.value})}
-                        placeholder="Enter plan title"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={newPlan.description}
-                        onChange={(e) => setNewPlan({...newPlan, description: e.target.value})}
-                        placeholder="Describe your study plan"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="due_date">Due Date</Label>
-                      <Input
-                        id="due_date"
-                        type="date"
-                        value={newPlan.due_date}
-                        onChange={(e) => setNewPlan({...newPlan, due_date: e.target.value})}
-                      />
-                    </div>
-                    <Button onClick={handleCreatePlan} className="w-full">
-                      Create Plan
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+            <h1 className="text-4xl font-bold tracking-tight text-white drop-shadow">
+              📚 Your Study Plans
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Organize your learning journey with custom study plans
+            </p>
+          </div>
+
+          {/* Study Plans List */}
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Loading your study plans...</p>
             </div>
-          </div>
-
-          {/* Today's Sessions */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-spark-primary" />
-              Today's Sessions
-            </h2>
-            {getTodaySessions().length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {getTodaySessions().map((plan) => (
-                  <Card key={plan.id} className="dark:bg-card hover-glow">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Clock className="h-4 w-4 text-spark-primary" />
-                        <h3 className="font-medium">{plan.title}</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{plan.description}</p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Due today</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="dark:bg-card">
-                <CardContent className="p-8 text-center">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No sessions scheduled for today</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Active Study Plans */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-spark-primary" />
-              Active Study Plans
-            </h2>
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="dark:bg-card">
-                    <CardContent className="p-4">
-                      <div className="animate-pulse space-y-2">
-                        <div className="h-4 bg-gray-200 rounded dark:bg-muted"></div>
-                        <div className="h-3 bg-gray-200 rounded dark:bg-muted"></div>
-                        <div className="h-3 bg-gray-200 rounded dark:bg-muted w-2/3"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : getActivePlans().length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {getActivePlans().map((plan) => (
-                  <Card key={plan.id} className="dark:bg-card hover-glow">
-                    <CardHeader>
-                      <CardTitle className="text-lg">{plan.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
-                      {plan.due_date && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4" />
-                          <span>Due: {new Date(plan.due_date).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      <div className="mt-4 flex items-center gap-2 text-sm">
-                        <Target className="h-4 w-4 text-green-500" />
-                        <span>{plan.sessions.length} sessions</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="dark:bg-card">
-                <CardContent className="p-8 text-center">
-                  <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground mb-4">No active study plans</p>
-                  <Button onClick={() => setIsDialogOpen(true)} variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Plan
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          ) : plans.length === 0 ? (
+            <div className="text-center py-12 animate-fade-in">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-16 w-16 mx-auto mb-4 text-muted-foreground"
+              >
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <line x1="9" x2="15" y1="3" y2="3" />
+                <line x1="9" x2="15" y1="21" y2="21" />
+                <line x1="3" x2="3" y1="9" y2="15" />
+                <line x1="21" x2="21" y1="9" y2="15" />
+              </svg>
+              <h3 className="text-xl font-semibold mb-2">No study plans yet</h3>
+              <p className="text-muted-foreground mb-6">
+                Create your first study plan to get started
+              </p>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Plan
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
+              {plans.map((plan) => (
+                <Card
+                  key={plan.id}
+                  className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none hover:scale-105 transition-transform cursor-pointer"
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg line-clamp-1">{plan.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {plan.description}
+                    </p>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-muted-foreground">
+                        Due: {new Date(plan.due_date).toLocaleDateString()}
+                      </span>
+                      <Button variant="outline" size="sm">
+                        View Plan
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </main>
-      
+
       <Footer />
       <BottomNav />
     </div>

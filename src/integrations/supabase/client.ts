@@ -53,6 +53,16 @@ async function customFetch(input: RequestInfo, init?: RequestInit) {
   
   // Log the request for debugging
   const url = typeof input === 'string' ? input : input.url;
+  
+  // Skip auth endpoint calls - we don't use Supabase Auth
+  if (url.includes('/auth/v1/user')) {
+    console.log('🚫 Skipping Supabase Auth call - using Clerk for authentication');
+    return new Response(JSON.stringify({ error: 'Auth not used - using Clerk' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    });
+  }
+  
   console.log('📤 Supabase API call:', url, {
     method: init?.method || 'GET',
     hasAuth: !!token,

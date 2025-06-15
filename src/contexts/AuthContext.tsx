@@ -1,7 +1,7 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth as useClerkAuth, useUser, useSession, useOrganization } from '@clerk/clerk-react';
+import { useAuth as useClerkAuth, useUser, useSession } from '@clerk/clerk-react';
 import { createUserProfile, getUserProfile } from '@/lib/supabaseAuth';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   currentUser: any;
@@ -17,32 +17,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { session } = useSession();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  async function syncClerkTokenToSupabase() {
-    // Use Clerk Browser SDK to get the Supabase template JWT
-    // Works in latest Clerk
-    try {
-      // We're only doing this client-side
-      if (typeof window === 'undefined' || !isSignedIn || !user) return;
-      // Clerk v5 gets token with this:
-      const token = await (window as any).Clerk?.session?.getToken?.({ template: "supabase" }) 
-        ?? (await (window as any).Clerk?.session?.getToken?.({ template: 'supabase' }));
-
-      if (!token) {
-        console.warn('No Clerk session token for Supabase available!');
-        // Log out from Supabase
-        await supabase.auth.signOut();
-        return;
-      }
-
-      // Sync the token to Supabase auth state
-      await supabase.auth.setSession({ access_token: token, refresh_token: token });
-      // Optionally: you can log the JWT to debug
-      // console.log('🔗 Synced Clerk token to Supabase');
-    } catch (err) {
-      console.error('Error syncing Clerk token to Supabase:', err);
-    }
-  }
 
   useEffect(() => {
     const setupUser = async () => {
@@ -103,30 +77,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setCurrentUser(null);
         (window as any).clerkUserId = null;
-        // Log out from Supabase
-        supabase.auth.signOut();
       }
 
       setLoading(false);
     };
 
     setupUser();
-    // Sync Clerk token to Supabase on every login change
-    syncClerkTokenToSupabase();
-    // eslint-disable-next-line
   }, [isLoaded, isSignedIn, user, session]);
-
-  // Manually trigger sync if needed
-  useEffect(() => {
-    syncClerkTokenToSupabase();
-  }, [session]);
 
   const signOut = async () => {
     await clerkSignOut();
     setCurrentUser(null);
     (window as any).clerkUserId = null;
-    // Log out from Supabase
-    supabase.auth.signOut();
   };
 
   const value = {
