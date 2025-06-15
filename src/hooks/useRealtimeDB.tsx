@@ -1,21 +1,6 @@
-
-import { useState, useEffect, useCallback } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  createUserProfile,
-  updateUserProfile,
-  getUserProfile,
-  updateStudyProgress,
-  getStudyProgress,
-  subscribeToData,
-  createNote,
-  updateNote,
-  deleteNote,
-  getNotes,
-  backupUserData,
-  restoreFromBackup
-} from "@/lib/realtime-db";
+import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 export const useRealtimeDB = () => {
   const [isLoading, setIsLoading] = useState(false);

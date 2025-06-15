@@ -27,13 +27,13 @@ import WeeklyStudyHoursChart from "@/components/progress/WeeklyStudyHoursChart";
 import MonthlyProgressChart from "@/components/progress/MonthlyProgressChart";
 import  LearningInsightCard  from "@/components/progress/LearningInsightCard";
 import { useStudyTracking, StudySession } from "@/hooks/useStudyTracking";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useNavigate } from "react-router-dom";
 
 const WEEKLY_GOAL_HOURS = 7; // Customize as needed
 
 const Progress = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const { stats, getSessions } = useStudyTracking();
   const { toast } = useToast();
   const [sessions, setSessions] = useState<StudySession[]>([]);
@@ -41,10 +41,10 @@ const Progress = () => {
   const progressRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (currentUser) {
+    if (user) {
       setSessions(getSessions());
     }
-  }, [currentUser, getSessions]);
+  }, [user, getSessions]);
 
   // Calculate materials progress from sessions
   const getMaterialsProgress = () => {
@@ -109,7 +109,7 @@ const Progress = () => {
     { name: "Dec", hours: 0 },
   ];
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
         <div className="bg-[#202741] rounded-xl p-6 shadow-lg text-center animate-fade-in">

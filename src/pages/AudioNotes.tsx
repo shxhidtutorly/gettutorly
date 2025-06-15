@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -9,16 +9,16 @@ import AudioNotesUploader from "@/components/features/AudioNotesUploader";
 import { ArrowLeft } from "lucide-react";
 
 const AudioNotes = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!user) {
       navigate('/signin');
     }
-  }, [currentUser, navigate]);
+  }, [user, navigate]);
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
         <div className="bg-[#202741] rounded-xl p-6 shadow-lg text-center animate-fade-in">

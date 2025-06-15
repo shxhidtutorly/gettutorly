@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,6 @@ import {
   Brain,
   BookOpen 
 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 
 const DoubtBookmarks = () => {
   const [bookmarks, setBookmarks] = useState<any[]>([]);

@@ -1,233 +1,80 @@
-import React, { useState } from 'react';
-import { Check, Star, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import Footer from '@/components/layout/Footer';
-import BostonLogo from '@/components/ui/Boston-University-Logo.png';
-import ChicagoLogo from '@/components/ui/Chicago-University-Logo.png';
-import GeorgetownLogo from '@/components/ui/Georgetown-University-Logo.png';
-import HarvardLogo from '@/components/ui/Harvard-University-Logo.png';
-import HowardLogo from '@/components/ui/Howard-University-Logo.png';
-import OhioStateLogo from '@/components/ui/Ohio-State-University-Logo.png';
-import OtagoLogo from '@/components/ui/Otago-University-Logo.png';
-import PittsburghLogo from '@/components/ui/Pittsburgh-University-Logo.png';
-import StanfordLogo from '@/components/ui/Stanford-University-Logo.png';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Check, Crown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
-const features = [
-  'Math Chat - Solve math problems with AI',
-  'AI Notes - Generate smart notes from files',
-  'Summarize - Quickly summarize any text',
-  'Flashcards - Create and review flashcards',
-  'Quizzes - Test your knowledge',
-  'AI Doubt Chain - Break down complex concepts',
-  'Create Plan - Plan your study sessions',
-  'AI Assistant - Get personalized help',
-  'Study Plans - Create study plans',
-  'View Progress - Track your learning'
-];
+const PricingPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-const plans = [
-  {
-    name: 'Basic',
-    priceMonthly: 8.99,
-    priceYearly: 4.99,
-    yearlyBilled: 59.88,
-    badge: 'Starter Plan',
-    buttonText: 'Start 4-Day Free Trial',
-    priceId: 'pri_basic_monthly', // Replace with actual Paddle price IDs
-    priceIdYearly: 'pri_basic_yearly'
-  },
-  {
-    name: 'Scholar',
-    priceMonthly: 11.99,
-    priceYearly: 7.99,
-    yearlyBilled: 95.88,
-    badge: 'Most Popular',
-    buttonText: 'Start 4-Day Free Trial',
-    priceId: 'pri_scholar_monthly', // Replace with actual Paddle price IDs
-    priceIdYearly: 'pri_scholar_yearly'
-  },
-  {
-    name: 'Premium',
-    priceMonthly: 13.99,
-    priceYearly: 9.99,
-    yearlyBilled: 119.88,
-    badge: 'Best for Power Users',
-    buttonText: 'Start 4-Day Free Trial',
-    priceId: 'pri_premium_monthly', // Replace with actual Paddle price IDs
-    priceIdYearly: 'pri_premium_yearly'
-  }
-];
-
-const Pricing = () => {
-  const [isYearly, setIsYearly] = useState(true);
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const { currentUser } = useAuth();
-  const { toast } = useToast();
-
-  const handleSubscribe = async (plan: typeof plans[0]) => {
-    if (!currentUser) {
-      toast({
-        title: "Please sign in",
-        description: "You need to be signed in to subscribe to a plan.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const priceId = isYearly ? plan.priceIdYearly : plan.priceId;
-    setLoadingPlan(plan.name);
-
-    try {
-      const response = await fetch('/api/checkout/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: currentUser.email,
-          price_id: priceId,
-          user_id: currentUser.id,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session');
-      }
-
-      // Redirect to Paddle checkout
-      window.location.href = data.checkout_url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast({
-        title: "Checkout Error",
-        description: error instanceof Error ? error.message : "Failed to start checkout process. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
-
-  // Check if user already has an active subscription
-  const hasActiveSubscription = currentUser?.profile?.subscription_status === 'active';
+  const plans = [
+    {
+      name: "Basic",
+      price: "Free",
+      features: [
+        "Access to core features",
+        "Limited AI interactions",
+        "Community support",
+      ],
+      cta: "Get Started",
+    },
+    {
+      name: "Pro",
+      price: "$9.99/month",
+      features: [
+        "Unlimited AI interactions",
+        "Priority support",
+        "Advanced analytics",
+        "Exclusive content",
+      ],
+      cta: "Upgrade Now",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0d0d0d] via-[#1a1a1a] to-black text-white">
-      <div className="container mx-auto px-6 py-20 text-center">
-        <h1 className="text-5xl font-bold mb-4">Tutorly Pricing</h1>
-        <p className="text-lg mb-8 text-gray-300">
-          Powerful. Affordable. Built to Supercharge Your Learning Journey.
+    <div className="min-h-screen bg-gray-900 text-white py-20">
+      <div className="container mx-auto text-center mb-16">
+        <h1 className="text-4xl font-bold mb-4">Unlock Your Potential with Tutorly Pro</h1>
+        <p className="text-gray-400 text-lg">
+          Choose the plan that fits your learning style and take your studies to the next level.
         </p>
-
-        {hasActiveSubscription && (
-          <div className="mb-8 p-4 bg-green-900/30 border border-green-500 rounded-lg max-w-md mx-auto">
-            <p className="text-green-300 font-semibold">
-              ✅ You're already subscribed to {currentUser.profile.subscription_plan}
-            </p>
-            <Link to="/dashboard" className="text-green-400 hover:underline">
-              Go to Dashboard →
-            </Link>
-          </div>
-        )}
-
-        <div className="flex items-center justify-center gap-4 bg-gray-800 p-2 rounded-full w-max mx-auto mb-10">
-          <button
-            onClick={() => setIsYearly(false)}
-            className={`px-6 py-2 rounded-full transition ${
-              !isYearly ? 'bg-spark-primary text-white font-bold' : 'text-gray-400'
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setIsYearly(true)}
-            className={`px-6 py-2 rounded-full transition ${
-              isYearly ? 'bg-spark-primary text-white font-bold' : 'text-gray-400'
-            }`}
-          >
-            Yearly <span className="ml-1 text-green-400">Save 44%</span>
-          </button>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6 mb-20">
-          {plans.map((plan) => (
-            <Card key={plan.name} className="bg-[#1f1f1f] border border-gray-700 rounded-xl p-6">
-              <CardHeader className="mb-4">
-                <div className="text-sm font-semibold text-spark-primary mb-2">{plan.badge}</div>
-                <h2 className="text-3xl font-bold mb-2">{plan.name}</h2>
-                <div className="text-xl">
-                  ${isYearly ? plan.priceYearly : plan.priceMonthly}
-                  <span className="text-sm text-gray-400">/month</span>
-                </div>
-                {isYearly && (
-                  <p className="text-sm text-gray-500">Billed annually (${plan.yearlyBilled}/year)</p>
-                )}
-              </CardHeader>
-              <CardContent className="text-left space-y-3">
-                {features.map((f, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm">
-                    <Check className="text-green-400 w-5 h-5" />
-                    {f}
-                  </div>
-                ))}
-                <Button 
-                  className="w-full mt-6" 
-                  onClick={() => handleSubscribe(plan)}
-                  disabled={loadingPlan === plan.name || hasActiveSubscription}
-                >
-                  {loadingPlan === plan.name ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : hasActiveSubscription ? (
-                    'Already Subscribed'
-                  ) : (
-                    plan.buttonText
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="text-center mb-20">
-          <h3 className="text-2xl font-bold mb-4">Trusted by Students from Top Universities</h3>
-          <div className="flex flex-wrap justify-center items-center gap-6 grayscale">
-            {[BostonLogo, ChicagoLogo, GeorgetownLogo, HarvardLogo, HowardLogo, OhioStateLogo, OtagoLogo, PittsburghLogo, StanfordLogo].map((logo, i) => (
-              <img key={i} src={logo} alt="university" className="h-12 md:h-14" />
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-[#141414] p-10 rounded-2xl shadow-lg max-w-5xl mx-auto mb-24">
-          <h3 className="text-3xl font-bold mb-4">What Our Users Say</h3>
-          <div className="grid md:grid-cols-3 gap-6 text-left text-gray-200">
-            <div className="bg-[#1f1f1f] p-4 rounded-xl">
-              <p>"Tutorly helped me ace my finals. The AI Notes and Flashcards saved hours of study time!"</p>
-              <p className="mt-2 text-sm text-gray-400">— Aanya, Harvard University</p>
-            </div>
-            <div className="bg-[#1f1f1f] p-4 rounded-xl">
-              <p>"I love the Math Chat and Doubt Chain. It explains every step so clearly!"</p>
-              <p className="mt-2 text-sm text-gray-400">— Raj, Stanford University</p>
-            </div>
-            <div className="bg-[#1f1f1f] p-4 rounded-xl">
-              <p>"Flashcards + AI Assistant = my new best friends before every test."</p>
-              <p className="mt-2 text-sm text-gray-400">— Leah, University of Chicago</p>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <Footer />
+      <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        {plans.map((plan, index) => (
+          <Card key={index} className="bg-gray-800 border-gray-700 shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-extrabold tracking-tight text-white mb-2">
+                {plan.name}
+              </CardTitle>
+              <div className="text-4xl font-bold">{plan.price}</div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-center text-gray-300">
+                    <Check className="w-4 h-4 mr-2 text-green-500" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                {plan.cta}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="container mx-auto mt-16 text-center">
+        <p className="text-gray-500">
+          Need help deciding? <a href="#" className="text-blue-500 hover:underline">Contact our support team</a>
+        </p>
+      </div>
     </div>
   );
 };
 
-export default Pricing;
+export default PricingPage;

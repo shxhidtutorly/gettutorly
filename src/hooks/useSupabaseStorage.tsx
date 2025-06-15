@@ -1,7 +1,5 @@
-
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { uploadFile, deleteFile } from '@/lib/db';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useSupabaseStorage = () => {

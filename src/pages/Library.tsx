@@ -22,7 +22,7 @@ import {
   Calendar,
   Bug,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { getUserStudyMaterials } from "@/lib/database";
 import SupabaseDebugger from "@/components/debug/SupabaseDebugger";
 

@@ -1,8 +1,6 @@
-
-import { useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useState } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 export const useFirebaseStorage = () => {
   const [isUploading, setIsUploading] = useState(false);

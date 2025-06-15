@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -27,7 +26,7 @@ import {
 } from "lucide-react";
 
 const Profile = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -39,15 +38,15 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    if (currentUser) {
+    if (user) {
       setFormData({
-        name: currentUser.fullName || "",
-        email: currentUser.primaryEmailAddress?.emailAddress || "",
-        phone: currentUser.primaryPhoneNumber?.phoneNumber || "",
-        location: "",
+        name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+        email: user.email || "",
+        phone: user.user_metadata?.phone || "",
+        location: user.user_metadata?.location || "",
       });
     }
-  }, [currentUser]);
+  }, [user]);
 
   const handleSave = async () => {
     try {
@@ -73,7 +72,7 @@ const Profile = () => {
     }));
   };
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
         <div className="bg-[#202741] rounded-xl p-6 shadow-lg text-center animate-fade-in">
@@ -107,14 +106,14 @@ const Profile = () => {
               <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none animate-fade-in-up">
                 <CardContent className="p-6 text-center">
                   <Avatar className="w-24 h-24 mx-auto mb-4">
-                    <AvatarImage src={currentUser.imageUrl || ""} />
+                    <AvatarImage src={user.imageUrl || ""} />
                     <AvatarFallback className="text-2xl">
-                      {currentUser.fullName?.charAt(0) || "U"}
+                      {user.user_metadata?.full_name?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                   
                   <h2 className="text-xl font-semibold mb-2">
-                    {currentUser.fullName || "User"}
+                    {user.user_metadata?.full_name || "User"}
                   </h2>
                   
                   <div className="flex justify-center mb-4">
@@ -125,7 +124,7 @@ const Profile = () => {
                   </div>
                   
                   <p className="text-sm text-muted-foreground mb-4">
-                    Member since {new Date(currentUser.createdAt).toLocaleDateString()}
+                    Member since {new Date(user.createdAt).toLocaleDateString()}
                   </p>
                   
                   <div className="space-y-2 text-sm">
@@ -159,10 +158,10 @@ const Profile = () => {
                           setIsEditing(false);
                           // Reset form data
                           setFormData({
-                            name: currentUser.fullName || "",
-                            email: currentUser.primaryEmailAddress?.emailAddress || "",
-                            phone: currentUser.primaryPhoneNumber?.phoneNumber || "",
-                            location: "",
+                            name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+                            email: user.email || "",
+                            phone: user.user_metadata?.phone || "",
+                            location: user.user_metadata?.location || "",
                           });
                         } else {
                           setIsEditing(true);

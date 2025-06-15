@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import LoginButton from "@/components/auth/LoginButton";
 import UserProfileButton from "@/components/auth/UserProfileButton";
 import Footer from "@/components/layout/Footer";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 import {
   Brain,

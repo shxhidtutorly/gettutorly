@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +35,7 @@ import {
   Heart,
   Lightbulb
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { motion, AnimatePresence } from "framer-motion";
 

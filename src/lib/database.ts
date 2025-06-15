@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // USER OPERATIONS
@@ -338,6 +337,65 @@ export const deleteFile = async (filePath: string) => {
     return true;
   } catch (error) {
     console.error('Error deleting file:', error);
+    throw error;
+  }
+};
+
+export const testSupabaseConnection = async (userId: string) => {
+  try {
+    console.log('🧪 Testing Supabase connection with user ID:', userId);
+    
+    const results = {
+      progress: { data: null, error: null },
+      activity: { data: null, error: null },
+      notes: { data: null, error: null },
+    };
+
+    // Test study progress query
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .select('duration')
+        .eq('user_id', userId);
+      
+      results.progress = { data, error };
+      console.log('📊 Study progress test:', { data, error });
+    } catch (err) {
+      results.progress = { data: null, error: err };
+      console.error('❌ Study progress test failed:', err);
+    }
+
+    // Test activity logs query
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', userId);
+      
+      results.activity = { data, error };
+      console.log('📝 Activity logs test:', { data, error });
+    } catch (err) {
+      results.activity = { data: null, error: err };
+      console.error('❌ Activity logs test failed:', err);
+    }
+
+    // Test notes query
+    try {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', userId);
+      
+      results.notes = { data, error };
+      console.log('📓 Notes test:', { data, error });
+    } catch (err) {
+      results.notes = { data: null, error: err };
+      console.error('❌ Notes test failed:', err);
+    }
+
+    return results;
+  } catch (error) {
+    console.error('❌ Supabase connection test failed:', error);
     throw error;
   }
 };
