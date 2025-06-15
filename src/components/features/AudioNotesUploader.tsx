@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,18 +21,15 @@ export const AudioNotesUploader = () => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [result, setResult] = useState<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   const {
-    uploadAndTranscribe,
-    isLoading,
-    transcript,
-    notes,
-    summary,
-    error,
+    uploadAndProcess,
+    isProcessing,
     progress
   } = useAudioUpload();
 
@@ -120,12 +118,13 @@ export const AudioNotesUploader = () => {
 
     try {
       setCurrentStep(1);
-      const result = await uploadAndTranscribe(fileToUpload);
+      const uploadResult = await uploadAndProcess(fileToUpload);
       
-      if (result) {
+      if (uploadResult) {
         setCurrentStep(4);
+        setResult(uploadResult);
         toast({
-          title: "✅ Notes generated from your lecture!",
+          title: "✅ Notes generated successfully!",
           description: "Your audio has been transcribed and notes created"
         });
       }
@@ -144,6 +143,7 @@ export const AudioNotesUploader = () => {
     setAudioBlob(null);
     setUploadFile(null);
     setCurrentStep(0);
+    setResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -170,16 +170,16 @@ export const AudioNotesUploader = () => {
           className="text-center mb-8"
         >
           <h1 className="text-4xl font-bold mb-2 flex items-center justify-center gap-3">
-            🎙️ Live Lectures
+            🧠 AI Notes
           </h1>
-          <p className="text-gray-400 text-lg">
-            Record or upload your lectures and get AI-generated notes instantly
+          <p className="text-gray-400 text-lg italic">
+            👉 Record your lectures or upload your class audio with the click of a button.
           </p>
         </motion.div>
 
         {/* Progress Bar */}
         <AnimatePresence>
-          {isLoading && (
+          {isProcessing && (
             <motion.div
               initial={{ opacity: 0, scaleX: 0 }}
               animate={{ opacity: 1, scaleX: 1 }}
@@ -219,7 +219,7 @@ export const AudioNotesUploader = () => {
                       : 'bg-gray-800/50 text-gray-500'
                   } ${isCurrent ? 'ring-2 ring-purple-400' : ''}`}
                 >
-                  <Icon className={`w-4 h-4 ${isCurrent && isLoading ? 'animate-spin' : ''}`} />
+                  <Icon className={`w-4 h-4 ${isCurrent && isProcessing ? 'animate-spin' : ''}`} />
                   <span className="text-sm font-medium hidden sm:block">{item.label}</span>
                 </motion.div>
               );
@@ -228,7 +228,7 @@ export const AudioNotesUploader = () => {
         </motion.div>
 
         {/* Upload Section */}
-        {!notes && !summary && (
+        {!result && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -236,7 +236,7 @@ export const AudioNotesUploader = () => {
           >
             <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white">Upload Lecture</CardTitle>
+                <CardTitle className="text-white">Upload Notes</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Recording Section */}
@@ -303,10 +303,10 @@ export const AudioNotesUploader = () => {
                 {/* Upload Button */}
                 <Button
                   onClick={handleUpload}
-                  disabled={!audioBlob && !uploadFile || isLoading}
+                  disabled={!audioBlob && !uploadFile || isProcessing}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3"
                 >
-                  {isLoading ? (
+                  {isProcessing ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Processing...
@@ -325,7 +325,7 @@ export const AudioNotesUploader = () => {
 
         {/* Results Section */}
         <AnimatePresence>
-          {(notes || summary) && (
+          {result && (
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -348,7 +348,7 @@ export const AudioNotesUploader = () => {
               {/* Results Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Summary Section */}
-                {summary && (
+                {result.summary && (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -363,7 +363,7 @@ export const AudioNotesUploader = () => {
                       <CardContent className="max-h-96 overflow-y-auto p-6">
                         <div className="prose prose-invert max-w-none">
                           <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                            {summary}
+                            {result.summary}
                           </p>
                         </div>
                       </CardContent>
@@ -372,7 +372,7 @@ export const AudioNotesUploader = () => {
                 )}
 
                 {/* Detailed Notes Section */}
-                {notes && (
+                {result.notes && (
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -387,7 +387,7 @@ export const AudioNotesUploader = () => {
                       <CardContent className="max-h-96 overflow-y-auto p-6">
                         <div className="prose prose-invert max-w-none">
                           <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                            {notes}
+                            {result.notes}
                           </div>
                         </div>
                       </CardContent>
@@ -411,24 +411,6 @@ export const AudioNotesUploader = () => {
                   Upload Another
                 </Button>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Error Display */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mt-6"
-            >
-              <Card className="bg-red-900/30 border-red-500/50">
-                <CardContent className="p-6">
-                  <p className="text-red-300">{error}</p>
-                </CardContent>
-              </Card>
             </motion.div>
           )}
         </AnimatePresence>

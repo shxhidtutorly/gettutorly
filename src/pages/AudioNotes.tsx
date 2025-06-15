@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import AudioNotesUploader from "@/components/features/AudioNotesUploader";
+import { AudioNotesUploader } from "@/components/features/AudioNotesUploader";
 import { ArrowLeft } from "lucide-react";
 
 const AudioNotes = () => {
@@ -49,7 +49,7 @@ const AudioNotes = () => {
           {/* Title */}
           <div className="mb-6 md:mb-8 animate-fade-in">
             <h1 className="text-2xl md:text-4xl font-bold flex items-center gap-3 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#ffd600] via-[#f9484a] to-[#4a90e2] drop-shadow">
-              🎙️ Audio to AI Notes
+              🧠 AI Notes Generator
             </h1>
             <p className="text-muted-foreground text-base md:text-lg mt-1">
               Transform your lecture recordings into comprehensive study notes 🎓
