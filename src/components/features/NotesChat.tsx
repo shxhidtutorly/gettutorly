@@ -9,37 +9,83 @@ import { MessageCircle, Send, Bot, User, Sparkles, X, FileText } from "lucide-re
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, getChatHistory, saveChatMessage } from "@/lib/notesChat";
+import { supabase } from "@/integrations/supabase/client";
+import { convertClerkIdToUuid } from "@/lib/supabaseAuth";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NotesChatProps {
   noteId: string;
-  noteContent: string;
-  noteTitle: string;
+  noteContent?: string; // Not required: Always found from DB!
+  noteTitle?: string;
 }
 
-const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: NotesChatProps) => {
+const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initialNoteTitle }: NotesChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [noteContent, setNoteContent] = useState(initialNoteContent);
+
+  const [noteContent, setNoteContent] = useState<string>(initialNoteContent ?? "");
+  const [noteTitle, setNoteTitle] = useState<string>(initialNoteTitle ?? "");
+  const [fileName, setFileName] = useState<string>("");
+  const [contextActive, setContextActive] = useState<boolean>(true);
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
-  // Update note content when prop changes
+  // Fetch note content and title for context, based on noteId and user
   useEffect(() => {
-    setNoteContent(initialNoteContent);
-  }, [initialNoteContent]);
+    const fetchNote = async () => {
+      if (!currentUser || !noteId) return;
+      // Convert Clerk ID to UUID for Supabase
+      const userId = convertClerkIdToUuid(currentUser.id);
 
-  // Load chat history on component mount
+      // Try study_materials first (for uploaded PDF/doc)
+      let { data, error } = await supabase
+        .from('study_materials')
+        .select('title,file_name,metadata')
+        .eq('clerk_user_id', currentUser.id)
+        .eq('id', noteId)
+        .single();
+
+      if (data) {
+        setNoteTitle(data.title || data.file_name || "Untitled Note");
+        setFileName(data.file_name || "");
+        const contextText = data.metadata?.extractedText || "";
+        setNoteContent(contextText);
+        setContextActive(!!contextText);
+        return;
+      }
+      // If not study_materials, try notes (AI-generated)
+      if (error && error.code === "PGRST116") {
+        let result = await supabase
+          .from('notes')
+          .select('title,content')
+          .eq('clerk_user_id', currentUser.id)
+          .eq('id', noteId)
+          .single();
+        if (result.data) {
+          setNoteTitle(result.data.title || "Untitled Note");
+          setFileName(""); // no file_name for "notes"
+          setNoteContent(result.data.content || "");
+          setContextActive(!!result.data.content);
+        }
+      }
+    };
+
+    fetchNote();
+    // eslint-disable-next-line
+  }, [currentUser, noteId]);
+
+  // Load chat history from DB
   useEffect(() => {
     if (currentUser && noteId) {
       loadChatHistory();
     }
+    // eslint-disable-next-line
   }, [currentUser, noteId]);
 
-  // Auto scroll to bottom when new messages are added
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
@@ -48,7 +94,6 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
 
   const loadChatHistory = async () => {
     if (!currentUser) return;
-    
     try {
       setIsLoadingHistory(true);
       const history = await getChatHistory(currentUser.id, noteId);
@@ -60,39 +105,38 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
     }
   };
 
+  // AI Chat call, always use note context as SYSTEM prompt
   const sendMessageToAI = async (userMessage: string, chatHistory: ChatMessage[]) => {
     const messages = [];
-    
-    // Add system context if note content exists
-    if (noteContent) {
+
+    if (contextActive && noteContent) {
       messages.push({
         role: "system",
-        content: `Use the following notes as reference for all your answers. Base your responses on this content and cite specific parts when relevant:\n\n${noteContent}`
+        content: `The user uploaded the following note. Refer to it for all answers:\n\n${noteContent}`
       });
     }
-    
-    // Add chat history
+
+    // Add chat history (always in order)
     chatHistory.forEach(msg => {
       messages.push({
         role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.message
       });
     });
-    
-    // Add current user message
+
+    // Add latest prompt
     messages.push({
       role: 'user',
       content: userMessage
     });
 
+    // Use the same model as the notes generator ("together" for markdown docs, or "gemini" fallback)
     const response = await fetch('/api/ai', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages,
-        model: 'gemini'
+        model: "together"
       }),
     });
 
@@ -100,7 +144,6 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to send message');
     }
-
     const data = await response.json();
     return data.response;
   };
@@ -124,13 +167,13 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
       };
       setMessages(prev => [...prev, tempUserMessage]);
 
-      // Save user message to database
+      // Save to DB
       await saveChatMessage(currentUser.id, noteId, 'user', userMessage);
 
-      // Get AI response using the new unified API
+      // AI response
       const aiResponse = await sendMessageToAI(userMessage, messages);
 
-      // Add AI response to state
+      // Show AI message
       const aiMessage: ChatMessage = {
         id: `temp-ai-${Date.now()}`,
         user_id: currentUser.id,
@@ -139,10 +182,12 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
         message: aiResponse,
         created_at: new Date().toISOString(),
       };
-      setMessages(prev => [...prev.filter(m => m.id !== tempUserMessage.id), 
-        { ...tempUserMessage, id: `saved-${Date.now()}` }, aiMessage]);
-
-      // Save AI response to database
+      setMessages(prev => [
+        ...prev.filter(m => m.id !== tempUserMessage.id),
+        { ...tempUserMessage, id: `saved-${Date.now()}` },
+        aiMessage
+      ]);
+      // Save AI to DB
       await saveChatMessage(currentUser.id, noteId, 'assistant', aiResponse);
 
     } catch (error) {
@@ -152,8 +197,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
         title: "Error sending message",
         description: error instanceof Error ? error.message : "Please try again"
       });
-      
-      // Remove failed message from state
+
       setMessages(prev => prev.filter(m => !m.id.startsWith('temp-')));
     } finally {
       setIsLoading(false);
@@ -161,7 +205,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
   };
 
   const handleClearContext = () => {
-    setNoteContent("");
+    setContextActive(false);
     toast({
       title: "Context cleared",
       description: "The AI will no longer reference your note content in responses."
@@ -176,9 +220,9 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -201,13 +245,17 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
             <div className="flex-1">
               <div className="text-lg font-bold">Chat with Your Notes</div>
               <div className="text-sm font-normal text-gray-300 opacity-80">
-                Ask questions about: {noteTitle}
+                {fileName ? (
+                  <>Chatting with: <span className="font-semibold">{fileName}</span></>
+                ) : (
+                  <>Chatting with: <span className="font-semibold">{noteTitle}</span></>
+                )}
               </div>
             </div>
           </CardTitle>
-          
+
           {/* Context Status */}
-          {noteContent && (
+          {contextActive && noteContent && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -216,7 +264,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-green-400" />
                 <p className="text-sm text-green-400">
-                  You're chatting with: <span className="font-semibold">{noteTitle}</span>
+                  Context status: <span className="font-semibold">Active</span>
                 </p>
               </div>
               <Button
@@ -230,25 +278,24 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
               </Button>
             </motion.div>
           )}
-          
-          {!noteContent && (
+          {!contextActive && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-orange-900/30 border border-orange-500/30 rounded-lg p-3 mt-3"
             >
               <p className="text-sm text-orange-400">
-                No note context active. The AI will respond without reference to specific notes.
+                Context inactive. AI will not use your uploaded note for reference until you reload this page.
               </p>
             </motion.div>
           )}
         </CardHeader>
-        
+
         <CardContent className="p-0">
           {/* Chat Messages Area */}
           <ScrollArea className="h-[500px] p-6" ref={scrollAreaRef}>
             {isLoadingHistory ? (
-              <motion.div 
+              <motion.div
                 className="flex items-center justify-center h-32"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -272,7 +319,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                 </div>
               </motion.div>
             ) : messages.length === 0 ? (
-              <motion.div 
+              <motion.div
                 className="flex flex-col items-center justify-center h-32 text-center"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -298,15 +345,10 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -20, scale: 0.95 }}
                       transition={{ duration: 0.3, ease: "easeOut" }}
-                      className={`flex gap-4 ${
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
+                      className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       {message.role === 'assistant' && (
-                        <motion.div
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
+                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                           <Avatar className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-800 shadow-lg">
                             <AvatarFallback>
                               <Bot className="w-5 h-5 text-white" />
@@ -314,7 +356,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                           </Avatar>
                         </motion.div>
                       )}
-                      
+
                       <motion.div
                         whileHover={{ scale: 1.02 }}
                         className={`max-w-[75%] rounded-2xl px-4 py-3 ${
@@ -332,12 +374,9 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                           {formatTimestamp(message.created_at)}
                         </p>
                       </motion.div>
-                      
+
                       {message.role === 'user' && (
-                        <motion.div
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
+                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                           <Avatar className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 shadow-lg">
                             <AvatarFallback>
                               <User className="w-5 h-5 text-white" />
@@ -348,10 +387,10 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                
+
                 {/* Loading indicator for AI response */}
                 {isLoading && (
-                  <motion.div 
+                  <motion.div
                     className="flex gap-4 justify-start"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -387,7 +426,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
           </ScrollArea>
 
           {/* Input Area */}
-          <motion.div 
+          <motion.div
             className="border-t border-[#35357a] p-6 bg-gradient-to-r from-[#1a1a2e]/50 to-[#232453]/50"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -402,10 +441,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                 disabled={isLoading}
                 className="flex-1 bg-[#2a2a3e] border-[#35357a] text-white placeholder-gray-400 focus:border-purple-400 focus:ring-purple-400/25 rounded-xl h-12 px-4 shadow-inner"
               />
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={handleSendMessage}
                   disabled={isLoading || !inputMessage.trim()}
@@ -415,18 +451,15 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
                 </Button>
               </motion.div>
             </div>
-            
-            {/* Bonus: Generate Flashcards Button */}
+
+            {/* Generate Flashcards Button (Future) */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
               className="pt-3 border-t border-[#35357a]/50"
             >
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   variant="outline"
                   className="w-full bg-transparent border-purple-400/50 text-purple-400 hover:bg-purple-400/10 hover:border-purple-400 hover:text-purple-300 transition-all duration-200 rounded-xl h-10"
@@ -445,3 +478,4 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle }: Notes
 };
 
 export default NotesChat;
+
