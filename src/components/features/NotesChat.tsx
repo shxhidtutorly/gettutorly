@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Bot, User, Sparkles, X, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { ChatMessage, getChatHistory, saveChatMessage } from "@/lib/notesChat";
+import { ChatMessage, getChatHistory, saveChatMessage, subscribeToChatHistory } from "@/lib/notesChat";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -220,6 +219,38 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       minute: '2-digit'
     });
   };
+
+  // Real-time chat subscription
+  useEffect(() => {
+    if (!user || !noteId) return;
+
+    // Load existing chat history first
+    let unsub = null;
+    let loaded = false;
+
+    (async () => {
+      const history = await getChatHistory(user.id, noteId);
+      setMessages(history || []);
+      loaded = true;
+
+      // Listen for new chat messages after the initial load
+      unsub = subscribeToChatHistory(
+        user.id,
+        noteId,
+        (newMsg) => {
+          // Only add if not present (avoid duplicates)
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+        }
+      );
+    })();
+
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, [user, noteId]);
 
   return (
     <motion.div

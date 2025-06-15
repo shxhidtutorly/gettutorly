@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ChatMessage {
@@ -65,4 +64,36 @@ export const getChatHistory = async (userId: string, noteId: string): Promise<Ch
     console.error("Error getting chat history:", error);
     return [];
   }
+};
+
+// Subscribe to note chat history in real time (text only, no files)
+export const subscribeToChatHistory = (
+  userId: string,
+  noteId: string,
+  onInsert: (message: ChatMessage) => void
+) => {
+  const channel = supabase
+    .channel("note_chats_channel")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "note_chats",
+        filter: `note_id=eq.${noteId}`,
+      },
+      (payload) => {
+        if (
+          payload?.new &&
+          payload.new.user_id === userId
+        ) {
+          onInsert(payload.new as ChatMessage);
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 };

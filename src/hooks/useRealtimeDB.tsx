@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -129,25 +128,56 @@ export const useRealtimeDB = () => {
     }
   }, [user]);
 
-  const subscribeToData = useCallback((table: string, callback: (data: any) => void) => {
-    if (!user) return null;
+  // --- Real-time chat updates for note_chats table ---
+  const subscribeToNoteChats = useCallback((noteId, onNewMessage) => {
+    if (!user || !noteId) return null;
 
-    const subscription = supabase
-      .channel(`${table}_changes`)
-      .on('postgres_changes',
+    const channel = supabase
+      .channel("note_chats_channel")
+      .on(
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: table,
-          filter: `user_id=eq.${user.id}`
+          event: "INSERT",
+          schema: "public",
+          table: "note_chats",
+          filter: `note_id=eq.${noteId}`,
         },
         (payload) => {
-          callback(payload);
+          if (payload.new && payload.new.user_id === user.id) {
+            onNewMessage(payload.new);
+          }
         }
       )
       .subscribe();
 
-    return subscription;
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // --- Real-time updates for study_sessions table ---
+  const subscribeToStudySessions = useCallback((onUpdate) => {
+    if (!user) return null;
+
+    const channel = supabase
+      .channel("study_sessions_channel")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "study_sessions",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          onUpdate(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const createNote = async (noteData: any) => {
@@ -386,7 +416,8 @@ export const useRealtimeDB = () => {
     getUserProfile,
     updateStudyProgress,
     getStudyProgress,
-    subscribeToData,
+    subscribeToNoteChats,
+    subscribeToStudySessions,
     createNote,
     updateNote,
     deleteNote,
