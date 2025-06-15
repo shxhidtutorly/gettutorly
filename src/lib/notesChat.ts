@@ -4,7 +4,7 @@ import { convertClerkIdToUuid } from './supabaseAuth';
 
 export interface ChatMessage {
   id: string;
-  clerk_user_id: string; // Changed to match actual DB column
+  clerk_user_id: string;
   note_id: string;
   role: 'user' | 'assistant';
   message: string;
@@ -24,7 +24,8 @@ export const saveChatMessage = async (
     const { data, error } = await supabase
       .from('note_chats')
       .insert({
-        clerk_user_id: clerkUserId,  // Use clerk_user_id directly
+        id: crypto.randomUUID(),
+        clerk_user_id: clerkUserId,
         note_id: noteId,
         role: role,
         message: message,
@@ -52,7 +53,7 @@ export const getChatHistory = async (clerkUserId: string, noteId: string): Promi
     const { data, error } = await supabase
       .from('note_chats')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)  // Use clerk_user_id directly
+      .eq('clerk_user_id', clerkUserId)
       .eq('note_id', noteId)
       .order('created_at', { ascending: true });
         

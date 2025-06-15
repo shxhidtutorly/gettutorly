@@ -159,7 +159,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       // Add user message to state immediately
       const tempUserMessage: ChatMessage = {
         id: `temp-${Date.now()}`,
-        user_id: currentUser.id,
+        clerk_user_id: currentUser.id,
         note_id: noteId,
         role: 'user',
         message: userMessage,
@@ -176,7 +176,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       // Show AI message
       const aiMessage: ChatMessage = {
         id: `temp-ai-${Date.now()}`,
-        user_id: currentUser.id,
+        clerk_user_id: currentUser.id,
         note_id: noteId,
         role: 'assistant',
         message: aiResponse,
