@@ -22,7 +22,6 @@ import StudyTechniques from "./pages/StudyTechniques";
 import StudyPlans from "./pages/StudyPlans";
 import Progress from "./pages/Progress";
 import MathChat from "./pages/MathChat";
-import AINotes from "./pages/AINotes";
 import AudioNotes from "./pages/AudioNotes";
 import Library from "./pages/Library";
 import DoubtChain from "./pages/DoubtChain";
@@ -56,7 +55,7 @@ function App() {
               <Route path="/study-plans" element={<StudyPlans />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/math-chat" element={<MathChat />} />
-              <Route path="/ai-notes" element={<AINotes />} />
+              {/* Remove AINotes route */}
               <Route path="/audio-notes" element={<AudioNotes />} />
               <Route path="/library" element={<Library />} />
               <Route path="/doubt-chain" element={<DoubtChain />} />
