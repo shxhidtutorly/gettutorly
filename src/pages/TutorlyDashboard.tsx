@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -80,21 +79,21 @@ const TutorlyDashboard = () => {
   const quickStats = [
     {
       title: "Study Hours",
-      value: `${Math.round((stats.total_study_time || 0) / 3600)}h`,
+      value: `${Math.round((stats?.study_time || 0) / 3600)}h`,
       icon: Clock,
       color: "text-blue-400",
       bg: "bg-blue-500/10"
     },
     {
       title: "Materials",
-      value: stats.materials_created || 0,
+      value: stats?.materials || 0,
       icon: BookOpen,
       color: "text-green-400",
       bg: "bg-green-500/10"
     },
     {
       title: "Quizzes",
-      value: stats.quizzes_taken || 0,
+      value: stats?.quizzes || 0,
       icon: TestTube,
       color: "text-purple-400",
       bg: "bg-purple-500/10"
