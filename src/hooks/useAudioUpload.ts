@@ -125,7 +125,7 @@ export const useAudioUpload = () => {
       setCurrentStep("Generating smart notes...");
       setProgress(75);
       
-      console.log('🤖 Generating AI notes with qwen-qwq-32b...');
+      console.log('🤖 Generating AI notes with meta-llama/llama-4-scout-17b-16e-instruct...');
       const notesPrompt = `You are an expert note-taker and study assistant. Based on this lecture transcription, create comprehensive study notes and a concise summary.
 
 TRANSCRIPTION:
@@ -142,7 +142,7 @@ Format the notes with clear headings and bullet points for easy studying.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: notesPrompt,
-          model: 'qwen-qwq-32b'
+          model: 'meta-llama/llama-4-scout-17b-16e-instruct'
         }),
       });
 
