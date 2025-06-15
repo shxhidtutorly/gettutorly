@@ -176,7 +176,7 @@ Format the notes with clear headings and bullet points for easy studying.`;
         notes,
         metadata: {
           provider: 'AssemblyAI + GROQ',
-          model: "meta-llama/llama-4-scout-17b-16e-instruct"
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
           timestamp: new Date().toISOString(),
           duration
         }
