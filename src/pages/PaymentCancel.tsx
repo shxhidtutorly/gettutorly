@@ -8,6 +8,34 @@ import { Card, CardContent } from "@/components/ui/card";
 const PaymentCancel = () => {
   const navigate = useNavigate();
 
+  const getBaseUrl = () => {
+    // Use production URL for production environment
+    if (window.location.hostname === 'gettutorly.com' || 
+        window.location.hostname.includes('gettutorly.com')) {
+      return 'https://gettutorly.com';
+    }
+    // Use current origin for development
+    return window.location.origin;
+  };
+
+  const handleRetryPayment = () => {
+    const baseUrl = getBaseUrl();
+    if (baseUrl.includes('gettutorly.com')) {
+      window.location.href = `${baseUrl}/pricing`;
+    } else {
+      navigate('/pricing');
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    const baseUrl = getBaseUrl();
+    if (baseUrl.includes('gettutorly.com')) {
+      window.location.href = `${baseUrl}/dashboard`;
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4">
       <motion.div
@@ -54,7 +82,7 @@ const PaymentCancel = () => {
               className="space-y-3"
             >
               <Button
-                onClick={() => navigate('/pricing')}
+                onClick={handleRetryPayment}
                 className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -62,7 +90,7 @@ const PaymentCancel = () => {
               </Button>
 
               <Button
-                onClick={() => navigate('/dashboard')}
+                onClick={handleBackToDashboard}
                 variant="outline"
                 className="w-full border-slate-600 text-gray-300 hover:bg-slate-700"
               >

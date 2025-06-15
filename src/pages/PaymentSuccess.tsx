@@ -10,14 +10,33 @@ const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const getBaseUrl = () => {
+    // Use production URL for production environment
+    if (window.location.hostname === 'gettutorly.com' || 
+        window.location.hostname.includes('gettutorly.com')) {
+      return 'https://gettutorly.com';
+    }
+    // Use current origin for development
+    return window.location.origin;
+  };
+
+  const handleGoToDashboard = () => {
+    const baseUrl = getBaseUrl();
+    if (baseUrl.includes('gettutorly.com')) {
+      window.location.href = `${baseUrl}/dashboard`;
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   useEffect(() => {
     // Auto redirect to dashboard after 10 seconds
     const timer = setTimeout(() => {
-      navigate('/dashboard');
+      handleGoToDashboard();
     }, 10000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4">
@@ -83,7 +102,7 @@ const PaymentSuccess = () => {
               className="space-y-3"
             >
               <Button
-                onClick={() => navigate('/dashboard')}
+                onClick={handleGoToDashboard}
                 className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
               >
                 Go to Dashboard

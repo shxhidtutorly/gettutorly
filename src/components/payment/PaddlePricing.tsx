@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +56,16 @@ const PaddlePricing = () => {
     };
   }, []);
 
+  const getBaseUrl = () => {
+    // Use production URL for production environment
+    if (window.location.hostname === 'gettutorly.com' || 
+        window.location.hostname.includes('gettutorly.com')) {
+      return 'https://gettutorly.com';
+    }
+    // Use current origin for development
+    return window.location.origin;
+  };
+
   const handleSubscribe = (priceId: string, planName: string) => {
     if (!paddleLoaded || !window.Paddle) {
       console.error('Paddle not loaded yet');
@@ -64,6 +73,7 @@ const PaddlePricing = () => {
     }
 
     const customerEmail = user?.email || 'demo@example.com';
+    const baseUrl = getBaseUrl();
 
     window.Paddle.Checkout.open({
       items: [{ priceId, quantity: 1 }],
@@ -72,7 +82,7 @@ const PaddlePricing = () => {
         userId: user?.id || 'guest',
         planName: planName
       },
-      successUrl: `${window.location.origin}/success`,
+      successUrl: `${baseUrl}/success`,
       settings: {
         allowLogout: false,
         displayMode: 'overlay',
