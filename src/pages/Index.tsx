@@ -170,7 +170,7 @@ const Index = () => {
     
     // Simulate AI response
     setTimeout(() => {
-      setAiDemoResult(`📝 **AI Summary**: This text discusses ${aiDemoText.split(' ').slice(0, 3).join(' ')}... Key points include the main concepts and important details that enhance understanding and retention.`);
+      setAiDemoResult(`AI Summary: This text discusses ${aiDemoText.split(' ').slice(0, 3).join(' ')}... Key points include the main concepts and important details that enhance understanding and retention.`);
     }, 2000);
   };
 
@@ -329,7 +329,7 @@ const Index = () => {
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                Empowering learners from 200+ leading institutions across 128 countries  Trusted by over 500,000 students
+                Empowering learners from 200+ leading institutions across 128 countries. Trusted by over 500,000 students
               </h2>
             </div>
             <div className="relative overflow-hidden w-full">
@@ -344,44 +344,15 @@ const Index = () => {
                   ease: "linear"
                 }}
               >
-                {/* Duplicate array for seamless looping */}
-                {[
-                  { name: "Boston University", logo: BostonLogo },
-                  { name: "University of Chicago", logo: ChicagoLogo },
-                  { name: "Georgetown University", logo: GeorgetownLogo },
-                  { name: "Harvard University", logo: HarvardLogo },
-                  { name: "Howard University", logo: HowardLogo },
-                  { name: "Ohio State University", logo: OhioStateLogo },
-                  { name: "University of Otago", logo: OtagoLogo },
-                  { name: "University of Pittsburgh", logo: PittsburghLogo },
-                  { name: "Stanford University", logo: StanfordLogo },
-                ].concat([
-                  { name: "Boston University", logo: BostonLogo },
-                  { name: "University of Chicago", logo: ChicagoLogo },
-                  { name: "Georgetown University", logo: GeorgetownLogo },
-                  { name: "Harvard University", logo: HarvardLogo },
-                  { name: "Howard University", logo: HowardLogo },
-                  { name: "Ohio State University", logo: OhioStateLogo },
-                  { name: "University of Otago", logo: OtagoLogo },
-                  { name: "University of Pittsburgh", logo: PittsburghLogo },
-                  { name: "Stanford University", logo: StanfordLogo },
-                ]).map((uni, i) => (
-                  <div
-                    key={i}
-                    className="flex-shrink-0 flex items-center justify-center transition-transform duration-300 hover:scale-110"
-                    style={{ minWidth: 220 }}
-                    title={uni.name}
-                  >
-                    <img
-                      src={uni.logo}
-                      alt={uni.name + " logo"}
-                      className="h-24 md:h-32 max-w-[220px] object-contain transition-all duration-300 hover:drop-shadow-lg"
-                      style={{ filter: "drop-shadow(0 2px 8px #0002)" }}
-                    />
-                  </div>
-                ))}
+                {/* Placeholder for university logos - remove references to undefined imports */}
+                <div className="flex gap-20 items-center min-w-[1400px]">
+                  {[1,2,3,4,5,6,7,8,9].map((i) => (
+                    <div key={i} className="w-32 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">University {i}</span>
+                    </div>
+                  ))}
+                </div>
               </motion.div>
-              {/* Optional: subtle fades at the edges for polish */}
               <div className="pointer-events-none absolute top-0 left-0 w-24 h-full bg-gradient-to-r from-white/90 dark:from-gray-950/90 to-transparent z-10" />
               <div className="pointer-events-none absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-white/90 dark:from-gray-950/90 to-transparent z-10" />
             </div>

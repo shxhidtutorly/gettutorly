@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { 
   BookOpen, 
@@ -15,13 +14,13 @@ import {
   TrendingUp, 
   Zap,
   FileText,
-  Users,
-  Award,
-  Calendar,
   MessageCircle,
   Sparkles,
   Menu,
-  X
+  X,
+  Calendar,
+  BarChart3,
+  Settings
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -106,7 +105,7 @@ const TutorlyDashboard = () => {
       description: "Get instant help with any subject",
       icon: MessageCircle,
       color: "from-cyan-500 to-blue-500",
-      path: "/ai-assistant"
+      path: "/dashboard"
     },
     {
       title: "Study Plans",
@@ -118,7 +117,7 @@ const TutorlyDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 text-white overflow-hidden">
       <Navbar />
       
       {/* Mobile Sidebar Overlay */}
@@ -145,19 +144,20 @@ const TutorlyDashboard = () => {
               transition={{ duration: 0.3 }}
               className={`${
                 isMobile ? "fixed top-0 left-0 h-full z-50 w-80" : "relative w-80"
-              } bg-[#121212] border-r border-gray-800 flex flex-col`}
+              } bg-slate-800/70 backdrop-blur-sm border-r border-slate-700/50 flex flex-col shadow-2xl`}
             >
               {/* Sidebar Header */}
-              <div className="p-6 border-b border-gray-800">
+              <div className="p-6 border-b border-slate-700/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <Brain className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <h2 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                        Tutorly Dashboard
+                        Dashboard
                       </h2>
+                      <p className="text-xs text-gray-400">Welcome back!</p>
                     </div>
                   </div>
                   {isMobile && (
@@ -185,18 +185,31 @@ const TutorlyDashboard = () => {
                       }}
                       whileHover={{ scale: 1.02, x: 4 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-gray-800/50 group"
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-gray-300 hover:text-white hover:bg-slate-700/50 group border border-transparent hover:border-slate-600/50"
                     >
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
                         <action.icon className="w-4 h-4 text-white" />
                       </div>
-                      <div className="text-left">
+                      <div className="text-left flex-1">
                         <p className="text-sm font-medium">{action.title}</p>
                         <p className="text-xs text-gray-500 truncate">{action.description}</p>
                       </div>
                     </motion.button>
                   ))}
                 </nav>
+              </div>
+
+              {/* Sidebar Footer */}
+              <div className="p-4 border-t border-slate-700/50">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-gray-400 hover:text-white"
+                  onClick={() => navigate("/settings")}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
               </div>
             </motion.aside>
           )}
@@ -225,10 +238,10 @@ const TutorlyDashboard = () => {
                     </Button>
                   )}
                   <div>
-                    <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent mb-2">
+                    <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-blue-400 bg-clip-text text-transparent mb-2">
                       Welcome to Tutorly
                     </h1>
-                    <p className="text-lg text-gray-400 max-w-2xl">
+                    <p className="text-lg text-gray-300 max-w-2xl">
                       Your AI-powered learning companion. Track progress, generate notes, and master any subject.
                     </p>
                   </div>
@@ -252,7 +265,7 @@ const TutorlyDashboard = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8"
             >
-              <Card className="bg-[#121212] border-gray-800 hover:border-purple-500/50 transition-all duration-300 rounded-2xl">
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
                 <CardContent className="p-4 lg:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -266,7 +279,7 @@ const TutorlyDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#121212] border-gray-800 hover:border-blue-500/50 transition-all duration-300 rounded-2xl">
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-blue-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
                 <CardContent className="p-4 lg:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -280,7 +293,7 @@ const TutorlyDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#121212] border-gray-800 hover:border-green-500/50 transition-all duration-300 rounded-2xl">
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-green-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
                 <CardContent className="p-4 lg:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -294,7 +307,7 @@ const TutorlyDashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#121212] border-gray-800 hover:border-orange-500/50 transition-all duration-300 rounded-2xl">
+              <Card className="bg-slate-800/50 border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 rounded-2xl backdrop-blur-sm shadow-xl">
                 <CardContent className="p-4 lg:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -316,10 +329,10 @@ const TutorlyDashboard = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="mb-8"
             >
-              <Card className="bg-[#121212] border-gray-800 rounded-2xl shadow-lg">
+              <Card className="bg-slate-800/50 border-slate-700/50 rounded-2xl shadow-xl backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white text-lg lg:text-xl">
-                    <TrendingUp className="w-5 lg:w-6 h-5 lg:h-6 text-purple-400" />
+                    <BarChart3 className="w-5 lg:w-6 h-5 lg:h-6 text-purple-400" />
                     Learning Progress
                   </CardTitle>
                 </CardHeader>
@@ -358,11 +371,11 @@ const TutorlyDashboard = () => {
                     whileTap={{ scale: 0.98 }}
                   >
                     <Card 
-                      className="bg-[#121212] border-gray-800 hover:border-purple-500/50 transition-all duration-300 cursor-pointer group h-full rounded-2xl shadow-lg hover:shadow-xl"
+                      className="bg-slate-800/50 border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 cursor-pointer group h-full rounded-2xl shadow-xl hover:shadow-2xl backdrop-blur-sm"
                       onClick={() => navigate(action.path)}
                     >
                       <CardContent className="p-4 lg:p-6 h-full flex flex-col">
-                        <div className={`w-10 lg:w-12 h-10 lg:h-12 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                        <div className={`w-10 lg:w-12 h-10 lg:h-12 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
                           <action.icon className="w-5 lg:w-6 h-5 lg:h-6 text-white" />
                         </div>
                         <h3 className="text-base lg:text-lg font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">
@@ -381,7 +394,6 @@ const TutorlyDashboard = () => {
         </main>
       </div>
 
-      <Footer />
       <BottomNav />
     </div>
   );

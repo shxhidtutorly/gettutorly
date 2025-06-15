@@ -2,8 +2,16 @@
 import { BookOpenIcon, InstagramIcon } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
 import { Separator } from "@/components/ui/separator";
+import { useLocation } from "react-router-dom";
 
 const Footer = () => {
+  const location = useLocation();
+  
+  // Only show footer on the landing page
+  if (location.pathname !== '/') {
+    return null;
+  }
+
   return (
     <footer className="bg-white border-t border-gray-200 py-8 mt-auto dark:bg-gray-900 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
