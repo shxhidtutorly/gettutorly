@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Set global Clerk user ID
           (window as any).clerkUserId = clerkUserId;
 
-          // Get or create user profile from Supabase
+          // Get or create user profile (using localStorage approach for Clerk)
           let profile;
           try {
             profile = await getUserProfile(clerkUserId);
