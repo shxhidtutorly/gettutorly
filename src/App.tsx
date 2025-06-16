@@ -17,8 +17,7 @@ import TutorlyDashboard from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
 
 // If you're using Supabase AuthProvider, ensure it's defined correctly
-import { SupabaseAuthProvider } from './contexts/SupabaseAuthContext';
-
+import { useUser } from "@clerk/clerk-react";
 const queryClient = new QueryClient();
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
