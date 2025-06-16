@@ -1,48 +1,60 @@
 
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
+import { LogOut, User as UserIcon } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const UserProfileButton = () => {
-  const { user, signOut } = useAuth();
+  const { currentUser, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  if (!user) return null;
+  if (!currentUser) return null;
 
-  const userInitials = user.user_metadata?.full_name
-    ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('')
-    : user.email?.substring(0, 2).toUpperCase();
+  // Get user metadata for display name
+  const userData = currentUser.user_metadata;
+  const userInitials = userData?.name 
+    ? userData.name.split(" ").map((name: string) => name[0]).join("").toUpperCase()
+    : (userData?.email ? userData.email[0].toUpperCase() : "U");
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage 
-              src={user.user_metadata?.avatar_url} 
-              alt={user.user_metadata?.full_name || "User"} 
-            />
-            <AvatarFallback className="bg-blue-600 text-white">
-              {userInitials}
-            </AvatarFallback>
+            {userData?.avatar_url ? (
+              <AvatarImage src={userData.avatar_url} alt={userData?.name || "User"} />
+            ) : (
+              <AvatarFallback>{userInitials}</AvatarFallback>
+            )}
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex items-center">
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </Link>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate("/profile")}>
+          <UserIcon className="mr-2 h-4 w-4" />
+          <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => signOut()}>
+        <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>
         </DropdownMenuItem>
