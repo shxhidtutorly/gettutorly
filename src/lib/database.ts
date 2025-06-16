@@ -1,7 +1,7 @@
-import { supabase } from '@/integrations/supabase/client';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // USER OPERATIONS
-export const createUserProfile = async (userId: string, userData: any) => {
+export const createUserProfile = async (supabase: SupabaseClient, userId: string, userData: any) => {
   try {
     const { error } = await supabase
       .from('users')
@@ -20,7 +20,7 @@ export const createUserProfile = async (userId: string, userData: any) => {
   }
 };
 
-export const getUserProfile = async (userId: string) => {
+export const getUserProfile = async (supabase: SupabaseClient, userId: string) => {
   try {
     const { data, error } = await supabase
       .from('users')
@@ -36,7 +36,7 @@ export const getUserProfile = async (userId: string) => {
   }
 };
 
-export const updateUserRole = async (userId: string, role: string) => {
+export const updateUserRole = async (supabase: SupabaseClient, userId: string, role: string) => {
   try {
     const { error } = await supabase
       .from('users')
@@ -55,7 +55,7 @@ export const updateUserRole = async (userId: string, role: string) => {
 };
 
 // STUDY MATERIALS OPERATIONS
-export const saveStudyMaterial = async (userId: string, materialData: any) => {
+export const saveStudyMaterial = async (supabase: SupabaseClient, userId: string, materialData: any) => {
   try {
     const { data, error } = await supabase
       .from('study_materials')
@@ -83,7 +83,7 @@ export const saveStudyMaterial = async (userId: string, materialData: any) => {
   }
 };
 
-export const getUserStudyMaterials = async (userId: string) => {
+export const getUserStudyMaterials = async (supabase: SupabaseClient, userId: string) => {
   try {
     const { data, error } = await supabase
       .from('study_materials')
@@ -99,7 +99,7 @@ export const getUserStudyMaterials = async (userId: string) => {
   }
 };
 
-export const deleteStudyMaterial = async (materialId: string) => {
+export const deleteStudyMaterial = async (supabase: SupabaseClient, materialId: string) => {
   try {
     const { error } = await supabase
       .from('study_materials')
@@ -115,7 +115,7 @@ export const deleteStudyMaterial = async (materialId: string) => {
 };
 
 // NOTES OPERATIONS
-export const createNote = async (userId: string, noteData: any) => {
+export const createNote = async (supabase: SupabaseClient, userId: string, noteData: any) => {
   try {
     const { data, error } = await supabase
       .from('notes')
@@ -143,7 +143,7 @@ export const createNote = async (userId: string, noteData: any) => {
   }
 };
 
-export const getUserNotes = async (userId: string) => {
+export const getUserNotes = async (supabase: SupabaseClient, userId: string) => {
   try {
     const { data, error } = await supabase
       .from('notes')
@@ -159,7 +159,7 @@ export const getUserNotes = async (userId: string) => {
   }
 };
 
-export const deleteNote = async (noteId: string) => {
+export const deleteNote = async (supabase: SupabaseClient, noteId: string) => {
   try {
     const { error } = await supabase
       .from('notes')
@@ -175,7 +175,7 @@ export const deleteNote = async (noteId: string) => {
 };
 
 // STUDY SESSIONS TRACKING
-export const createStudySession = async (userId: string, sessionData: any) => {
+export const createStudySession = async (supabase: SupabaseClient, userId: string, sessionData: any) => {
   try {
     const { data, error } = await supabase
       .from('study_sessions')
@@ -195,7 +195,7 @@ export const createStudySession = async (userId: string, sessionData: any) => {
   }
 };
 
-export const updateStudySession = async (sessionId: string, sessionData: any) => {
+export const updateStudySession = async (supabase: SupabaseClient, sessionId: string, sessionData: any) => {
   try {
     const { error } = await supabase
       .from('study_sessions')
@@ -213,7 +213,7 @@ export const updateStudySession = async (sessionId: string, sessionData: any) =>
   }
 };
 
-export const getUserStudySessions = async (userId: string) => {
+export const getUserStudySessions = async (supabase: SupabaseClient, userId: string) => {
   try {
     const { data, error } = await supabase
       .from('study_sessions')
@@ -230,7 +230,7 @@ export const getUserStudySessions = async (userId: string) => {
 };
 
 // STUDY PLANS OPERATIONS
-export const getUserStudyPlans = async (userId: string) => {
+export const getUserStudyPlans = async (supabase: SupabaseClient, userId: string) => {
   try {
     // For now, return study materials as placeholder study plans
     const { data, error } = await supabase
@@ -257,7 +257,7 @@ export const getUserStudyPlans = async (userId: string) => {
   }
 };
 
-export const createStudyPlan = async (userId: string, planData: any) => {
+export const createStudyPlan = async (supabase: SupabaseClient, userId: string, planData: any) => {
   try {
     // For now, create as a study material until study_plans table exists
     const { data, error } = await supabase
@@ -280,7 +280,7 @@ export const createStudyPlan = async (userId: string, planData: any) => {
   }
 };
 
-export const deleteStudyPlan = async (planId: string) => {
+export const deleteStudyPlan = async (supabase: SupabaseClient, planId: string) => {
   try {
     // For now, delete from study_materials
     const { error } = await supabase
@@ -297,7 +297,7 @@ export const deleteStudyPlan = async (planId: string) => {
 };
 
 // FILE STORAGE OPERATIONS
-export const uploadFile = async (userId: string, file: File) => {
+export const uploadFile = async (supabase: SupabaseClient, userId: string, file: File) => {
   try {
     const fileName = `${userId}/${Date.now()}_${file.name}`;
     
@@ -327,7 +327,7 @@ export const uploadFile = async (userId: string, file: File) => {
   }
 };
 
-export const deleteFile = async (filePath: string) => {
+export const deleteFile = async (supabase: SupabaseClient, filePath: string) => {
   try {
     const { error } = await supabase.storage
       .from('study-materials')
@@ -341,7 +341,7 @@ export const deleteFile = async (filePath: string) => {
   }
 };
 
-export const testSupabaseConnection = async (userId: string) => {
+export const testSupabaseConnection = async (supabase: SupabaseClient, userId: string) => {
   try {
     console.log('🧪 Testing Supabase connection with user ID:', userId);
     

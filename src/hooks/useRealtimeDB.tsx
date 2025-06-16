@@ -1,15 +1,16 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 
 export const useRealtimeDB = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Use Clerk's useAuth
+  const supabase = useSupabase(); // Use the new Supabase hook
   const { toast } = useToast();
 
   const updateUserProfile = async (profileData: any) => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to update your profile",
@@ -51,7 +52,7 @@ export const useRealtimeDB = () => {
   };
 
   const getUserProfile = useCallback(async () => {
-    if (!user) return null;
+    if (!user || !supabase) return null; // Add supabase check
 
     try {
       const { data, error } = await supabase
@@ -66,10 +67,10 @@ export const useRealtimeDB = () => {
       console.error("Error getting user profile:", error);
       return null;
     }
-  }, [user]);
+  }, [user, supabase]); // Add supabase to dependency array
 
   const updateStudyProgress = async (progressData: any) => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to update study progress",
@@ -111,7 +112,7 @@ export const useRealtimeDB = () => {
   };
 
   const getStudyProgress = useCallback(async () => {
-    if (!user) return null;
+    if (!user || !supabase) return null; // Add supabase check
 
     try {
       const { data, error } = await supabase
@@ -126,11 +127,11 @@ export const useRealtimeDB = () => {
       console.error("Error getting study progress:", error);
       return null;
     }
-  }, [user]);
+  }, [user, supabase]); // Add supabase to dependency array
 
   // --- Real-time chat updates for note_chats table ---
   const subscribeToNoteChats = useCallback((noteId, onNewMessage) => {
-    if (!user || !noteId) return null;
+    if (!user || !noteId || !supabase) return null; // Add supabase check
 
     const channel = supabase
       .channel("note_chats_channel")
@@ -151,13 +152,15 @@ export const useRealtimeDB = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [user]);
+  }, [user, supabase]); // Add supabase to dependency array
 
   // --- Real-time updates for study_sessions table ---
   const subscribeToStudySessions = useCallback((onUpdate) => {
-    if (!user) return null;
+    if (!user || !supabase) return null; // Add supabase check
 
     const channel = supabase
       .channel("study_sessions_channel")
@@ -176,12 +179,14 @@ export const useRealtimeDB = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [user]);
+  }, [user, supabase]); // Add supabase to dependency array
 
   const createNote = async (noteData: any) => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to create notes",
@@ -223,7 +228,7 @@ export const useRealtimeDB = () => {
   };
 
   const updateNote = async (noteId: string, noteData: any) => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to update notes",
@@ -266,7 +271,7 @@ export const useRealtimeDB = () => {
   };
 
   const deleteNote = async (noteId: string) => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to delete notes",
@@ -306,7 +311,7 @@ export const useRealtimeDB = () => {
   };
 
   const getNotes = useCallback(async () => {
-    if (!user) return [];
+    if (!user || !supabase) return []; // Add supabase check
 
     try {
       const { data, error } = await supabase
@@ -321,10 +326,10 @@ export const useRealtimeDB = () => {
       console.error("Error getting notes:", error);
       return [];
     }
-  }, [user]);
+  }, [user, supabase]); // Add supabase to dependency array
 
   const backupUserData = async () => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to backup data",
@@ -372,7 +377,7 @@ export const useRealtimeDB = () => {
   };
 
   const restoreFromBackup = async (backupId: string) => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to restore data",

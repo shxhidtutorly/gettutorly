@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ChatMessage {
   id: string;
@@ -13,6 +13,7 @@ export interface ChatMessage {
  * Save a chat message
  */
 export const saveChatMessage = async (
+  supabase: SupabaseClient,
   userId: string, 
   noteId: string, 
   role: 'user' | 'assistant', 
@@ -45,7 +46,7 @@ export const saveChatMessage = async (
 /**
  * Get chat history for a note
  */
-export const getChatHistory = async (userId: string, noteId: string): Promise<ChatMessage[]> => {
+export const getChatHistory = async (supabase: SupabaseClient, userId: string, noteId: string): Promise<ChatMessage[]> => {
   try {
     const { data, error } = await supabase
       .from('note_chats')
@@ -68,6 +69,7 @@ export const getChatHistory = async (userId: string, noteId: string): Promise<Ch
 
 // Subscribe to note chat history in real time (text only, no files)
 export const subscribeToChatHistory = (
+  supabase: SupabaseClient,
   userId: string,
   noteId: string,
   onInsert: (message: ChatMessage) => void

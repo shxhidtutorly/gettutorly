@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 
 export interface UserStats {
   materials_created: number;
@@ -16,7 +16,8 @@ export interface UserStats {
 }
 
 export const useUserStats = () => {
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Use Clerk's useAuth
+  const supabase = useSupabase(); // Use the new Supabase hook
   const [stats, setStats] = useState<UserStats>({
     materials_created: 0,
     notes_created: 0,
@@ -31,12 +32,13 @@ export const useUserStats = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       setLoading(false);
       return;
     }
 
     const fetchStats = async () => {
+      if (!supabase) return; // Ensure supabase is available for fetch
       try {
         const { data, error } = await supabase
           .from('user_stats')
@@ -64,26 +66,31 @@ export const useUserStats = () => {
     fetchStats();
 
     // Set up real-time subscription
-    const channel = supabase
-      .channel('user_stats_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'user_stats',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        console.log('Stats updated:', payload);
-        fetchStats();
-      })
-      .subscribe();
+    let channel: any = null;
+    if (supabase && user) { // Check supabase and user before subscribing
+      channel = supabase
+        .channel('user_stats_changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'user_stats',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          console.log('Stats updated:', payload);
+          fetchStats(); // fetchStats itself checks for supabase
+        })
+        .subscribe();
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) { // Check supabase before removing channel
+        supabase.removeChannel(channel);
+      }
     };
-  }, [user]);
+  }, [user, supabase]); // Add supabase to dependency array
 
   const updateStat = async (statType: keyof UserStats, increment: number = 1) => {
-    if (!user) return;
+    if (!user || !supabase) return; // Add supabase check
 
     try {
       await supabase.rpc('update_user_stat', {

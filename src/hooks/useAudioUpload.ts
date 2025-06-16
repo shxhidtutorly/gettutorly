@@ -1,7 +1,7 @@
 
 import { useState } from "react";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 export interface AudioUploadResult {
@@ -18,14 +18,15 @@ export interface AudioUploadResult {
 }
 
 export const useAudioUpload = () => {
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Using Clerk's useAuth
+  const supabase = useSupabase(); // Using the new Supabase hook
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState("");
 
   const uploadAndProcess = async (audioBlobOrUrl: Blob | string): Promise<AudioUploadResult | null> => {
-    if (!user) {
+    if (!user || !supabase) { // Added supabase check
       toast({
         title: "Authentication required",
         description: "Please sign in to upload audio files.",

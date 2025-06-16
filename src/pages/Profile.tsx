@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react"; // Import useUser for Clerk user details
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,10 +14,12 @@ import Footer from '@/components/layout/Footer';
 import BottomNav from '@/components/layout/BottomNav';
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
+  const { signOut, isLoaded, isSignedIn } = useClerkAuth(); // Use Clerk's signOut and loading state
+  const { user: clerkUser } = useUser(); // Get Clerk user details
+  const supabase = useSupabase(); // Use the new Supabase hook
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Keep local loading for profile data
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -25,33 +27,41 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    // Wait for Clerk to be loaded and user to be signed in
+    if (isLoaded && isSignedIn && clerkUser && supabase) {
       loadProfile();
+    } else if (isLoaded && !isSignedIn) {
+      // Handle case where user is not signed in (e.g., redirect or show message)
+      setLoading(false);
     }
-  }, [user]);
+    // Add supabase to dependency array
+  }, [isLoaded, isSignedIn, clerkUser, supabase]);
 
   const loadProfile = async () => {
+    if (!clerkUser || !supabase) return; // Ensure clerkUser and supabase are available
+    setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from('users') // Assuming 'users' table still used for additional profile data
         .select('*')
-        .eq('id', user?.id)
+        .eq('id', clerkUser.id) // Use clerkUser.id
         .single();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
         throw error;
       }
 
+      // Set profile using data from 'users' table or fallback to Clerk user data
       setProfile(data || {
-        id: user?.id,
-        email: user?.email,
-        full_name: user?.user_metadata?.full_name || '',
-        role: 'student'
+        id: clerkUser.id,
+        email: clerkUser.primaryEmailAddress?.emailAddress,
+        full_name: clerkUser.fullName,
+        role: 'student' // Default role, or fetch from your 'users' table if stored there
       });
       
       setFormData({
-        full_name: data?.full_name || user?.user_metadata?.full_name || '',
-        email: data?.email || user?.email || ''
+        full_name: data?.full_name || clerkUser.fullName || '',
+        email: data?.email || clerkUser.primaryEmailAddress?.emailAddress || ''
       });
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -66,20 +76,30 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    if (!clerkUser || !supabase) return; // Ensure clerkUser and supabase are available
     try {
+      // Here, decide if you're updating Clerk's user metadata or your Supabase 'users' table
+      // For this example, let's assume we update the 'users' table in Supabase
       const { error } = await supabase
         .from('users')
         .upsert({
-          id: user?.id,
-          ...formData,
+          id: clerkUser.id, // Use clerkUser.id
+          full_name: formData.full_name, // email is likely managed by Clerk, not updated here
+          // any other fields from your 'users' table
           updated_at: new Date().toISOString()
         });
 
       if (error) throw error;
 
-      setProfile({ ...profile, ...formData });
+      // Update local profile state
+      setProfile((prevProfile) => ({ ...prevProfile, ...formData }));
       setEditing(false);
       
+      // Optionally, update Clerk user if you want to sync full_name
+      if (clerkUser.fullName !== formData.full_name) {
+        await clerkUser.update({ fullName: formData.full_name });
+      }
+
       toast({
         title: "Success",
         description: "Profile updated successfully",
@@ -111,10 +131,19 @@ const Profile = () => {
     }
   };
 
-  if (loading) {
+  if (!isLoaded || loading) { // Check Clerk's loading state and local loading state
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    // Optionally, redirect to sign-in or show a message
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white">Please sign in to view your profile.</div>
       </div>
     );
   }
@@ -129,18 +158,18 @@ const Profile = () => {
           <Card className="bg-white/10 backdrop-blur-lg border-white/20">
             <CardHeader className="text-center">
               <Avatar className="w-24 h-24 mx-auto mb-4">
-                <AvatarImage src={profile?.avatar_url} />
+                <AvatarImage src={clerkUser?.imageUrl || profile?.avatar_url} />
                 <AvatarFallback className="bg-purple-600 text-white text-2xl">
-                  {profile?.full_name?.charAt(0) || profile?.email?.charAt(0) || 'U'}
+                  {(profile?.full_name || clerkUser?.fullName)?.charAt(0) || clerkUser?.primaryEmailAddress?.emailAddress?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <CardTitle className="text-2xl text-white">
-                {profile?.full_name || 'User'}
+                {profile?.full_name || clerkUser?.fullName || 'User'}
               </CardTitle>
-              <p className="text-white/70">{profile?.email}</p>
+              <p className="text-white/70">{profile?.email || clerkUser?.primaryEmailAddress?.emailAddress}</p>
               <Badge variant="outline" className="text-purple-400 border-purple-400 w-fit mx-auto">
                 <Trophy className="w-4 h-4 mr-1" />
-                {profile?.role || 'Student'}
+                {profile?.role || 'Student'} {/* Role might come from your Supabase table */}
               </Badge>
             </CardHeader>
           </Card>
@@ -194,15 +223,16 @@ const Profile = () => {
                 <div className="space-y-4">
                   <div className="flex items-center text-white/90">
                     <User className="w-4 h-4 mr-3 text-purple-400" />
-                    <span>{profile?.full_name || 'Not provided'}</span>
+                    <span>{profile?.full_name || clerkUser?.fullName || 'Not provided'}</span>
                   </div>
                   <div className="flex items-center text-white/90">
                     <Mail className="w-4 h-4 mr-3 text-purple-400" />
-                    <span>{profile?.email}</span>
+                    <span>{profile?.email || clerkUser?.primaryEmailAddress?.emailAddress}</span>
                   </div>
                   <div className="flex items-center text-white/90">
                     <Calendar className="w-4 h-4 mr-3 text-purple-400" />
-                    <span>Joined {new Date(profile?.created_at || Date.now()).toLocaleDateString()}</span>
+                    {/* Use clerkUser.createdAt for join date if available, otherwise profile.created_at */}
+                    <span>Joined {new Date(clerkUser?.createdAt || profile?.created_at || Date.now()).toLocaleDateString()}</span>
                   </div>
                   <Button 
                     onClick={() => setEditing(true)}

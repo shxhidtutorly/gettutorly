@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { testSupabaseConnection } from '@/lib/database';
+import { useSupabase } from '@/lib/supabase'; // Import useSupabase
 
 const SupabaseDebugger = () => {
+  const supabase = useSupabase(); // Get Supabase client
   const [testUserId, setTestUserId] = useState('user_2yGzF0sPL4RMDWXyjYBkZLrAz2J');
   const [results, setResults] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +29,12 @@ const SupabaseDebugger = () => {
 
     try {
       console.log('🧪 Starting Supabase debug tests...');
-      const testResults = await testSupabaseConnection(testUserId);
+      if (!supabase) {
+        toast({ title: "Error", description: "Supabase client not available", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+      const testResults = await testSupabaseConnection(supabase, testUserId); // Pass supabase client
       setResults(testResults);
       
       toast({

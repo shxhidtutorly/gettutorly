@@ -1,17 +1,18 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 
 export const useFirebaseStorage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Use Clerk's useAuth
+  const supabase = useSupabase(); // Use the new Supabase hook
   const { toast } = useToast();
 
   const handleUpload = async (file: File, folder: string = "files") => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to upload files",
@@ -90,7 +91,7 @@ export const useFirebaseStorage = () => {
   };
 
   const getUserFiles = useCallback(async (folder: string = "files") => {
-    if (!user) return [];
+    if (!user || !supabase) return []; // Add supabase check
 
     try {
       const { data, error } = await supabase.storage
@@ -109,15 +110,17 @@ export const useFirebaseStorage = () => {
       });
       return [];
     }
-  }, [user, toast]);
+  }, [user, toast, supabase]); // Add supabase to dependency array
 
   const getFileURL = (filePath: string) => {
+    if (!supabase) return ""; // Add supabase check
     return supabase.storage
       .from('files')
       .getPublicUrl(filePath).data.publicUrl;
   };
 
   const removeFile = async (filePath: string) => {
+    if (!supabase) return false; // Add supabase check
     try {
       const { error } = await supabase.storage
         .from('files')
@@ -142,7 +145,7 @@ export const useFirebaseStorage = () => {
   };
 
   const backupFiles = async (folder: string = "files") => {
-    if (!user) {
+    if (!user || !supabase) { // Add supabase check
       toast({
         title: "Authentication required",
         description: "You must be logged in to backup files",

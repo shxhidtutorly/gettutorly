@@ -6,9 +6,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Bot, User, Sparkles, X, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed to avoid conflict
 import { ChatMessage, getChatHistory, saveChatMessage, subscribeToChatHistory } from "@/lib/notesChat";
-import { supabase } from "@/integrations/supabase/client";
+import { useSupabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NotesChatProps {
@@ -29,18 +29,19 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   const [contextActive, setContextActive] = useState<boolean>(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Using renamed Clerk auth
+  const supabase = useSupabase();
   const { toast } = useToast();
 
   // Fetch note content and title for context, based on noteId and user
   useEffect(() => {
     const fetchNote = async () => {
-      if (!user || !noteId) return;
+      if (!user || !noteId || !supabase) return; // Added supabase check
 
       let { data, error } = await supabase
         .from('study_materials')
         .select('title,file_name,metadata')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id) // Assuming user.id from Clerk is the same
         .eq('id', noteId)
         .single();
 
@@ -58,7 +59,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
         let result = await supabase
           .from('notes')
           .select('title,content')
-          .eq('user_id', user.id)
+          .eq('user_id', user.id) // Assuming user.id from Clerk is the same
           .eq('id', noteId)
           .single();
         if (result.data) {
@@ -71,7 +72,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
     };
 
     fetchNote();
-  }, [user, noteId]);
+  }, [user, noteId, supabase]); // Added supabase to dependency array
 
   // Load chat history from DB
   useEffect(() => {
@@ -87,10 +88,10 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   }, [messages]);
 
   const loadChatHistory = async () => {
-    if (!user) return;
+    if (!user || !supabase) return; // Add supabase check
     try {
       setIsLoadingHistory(true);
-      const history = await getChatHistory(user.id, noteId);
+      const history = await getChatHistory(supabase, user.id, noteId); // Pass supabase
       setMessages(history);
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -162,7 +163,8 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       setMessages(prev => [...prev, tempUserMessage]);
 
       // Save to DB
-      await saveChatMessage(user.id, noteId, 'user', userMessage);
+      if (!supabase) throw new Error("Supabase client not available"); // Check supabase
+      await saveChatMessage(supabase, user.id, noteId, 'user', userMessage); // Pass supabase
 
       // AI response
       const aiResponse = await sendMessageToAI(userMessage, messages);
@@ -182,7 +184,8 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
         aiMessage
       ]);
       // Save AI to DB
-      await saveChatMessage(user.id, noteId, 'assistant', aiResponse);
+      if (!supabase) throw new Error("Supabase client not available"); // Check supabase
+      await saveChatMessage(supabase, user.id, noteId, 'assistant', aiResponse); // Pass supabase
 
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -229,12 +232,14 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
     let loaded = false;
 
     (async () => {
-      const history = await getChatHistory(user.id, noteId);
+      if (!supabase) return; // Check supabase
+      const history = await getChatHistory(supabase, user.id, noteId); // Pass supabase
       setMessages(history || []);
       loaded = true;
 
       // Listen for new chat messages after the initial load
       unsub = subscribeToChatHistory(
+        supabase, // Pass supabase
         user.id,
         noteId,
         (newMsg) => {
@@ -250,7 +255,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
     return () => {
       if (typeof unsub === "function") unsub();
     };
-  }, [user, noteId]);
+  }, [user, noteId, supabase]); // Add supabase to dependency array
 
   return (
     <motion.div

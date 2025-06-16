@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -11,12 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, MessageCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
 
 const NotesChatPage = () => {
   const { noteId } = useParams();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, isLoaded: loading } = useClerkAuth(); // Use Clerk's useAuth, isLoaded as loading
+  const supabase = useSupabase(); // Use the new Supabase hook
   const { toast } = useToast();
   const [noteContent, setNoteContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
@@ -24,20 +25,22 @@ const NotesChatPage = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user) { // isLoaded is false initially, then true
       navigate('/signin');
       return;
     }
 
-    if (user && noteId) {
+    if (user && noteId && supabase) { // Add supabase check
       loadNoteContent();
-    } else if (!noteId) {
+    } else if (loading && !noteId) { // Check loading to prevent premature navigation
+      // If still loading and no noteId, it might be too early to redirect
+    } else if (!loading && !noteId) { // If done loading and still no noteId
       navigate('/ai-notes');
     }
-  }, [user, loading, noteId, navigate]);
+  }, [user, loading, noteId, navigate, supabase]); // Add supabase to dependency array
 
   const loadNoteContent = async () => {
-    if (!user || !noteId) return;
+    if (!user || !noteId || !supabase) return; // Add supabase check
     
     try {
       setIsLoading(true);

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 
 interface Subscription {
   id: string;
@@ -13,26 +13,26 @@ interface Subscription {
 }
 
 export const useSubscription = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoaded: authLoading } = useClerkAuth(); // Use Clerk's useAuth, isLoaded as authLoading
+  const supabase = useSupabase(); // Use the new Supabase hook
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user) {
-      setSubscription(null);
-      setHasActiveSubscription(false);
-      setLoading(false);
-      return;
+    if (!authLoading) { // Only run when auth is loaded
+      if (!user || !supabase) { // Add supabase check
+        setSubscription(null);
+        setHasActiveSubscription(false);
+        setLoading(false);
+        return;
+      }
+      fetchSubscription();
     }
-
-    fetchSubscription();
-  }, [user, authLoading]);
+  }, [user, authLoading, supabase]); // Add supabase to dependency array
 
   const fetchSubscription = async () => {
-    if (!user) return;
+    if (!user || !supabase) return; // Add supabase check
 
     try {
       setLoading(true);
@@ -70,7 +70,7 @@ export const useSubscription = () => {
   };
 
   const createTrialSubscription = async (planName: string) => {
-    if (!user) return false;
+    if (!user || !supabase) return false; // Add supabase check
 
     try {
       const { error } = await supabase

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SignedIn, SignedOut, RedirectToSignIn, useUser } from "@clerk/clerk-react";
 
 interface StudyStats {
   totalStudyTime?: number;
@@ -116,12 +117,15 @@ const TutorlyDashboard = () => {
       path: "/study-plans"
     }
   ];
+  // const { user } = useUser(); // Optional: Access user info if needed
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white overflow-hidden">
-      <Navbar />
-      
-      {/* Mobile Sidebar Overlay */}
+    <>
+      <SignedIn>
+        <div className="min-h-screen bg-[#0A0A0A] text-white overflow-hidden">
+          <Navbar />
+
+          {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isMobile && sidebarOpen && (
           <motion.div
@@ -381,9 +385,14 @@ const TutorlyDashboard = () => {
         </main>
       </div>
 
-      <Footer />
-      <BottomNav />
-    </div>
+          <Footer />
+          <BottomNav />
+        </div>
+      </SignedIn>
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
+    </>
   );
 };
 

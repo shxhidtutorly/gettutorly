@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 
 interface StudyStats {
   totalStudyHours: number;
@@ -25,7 +25,8 @@ export interface StudySession {
 }
 
 export const useStudyTracking = () => {
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Use Clerk's useAuth
+  const supabase = useSupabase(); // Use the new Supabase hook
   const [stats, setStats] = useState<StudyStats>({
     totalStudyHours: 0,
     sessionCount: 0,
@@ -134,7 +135,7 @@ export const useStudyTracking = () => {
   // Load user stats from database with better error handling
   useEffect(() => {
     const loadStats = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !supabase) return; // Add supabase check
 
       try {
         console.log('Loading stats for user:', user.id);
@@ -235,29 +236,31 @@ export const useStudyTracking = () => {
 
     // Set up real-time listener for study sessions
     let channel: any = null;
-    try {
-      channel = supabase
-        .channel('session_changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'study_sessions',
-          filter: `user_id=eq.${user?.id}`
-        }, () => {
-          console.log('Real-time session update detected, reloading stats');
-          loadStats();
-        })
-        .subscribe();
-    } catch (realtimeError) {
-      console.warn('Real-time updates not available');
+    if (supabase && user?.id) { // Check supabase before attempting to use it
+      try {
+        channel = supabase
+          .channel('session_changes')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'study_sessions',
+            filter: `user_id=eq.${user?.id}`
+          }, () => {
+            console.log('Real-time session update detected, reloading stats');
+            loadStats(); // loadStats will also check for supabase
+          })
+          .subscribe();
+      } catch (realtimeError) {
+        console.warn('Real-time updates not available');
+      }
     }
 
     return () => {
-      if (channel) {
+      if (supabase && channel) { // Check supabase before removing channel
         supabase.removeChannel(channel);
       }
     };
-  }, [user?.id]);
+  }, [user?.id, supabase]); // Add supabase to dependency array
 
   return {
     stats,

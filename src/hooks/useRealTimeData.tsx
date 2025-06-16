@@ -1,22 +1,26 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth as useClerkAuth } from "@clerk/clerk-react"; // Renamed for clarity
+import { useSupabase } from "@/lib/supabase"; // Import the new hook
 import { useToast } from '@/components/ui/use-toast';
 import { getUserStudyMaterials } from '@/lib/database';
 
 export const useRealTimeStudyMaterials = () => {
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Use Clerk's useAuth
+  const supabase = useSupabase(); // Use the new Supabase hook
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !supabase) return; // Add supabase check
 
     const fetchMaterials = async () => {
       try {
-        const data = await getUserStudyMaterials(user.id);
+        // Assuming getUserStudyMaterials will be updated to use the new supabase client
+        // or we pass supabase client to it. For now, this might break if getUserStudyMaterials
+        // still uses the old client internally.
+        const data = await getUserStudyMaterials(user.id, supabase); // Pass supabase client
         setMaterials(data || []);
       } catch (error) {
         console.error('Error fetching materials:', error);
@@ -41,26 +45,30 @@ export const useRealTimeStudyMaterials = () => {
         table: 'study_materials',
         filter: `user_id=eq.${user.id}`
       }, (payload) => {
+        // Re-fetch with the current supabase client
         fetchMaterials();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [user, toast]);
+  }, [user, toast, supabase]); // Add supabase to dependency array
 
   return { materials, loading };
 };
 
 export const useRealTimeStudySessions = () => {
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Use Clerk's useAuth
+  const supabase = useSupabase(); // Use the new Supabase hook
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !supabase) return; // Add supabase check
 
     const fetchSessions = async () => {
       try {
@@ -100,21 +108,24 @@ export const useRealTimeStudySessions = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [user, toast]);
+  }, [user, toast, supabase]); // Add supabase to dependency array
 
   return { sessions, loading };
 };
 
 export const useRealTimeUserStats = () => {
-  const { user } = useAuth();
+  const { user } = useClerkAuth(); // Use Clerk's useAuth
+  const supabase = useSupabase(); // Use the new Supabase hook
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !supabase) return; // Add supabase check
 
     const fetchStats = async () => {
       try {
@@ -154,9 +165,11 @@ export const useRealTimeUserStats = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [user, toast]);
+  }, [user, toast, supabase]); // Add supabase to dependency array
 
   return { stats, loading };
 };
