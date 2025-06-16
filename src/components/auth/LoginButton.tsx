@@ -1,7 +1,6 @@
-
+import { SignInButton } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { LogIn } from "lucide-react";
-import { Link } from "react-router-dom";
 
 interface LoginButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
@@ -10,7 +9,7 @@ interface LoginButtonProps {
 
 const LoginButton = ({ variant = "default", size = "default" }: LoginButtonProps) => {
   return (
-    <Link to="/signin">
+    <SignInButton mode="modal">
       <Button
         variant={variant}
         size={size}
@@ -19,7 +18,7 @@ const LoginButton = ({ variant = "default", size = "default" }: LoginButtonProps
         <LogIn size={16} className="stroke-white" />
         <span>Sign in to GetTutorly</span>
       </Button>
-    </Link>
+    </SignInButton>
   );
 };
 
