@@ -18,6 +18,8 @@ import SettingsPage from "./pages/Settings";
 // No longer using SupabaseAuthProvider
 const queryClient = new QueryClient();
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+if (!clerkPubKey) throw new Error("Missing Clerk publishable key");
+
 
 const App = () => (
   <ClerkProvider publishableKey={clerkPubKey}>
