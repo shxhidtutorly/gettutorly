@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { ClerkProvider } from "@clerk/clerk-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -77,7 +77,7 @@ declare global {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useUser();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const [scrollY, setScrollY] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
