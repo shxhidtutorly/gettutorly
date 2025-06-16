@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { getUserStudyMaterials } from '@/lib/database';
 
 export const useRealTimeStudyMaterials = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -54,7 +54,7 @@ export const useRealTimeStudyMaterials = () => {
 };
 
 export const useRealTimeStudySessions = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -108,7 +108,7 @@ export const useRealTimeStudySessions = () => {
 };
 
 export const useRealTimeUserStats = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
