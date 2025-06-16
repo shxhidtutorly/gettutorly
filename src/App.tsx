@@ -17,7 +17,7 @@ import TutorlyDashboard from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
 
 // If you're using Supabase AuthProvider, ensure it's defined correctly
-import { SupabaseAuthProvider } from "./contexts/SupabaseAuthProvider";
+import { SupabaseAuthProvider } from './contexts/SupabaseAuthContext';
 
 const queryClient = new QueryClient();
 
