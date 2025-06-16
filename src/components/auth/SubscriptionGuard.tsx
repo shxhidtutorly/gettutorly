@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react'; // Added imports
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface SubscriptionGuardProps {
@@ -9,37 +9,39 @@ interface SubscriptionGuardProps {
 }
 
 const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
-  const { user, loading: authLoading } = useAuth();
+  const { isSignedIn, isLoaded: clerkAuthLoaded } = useClerkAuth(); // Use Clerk auth
+  const { user: clerkUser } = useUser(); // Use Clerk user
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     // Don't redirect while loading
-    if (authLoading || subLoading) return;
+    if (!clerkAuthLoaded || subLoading) return; // Updated loading check
 
-    // If not authenticated, redirect to sign in
-    if (!user) {
-      navigate('/signin', { 
-        state: { returnTo: location.pathname },
-        replace: true 
-      });
-      return;
-    }
+    // If not authenticated, redirect to sign in (Handled by ProtectedRoute, commented out here)
+    // if (!isSignedIn) {
+    //   navigate('/signin', {
+    //     state: { returnTo: location.pathname },
+    //     replace: true
+    //   });
+    //   return;
+    // }
 
     // If authenticated but no active subscription, redirect to pricing
-    if (user && !hasActiveSubscription) {
+    if (isSignedIn && clerkUser && !hasActiveSubscription) { // Updated condition
       // Allow access to pricing, signin, signup pages without subscription
-      const allowedPaths = ['/pricing', '/signin', '/signup', '/settings'];
+      // Note: '/signin', '/signup' are no longer relevant with Clerk handling this via RedirectToSignIn
+      const allowedPaths = ['/pricing', '/settings'];
       if (!allowedPaths.includes(location.pathname)) {
         navigate('/pricing', { replace: true });
         return;
       }
     }
-  }, [user, hasActiveSubscription, authLoading, subLoading, navigate, location.pathname]);
+  }, [isSignedIn, clerkUser, hasActiveSubscription, clerkAuthLoaded, subLoading, navigate, location.pathname]); // Updated dependency array
 
   // Show loading while checking auth and subscription
-  if (authLoading || subLoading) {
+  if (!clerkAuthLoaded || subLoading) { // Updated loading check
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
         <div className="text-center">
