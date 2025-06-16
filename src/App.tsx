@@ -15,7 +15,7 @@ import PricingPage from "./pages/Pricing";
 import TutorlyDashboard from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
 
-// Remove SupabaseAuthProvider and unused useUser
+// No longer using SupabaseAuthProvider
 const queryClient = new QueryClient();
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
