@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, Routes, Route } from "react-router-dom";
+import { ClerkProvider } from "@clerk/clerk-react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ClerkProvider } from "@clerk/clerk-react";
 
 import AuthStateHandler from "./components/auth/AuthStateHandler";
 import SubscriptionGuard from "./components/auth/SubscriptionGuard";
@@ -17,68 +17,68 @@ import PricingPage from "./pages/Pricing";
 import TutorlyDashboard from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
 
-// No longer using SupabaseAuthProvider
 const queryClient = new QueryClient();
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-if (!clerkPubKey) throw new Error("Missing Clerk publishable key");
+
+if (!clerkPubKey) {
+  throw new Error("Missing Clerk publishable key in VITE_CLERK_PUBLISHABLE_KEY");
+}
 
 const App = () => {
-  const [clerkLoaded, setClerkLoaded] = useState(false);
   const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setClerkLoaded(true);
+    setReady(true); // Avoid rendering before router is ready
   }, []);
 
+  if (!ready) return null;
+
   return (
-    clerkLoaded && (
-      <ClerkProvider publishableKey={clerkPubKey} navigate={(to) => navigate(to)}>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthStateHandler>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/signin" element={<SignInPage />} />
-                  <Route path="/signup" element={<SignUpPage />} />
+    <ClerkProvider publishableKey={clerkPubKey} navigate={(to) => navigate(to)}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AuthStateHandler>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/signin" element={<SignInPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
 
-                  {/* Routes that require subscription check */}
-                  <Route
-                    path="/pricing"
-                    element={
-                      <SubscriptionGuard>
-                        <PricingPage />
-                      </SubscriptionGuard>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <SubscriptionGuard>
-                        <SettingsPage />
-                      </SubscriptionGuard>
-                    }
-                  />
+              {/* Subscription protected routes */}
+              <Route
+                path="/pricing"
+                element={
+                  <SubscriptionGuard>
+                    <PricingPage />
+                  </SubscriptionGuard>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <SubscriptionGuard>
+                    <SettingsPage />
+                  </SubscriptionGuard>
+                }
+              />
 
-                  {/* Protected route */}
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <SubscriptionGuard>
-                        <TutorlyDashboard />
-                      </SubscriptionGuard>
-                    }
-                  />
-                </Routes>
-              </AuthStateHandler>
-            </BrowserRouter>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </ClerkProvider>
-    )
+              {/* Auth protected route */}
+              <Route
+                path="/dashboard"
+                element={
+                  <SubscriptionGuard>
+                    <TutorlyDashboard />
+                  </SubscriptionGuard>
+                }
+              />
+            </Routes>
+          </AuthStateHandler>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 };
 
