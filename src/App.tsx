@@ -20,9 +20,21 @@ const queryClient = new QueryClient();
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!clerkPubKey) throw new Error("Missing Clerk publishable key");
 
+const App = () => {
+  const [clerkLoaded, setClerkLoaded] = useState(false);
+  const navigate = useNavigate();
 
-const App = () => (
-  <ClerkProvider publishableKey={clerkPubKey}>
+  useEffect(() => {
+    setClerkLoaded(true);
+  }, []);
+
+  const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  if (!clerkPubKey) throw new Error("Missing Clerk publishable key");
+
+  return (
+    clerkLoaded && (
+      <ClerkProvider publishableKey={clerkPubKey} navigate={(to) => navigate(to)}>
+        {/* Everything inside here stays the same */}
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
