@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,58 +30,56 @@ const App = () => {
     setClerkLoaded(true);
   }, []);
 
-  const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  if (!clerkPubKey) throw new Error("Missing Clerk publishable key");
-
   return (
     clerkLoaded && (
       <ClerkProvider publishableKey={clerkPubKey} navigate={(to) => navigate(to)}>
-        {/* Everything inside here stays the same */}
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthStateHandler>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/signin" element={<SignInPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthStateHandler>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/signin" element={<SignInPage />} />
+                  <Route path="/signup" element={<SignUpPage />} />
 
-              {/* Routes that require subscription check */}
-              <Route
-                path="/pricing"
-                element={
-                  <SubscriptionGuard>
-                    <PricingPage />
-                  </SubscriptionGuard>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <SubscriptionGuard>
-                    <SettingsPage />
-                  </SubscriptionGuard>
-                }
-              />
+                  {/* Routes that require subscription check */}
+                  <Route
+                    path="/pricing"
+                    element={
+                      <SubscriptionGuard>
+                        <PricingPage />
+                      </SubscriptionGuard>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <SubscriptionGuard>
+                        <SettingsPage />
+                      </SubscriptionGuard>
+                    }
+                  />
 
-              {/* Protected route */}
-              <Route
-                path="/dashboard"
-                element={
-                  <SubscriptionGuard>
-                    <TutorlyDashboard />
-                  </SubscriptionGuard>
-                }
-              />
-            </Routes>
-          </AuthStateHandler>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ClerkProvider>
-);
+                  {/* Protected route */}
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <SubscriptionGuard>
+                        <TutorlyDashboard />
+                      </SubscriptionGuard>
+                    }
+                  />
+                </Routes>
+              </AuthStateHandler>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ClerkProvider>
+    )
+  );
+};
 
 export default App;
