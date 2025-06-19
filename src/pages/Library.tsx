@@ -22,7 +22,7 @@ import {
   Calendar,
   Bug,
 } from "lucide-react";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { getUserStudyMaterials } from "@/lib/database";
 import SupabaseDebugger from "@/components/debug/SupabaseDebugger";
 
@@ -30,7 +30,7 @@ const Library = () => {
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
   
   const [viewMode, setViewMode] = useState("grid");
