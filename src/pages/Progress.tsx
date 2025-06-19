@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 const ProgressPage = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
   const { stats, loading } = useUserStats();
   const [selectedTimeframe, setSelectedTimeframe] = useState("week");
