@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ClerkProvider } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -77,7 +77,7 @@ declare global {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useUser();
+  const { user, isLoaded: userLoaded, isSignedIn } = useUser();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const [scrollY, setScrollY] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -100,10 +100,10 @@ const Index = () => {
 
   useEffect(() => {
     // Don't redirect while loading
-    if (authLoading || subLoading) return;
+    if (!userLoaded || subLoading) return;
 
     // If user is authenticated
-    if (user) {
+    if (isSignedIn) {
       // If they have an active subscription, go to dashboard
       if (hasActiveSubscription) {
         navigate("/dashboard", { replace: true });
@@ -112,10 +112,10 @@ const Index = () => {
         navigate("/pricing", { replace: true });
       }
     }
-  }, [user, hasActiveSubscription, authLoading, subLoading, navigate]);
+  }, [isSignedIn, hasActiveSubscription, userLoaded, subLoading, navigate]);
 
   const handleGetStarted = () => {
-    if (!user) {
+    if (!isSignedIn) {
       navigate("/signup");
     } else if (!hasActiveSubscription) {
       navigate("/pricing");
@@ -126,9 +126,9 @@ const Index = () => {
 
   const generateAISummary = async () => {
     if (!aiDemoText.trim()) return;
-    
+
     setAiDemoResult("Generating summary...");
-    
+
     // Simple demo response
     setTimeout(() => {
       setAiDemoResult("This is a sample AI-generated summary of your text. Our AI would analyze the content and provide key insights, main points, and important details in a concise format.");
@@ -136,7 +136,7 @@ const Index = () => {
   };
 
   // Show loading while checking auth and subscription status
-  if (authLoading || subLoading) {
+  if (!userLoaded || subLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
         <div className="text-center">
