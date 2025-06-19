@@ -6,10 +6,16 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import App from "./App.tsx";
 import "./index.css";
 
-// You MUST wrap with ClerkProvider at the top, and BrowserRouter only once!
+// Use the Vite env variable for Clerk
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!clerkPublishableKey) {
+  throw new Error("Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in your .env or Vercel dashboard.");
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ClerkProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey}>
       <BrowserRouter>
         <App />
       </BrowserRouter>
