@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User as UserIcon } from "lucide-react";
 
 const SignUpPage = () => {
   const { isSignedIn } = useUser();
@@ -147,7 +147,7 @@ const SignUpPage = () => {
                 Full Name
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <UserIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="signup-fullname"
                   type="text"
