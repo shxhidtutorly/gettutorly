@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 const NotesChatPage = () => {
   const { noteId } = useParams();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading } = useUser();
   const { toast } = useToast();
   const [noteContent, setNoteContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
