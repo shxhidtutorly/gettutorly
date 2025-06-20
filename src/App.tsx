@@ -63,7 +63,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <BrowserRouter>
+          
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/signin" element={<SignInPage />} />
@@ -101,7 +101,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+      
           <Toaster />
           <Sonner />
         </TooltipProvider>
