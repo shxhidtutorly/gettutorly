@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 
 const SettingsPage = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useUser();
   const { subscription, loading } = useSubscription();
   const navigate = useNavigate();
 
