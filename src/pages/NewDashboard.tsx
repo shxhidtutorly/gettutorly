@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { motion, AnimatePresence } from "framer-motion";
 import AnimeChat from "@/components/dashboard/AnimeChat";
@@ -11,7 +11,7 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 
 const TutorlyDashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useUser();
   const { stats } = useStudyTracking();
   const navigate = useNavigate();
   const { toast } = useToast();
