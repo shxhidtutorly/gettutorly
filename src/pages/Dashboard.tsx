@@ -47,7 +47,8 @@ const Dashboard = () => {
 
   const getUserDisplayName = () => {
     if (user?.fullName) return user.fullName;
-    if (user?.primaryEmailAddress) return user.primaryEmailAddress.emailAddress.split('@')[0];
+    if (user?.primaryEmailAddress?.emailAddress)
+      return user.primaryEmailAddress.emailAddress.split('@')[0];
     return "User";
   };
 
