@@ -14,7 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 const UserProfileButton = () => {
-  const { currentUser, signOut } = useAuth();
+  const { currentUser, signOut } = useUser();
   const navigate = useNavigate();
 
   if (!currentUser) return null;
