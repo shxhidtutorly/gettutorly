@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Use the actual Supabase project configuration
-const supabaseUrl = 'https://getutorly.com';
+const supabaseUrl = 'https://yxwlkxcgnlkskfarpffa.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbHlmc2J1eHJqeWlhdGZjZWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0NDUxNzAsImV4cCI6MjA2MzAyMTE3MH0.1jfGciFNtGgfw7bNZhuraoA_83whPx6Ojl0J5iHfJz0';
 
 // Create a single Supabase client instance
