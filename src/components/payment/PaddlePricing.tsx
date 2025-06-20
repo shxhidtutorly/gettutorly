@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Zap, Clock } from "lucide-react";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -36,7 +36,7 @@ declare global {
 }
 
 const PaddlePricing = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } =useUser();
   const { subscription, hasActiveSubscription, createTrialSubscription } = useSubscription();
   const navigate = useNavigate();
   const [paddleLoaded, setPaddleLoaded] = useState(false);
