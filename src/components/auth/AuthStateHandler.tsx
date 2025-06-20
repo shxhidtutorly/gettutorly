@@ -1,10 +1,10 @@
 
 import { useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const AuthStateHandler = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
