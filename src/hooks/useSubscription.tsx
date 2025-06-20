@@ -13,7 +13,7 @@ interface Subscription {
 }
 
 export const useSubscription = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useUser();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
