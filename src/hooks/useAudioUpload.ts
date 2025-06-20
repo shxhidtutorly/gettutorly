@@ -1,7 +1,6 @@
 
 import { useState } from "react";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
 
 export interface AudioUploadResult {
@@ -18,7 +17,7 @@ export interface AudioUploadResult {
 }
 
 export const useAudioUpload = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
