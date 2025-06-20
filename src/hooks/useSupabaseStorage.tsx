@@ -4,7 +4,7 @@ import { useUser, useClerk } from "@clerk/clerk-react";
 import { supabase } from '@/integrations/supabase/client';
 
 export const useSupabaseStorage = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
