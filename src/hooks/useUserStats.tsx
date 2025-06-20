@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UserStats {
@@ -16,7 +16,7 @@ export interface UserStats {
 }
 
 export const useUserStats = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [stats, setStats] = useState<UserStats>({
     materials_created: 0,
     notes_created: 0,
