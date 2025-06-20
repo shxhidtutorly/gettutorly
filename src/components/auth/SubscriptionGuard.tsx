@@ -1,7 +1,6 @@
-
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser } from '@clerk/clerk-react';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface SubscriptionGuardProps {
@@ -9,37 +8,34 @@ interface SubscriptionGuardProps {
 }
 
 const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
-  const { user, loading: authLoading } = useUser();
-  const { hasActiveSubscription, loading: subLoading } = useSubscription();
+  const { user, isLoaded: isAuthLoaded } = useUser();
+  const { hasActiveSubscription, loading: isSubLoading } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // Don't redirect while loading
-    if (authLoading || subLoading) return;
+  const allowedPublicPaths = ['/pricing', '/signin', '/signup', '/settings', '/'];
 
-    // If not authenticated, redirect to sign in
+  useEffect(() => {
+    if (!isAuthLoaded || isSubLoading) return;
+
+    const isPublicPath = allowedPublicPaths.includes(location.pathname);
+
     if (!user) {
-      navigate('/signin', { 
-        state: { returnTo: location.pathname },
-        replace: true 
-      });
+      if (!isPublicPath) {
+        navigate('/signin', {
+          state: { returnTo: location.pathname },
+          replace: true,
+        });
+      }
       return;
     }
 
-    // If authenticated but no active subscription, redirect to pricing
-    if (user && !hasActiveSubscription) {
-      // Allow access to pricing, signin, signup pages without subscription
-      const allowedPaths = ['/pricing', '/signin', '/signup', '/settings'];
-      if (!allowedPaths.includes(location.pathname)) {
-        navigate('/pricing', { replace: true });
-        return;
-      }
+    if (user && !hasActiveSubscription && !isPublicPath) {
+      navigate('/pricing', { replace: true });
     }
-  }, [user, hasActiveSubscription, authLoading, subLoading, navigate, location.pathname]);
+  }, [user, isAuthLoaded, hasActiveSubscription, isSubLoading, location.pathname, navigate]);
 
-  // Show loading while checking auth and subscription
-  if (authLoading || subLoading) {
+  if (!isAuthLoaded || isSubLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
         <div className="text-center">
