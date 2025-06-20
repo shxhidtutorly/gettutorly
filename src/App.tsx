@@ -62,14 +62,12 @@ const App = () => {
             />
 
             {/* Auth protected route */}
-            <Route
-              path="/dashboard"
-              element={
-                <SubscriptionGuard>
-                  <TutorlyDashboard />
-                </SubscriptionGuard>
-              }
-            />
+          <Route path="/dashboard" element={
+  <SubscriptionGuard>
+    <Dashboard />
+  </SubscriptionGuard>
+} />
+
           </Routes>
         </AuthStateHandler>
       </TooltipProvider>
