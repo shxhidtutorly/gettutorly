@@ -76,8 +76,6 @@ const Dashboard = () => {
     );
   }
 
-export default Dashboard;
-
   // Activity stats with clean icons
   const activityStats = [
     {
