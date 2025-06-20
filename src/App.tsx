@@ -18,11 +18,6 @@ import TutorlyDashboard from "./pages/Dashboard";
 import SettingsPage from "./pages/Settings";
 
 const queryClient = new QueryClient();
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-if (!clerkPubKey) {
-  throw new Error("Missing Clerk publishable key in VITE_CLERK_PUBLISHABLE_KEY");
-}
 
 const App = () => {
   const navigate = useNavigate();
@@ -35,50 +30,48 @@ const App = () => {
   if (!ready) return null;
 
   return (
-    <ClerkProvider publishableKey={clerkPubKey} navigate={(to) => navigate(to)}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthStateHandler>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/signin" element={<SignInPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthStateHandler>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/signin" element={<SignInPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
 
-              {/* Subscription protected routes */}
-              <Route
-                path="/pricing"
-                element={
-                  <SubscriptionGuard>
-                    <PricingPage />
-                  </SubscriptionGuard>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <SubscriptionGuard>
-                    <SettingsPage />
-                  </SubscriptionGuard>
-                }
-              />
+            {/* Subscription protected routes */}
+            <Route
+              path="/pricing"
+              element={
+                <SubscriptionGuard>
+                  <PricingPage />
+                </SubscriptionGuard>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <SubscriptionGuard>
+                  <SettingsPage />
+                </SubscriptionGuard>
+              }
+            />
 
-              {/* Auth protected route */}
-              <Route
-                path="/dashboard"
-                element={
-                  <SubscriptionGuard>
-                    <TutorlyDashboard />
-                  </SubscriptionGuard>
-                }
-              />
-            </Routes>
-          </AuthStateHandler>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
+            {/* Auth protected route */}
+            <Route
+              path="/dashboard"
+              element={
+                <SubscriptionGuard>
+                  <TutorlyDashboard />
+                </SubscriptionGuard>
+              }
+            />
+          </Routes>
+        </AuthStateHandler>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 
