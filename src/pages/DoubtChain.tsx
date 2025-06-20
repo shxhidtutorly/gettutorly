@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -46,7 +46,7 @@ const DoubtChain = () => {
   const [bookmarkedDoubts, setBookmarkedDoubts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
