@@ -25,7 +25,7 @@ import {
   Download
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 interface Message {
   id: string;
@@ -56,7 +56,7 @@ const AnimeChat = () => {
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
 
   // Auto-scroll to bottom when new messages arrive
