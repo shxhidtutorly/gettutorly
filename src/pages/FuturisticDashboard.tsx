@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ interface Message {
 }
 
 const FuturisticDashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
