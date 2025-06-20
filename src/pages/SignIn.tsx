@@ -42,7 +42,7 @@ declare global {
 const SignInPage = () => {
   const { isSignedIn, user } = useUser();
   const { signIn, isLoaded } = useSignIn();
-  const { getToken } = useAuth();
+  const { getToken } = useUser();
 
   const navigate = useNavigate();
   const location = useLocation();
