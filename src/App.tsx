@@ -63,7 +63,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          
+          <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/signin" element={<SignInPage />} />
               <Route path="/signup" element={<SignUpPage />} />
@@ -99,7 +99,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
 
               <Route path="*" element={<NotFound />} />
-      
+          </Routes>
           <Toaster />
           <Sonner />
         </TooltipProvider>
