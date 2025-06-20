@@ -21,7 +21,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 const navbarLinks = [
   { href: "/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
@@ -38,7 +38,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { user } = useAuth();
+  const { user } = useUser();
 
   const isLandingPage = location.pathname === "/" || location.pathname === "/landing";
   const isPricingPage = location.pathname === "/pricing";
