@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { supabase } from '@/integrations/supabase/client';
 
 interface StudyStats {
@@ -25,7 +25,7 @@ export interface StudySession {
 }
 
 export const useStudyTracking = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [stats, setStats] = useState<StudyStats>({
     totalStudyHours: 0,
     sessionCount: 0,
