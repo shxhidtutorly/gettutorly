@@ -74,7 +74,8 @@ const App = () => {
         </AuthStateHandler>
       </TooltipProvider>
     </QueryClientProvider>
-  );
+  </ThemeProvider>
+);
 };
 
 export default App;
