@@ -1,13 +1,13 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { supabase } from '@/integrations/supabase/client';
 
 export const useFirebaseStorage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { user } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const handleUpload = async (file: File, folder: string = "files") => {
