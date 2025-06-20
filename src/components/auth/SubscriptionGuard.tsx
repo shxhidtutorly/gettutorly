@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface SubscriptionGuardProps {
@@ -9,7 +9,7 @@ interface SubscriptionGuardProps {
 }
 
 const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useUser();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
