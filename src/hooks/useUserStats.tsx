@@ -31,8 +31,10 @@ export const useUserStats = () => {
   const [stats, setStats] = useState<UserStats>(defaultStats);
   const [loading, setLoading] = useState(true);
 
+  const userId = user?.id;
+
   useEffect(() => {
-    if (!user?.id) {
+    if (!userId) {
       setLoading(false);
       return;
     }
@@ -42,22 +44,21 @@ export const useUserStats = () => {
         const { data, error } = await supabase
           .from('user_stats')
           .select('stat_type, count')
-          .eq('user_id', user.id); // Clerk ID as TEXT
+          .eq('user_id', userId);
 
         if (error) {
           console.error('❌ Error fetching stats:', error);
           return;
         }
 
-        const statsMap: Partial<UserStats> = {};
-
+        const updatedStats: Partial<UserStats> = { ...defaultStats };
         data?.forEach(stat => {
           if (stat.stat_type in defaultStats) {
-            statsMap[stat.stat_type as keyof UserStats] = stat.count;
+            updatedStats[stat.stat_type as keyof UserStats] = stat.count;
           }
         });
 
-        setStats(prev => ({ ...prev, ...statsMap }));
+        setStats(updatedStats as UserStats);
       } catch (err) {
         console.error('❌ Error in fetchStats:', err);
       } finally {
@@ -75,7 +76,7 @@ export const useUserStats = () => {
           event: '*',
           schema: 'public',
           table: 'user_stats',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         () => {
           console.log("🔁 Real-time update received. Refetching stats...");
@@ -87,14 +88,14 @@ export const useUserStats = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [userId]);
 
   const updateStat = async (statType: keyof UserStats, increment = 1) => {
-    if (!user?.id) return;
+    if (!userId) return;
 
     try {
       const { error } = await supabase.rpc('update_user_stat', {
-        p_user_id: user.id,
+        p_user_id: userId,
         p_stat_type: statType,
         p_increment: increment
       });
