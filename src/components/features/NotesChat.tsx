@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Bot, User, Sparkles, X, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { ChatMessage, getChatHistory, saveChatMessage, subscribeToChatHistory } from "@/lib/notesChat";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,7 +29,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   const [contextActive, setContextActive] = useState<boolean>(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
 
   // Fetch note content and title for context, based on noteId and user
