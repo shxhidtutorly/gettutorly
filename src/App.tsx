@@ -30,8 +30,8 @@ const App = () => {
 
   if (!ready) return null;
 
-  return (
-  <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+ return (
+  <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
