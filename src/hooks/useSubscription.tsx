@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { supabase } from '@/integrations/supabase/client';
 
 interface Subscription {
@@ -13,14 +12,14 @@ interface Subscription {
 }
 
 export const useSubscription = () => {
-  const { user, loading: authLoading } = useUser();
+  const { user, isLoaded: userLoaded } = useUser(); // Use isLoaded instead of loading for clarity
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    
+    if (!userLoaded) return;
+
     if (!user) {
       setSubscription(null);
       setHasActiveSubscription(false);
@@ -29,39 +28,39 @@ export const useSubscription = () => {
     }
 
     fetchSubscription();
-  }, [user, authLoading]);
+  }, [user, userLoaded]);
 
   const fetchSubscription = async () => {
-    if (!user) return;
+    if (!user?.id) return;
 
     try {
       setLoading(true);
-      
-      // Check if user has active subscription
-      const { data: hasActive, error: hasActiveError } = await supabase
-        .rpc('has_active_subscription', { p_user_id: user.id });
 
-      if (hasActiveError) {
-        console.error('Error checking subscription status:', hasActiveError);
+      // ✅ Check if the user has an active subscription
+      const { data: hasActive, error: activeError } = await supabase.rpc('has_active_subscription', {
+        p_user_id: user.id,
+      });
+
+      if (activeError) {
+        console.error('[Subscription] Error checking active status:', activeError.message);
         setHasActiveSubscription(false);
       } else {
-        setHasActiveSubscription(hasActive || false);
+        setHasActiveSubscription(Boolean(hasActive));
       }
 
-      // Get subscription details
-      const { data: subData, error: subError } = await supabase
-        .rpc('get_user_subscription', { p_user_id: user.id });
+      // ✅ Fetch user subscription details
+      const { data: subscriptionData, error: subError } = await supabase.rpc('get_user_subscription', {
+        p_user_id: user.id,
+      });
 
       if (subError) {
-        console.error('Error fetching subscription:', subError);
+        console.error('[Subscription] Error fetching subscription:', subError.message);
         setSubscription(null);
-      } else if (subData && subData.length > 0) {
-        setSubscription(subData[0]);
       } else {
-        setSubscription(null);
+        setSubscription(subscriptionData?.[0] ?? null);
       }
-    } catch (error) {
-      console.error('Error in fetchSubscription:', error);
+    } catch (err) {
+      console.error('[Subscription] Unexpected error:', err);
       setHasActiveSubscription(false);
       setSubscription(null);
     } finally {
@@ -70,28 +69,28 @@ export const useSubscription = () => {
   };
 
   const createTrialSubscription = async (planName: string) => {
-    if (!user) return false;
+    if (!user?.id) return false;
 
     try {
-      const { error } = await supabase
-        .from('subscriptions')
-        .insert([{
+      const { error } = await supabase.from('subscriptions').insert([
+        {
           user_id: user.id,
           plan_name: planName,
           status: 'trialing',
           trial_start_date: new Date().toISOString(),
-          trial_end_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString()
-        }]);
+          trial_end_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ]);
 
       if (error) {
-        console.error('Error creating trial subscription:', error);
+        console.error('[Subscription] Error creating trial:', error.message);
         return false;
       }
 
       await fetchSubscription();
       return true;
-    } catch (error) {
-      console.error('Error creating trial subscription:', error);
+    } catch (err) {
+      console.error('[Subscription] Unexpected error on trial creation:', err);
       return false;
     }
   };
@@ -99,8 +98,8 @@ export const useSubscription = () => {
   return {
     subscription,
     hasActiveSubscription,
-    loading: loading || authLoading,
+    loading: loading || !userLoaded,
     fetchSubscription,
-    createTrialSubscription
+    createTrialSubscription,
   };
 };
