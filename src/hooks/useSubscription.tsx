@@ -12,7 +12,7 @@ interface Subscription {
 }
 
 export const useSubscription = () => {
-  const { user, isLoaded: userLoaded } = useUser(); // Use isLoaded instead of loading for clarity
+  const { user, isLoaded: userLoaded } = useUser();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,21 @@ export const useSubscription = () => {
     try {
       setLoading(true);
 
-      // ✅ Check if the user has an active subscription
+      // 🔧 TEMPORARY BYPASS FOR DEV — always allow access
+      console.warn('[DEV] Bypassing subscription check — REMOVE IN PRODUCTION');
+      setHasActiveSubscription(true);
+      setSubscription({
+        id: 'dev-sub-id',
+        plan_name: 'dev_plan',
+        status: 'active',
+        trial_end_date: null,
+        subscription_end_date: null,
+        is_trial: true,
+      });
+      return;
+
+      // Uncomment below for actual Supabase check once UUID mapping is fixed
+      /*
       const { data: hasActive, error: activeError } = await supabase.rpc('has_active_subscription', {
         p_user_id: user.id,
       });
@@ -48,7 +62,6 @@ export const useSubscription = () => {
         setHasActiveSubscription(Boolean(hasActive));
       }
 
-      // ✅ Fetch user subscription details
       const { data: subscriptionData, error: subError } = await supabase.rpc('get_user_subscription', {
         p_user_id: user.id,
       });
@@ -59,6 +72,8 @@ export const useSubscription = () => {
       } else {
         setSubscription(subscriptionData?.[0] ?? null);
       }
+      */
+
     } catch (err) {
       console.error('[Subscription] Unexpected error:', err);
       setHasActiveSubscription(false);
@@ -72,15 +87,13 @@ export const useSubscription = () => {
     if (!user?.id) return false;
 
     try {
-      const { error } = await supabase.from('subscriptions').insert([
-        {
-          user_id: user.id,
-          plan_name: planName,
-          status: 'trialing',
-          trial_start_date: new Date().toISOString(),
-          trial_end_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ]);
+      const { error } = await supabase.from('subscriptions').insert([{
+        user_id: user.id,
+        plan_name: planName,
+        status: 'trialing',
+        trial_start_date: new Date().toISOString(),
+        trial_end_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+      }]);
 
       if (error) {
         console.error('[Subscription] Error creating trial:', error.message);
