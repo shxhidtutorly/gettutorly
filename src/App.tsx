@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/theme-provider";
 
 import AuthStateHandler from "./components/auth/AuthStateHandler";
 import SubscriptionGuard from "./components/auth/SubscriptionGuard";
@@ -30,6 +31,7 @@ const App = () => {
   if (!ready) return null;
 
   return (
+  <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
