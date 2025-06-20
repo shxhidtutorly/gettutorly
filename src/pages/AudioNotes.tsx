@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -9,7 +9,7 @@ import { AudioNotesUploader } from "@/components/features/AudioNotesUploader";
 import { ArrowLeft } from "lucide-react";
 
 const AudioNotes = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
