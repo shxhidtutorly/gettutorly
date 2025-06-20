@@ -39,7 +39,7 @@ import "./css/mobile.css";
 
 import SubscriptionGuard from "./components/auth/SubscriptionGuard";
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,7 +59,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <ClerkProvider publishableKey={clerkPubKey}>
+
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
