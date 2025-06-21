@@ -1,7 +1,7 @@
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, animate, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Canvas } from "@react-three/fiber";
-import { useState, useEffect, memo } from "react";
 import * as THREE from "three";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
