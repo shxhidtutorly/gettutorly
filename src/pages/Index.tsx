@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef, ElementType, ComponentPropsWithoutRef, memo, useCallback } from "react";
-import { motion, AnimatePresence, useFrame, useThree, animate, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence, animate, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { cn } from "@/lib/utils";
