@@ -1900,8 +1900,6 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
         <UniversityLogoCloud />
       </div>
     </section>
-  )
-}
 
 {/* Testimonials Section */}
 <section className="bg-black text-foreground py-12 sm:py-24 md:py-32 px-0">
