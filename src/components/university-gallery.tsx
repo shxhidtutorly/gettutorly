@@ -1,39 +1,72 @@
-// src/components/university-gallery.tsx
+"use client"
 
-"use client";
-
-import React from "react";
+import { Cloud, ICloud } from "react-icon-cloud"
 
 const universityLogos = [
-  "https://upload.wikimedia.org/wikipedia/commons/0/07/Harvard_University_shield.png",
-  "https://upload.wikimedia.org/wikipedia/commons/b/b7/Stanford_University_seal_2003.svg",
-  "https://upload.wikimedia.org/wikipedia/commons/c/c3/MIT_seal.png",
-  "https://upload.wikimedia.org/wikipedia/commons/f/ff/University_of_Oxford_coat_of_arms.svg",
-  "https://upload.wikimedia.org/wikipedia/commons/a/a2/University_of_Cambridge_coat_of_arms.svg",
-  "https://upload.wikimedia.org/wikipedia/commons/a/a1/University_of_California%2C_Berkeley_seal.svg",
-  "https://upload.wikimedia.org/wikipedia/commons/f/f6/ETH_Zurich_logo.svg",
-  "https://upload.wikimedia.org/wikipedia/commons/e/e7/Yale_University_seal.svg",
-  "https://upload.wikimedia.org/wikipedia/commons/e/e7/UCLA_seal.svg",
-  "https://upload.wikimedia.org/wikipedia/en/e/e7/IIT_Bombay_Logo.svg",
-  "https://upload.wikimedia.org/wikipedia/en/a/a2/Nanyang_Technological_University_logo.svg",
-  "https://upload.wikimedia.org/wikipedia/en/a/a2/University_of_Toronto_logo.svg",
-  "https://upload.wikimedia.org/wikipedia/commons/c/c9/Peking_University_seal.svg",
-  "https://upload.wikimedia.org/wikipedia/en/0/0b/University_of_Melbourne_logo.svg",
-  "https://upload.wikimedia.org/wikipedia/en/c/c9/Seoul_National_University_logo.svg",
-  "https://upload.wikimedia.org/wikipedia/en/c/c9/University_of_Edinburgh_logo.svg",
-];
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Harvard_University_logo.svg/200px-Harvard_University_logo.svg.png",
+    alt: "Harvard University",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/MIT_logo.svg/200px-MIT_logo.svg.png",
+    alt: "MIT",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Stanford_University_seal_2003.svg/200px-Stanford_University_seal_2003.svg.png",
+    alt: "Stanford University",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Yale_University_Shield_1.svg/200px-Yale_University_Shield_1.svg.png",
+    alt: "Yale University",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Princeton_shield.svg/200px-Princeton_shield.svg.png",
+    alt: "Princeton University",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Columbia_University_shield.svg/200px-Columbia_University_shield.svg.png",
+    alt: "Columbia University",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/University_of_Pennsylvania_coat_of_arms.svg/200px-University_of_Pennsylvania_coat_of_arms.svg.png",
+    alt: "University of Pennsylvania",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Caltech_logo.svg/200px-Caltech_logo.svg.png",
+    alt: "Caltech",
+  },
+]
 
-export function UniversityGallery() {
+export function UniversityLogoCloud() {
   return (
-    <div className="my-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center justify-center">
-      {universityLogos.map((src, idx) => (
-        <img
-          key={idx}
-          src={src}
-          alt={`University logo ${idx}`}
-          className="h-24 w-auto object-contain mx-auto"
-        />
-      ))}
+    <div className="relative flex size-full max-w-lg items-center justify-center overflow-hidden rounded-lg border bg-background px-20 pb-20 pt-8">
+      {/* @ts-ignore */}
+      <Cloud
+        options={{
+          depth: 1,
+          imageScale: 2,
+          tooltip: "native",
+          clickToFront: 500,
+          reverse: true,
+          outlineColour: "#0000",
+          maxSpeed: 0.05,
+          minSpeed: 0.02,
+        }}
+      >
+        {universityLogos.map((logo, i) => (
+          <a key={i} href="#" onClick={(e) => e.preventDefault()}>
+            <img
+              src={logo.src}
+              alt={logo.alt}
+              title={logo.alt}
+              width={42}
+              height={42}
+              className="rounded-sm object-contain"
+              style={{ borderRadius: "8px" }}
+            />
+          </a>
+        ))}
+      </Cloud>
     </div>
-  );
+  )
 }
