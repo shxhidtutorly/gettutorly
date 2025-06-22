@@ -1567,10 +1567,6 @@ const OptimizedLearningPlatform = () => {
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-black text-white">
-      <UniversityGallery />
-
       {/* Navbar */}
       <Navbar />
       
