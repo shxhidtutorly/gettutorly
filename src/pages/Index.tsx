@@ -22,6 +22,7 @@ import {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useUser } from "@clerk/clerk-react";
+import { UniversityLogoCloud } from "@/components/ui/university-logo-cloud";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import UserProfileButton from "@/components/auth/UserProfileButton";
@@ -1890,42 +1891,19 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
       ]} />
 
       {/* University Logos Section */}
+    export default function TrustedBySection() {
+      return (
       <section className="py-20 bg-black text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-12 relative inline-block pb-2">
-            Loved by thousands of students across top universities and schools worldwide
-            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full opacity-70" />
-          </h2>
-          <div className="relative w-full max-w-4xl mx-auto aspect-square">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-full h-full">
-                {universityLogos.map((logo, index) => {
-                  const angle = (index / universityLogos.length) * 2 * Math.PI;
-                  const radius = 200; // Adjust radius as needed for visual balance
-                  const x = radius * Math.cos(angle);
-                  const y = radius * Math.sin(angle);
-
-                  return (
-                    <motion.img
-                      key={index}
-                      src={logo}
-                      alt={`University Logo ${index + 1}`}
-                      className="absolute w-16 h-16 object-contain opacity-70 hover:opacity-100 transition-opacity duration-300"
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 0.7, scale: 1 }}
-                      transition={{ duration: 0.5, delay: index * 0.05 }}
-                      style={{
-                        left: `calc(50% + ${x}px - 32px)`, // 32px is half of w-16
-                        top: `calc(50% + ${y}px - 32px)`,  // 32px is half of h-16
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="container mx-auto px-4 text-center">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-12 relative inline-block pb-2">
+          Loved by students from top global universities
+          <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full opacity-70" />
+        </h2>
+        <UniversityLogoCloud />
+      </div>
+    </section>
+  )
+}
 
 {/* Testimonials Section */}
 <section className="bg-black text-foreground py-12 sm:py-24 md:py-32 px-0">
