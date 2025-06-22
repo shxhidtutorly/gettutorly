@@ -22,7 +22,7 @@ import {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useUser } from "@clerk/clerk-react";
-import { UniversityLogoCloud } from "@/components/ui/UniversityLogoCloud";
+import { UniversityLogoCloud } from "@/components/ui/universitylogocloud";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import UserProfileButton from "@/components/auth/UserProfileButton";
