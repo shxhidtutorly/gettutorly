@@ -1436,8 +1436,20 @@ const OptimizedLearningPlatform = () => {
   // ✅ University of Edinburgh logo
   "https://upload.wikimedia.org/wikipedia/en/c/c9/University_of_Edinburgh_logo.svg",
 ];
-
-
+export function UniversityGallery() {
+  return (
+    <div className="my-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center justify-center">
+      {universityLogos.map((src, idx) => (
+        <img
+          key={idx}
+          src={src}
+          alt={`University logo ${idx}`}
+          className="h-24 w-auto object-contain mx-auto"
+        />
+      ))}
+    </div>
+  );
+}
     return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-black">
       {/* Navbar */}
