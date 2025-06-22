@@ -1,14 +1,5 @@
-import {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-  memo
-} from "react";
-
-import { motion, AnimatePresence, animate, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useState, useEffect, useMemo, useRef, ElementType, ComponentPropsWithoutRef, memo, useCallback } from "react";
+import { motion, AnimatePresence, useFrame, useThree, animate, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { cn } from "@/lib/utils";
@@ -37,33 +28,21 @@ import {
   Lightbulb,
   GraduationCap,
   Palette,
+  Minus,
+  Plus,
 } from "lucide-react";
-
-declare global {
-  interface Window {
-    Paddle?: {
-      Environment: {
-        set: (env: string) => void;
-      };
-      Setup: (config: { token: string }) => void;
-      Checkout: {
-        open: (config: {
-          items: { priceId: string; quantity: number }[];
-          customer?: { email?: string };
-          customData?: Record<string, any>;
-          successUrl?: string;
-          cancelUrl?: string;
-          settings?: {
-            allowLogout?: boolean;
-            displayMode?: string;
-            theme?: string;
-            locale?: string;
-          };
-        }) => void;
-      };
-    };
-  }
-}
+import * as Accordion from "@radix-ui/react-accordion";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type Uniforms = {
   [key: string]: {
@@ -81,10 +60,6 @@ interface ShaderProps {
     };
   };
   maxFps?: number;
-}
-
-interface SignInPageProps {
-  className?: string;
 }
 
 const CanvasRevealEffect = ({
@@ -396,433 +371,6 @@ const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => {
   );
 };
 
-const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-  const defaultTextColor = 'text-gray-300';
-  const hoverTextColor = 'text-white';
-  const textSizeClass = 'text-sm';
-
-  return (
-    <a href={href} className={`group relative inline-block overflow-hidden h-5 flex items-center ${textSizeClass}`}>
-      <div className="flex flex-col transition-transform duration-400 ease-out transform group-hover:-translate-y-1/2">
-        <span className={defaultTextColor}>{children}</span>
-        <span className={hoverTextColor}>{children}</span>
-      </div>
-    </a>
-  );
-};
-
-function MiniNavbar() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
-  const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
-  useEffect(() => {
-    if (shapeTimeoutRef.current) {
-      clearTimeout(shapeTimeoutRef.current);
-    }
-
-    if (isOpen) {
-      setHeaderShapeClass('rounded-xl');
-    } else {
-      shapeTimeoutRef.current = setTimeout(() => {
-        setHeaderShapeClass('rounded-full');
-      }, 300);
-    }
-
-    return () => {
-      if (shapeTimeoutRef.current) {
-        clearTimeout(shapeTimeoutRef.current);
-      }
-    };
-  }, [isOpen]);
-
-  const logoElement = (
-    <div className="relative w-5 h-5 flex items-center justify-center">
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 top-0 left-1/2 transform -translate-x-1/2 opacity-80"></span>
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 left-0 top-1/2 transform -translate-y-1/2 opacity-80"></span>
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 right-0 top-1/2 transform -translate-y-1/2 opacity-80"></span>
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 bottom-0 left-1/2 transform -translate-x-1/2 opacity-80"></span>
-    </div>
-  );
-
-  const navLinksData = [
-    { label: 'Manifesto', href: '#1' },
-    { label: 'Careers', href: '#2' },
-    { label: 'Discover', href: '#3' },
-  ];
-
-  const loginButtonElement = (
-    <button className="px-4 py-2 sm:px-3 text-xs sm:text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200 w-full sm:w-auto">
-      LogIn
-    </button>
-  );
-
-  const signupButtonElement = (
-    <div className="relative group w-full sm:w-auto">
-      <div className="absolute inset-0 -m-2 rounded-full
-                     hidden sm:block
-                     bg-gray-100
-                     opacity-40 filter blur-lg pointer-events-none
-                     transition-all duration-300 ease-out
-                     group-hover:opacity-60 group-hover:blur-xl group-hover:-m-3"></div>
-      <button className="relative z-10 px-4 py-2 sm:px-3 text-xs sm:text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200 w-full sm:w-auto">
-        Signup
-      </button>
-    </div>
-  );
-
-  return (
-    <header className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-20
-                       flex flex-col items-center
-                       pl-6 pr-6 py-3 backdrop-blur-sm
-                       ${headerShapeClass}
-                       border border-[#333] bg-[#1f1f1f57]
-                       w-[calc(100%-2rem)] sm:w-auto
-                       transition-[border-radius] duration-0 ease-in-out`}>
-
-      <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
-        <div className="flex items-center">
-          {logoElement}
-        </div>
-
-        <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
-          {navLinksData.map((link) => (
-            <AnimatedNavLink key={link.href} href={link.href}>
-              {link.label}
-            </AnimatedNavLink>
-          ))}
-        </nav>
-
-        <div className="hidden sm:flex items-center gap-2 sm:gap-3">
-          {loginButtonElement}
-          {signupButtonElement}
-        </div>
-
-        <button className="sm:hidden flex items-center justify-center w-8 h-8 text-gray-300 focus:outline-none" onClick={toggleMenu} aria-label={isOpen ? 'Close Menu' : 'Open Menu'}>
-          {isOpen ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-          )}
-        </button>
-      </div>
-
-      <div className={`sm:hidden flex flex-col items-center w-full transition-all ease-in-out duration-300 overflow-hidden
-                       ${isOpen ? 'max-h-[1000px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 pointer-events-none'}`}>
-        <nav className="flex flex-col items-center space-y-4 text-base w-full">
-          {navLinksData.map((link) => (
-            <a key={link.href} href={link.href} className="text-gray-300 hover:text-white transition-colors w-full text-center">
-              {link.label}
-            </a>
-          ))}
-        </nav>
-        <div className="flex flex-col items-center space-y-4 mt-4 w-full">
-          {loginButtonElement}
-          {signupButtonElement}
-        </div>
-      </div>
-    </header>
-  );
-}
-
-const SignInPage = ({ className }: SignInPageProps) => {
-  const [email, setEmail] = useState("");
-  const [step, setStep] = useState<"email" | "code" | "success">("email");
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const codeInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [initialCanvasVisible, setInitialCanvasVisible] = useState(true);
-  const [reverseCanvasVisible, setReverseCanvasVisible] = useState(false);
-
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setStep("code");
-    }
-  };
-
-  useEffect(() => {
-    if (step === "code") {
-      setTimeout(() => {
-        codeInputRefs.current[0]?.focus();
-      }, 500);
-    }
-  }, [step]);
-
-  const handleCodeChange = (index: number, value: string) => {
-    if (value.length <= 1) {
-      const newCode = [...code];
-      newCode[index] = value;
-      setCode(newCode);
-      
-      if (value && index < 5) {
-        codeInputRefs.current[index + 1]?.focus();
-      }
-      
-      if (index === 5 && value) {
-        const isComplete = newCode.every(digit => digit.length === 1);
-        if (isComplete) {
-          setReverseCanvasVisible(true);
-          
-          setTimeout(() => {
-            setInitialCanvasVisible(false);
-          }, 50);
-          
-          setTimeout(() => {
-            setStep("success");
-          }, 2000);
-        }
-      }
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !code[index] && index > 0) {
-      codeInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleBackClick = () => {
-    setStep("email");
-    setCode(["", "", "", "", "", ""]);
-    setReverseCanvasVisible(false);
-    setInitialCanvasVisible(true);
-  };
-
-  return (
-    <div className={cn("flex w-[100%] flex-col min-h-screen bg-black relative", className)}>
-      <div className="absolute inset-0 z-0">
-        {initialCanvasVisible && (
-          <div className="absolute inset-0">
-            <CanvasRevealEffect
-              animationSpeed={3}
-              containerClassName="bg-black"
-              colors={[
-                [255, 255, 255],
-                [255, 255, 255],
-              ]}
-              dotSize={6}
-              reverse={false}
-            />
-          </div>
-        )}
-        
-        {reverseCanvasVisible && (
-          <div className="absolute inset-0">
-            <CanvasRevealEffect
-              animationSpeed={4}
-              containerClassName="bg-black"
-              colors={[
-                [255, 255, 255],
-                [255, 255, 255],
-              ]}
-              dotSize={6}
-              reverse={true}
-            />
-          </div>
-        )}
-        
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,0,0,1)_0%,_transparent_100%)]" />
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black to-transparent" />
-      </div>
-      
-      <div className="relative z-10 flex flex-col flex-1">
-        <MiniNavbar />
-
-        <div className="flex flex-1 flex-col lg:flex-row ">
-          <div className="flex-1 flex flex-col justify-center items-center">
-            <div className="w-full mt-[150px] max-w-sm">
-              <AnimatePresence mode="wait">
-                {step === "email" ? (
-                  <motion.div 
-                    key="email-step"
-                    initial={{ opacity: 0, x: -100 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="space-y-6 text-center"
-                  >
-                    <div className="space-y-1">
-                      <h1 className="text-[2.5rem] font-bold leading-[1.1] tracking-tight text-white">Welcome Developer</h1>
-                      <p className="text-[1.8rem] text-white/70 font-light">Your sign in component</p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <button className="backdrop-blur-[2px] w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full py-3 px-4 transition-colors">
-                        <span className="text-lg">G</span>
-                        <span>Sign in with Google</span>
-                      </button>
-                      
-                      <div className="flex items-center gap-4">
-                        <div className="h-px bg-white/10 flex-1" />
-                        <span className="text-white/40 text-sm">or</span>
-                        <div className="h-px bg-white/10 flex-1" />
-                      </div>
-                      
-                      <form onSubmit={handleEmailSubmit}>
-                        <div className="relative">
-                          <input 
-                            type="email" 
-                            placeholder="info@gmail.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full backdrop-blur-[1px] text-white border-1 border-white/10 rounded-full py-3 px-4 focus:outline-none focus:border focus:border-white/30 text-center"
-                            required
-                          />
-                          <button 
-                            type="submit"
-                            className="absolute right-1.5 top-1.5 text-white w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors group overflow-hidden"
-                          >
-                            <span className="relative w-full h-full block overflow-hidden">
-                              <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:translate-x-full">
-                                →
-                              </span>
-                              <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 -translate-x-full group-hover:translate-x-0">
-                                →
-                              </span>
-                            </span>
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                    
-                    <p className="text-xs text-white/40 pt-10">
-                      By signing up, you agree to the <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">MSA</a>, <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Product Terms</a>, <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Policies</a>, <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Privacy Notice</a>, and <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Cookie Notice</a>.
-                    </p>
-                  </motion.div>
-                ) : step === "code" ? (
-                  <motion.div 
-                    key="code-step"
-                    initial={{ opacity: 0, x: 100 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 100 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="space-y-6 text-center"
-                  >
-                    <div className="space-y-1">
-                      <h1 className="text-[2.5rem] font-bold leading-[1.1] tracking-tight text-white">We sent you a code</h1>
-                      <p className="text-[1.25rem] text-white/50 font-light">Please enter it</p>
-                    </div>
-                    
-                    <div className="w-full">
-                      <div className="relative rounded-full py-4 px-5 border border-white/10 bg-transparent">
-                        <div className="flex items-center justify-center">
-                          {code.map((digit, i) => (
-                            <div key={i} className="flex items-center">
-                              <div className="relative">
-                                <input
-                                  ref={(el) => {
-                                    codeInputRefs.current[i] = el;
-                                  }}
-                                  type="text"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  maxLength={1}
-                                  value={digit}
-                                  onChange={e => handleCodeChange(i, e.target.value)}
-                                  onKeyDown={e => handleKeyDown(i, e)}
-                                  className="w-8 text-center text-xl bg-transparent text-white border-none focus:outline-none focus:ring-0 appearance-none"
-                                  style={{ caretColor: 'transparent' }}
-                                />
-                                {!digit && (
-                                  <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none">
-                                    <span className="text-xl text-white">0</span>
-                                  </div>
-                                )}
-                              </div>
-                              {i < 5 && <span className="text-white/20 text-xl">|</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <motion.p 
-                        className="text-white/50 hover:text-white/70 transition-colors cursor-pointer text-sm"
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        Resend code
-                      </motion.p>
-                    </div>
-                    
-                    <div className="flex w-full gap-3">
-                      <motion.button 
-                        onClick={handleBackClick}
-                        className="rounded-full bg-white text-black font-medium px-8 py-3 hover:bg-white/90 transition-colors w-[30%]"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        Back
-                      </motion.button>
-                      <motion.button 
-                        className={`flex-1 rounded-full font-medium py-3 border transition-all duration-300 ${
-                          code.every(d => d !== "") 
-                          ? "bg-white text-black border-transparent hover:bg-white/90 cursor-pointer" 
-                          : "bg-[#111] text-white/50 border-white/10 cursor-not-allowed"
-                        }`}
-                        disabled={!code.every(d => d !== "")}
-                      >
-                        Continue
-                      </motion.button>
-                    </div>
-                    
-                    <div className="pt-16">
-                      <p className="text-xs text-white/40">
-                        By signing up, you agree to the <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">MSA</a>, <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Product Terms</a>, <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Policies</a>, <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Privacy Notice</a>, and <a href="#" className="underline text-white/40 hover:text-white/60 transition-colors">Cookie Notice</a>.
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    key="success-step"
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, ease: "easeOut", delay: 0.3 }}
-                    className="space-y-6 text-center"
-                  >
-                    <div className="space-y-1">
-                      <h1 className="text-[2.5rem] font-bold leading-[1.1] tracking-tight text-white">You're in!</h1>
-                      <p className="text-[1.25rem] text-white/50 font-light">Welcome</p>
-                    </div>
-                    
-                    <motion.div 
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 0.5 }}
-                      className="py-10"
-                    >
-                      <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-white to-white/70 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </motion.div>
-                    
-                    <motion.button 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 1 }}
-                      className="w-full rounded-full bg-white text-black font-medium py-3 hover:bg-white/90 transition-colors"
-                    >
-                      Continue to Dashboard
-                    </motion.button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 interface StarBorderProps<T extends ElementType> {
   as?: T
   color?: string
@@ -893,6 +441,7 @@ interface GlowingEffectProps {
   movementDuration?: number;
   borderWidth?: number;
 }
+
 const GlowingEffect = memo(
   ({
     blur = 0,
@@ -1315,10 +864,10 @@ export function TestimonialsSection({
   description,
   testimonials,
   className 
-}: TestimonialsSectionProps) {
+}: TestimonialSectionProps) {
   return (
     <section className={cn(
-      "bg-black text-foreground", // Changed background to black
+      "bg-black text-foreground",
       "py-12 sm:py-24 md:py-32 px-0",
       className
     )}>
@@ -1354,8 +903,346 @@ export function TestimonialsSection({
   )
 }
 
+const AnimatedGradientBackground = ({
+  startingGap = 125,
+  Breathing = false,
+  gradientColors = [
+    "#0A0A0A",
+    "#2979FF", 
+    "#FF80AB",
+    "#FF6D00",
+    "#FFD600",
+    "#00E676",
+    "#3D5AFE"
+  ],
+  gradientStops = [35, 50, 60, 70, 80, 90, 100],
+  animationSpeed = 0.02,
+  breathingRange = 5,
+  containerStyle = {},
+  topOffset = 0,
+  containerClassName = "",
+}: {
+  startingGap?: number;
+  Breathing?: boolean;
+  gradientColors?: string[];
+  gradientStops?: number[];
+  animationSpeed?: number;
+  breathingRange?: number;
+  containerStyle?: React.CSSProperties;
+  topOffset?: number;
+  containerClassName?: string;
+}) => {
+  if (gradientColors.length !== gradientStops.length) {
+    throw new Error(
+      `GradientColors and GradientStops must have the same length.
+   Received gradientColors length: ${gradientColors.length},
+   gradientStops length: ${gradientStops.length}`
+    );
+  }
 
-const Index = () => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let animationFrame: number;
+    let width = startingGap;
+    let directionWidth = 1;
+
+    const animateGradient = () => {
+      if (width >= startingGap + breathingRange) directionWidth = -1;
+      if (width <= startingGap - breathingRange) directionWidth = 1;
+
+      if (!Breathing) directionWidth = 0;
+      width += directionWidth * animationSpeed;
+
+      const gradientStopsString = gradientStops
+        .map((stop, index) => `${gradientColors[index]} ${stop}%`)
+        .join(", ");
+
+      const gradient = `radial-gradient(${width}% ${width+topOffset}% at 50% 20%, ${gradientStopsString})`;
+
+      if (containerRef.current) {
+        containerRef.current.style.background = gradient;
+      }
+
+      animationFrame = requestAnimationFrame(animateGradient);
+    };
+
+    animationFrame = requestAnimationFrame(animateGradient);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [startingGap, Breathing, gradientColors, gradientStops, animationSpeed, breathingRange, topOffset]);
+
+  return (
+    <motion.div
+      key="animated-gradient-background"
+      initial={{
+        opacity: 0,
+        scale: 1.5,
+      }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        transition: {
+          duration: 2,
+          ease: [0.25, 0.1, 0.25, 1],
+        },
+      }}
+      className={`absolute inset-0 overflow-hidden ${containerClassName}`}
+    >
+      <div
+        ref={containerRef}
+        style={containerStyle}
+        className="absolute inset-0 transition-transform"
+      />
+    </motion.div>
+  );
+};
+
+const Navbar = () => {
+  const [active, setActive] = useState<string | null>(null);
+  
+  const transition = {
+    type: "spring",
+    mass: 0.5,
+    damping: 11.5,
+    stiffness: 100,
+    restDelta: 0.001,
+    restSpeed: 0.001,
+  };
+
+  const navigationLinks = [
+    { href: "#", label: "Home" },
+    { href: "#features", label: "Features" },
+    { href: "#pricing", label: "Pricing" },
+    { href: "#about", label: "About" },
+  ];
+
+  const MenuItem = ({
+    setActive,
+    active,
+    item,
+    children,
+  }: {
+    setActive: (item: string) => void;
+    active: string | null;
+    item: string;
+    children?: React.ReactNode;
+  }) => {
+    return (
+      <div onMouseEnter={() => setActive(item)} className="relative">
+        <motion.p
+          transition={{ duration: 0.3 }}
+          className="cursor-pointer text-white hover:opacity-[0.9]"
+        >
+          {item}
+        </motion.p>
+        {active !== null && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={transition}
+          >
+            {active === item && (
+              <div className="absolute top-[calc(100%_+_1.2rem)] left-1/2 transform -translate-x-1/2 pt-4">
+                <motion.div
+                  transition={transition}
+                  layoutId="active"
+                  className="bg-white dark:bg-black backdrop-blur-sm rounded-2xl overflow-hidden border border-black/[0.2] dark:border-white/[0.2] shadow-xl"
+                >
+                  <motion.div layout className="w-max h-full p-4">
+                    {children}
+                  </motion.div>
+                </motion.div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </div>
+    );
+  };
+
+  const Menu = ({
+    setActive,
+    children,
+  }: {
+    setActive: (item: string | null) => void;
+    children: React.ReactNode;
+  }) => {
+    return (
+      <nav
+        onMouseLeave={() => setActive(null)}
+        className="relative rounded-full border border-transparent bg-transparent shadow-input flex justify-center space-x-4 px-8 py-3 backdrop-blur-md"
+      >
+        {children}
+      </nav>
+    );
+  };
+
+  const HoveredLink = ({ children, href, ...rest }: any) => {
+    return (
+      <a
+        href={href}
+        {...rest}
+        className="text-neutral-700 dark:text-neutral-200 hover:text-black"
+      >
+        {children}
+      </a>
+    );
+  };
+
+  return (
+    <div className="fixed top-4 inset-x-0 max-w-2xl mx-auto z-50">
+      <Menu setActive={setActive}>
+        {navigationLinks.map((link) => (
+          <MenuItem key={link.label} setActive={setActive} active={active} item={link.label}>
+            <div className="flex flex-col space-y-4 text-sm">
+              <HoveredLink href={link.href}>{link.label}</HoveredLink>
+              {link.label === "Features" && (
+                <>
+                  <HoveredLink href="#features">AI Chat Tutor</HoveredLink>
+                  <HoveredLink href="#features">Smart Notes</HoveredLink>
+                  <HoveredLink href="#features">Instant Quizzes</HoveredLink>
+                  <HoveredLink href="#features">Smart Flashcards</HoveredLink>
+                </>
+              )}
+              {link.label === "Pricing" && (
+                <>
+                  <HoveredLink href="#pricing">Free Plan</HoveredLink>
+                  <HoveredLink href="#pricing">Pro Plan</HoveredLink>
+                  <HoveredLink href="#pricing">Team Plan</HoveredLink>
+                </>
+              )}
+              {link.label === "About" && (
+                <>
+                  <HoveredLink href="#about">Our Story</HoveredLink>
+                  <HoveredLink href="#about">Careers</HoveredLink>
+                  <HoveredLink href="#about">Contact</HoveredLink>
+                </>
+              )}
+            </div>
+          </MenuItem>
+        ))}
+        <a href="#signin" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Sign In</a>
+        <a href="#tryforfree" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Try for free</a>
+      </Menu>
+    </div>
+  );
+};
+
+interface FAQItem {
+  id: number;
+  question: string;
+  answer: string;
+  icon?: string;
+  iconPosition?: "left" | "right";
+}
+
+interface FaqAccordionProps {
+  data: FAQItem[];
+  className?: string;
+  timestamp?: string;
+  questionClassName?: string;
+  answerClassName?: string;
+}
+
+export function FaqAccordion({
+  data,
+  className,
+  timestamp = "Every day, 9:01 AM",
+  questionClassName,
+  answerClassName,
+}: FaqAccordionProps) {
+  const [openItem, setOpenItem] = React.useState<string | null>(null);
+
+  return (
+    <div className={cn("p-4", className)}>
+      {timestamp && (
+        <div className="mb-4 text-sm text-muted-foreground">{timestamp}</div>
+      )}
+
+      <Accordion.Root
+        type="single"
+        collapsible
+        value={openItem || ""}
+        onValueChange={(value) => setOpenItem(value)}
+      >
+        {data.map((item) => (
+          <Accordion.Item 
+            value={item.id.toString()} 
+            key={item.id} 
+            className="mb-2 border-b border-slate-700/50 last:border-b-0"
+          >
+            <Accordion.Header>
+              <Accordion.Trigger className="flex w-full items-center justify-between gap-x-4 py-4 text-left text-lg font-medium text-white hover:text-purple-300 transition-colors">
+                <div
+                  className={cn(
+                    "relative flex items-center space-x-2 rounded-xl p-2 transition-colors",
+                    questionClassName
+                  )}
+                >
+                  {item.icon && (
+                    <span
+                      className={cn(
+                        "absolute bottom-6",
+                        item.iconPosition === "right" ? "right-0" : "left-0"
+                      )}
+                      style={{
+                        transform: item.iconPosition === "right" 
+                          ? "rotate(7deg)" 
+                          : "rotate(-4deg)",
+                      }}
+                    >
+                      {item.icon}
+                    </span>
+                  )}
+                  <span className="font-medium">{item.question}</span>
+                </div>
+
+                <span 
+                  className={cn(
+                    "text-purple-400",
+                    openItem === item.id.toString() && "text-purple-300"
+                  )}
+                >
+                  {openItem === item.id.toString() ? (
+                    <Minus className="h-5 w-5" />
+                  ) : (
+                    <Plus className="h-5 w-5" />
+                  )}
+                </span>
+              </Accordion.Trigger>
+            </Accordion.Header>
+            <Accordion.Content asChild forceMount>
+              <motion.div
+                initial="collapsed"
+                animate={openItem === item.id.toString() ? "open" : "collapsed"}
+                variants={{
+                  open: { opacity: 1, height: "auto" },
+                  collapsed: { opacity: 0, height: 0 },
+                }}
+                transition={{ duration: 0.4 }}
+                className="overflow-hidden"
+              >
+                <div className="ml-0 mt-1 pb-4 md:ml-0">
+                  <div
+                    className={cn(
+                      "relative rounded-lg bg-slate-800/50 px-4 py-3 text-slate-300 text-base",
+                      answerClassName
+                    )}
+                  >
+                    {item.answer}
+                  </div>
+                </div>
+              </motion.div>
+            </Accordion.Content>
+          </Accordion.Item>
+        ))}
+      </Accordion.Root>
+    </div>
+  );
+}
+
+const OptimizedLearningPlatform = () => {
   const [scrollY, setScrollY] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -1436,8 +1323,68 @@ const Index = () => {
     },
   ];
 
-  return (
+  const faqData = [
+    {
+      id: 1,
+      question: "What can Tutorly help me with?",
+      answer: "Tutorly is an AI-powered study assistant that can help you with instant AI tutoring, smart note generation, quiz creation, adaptive flashcards, math problem solving, and multilingual learning support. It's designed to make your study routine more efficient and effective.",
+    },
+    {
+      id: 2,
+      question: "How accurate are the AI-generated notes?",
+      answer: "Our AI-generated notes are highly accurate, leveraging advanced natural language processing to summarize and extract key information from your documents. While highly reliable, we always recommend reviewing them to ensure they align perfectly with your specific learning needs.",
+    },
+    {
+      id: 3,
+      question: "Is Tutorly free to use?",
+      answer: "Yes, Tutorly offers a free plan with essential features to get you started. We also have Pro and Team plans with more advanced functionalities and unlimited usage for those who need more comprehensive support.",
+    },
+    {
+      id: 4,
+      question: "Can I upload PDF or DOCX files for summarization?",
+      answer: "Absolutely! Tutorly supports uploading various document formats, including PDF and DOCX, for AI-powered summarization. Simply upload your file, and our AI will quickly process it to provide concise summaries and key insights.",
+    },
+    {
+      id: 5,
+      question: "Are my documents and data secure?",
+      answer: "We prioritize your data security and privacy. All uploaded documents and personal data are encrypted and stored securely. We adhere to strict privacy policies and do not share your information with third parties.",
+    },
+    {
+      id: 6,
+      question: "What languages does Tutorly support?",
+      answer: "Tutorly's multilingual AI supports a wide range of languages, allowing you to learn and interact in your preferred language. Our goal is to make learning accessible to students worldwide.",
+    },
+    {
+      id: 7,
+      question: "Can I use Tutorly on mobile devices?",
+      answer: "Yes, Tutorly is designed to be fully responsive and accessible across all devices, including smartphones and tablets. You can access your study materials and AI tools anytime, anywhere, directly from your mobile browser.",
+    },
+  ];
+
+  const universityLogos = [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Harvard_University_shield.svg/1200px-Harvard_University_shield.svg.png", // Harvard
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Stanford_University_seal_2003.svg/1200px-Stanford_University_seal_2003.svg.png", // Stanford
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/MIT_seal.svg/1200px-MIT_seal.svg.png", // MIT
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/University_of_Oxford_coat_of_arms.svg/1200px-University_of_Oxford_coat_of_arms.svg.png", // Oxford
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/University_of_Cambridge_coat_of_arms.svg/1200px-University_of_Cambridge_coat_of_arms.svg.png", // Cambridge
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/University_of_California%2C_Berkeley_seal.svg/1200px-University_of_California%2C_Berkeley_seal.svg.png", // UC Berkeley
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/ETH_Zurich_logo.svg/1200px-ETH_Zurich_logo.svg.png", // ETH Zurich
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Yale_University_seal.svg/1200px-Yale_University_seal.svg.png", // Yale
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/UCLA_seal.svg/1200px-UCLA_seal.svg.png", // UCLA
+    "https://upload.wikimedia.org/wikipedia/en/thumb/e/e7/IIT_Bombay_Logo.svg/1200px-IIT_Bombay_Logo.svg.png", // IIT Bombay
+    "https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/Nanyang_Technological_University_logo.svg/1200px-Nanyang_Technological_University_logo.svg.png", // NTU
+    "https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/University_of_Toronto_logo.svg/1200px-University_of_Toronto_logo.svg.png", // University of Toronto
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Peking_University_seal.svg/1200px-Peking_University_seal.svg.png", // Peking University
+    "https://upload.wikimedia.org/wikipedia/en/thumb/0/0b/University_of_Melbourne_logo.svg/1200px-University_of_Melbourne_logo.svg.png", // University of Melbourne
+    "https://upload.wikimedia.org/wikipedia/en/thumb/c/c9/Seoul_National_University_logo.svg/1200px-Seoul_National_University_logo.svg.png", // Seoul National University
+    "https://upload.wikimedia.org/wikipedia/en/thumb/c/c9/University_of_Edinburgh_logo.svg/1200px-University_of_Edinburgh_logo.svg.png", // University of Edinburgh
+  ];
+
+    return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-black">
+      {/* Navbar */}
+      <Navbar />
+      
       {/* Enhanced Hero Section with Canvas Reveal Effect */}
       <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 dark:from-black dark:via-purple-950 dark:to-black min-h-screen flex items-center">
         {/* Canvas Reveal Effect Background */}
@@ -1507,7 +1454,7 @@ const Index = () => {
                     </motion.span>
                   ))}
                 </span>
-                <span className="block text-4xl md:text-5xl bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                <span className="block text-4xl md:text-5xl text-gray-900 dark:text-gray-100">
                   AI Tutor
                 </span>
               </h1>
@@ -1521,14 +1468,14 @@ const Index = () => {
               </p>
             </motion.div>
 
-            <motion.div
+                        <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
             >
-                            <RainbowButton 
-                className="text-lg px-8 py-4 h-auto font-semibold shadow-xl"
+              <RainbowButton 
+                className="text-lg px-8 py-4 h-auto font-semibold shadow-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
                 onClick={handleGetStarted}
                 disabled={isLoading}
               >
@@ -1536,13 +1483,13 @@ const Index = () => {
                 Start Learning Free
               </RainbowButton>
               
-                            <RainbowButton 
-                className="text-lg px-8 py-4 h-auto"
+              <button 
+                className="text-lg px-8 py-4 h-auto font-semibold bg-transparent border-2 border-white/30 text-white rounded-xl hover:bg-white/10 hover:border-white/50 transition-all duration-300 backdrop-blur-sm"
                 onClick={() => setIsVideoPlaying(true)}
               >
-                <Play className="mr-2 h-5 w-5" />
+                <Play className="mr-2 h-5 w-5 inline" />
                 Watch Demo
-              </RainbowButton>
+              </button>
             </motion.div>
 
             {/* Floating Stats */}
@@ -1646,7 +1593,7 @@ const Index = () => {
         </div>
       </section>
 
-            {/* Why Choose Tutorly? Section with Timeline */}
+      {/* Why Choose Tutorly? Section with Timeline */}
       <Timeline data={[
         {
           title: "24/7 AI Tutoring",
@@ -1736,31 +1683,93 @@ const Index = () => {
         },
       ]} />
 
-      {/* Testimonials Section */}
-      <TestimonialsSection
-        title="Trusted by Students worldwide"
-        description="Join thousands of Students who are already building the future with our AI platform"
-        testimonials={testimonials}
-        className="bg-black" // Ensure background is black
-      />
+      {/* University Logos Section */}
+      <section className="py-20 bg-black text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-12 relative inline-block pb-2">
+            Loved by thousands of students across top universities and schools worldwide
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full opacity-70" />
+          </h2>
+          <div className="relative w-full max-w-4xl mx-auto aspect-square">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative w-full h-full">
+                {universityLogos.map((logo, index) => {
+                  const angle = (index / universityLogos.length) * 2 * Math.PI;
+                  const radius = 200; // Adjust radius as needed for visual balance
+                  const x = radius * Math.cos(angle);
+                  const y = radius * Math.sin(angle);
+
+                  return (
+                    <motion.img
+                      key={index}
+                      src={logo}
+                      alt={`University Logo ${index + 1}`}
+                      className="absolute w-16 h-16 object-contain opacity-70 hover:opacity-100 transition-opacity duration-300"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 0.7, scale: 1 }}
+                      transition={{ duration: 0.5, delay: index * 0.05 }}
+                      style={{
+                        left: `calc(50% + ${x}px - 32px)`, // 32px is half of w-16
+                        top: `calc(50% + ${y}px - 32px)`,  // 32px is half of h-16
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+            {/* Testimonials Section */}
+      <section className="bg-black text-foreground py-12 sm:py-24 md:py-32 px-0">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 text-center sm:gap-16">
+          <div className="flex flex-col items-center gap-4 px-4 sm:gap-8">
+            <h2 className="max-w-[720px] text-3xl font-semibold leading-tight sm:text-5xl sm:leading-tight text-white">
+              Trusted by Students worldwide
+            </h2>
+            <p className="text-md max-w-[600px] font-medium text-muted-foreground sm:text-xl text-gray-400">
+              Join thousands of Students who are already building the future with our AI platform
+            </p>
+          </div>
+
+          <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
+            <div className="group flex overflow-hidden p-2 [--gap:1rem] [gap:var(--gap)] flex-row [--duration:40s]">
+              <div className="flex shrink-0 justify-around [gap:var(--gap)] animate-marquee flex-row group-hover:[animation-play-state:paused]">
+                {[...Array(4)].map((_, setIndex) => (
+                  testimonials.map((testimonial, i) => (
+                    <TestimonialCard 
+                      key={`${setIndex}-${i}`}
+                      {...testimonial}
+                    />
+                  ))
+                ))}
+              </div>
+            </div>
+
+            <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/3 bg-gradient-to-r from-black sm:block" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-black sm:block" />
+          </div>
+        </div>
+      </section>
 
             {/* Pricing Section */}
-      <section className="py-20 bg-white dark:bg-black">
+      <section className="relative overflow-hidden bg-black text-white py-20">
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-semibold leading-tight sm:text-4xl sm:leading-tight md:text-5xl md:leading-tight text-white mb-4">
               Choose Your Plan
             </h2>
-            <p className="text-xl text-gray-400 mb-8">
+            <p className="text-base text-gray-400 md:text-lg mb-8">
               Start free, upgrade when you're ready
             </p>
 
-            <div className="inline-flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+            <div className="inline-flex bg-zinc-800 p-1 rounded-lg">
               <button
                 className={`px-6 py-2 rounded-md font-semibold transition-all ${
                   pricingToggle === "monthly" 
-                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400"
+                    ? "bg-zinc-700 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
                 }`}
                 onClick={() => setPricingToggle("monthly")}
               >
@@ -1769,137 +1778,215 @@ const Index = () => {
               <button
                 className={`px-6 py-2 rounded-md font-semibold transition-all ${
                   pricingToggle === "yearly" 
-                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400"
+                    ? "bg-zinc-700 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
                 }`}
                 onClick={() => setPricingToggle("yearly")}
               >
                 Yearly
-                <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">Save 20%</span>
+                <span className="ml-2 text-xs bg-green-600 text-white px-2 py-1 rounded-full">Save 20%</span>
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3 max-w-5xl mx-auto">
-            <div className="relative rounded-[1.25rem] border-[0.75px] border-border p-2 md:rounded-[1.5rem] md:p-3">
-              <GlowingEffect
-                spread={40}
-                glow={true}
-                disabled={false}
-                proximity={64}
-                inactiveZone={0.01}
-                borderWidth={3}
-                variant="white"
-              />
-              <PricingCard
-                tier="Free"
-                price="$0/mo"
-                bestFor="Perfect for getting started"
-                                CTA="Get Started Free"
-                benefits={[
-                  { text: "5 AI summaries/month", checked: true },
-                  { text: "Basic flashcards", checked: true },
-                  { text: "Community support", checked: true },
-                  { text: "Unlimited AI features", checked: false },
-                  { text: "Advanced quiz generation", checked: false },
-                  { text: "Priority support", checked: false },
-                ]}
-              />
-            </div>
-            <div className="relative rounded-[1.25rem] border-[0.75px] border-border p-2 md:rounded-[1.5rem] md:p-3">
-              <GlowingEffect
-                spread={40}
-                glow={true}
-                disabled={false}
-                proximity={64}
-                inactiveZone={0.01}
-                borderWidth={3}
-                variant="white"
-              />
-              <PricingCard
-                tier="Pro"
-                price={pricingToggle === "monthly" ? "$9.99/mo" : "$7.99/mo"}
-                bestFor="Best for serious students"
-                                CTA="Upgrade to Pro"
-                benefits={[
-                  { text: "Unlimited AI features", checked: true },
-                  { text: "Advanced quiz generation", checked: true },
-                  { text: "Priority support", checked: true },
-                  { text: "Export options", checked: true },
-                  { text: "Team collaboration", checked: false },
-                  { text: "Admin dashboard", checked: false },
-                ]}
-              />
-            </div>
-            <div className="relative rounded-[1.25rem] border-[0.75px] border-border p-2 md:rounded-[1.5rem] md:p-3">
-              <GlowingEffect
-                spread={40}
-                glow={true}
-                disabled={false}
-                proximity={64}
-                inactiveZone={0.01}
-                borderWidth={3}
-                variant="white"
-              />
-              <PricingCard
-                tier="Team"
-                price={pricingToggle === "monthly" ? "$19.99/mo" : "$15.99/mo"}
-                bestFor="For study groups & classes"
-                                CTA="Contact Sales"
-                benefits={[
-                  { text: "Everything in Pro", checked: true },
-                  { text: "Team collaboration", checked: true },
-                  { text: "Admin dashboard", checked: true },
-                  { text: "Custom integrations", checked: true },
-                  { text: "Dedicated account manager", checked: true },
-                  { text: "SLA", checked: true },
-                ]}
-              />
-            </div>
+            <motion.div
+              initial={{ filter: "blur(2px)" }}
+              whileInView={{ filter: "blur(0px)" }}
+              transition={{ duration: 0.5, ease: "easeInOut", delay: 0.25 }}
+            >
+              <Card className="relative h-full w-full overflow-hidden border border-zinc-700 bg-gradient-to-br from-zinc-950/50 to-zinc-900/80 p-6">
+                <div className="flex flex-col items-center border-b pb-6 border-zinc-700">
+                  <span className="mb-6 inline-block text-zinc-50">Free</span>
+                  <span className="mb-3 inline-block text-4xl font-medium text-white">$0/mo</span>
+                  <span className="bg-gradient-to-br from-zinc-200 to-zinc-500 bg-clip-text text-center text-transparent">
+                    Perfect for getting started
+                  </span>
+                </div>
+                <div className="space-y-4 py-9">
+                  {[
+                    { text: "5 AI summaries/month", checked: true },
+                    { text: "Basic flashcards", checked: true },
+                    { text: "Community support", checked: true },
+                    { text: "Unlimited AI features", checked: false },
+                    { text: "Advanced quiz generation", checked: false },
+                    { text: "Priority support", checked: false },
+                  ].map((benefit, index) => (
+                    <Benefit key={index} {...benefit} />
+                  ))}
+                </div>
+                <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-600" variant="ghost">
+                  Get Started Free
+                </Button>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ filter: "blur(2px)" }}
+              whileInView={{ filter: "blur(0px)" }}
+              transition={{ duration: 0.5, ease: "easeInOut", delay: 0.35 }}
+            >
+              <Card className="relative h-full w-full overflow-hidden border border-zinc-600 bg-gradient-to-br from-zinc-900/50 to-zinc-800/80 p-6 ring-2 ring-purple-500/20">
+                <div className="flex flex-col items-center border-b pb-6 border-zinc-700">
+                  <span className="mb-6 inline-block text-zinc-50">Pro</span>
+                  <span className="mb-3 inline-block text-4xl font-medium text-white">
+                    {pricingToggle === "monthly" ? "$9.99/mo" : "$7.99/mo"}
+                  </span>
+                  <span className="bg-gradient-to-br from-zinc-200 to-zinc-500 bg-clip-text text-center text-transparent">
+                    Best for serious students
+                  </span>
+                </div>
+                <div className="space-y-4 py-9">
+                  {[
+                    { text: "Unlimited AI features", checked: true },
+                    { text: "Advanced quiz generation", checked: true },
+                    { text: "Priority support", checked: true },
+                    { text: "Export options", checked: true },
+                    { text: "Team collaboration", checked: false },
+                    { text: "Admin dashboard", checked: false },
+                  ].map((benefit, index) => (
+                    <Benefit key={index} {...benefit} />
+                  ))}
+                </div>
+                <RainbowButton className="w-full h-auto py-3">
+                  Upgrade to Pro
+                </RainbowButton>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ filter: "blur(2px)" }}
+              whileInView={{ filter: "blur(0px)" }}
+              transition={{ duration: 0.5, ease: "easeInOut", delay: 0.45 }}
+            >
+              <Card className="relative h-full w-full overflow-hidden border border-zinc-700 bg-gradient-to-br from-zinc-950/50 to-zinc-900/80 p-6">
+                <div className="flex flex-col items-center border-b pb-6 border-zinc-700">
+                  <span className="mb-6 inline-block text-zinc-50">Team</span>
+                  <span className="mb-3 inline-block text-4xl font-medium text-white">
+                    {pricingToggle === "monthly" ? "$19.99/mo" : "$15.99/mo"}
+                  </span>
+                  <span className="bg-gradient-to-br from-zinc-200 to-zinc-500 bg-clip-text text-center text-transparent">
+                    For study groups & classes
+                  </span>
+                </div>
+                <div className="space-y-4 py-9">
+                  {[
+                    { text: "Everything in Pro", checked: true },
+                    { text: "Team collaboration", checked: true },
+                    { text: "Admin dashboard", checked: true },
+                    { text: "Custom integrations", checked: true },
+                    { text: "Dedicated account manager", checked: true },
+                    { text: "SLA", checked: true },
+                  ].map((benefit, index) => (
+                    <Benefit key={index} {...benefit} />
+                  ))}
+                </div>
+                <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-600" variant="ghost">
+                  Contact Sales
+                </Button>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-black text-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-12">
+            Frequently Asked Questions
+          </h2>
+          <div className="max-w-3xl mx-auto">
+            <FaqAccordion
+              data={faqData}
+              className="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50"
+              questionClassName="text-white"
+              answerClassName="text-slate-300"
+              timestamp="" // Remove timestamp as per request
+            />
           </div>
         </div>
       </section>
 
             {/* Final CTA */}
       <section className="relative py-20 overflow-hidden">
-        {/* Rectangle gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 dark:from-purple-800 dark:via-blue-800 dark:to-indigo-800" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-        
-        {/* Animated gradient overlay */}
-        <motion.div 
-          className="absolute inset-0 opacity-30"
-          animate={{
-            background: [
-              "radial-gradient(circle at 20% 20%, rgba(147, 51, 234, 0.4) 0%, transparent 50%)",
-              "radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.4) 0%, transparent 50%)",
-              "radial-gradient(circle at 40% 60%, rgba(147, 51, 234, 0.4) 0%, transparent 50%)"
-            ]
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        {/* Animated Gradient Background */}
+        <AnimatedGradientBackground
+          startingGap={125}
+          Breathing={true}
+          gradientColors={[
+            "#0A0A0A",
+            "#9333EA", // Purple to match hero
+            "#3B82F6", // Blue to match hero  
+            "#6366F1", // Indigo to match hero
+            "#8B5CF6", // Violet
+            "#A855F7", // Purple variant
+            "#7C3AED"  // Purple variant
+          ]}
+          gradientStops={[35, 50, 60, 70, 80, 90, 100]}
+          animationSpeed={0.02}
+          breathingRange={5}
+          topOffset={0}
+          containerClassName="opacity-80"
         />
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
         <div className="container mx-auto px-4 text-center relative z-10">
           <motion.div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Ready to Transform Your Learning?
-            </h2>
-            <p className="text-xl text-gray-200 mb-8">
-              Join over 500,000 students who are already studying smarter with AI
-            </p>
-            
-            <RainbowButton
-              className="text-xl px-12 py-4 h-auto font-semibold shadow-xl"
-              onClick={handleGetStarted}
-              disabled={isLoading}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="mb-8"
             >
-              <Zap className="mr-2 h-6 w-6" />
-              {isLoading ? "Loading..." : "Start Your Free Journey"}
-            </RainbowButton>
+              <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/30 px-4 py-2 rounded-full mb-6">
+                <Sparkles className="h-4 w-4 text-purple-300" />
+                <span className="text-sm font-semibold text-purple-200">Transform Your Learning Today</span>
+              </div>
+            </motion.div>
             
-            <p className="text-gray-200 mt-4 text-sm">
+            <motion.h2 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="text-4xl md:text-5xl font-bold text-white mb-6"
+            >
+              Ready to Transform Your Learning?
+            </motion.h2>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-xl text-gray-200 mb-8"
+            >
+              Join over 500,000 students who are already studying smarter with AI
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            >
+              <RainbowButton
+                className="text-xl px-12 py-4 h-auto font-semibold shadow-xl"
+                onClick={handleGetStarted}
+                disabled={isLoading}
+              >
+                <Zap className="mr-2 h-6 w-6" />
+                {isLoading ? "Loading..." : "Start Your Free Journey"}
+              </RainbowButton>
+            </motion.div>
+            
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-gray-200 mt-4 text-sm"
+            >
               No credit card required • Free forever plan available
-            </p>
+            </motion.p>
           </motion.div>
         </div>
       </section>
@@ -1927,12 +2014,12 @@ const Index = () => {
                 <p className="text-sm opacity-75">See Tutorly in action</p>
               </div>
             </div>
-                        <RainbowButton
-              className="w-full h-auto py-3"
+                        <button
+              className="w-full h-auto py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all duration-300"
               onClick={() => setIsVideoPlaying(false)}
             >
               Close
-            </RainbowButton>
+            </button>
           </motion.div>
         </motion.div>
       )}
@@ -1940,4 +2027,5 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default OptimizedLearningPlatform;
+
