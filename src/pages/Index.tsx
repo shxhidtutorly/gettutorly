@@ -1897,7 +1897,7 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
           Loved by students from top global universities
           <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full opacity-70" />
         </h2>
-        <UniversityLogoCloud />
+        <universitylogocloud />
       </div>
     </section>
 
