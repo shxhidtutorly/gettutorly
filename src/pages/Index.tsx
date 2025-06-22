@@ -1631,24 +1631,27 @@ const OptimizedLearningPlatform = () => {
                 Your Personal
                 <span className="relative flex w-full justify-center overflow-hidden text-center md:pb-4 md:pt-1">
                   &nbsp;
-                  {titles.map((title, index) => (
-                    <motion.span
-                      key={index}
-className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent dark:bg-none dark:text-white"                      animate={
-                        titleNumber === index
-                          ? {
-                              y: 0,
-                              opacity: 1,
-                            }
-                          : {
-                              y: titleNumber > index ? -150 : 150,
-                              opacity: 0,
-                            }
-                      }
-                    >
-                      {title}
-                    </motion.span>
-                  ))}
+                 {titles.map((title, index) => (
+  <motion.span
+    key={index}
+    className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent dark:from-purple-200 dark:to-blue-200"
+    initial={{ opacity: 0, y: -100 }}
+    animate={
+      titleNumber === index
+        ? {
+            y: 0,
+            opacity: 1,
+          }
+        : {
+            y: titleNumber > index ? -150 : 150,
+            opacity: 0,
+          }
+    }
+    transition={{ duration: 0.8, ease: "easeInOut" }} // <--- SMOOTH transition
+  >
+    {title}
+  </motion.span>
+))}
                 </span>
                 <span className="block text-4xl md:text-5xl text-gray-900 dark:text-gray-100">
                   AI Tutor
