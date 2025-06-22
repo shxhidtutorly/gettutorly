@@ -813,42 +813,47 @@ export const PricingCard = ({
 }: PricingCardProps) => {
   return (
     <motion.div
-      initial={{ filter: "blur(2px)" }}
-      whileInView={{ filter: "blur(0px)" }}
-      transition={{ duration: 0.5, ease: "easeInOut", delay: 0.25 }}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut", delay: 0.15 }}
     >
       <Card
         className={cn(
-          "relative h-full w-full overflow-hidden border",
-          "dark:border-zinc-700 dark:bg-gradient-to-br dark:from-zinc-950/50 dark:to-zinc-900/80",
+          "relative h-full w-full overflow-hidden rounded-2xl border shadow-md transition duration-300",
+          "dark:border-zinc-700 dark:bg-gradient-to-br dark:from-zinc-950/60 dark:to-zinc-900/80",
           "border-zinc-200 bg-gradient-to-br from-zinc-50/50 to-zinc-100/80",
           "p-6",
-          className,
+          className
         )}
       >
         <div className="flex flex-col items-center border-b pb-6 dark:border-zinc-700 border-zinc-200">
-          <span className="mb-6 inline-block dark:text-zinc-50 text-zinc-900">
+          <span className="mb-4 inline-block text-lg font-semibold text-zinc-800 dark:text-zinc-100">
             {tier}
           </span>
-          <span className="mb-3 inline-block text-4xl font-medium">
+          <span className="mb-2 inline-block text-4xl font-bold text-zinc-900 dark:text-white">
             {price}
           </span>
-          <span className="dark:bg-gradient-to-br dark:from-zinc-200 dark:to-zinc-500 bg-gradient-to-br from-zinc-700 to-zinc-900 bg-clip-text text-center text-transparent">
+          <span className="text-sm font-medium dark:text-zinc-300 text-zinc-600 text-center">
             {bestFor}
           </span>
         </div>
-        <div className="space-y-4 py-9">
+
+        <div className="space-y-4 py-8">
           {benefits.map((benefit, index) => (
             <Benefit key={index} {...benefit} />
           ))}
         </div>
-          <RainbowButton className="w-full h-auto py-3">
-            {CTA}
-          </RainbowButton>
+
+        <button
+          className="w-full rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 px-5 py-3 text-sm font-medium text-white shadow-md transition-all duration-300 hover:scale-[1.03] hover:shadow-xl active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+        >
+          {CTA}
+        </button>
       </Card>
     </motion.div>
-  )
-}
+  );
+};
+
 
 interface Testimonial {
   id: number | string
