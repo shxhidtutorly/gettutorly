@@ -1938,7 +1938,7 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
         showDots={true}
       />
       {/* Swipe indicator */}
-      <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 z-10">
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
         <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm animate-pulse">
           <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
