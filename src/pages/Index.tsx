@@ -1675,14 +1675,14 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
               transition={{ duration: 0.8, delay: 0.2 }}
               className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
             >
-              <RainbowButton 
-                className="text-lg px-8 py-4 h-auto font-semibold shadow-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
-                onClick={handleGetStarted}
-                disabled={isLoading}
-              >
-                <Zap className="mr-2 h-5 w-5" />
-                Start Learning Free
-              </RainbowButton>
+             <RainbowButton
+  className="text-lg px-8 py-4 h-auto font-semibold shadow-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
+  onClick={() => navigate('/signup')}
+  disabled={isLoading}
+>
+  <Zap className="mr-2 h-5 w-5" />
+  Start Learning Free
+</RainbowButton>
               
               <button 
                 className="text-lg px-8 py-4 h-auto font-semibold bg-transparent border-2 border-white/30 text-white rounded-xl hover:bg-white/10 hover:border-white/50 transition-all duration-300 backdrop-blur-sm"
@@ -2172,14 +2172,14 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              <RainbowButton
-                className="text-xl px-12 py-4 h-auto font-semibold shadow-xl"
-                onClick={handleGetStarted}
-                disabled={isLoading}
-              >
-                <Zap className="mr-2 h-6 w-6" />
-                {isLoading ? "Loading..." : "Start Your Free Journey"}
-              </RainbowButton>
+           <RainbowButton
+  className="text-xl px-12 py-4 h-auto font-semibold shadow-xl"
+  onClick={() => navigate('/signup')}
+  disabled={isLoading}
+>
+  <Zap className="mr-2 h-6 w-6" />
+  {isLoading ? "Loading..." : "Start Your Free Journey"}
+</RainbowButton>
             </motion.div>
             
             <motion.p 
