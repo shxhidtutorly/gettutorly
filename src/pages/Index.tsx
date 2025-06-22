@@ -2185,7 +2185,6 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-gray-200 mt-4 text-sm"
             >
-              No credit card required • Free forever plan available
             </motion.p>
           </motion.div>
         </div>
