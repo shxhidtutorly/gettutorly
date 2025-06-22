@@ -18,7 +18,7 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-
+import { UniversityGallery } from "@/components/university-gallery";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -1386,72 +1386,11 @@ const OptimizedLearningPlatform = () => {
       answer: "Yes, Tutorly is designed to be fully responsive and accessible across all devices, including smartphones and tablets. You can access your study materials and AI tools anytime, anywhere, directly from your mobile browser.",
     },
   ];
-
-  const universityLogos = [
-  // ✅ Harvard University shield (PNG hosted on Wikimedia Commons)
-  "https://upload.wikimedia.org/wikipedia/commons/0/07/Harvard_University_shield.png",
-
-  // ✅ Stanford University seal (SVG PNG fallback)
-  "https://upload.wikimedia.org/wikipedia/commons/b/b7/Stanford_University_seal_2003.svg",
-
-  // ✅ MIT seal (PNG hosted)
-  "https://upload.wikimedia.org/wikipedia/commons/c/c3/MIT_seal.png",
-
-  // ✅ University of Oxford coat of arms
-  "https://upload.wikimedia.org/wikipedia/commons/f/ff/University_of_Oxford_coat_of_arms.svg",
-
-  // ✅ University of Cambridge coat of arms
-  "https://upload.wikimedia.org/wikipedia/commons/a/a2/University_of_Cambridge_coat_of_arms.svg",
-
-  // ✅ UC Berkeley seal
-  "https://upload.wikimedia.org/wikipedia/commons/a/a1/University_of_California%2C_Berkeley_seal.svg",
-
-  // ✅ ETH Zurich logo
-  "https://upload.wikimedia.org/wikipedia/commons/f/f6/ETH_Zurich_logo.svg",
-
-  // ✅ Yale University seal
-  "https://upload.wikimedia.org/wikipedia/commons/e/e7/Yale_University_seal.svg",
-
-  // ✅ UCLA seal
-  "https://upload.wikimedia.org/wikipedia/commons/e/e7/UCLA_seal.svg",
-
-  // ✅ IIT Bombay logo (SVG)
-  "https://upload.wikimedia.org/wikipedia/en/e/e7/IIT_Bombay_Logo.svg",
-
-  // ✅ Nanyang Technological University (NTU) logo
-  "https://upload.wikimedia.org/wikipedia/en/a/a2/Nanyang_Technological_University_logo.svg",
-
-  // ✅ University of Toronto logo
-  "https://upload.wikimedia.org/wikipedia/en/a/a2/University_of_Toronto_logo.svg",
-
-  // ✅ Peking University seal
-  "https://upload.wikimedia.org/wikipedia/commons/c/c9/Peking_University_seal.svg",
-
-  // ✅ University of Melbourne logo
-  "https://upload.wikimedia.org/wikipedia/en/0/0b/University_of_Melbourne_logo.svg",
-
-  // ✅ Seoul National University logo
-  "https://upload.wikimedia.org/wikipedia/en/c/c9/Seoul_National_University_logo.svg",
-
-  // ✅ University of Edinburgh logo
-  "https://upload.wikimedia.org/wikipedia/en/c/c9/University_of_Edinburgh_logo.svg",
-];
-export function UniversityGallery() {
+export default function IndexPage() {
   return (
-    <div className="my-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-center justify-center">
-      {universityLogos.map((src, idx) => (
-        <img
-          key={idx}
-          src={src}
-          alt={`University logo ${idx}`}
-          className="h-24 w-auto object-contain mx-auto"
-        />
-      ))}
-    </div>
-  );
-}
-    return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-black">
+  <UniversityGallery />
+
       {/* Navbar */}
       <Navbar />
       
