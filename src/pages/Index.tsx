@@ -1941,18 +1941,18 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
     {/* Swipe indicator */}
     <div className="flex justify-center mt-6">
       <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm animate-pulse">
-        <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm animate-pulse">
-          <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>Swipe for more</span>
-          <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
+        <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        <span>Swipe for more</span>
+        <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </div>
+  </div>
 </section>
+      
       {/* Pricing Section */}
       <section className="relative overflow-hidden bg-black text-white py-20">
         <div className="container mx-auto px-4 relative z-10">
