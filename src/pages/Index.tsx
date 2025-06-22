@@ -1950,8 +1950,6 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
       </svg>
     </div>
-  </div>
-</div>
           </div>
         </div>
       </section>
