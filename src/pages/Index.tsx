@@ -1919,41 +1919,39 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="bg-black text-foreground py-12 sm:py-24 md:py-32 px-0">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 text-center sm:gap-16">
-          <div className="flex flex-col items-center gap-4 px-4 sm:gap-8">
-            <h2 className="max-w-[720px] text-3xl font-semibold leading-tight sm:text-5xl sm:leading-tight text-white">
-              Trusted by Students worldwide
-            </h2>
-            <p className="text-md max-w-[600px] font-medium text-muted-foreground sm:text-xl text-gray-400">
-              Join thousands of Students who are already building the future with our AI platform
-                    
-            </p>
-          </div>
-
-          <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
-            <TestimonialCarousel 
-              testimonials={testimonials}
-              className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto"
-              showArrows={false}
-              showDots={true}
-            />
-            {/* Swipe indicator */}
-  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-    <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm animate-pulse">
-      <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-      </svg>
-      <span>Swipe for more</span>
-      <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-      </svg>
+    {/* Testimonials Section */}
+<section className="bg-black text-foreground py-12 sm:py-24 md:py-32 px-0">
+  <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 text-center sm:gap-16">
+    <div className="flex flex-col items-center gap-4 px-4 sm:gap-8">
+      <h2 className="max-w-[720px] text-3xl font-semibold leading-tight sm:text-5xl sm:leading-tight text-white">
+        Trusted by Students worldwide
+      </h2>
+      <p className="text-md max-w-[600px] font-medium text-muted-foreground sm:text-xl text-gray-400">
+        Join thousands of Students who are already building the future with our AI platform
+      </p>
     </div>
-          </div>
+    <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
+      <TestimonialCarousel 
+        testimonials={testimonials}
+        className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto"
+        showArrows={false}
+        showDots={true}
+      />
+      {/* Swipe indicator */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+        <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm animate-pulse">
+          <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>Swipe for more</span>
+          <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </div>
-      </section>
-
+      </div>
+    </div>
+  </div>
+</section>
       {/* Pricing Section */}
       <section className="relative overflow-hidden bg-black text-white py-20">
         <div className="container mx-auto px-4 relative z-10">
