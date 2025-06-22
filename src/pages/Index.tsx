@@ -1388,23 +1388,55 @@ const OptimizedLearningPlatform = () => {
   ];
 
   const universityLogos = [
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Harvard_University_shield.svg/1200px-Harvard_University_shield.svg.png", // Harvard
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Stanford_University_seal_2003.svg/1200px-Stanford_University_seal_2003.svg.png", // Stanford
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/MIT_seal.svg/1200px-MIT_seal.svg.png", // MIT
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/University_of_Oxford_coat_of_arms.svg/1200px-University_of_Oxford_coat_of_arms.svg.png", // Oxford
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/University_of_Cambridge_coat_of_arms.svg/1200px-University_of_Cambridge_coat_of_arms.svg.png", // Cambridge
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/University_of_California%2C_Berkeley_seal.svg/1200px-University_of_California%2C_Berkeley_seal.svg.png", // UC Berkeley
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/ETH_Zurich_logo.svg/1200px-ETH_Zurich_logo.svg.png", // ETH Zurich
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Yale_University_seal.svg/1200px-Yale_University_seal.svg.png", // Yale
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/UCLA_seal.svg/1200px-UCLA_seal.svg.png", // UCLA
-    "https://upload.wikimedia.org/wikipedia/en/thumb/e/e7/IIT_Bombay_Logo.svg/1200px-IIT_Bombay_Logo.svg.png", // IIT Bombay
-    "https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/Nanyang_Technological_University_logo.svg/1200px-Nanyang_Technological_University_logo.svg.png", // NTU
-    "https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/University_of_Toronto_logo.svg/1200px-University_of_Toronto_logo.svg.png", // University of Toronto
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Peking_University_seal.svg/1200px-Peking_University_seal.svg.png", // Peking University
-    "https://upload.wikimedia.org/wikipedia/en/thumb/0/0b/University_of_Melbourne_logo.svg/1200px-University_of_Melbourne_logo.svg.png", // University of Melbourne
-    "https://upload.wikimedia.org/wikipedia/en/thumb/c/c9/Seoul_National_University_logo.svg/1200px-Seoul_National_University_logo.svg.png", // Seoul National University
-    "https://upload.wikimedia.org/wikipedia/en/thumb/c/c9/University_of_Edinburgh_logo.svg/1200px-University_of_Edinburgh_logo.svg.png", // University of Edinburgh
-  ];
+  // ✅ Harvard University shield (PNG hosted on Wikimedia Commons)
+  "https://upload.wikimedia.org/wikipedia/commons/0/07/Harvard_University_shield.png",
+
+  // ✅ Stanford University seal (SVG PNG fallback)
+  "https://upload.wikimedia.org/wikipedia/commons/b/b7/Stanford_University_seal_2003.svg",
+
+  // ✅ MIT seal (PNG hosted)
+  "https://upload.wikimedia.org/wikipedia/commons/c/c3/MIT_seal.png",
+
+  // ✅ University of Oxford coat of arms
+  "https://upload.wikimedia.org/wikipedia/commons/f/ff/University_of_Oxford_coat_of_arms.svg",
+
+  // ✅ University of Cambridge coat of arms
+  "https://upload.wikimedia.org/wikipedia/commons/a/a2/University_of_Cambridge_coat_of_arms.svg",
+
+  // ✅ UC Berkeley seal
+  "https://upload.wikimedia.org/wikipedia/commons/a/a1/University_of_California%2C_Berkeley_seal.svg",
+
+  // ✅ ETH Zurich logo
+  "https://upload.wikimedia.org/wikipedia/commons/f/f6/ETH_Zurich_logo.svg",
+
+  // ✅ Yale University seal
+  "https://upload.wikimedia.org/wikipedia/commons/e/e7/Yale_University_seal.svg",
+
+  // ✅ UCLA seal
+  "https://upload.wikimedia.org/wikipedia/commons/e/e7/UCLA_seal.svg",
+
+  // ✅ IIT Bombay logo (SVG)
+  "https://upload.wikimedia.org/wikipedia/en/e/e7/IIT_Bombay_Logo.svg",
+
+  // ✅ Nanyang Technological University (NTU) logo
+  "https://upload.wikimedia.org/wikipedia/en/a/a2/Nanyang_Technological_University_logo.svg",
+
+  // ✅ University of Toronto logo
+  "https://upload.wikimedia.org/wikipedia/en/a/a2/University_of_Toronto_logo.svg",
+
+  // ✅ Peking University seal
+  "https://upload.wikimedia.org/wikipedia/commons/c/c9/Peking_University_seal.svg",
+
+  // ✅ University of Melbourne logo
+  "https://upload.wikimedia.org/wikipedia/en/0/0b/University_of_Melbourne_logo.svg",
+
+  // ✅ Seoul National University logo
+  "https://upload.wikimedia.org/wikipedia/en/c/c9/Seoul_National_University_logo.svg",
+
+  // ✅ University of Edinburgh logo
+  "https://upload.wikimedia.org/wikipedia/en/c/c9/University_of_Edinburgh_logo.svg",
+];
+
 
     return (
     <div className="min-h-screen flex flex-col bg-background dark:bg-black">
