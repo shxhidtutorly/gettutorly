@@ -17,8 +17,8 @@ import {
   useMotionValueEvent,
   useScroll,
   useTransform,
+  PanInfo,
 } from "framer-motion";
-import { UniversityGallery } from "@/components/university-gallery";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -51,6 +51,7 @@ import {
   Palette,
   Minus,
   Plus,
+  Menu,
 } from "lucide-react";
 
 import * as Accordion from "@radix-ui/react-accordion";
@@ -87,6 +88,24 @@ interface ShaderProps {
   maxFps?: number;
 }
 
+const universityLogos = [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Harvard_University_logo.svg/200px-Harvard_University_logo.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/MIT_logo.svg/200px-MIT_logo.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Stanford_University_seal_2003.svg/200px-Stanford_University_seal_2003.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Yale_University_Shield_1.svg/200px-Yale_University_Shield_1.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Princeton_shield.svg/200px-Princeton_shield.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Columbia_University_shield.svg/200px-Columbia_University_shield.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/University_of_Pennsylvania_coat_of_arms.svg/200px-University_of_Pennsylvania_coat_of_arms.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Caltech_logo.svg/200px-Caltech_logo.svg.png",
+];
+
+const UniversityGallery = () => {
+  return (
+    <div className="university-gallery">
+      {/* University gallery content */}
+    </div>
+  );
+};
 
 const CanvasRevealEffect = ({
   animationSpeed = 10,
@@ -828,51 +847,145 @@ export const PricingCard = ({
   )
 }
 
-interface TestimonialAuthor {
+interface Testimonial {
+  id: number | string
   name: string
-  handle: string
   avatar: string
+  description: string
 }
 
-interface TestimonialCardProps {
-  author: TestimonialAuthor
-  text: string
-  href?: string
+interface TestimonialCarouselProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  testimonials: Testimonial[]
+  showArrows?: boolean
+  showDots?: boolean
 }
 
-const TestimonialCard = ({ author, text, href }: TestimonialCardProps) => {
-  return (
-    <Card className="w-[300px] shrink-0 snap-center rounded-xl border bg-background p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/80">
-      <CardContent className="flex h-full flex-col justify-between p-0">
-        <p className="text-sm text-foreground">{text}</p>
-        <div className="mt-4 flex items-center gap-3">
-          <img
-            src={author.avatar}
-            alt={author.name}
-            className="h-8 w-8 rounded-full object-cover"
-          />
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              {author.name}
-            </p>
-            {href ? (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:underline"
+const TestimonialCarousel = React.forwardRef<
+  HTMLDivElement,
+  TestimonialCarouselProps
+>(
+  (
+    { className, testimonials, showArrows = true, showDots = true, ...props },
+    ref,
+  ) => {
+    const [currentIndex, setCurrentIndex] = React.useState(0)
+    const [exitX, setExitX] = React.useState<number>(0)
+
+    const handleDragEnd = (
+      event: MouseEvent | TouchEvent | PointerEvent,
+      info: PanInfo,
+    ) => {
+      if (Math.abs(info.offset.x) > 100) {
+        setExitX(info.offset.x)
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % testimonials.length)
+          setExitX(0)
+        }, 200)
+      }
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "h-72 w-full flex items-center justify-center",
+          className
+        )}
+        {...props}
+      >
+        <div className="relative w-80 h-64">
+          {testimonials.map((testimonial, index) => {
+            const isCurrentCard = index === currentIndex
+            const isPrevCard =
+              index === (currentIndex + 1) % testimonials.length
+            const isNextCard =
+              index === (currentIndex + 2) % testimonials.length
+
+            if (!isCurrentCard && !isPrevCard && !isNextCard) return null
+
+            return (
+              <motion.div
+                key={testimonial.id}
+                className={cn(
+                  "absolute w-full h-full rounded-2xl cursor-grab active:cursor-grabbing",
+                  "bg-white shadow-xl",
+                  "dark:bg-card dark:shadow-[2px_2px_4px_rgba(0,0,0,0.4),-1px_-1px_3px_rgba(255,255,255,0.1)]",
+                )}
+                style={{
+                  zIndex: isCurrentCard ? 3 : isPrevCard ? 2 : 1,
+                }}
+                drag={isCurrentCard ? "x" : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.7}
+                onDragEnd={isCurrentCard ? handleDragEnd : undefined}
+                initial={{
+                  scale: 0.95,
+                  opacity: 0,
+                  y: isCurrentCard ? 0 : isPrevCard ? 8 : 16,
+                  rotate: isCurrentCard ? 0 : isPrevCard ? -2 : -4,
+                }}
+                animate={{
+                  scale: isCurrentCard ? 1 : 0.95,
+                  opacity: isCurrentCard ? 1 : isPrevCard ? 0.6 : 0.3,
+                  x: isCurrentCard ? exitX : 0,
+                  y: isCurrentCard ? 0 : isPrevCard ? 8 : 16,
+                  rotate: isCurrentCard ? exitX / 20 : isPrevCard ? -2 : -4,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                }}
               >
-                {author.handle}
-              </a>
-            ) : (
-              <p className="text-xs text-muted-foreground">{author.handle}</p>
-            )}
-          </div>
+                {showArrows && isCurrentCard && (
+                  <div className="absolute inset-x-0 top-2 flex justify-between px-4">
+                    <span className="text-2xl select-none cursor-pointer text-gray-300 hover:text-gray-400 dark:text-muted-foreground dark:hover:text-primary">
+                      &larr;
+                    </span>
+                    <span className="text-2xl select-none cursor-pointer text-gray-300 hover:text-gray-400 dark:text-muted-foreground dark:hover:text-primary">
+                      &rarr;
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-6 flex flex-col items-center gap-4">
+                  <img
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-foreground">
+                    {testimonial.name}
+                  </h3>
+                  <p className="text-center text-sm text-gray-600 dark:text-muted-foreground">
+                    {testimonial.description}
+                  </p>
+                </div>
+              </motion.div>
+            )
+          })}
+          {showDots && (
+            <div className="absolute -bottom-8 left-0 right-0 flex justify-center gap-2">
+              {testimonials.map((_, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "w-2 h-2 rounded-full transition-colors",
+                    index === currentIndex
+                      ? "bg-blue-500 dark:bg-primary"
+                      : "bg-gray-300 dark:bg-muted-foreground/30",
+                  )}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
-  )
-}
+      </div>
+    )
+  },
+)
+TestimonialCarousel.displayName = "TestimonialCarousel"
 
 interface TestimonialsSectionProps {
   title: string
@@ -890,7 +1003,7 @@ export function TestimonialsSection({
   description,
   testimonials,
   className 
-}: TestimonialSectionProps) {
+}: TestimonialsSectionProps) {
   return (
     <section className={cn(
       "bg-black text-foreground",
@@ -1026,6 +1139,7 @@ const AnimatedGradientBackground = ({
 
 const Navbar = () => {
   const [active, setActive] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const transition = {
     type: "spring",
@@ -1117,41 +1231,101 @@ const Navbar = () => {
   };
 
   return (
-    <div className="fixed top-4 inset-x-0 max-w-2xl mx-auto z-50">
-      <Menu setActive={setActive}>
-        {navigationLinks.map((link) => (
-          <MenuItem key={link.label} setActive={setActive} active={active} item={link.label}>
-            <div className="flex flex-col space-y-4 text-sm">
-              <HoveredLink href={link.href}>{link.label}</HoveredLink>
-              {link.label === "Features" && (
-                <>
-                  <HoveredLink href="#features">AI Chat Tutor</HoveredLink>
-                  <HoveredLink href="#features">Smart Notes</HoveredLink>
-                  <HoveredLink href="#features">Instant Quizzes</HoveredLink>
-                  <HoveredLink href="#features">Smart Flashcards</HoveredLink>
-                </>
-              )}
-              {link.label === "Pricing" && (
-                <>
-                  <HoveredLink href="#pricing">Free Plan</HoveredLink>
-                  <HoveredLink href="#pricing">Pro Plan</HoveredLink>
-                  <HoveredLink href="#pricing">Team Plan</HoveredLink>
-                </>
-              )}
-              {link.label === "About" && (
-                <>
-                  <HoveredLink href="#about">Our Story</HoveredLink>
-                  <HoveredLink href="#about">Careers</HoveredLink>
-                  <HoveredLink href="#about">Contact</HoveredLink>
-                </>
-              )}
-            </div>
-          </MenuItem>
-        ))}
-        <a href="#signin" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Sign In</a>
-        <a href="#tryforfree" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Try for free</a>
-      </Menu>
-    </div>
+    <>
+      {/* Desktop Navbar */}
+      <div className="fixed top-4 inset-x-0 max-w-2xl mx-auto z-50 hidden md:block">
+        <Menu setActive={setActive}>
+          {navigationLinks.map((link) => (
+            <MenuItem key={link.label} setActive={setActive} active={active} item={link.label}>
+              <div className="flex flex-col space-y-4 text-sm">
+                <HoveredLink href={link.href}>{link.label}</HoveredLink>
+                {link.label === "Features" && (
+                  <>
+                    <HoveredLink href="#features">AI Chat Tutor</HoveredLink>
+                    <HoveredLink href="#features">Smart Notes</HoveredLink>
+                    <HoveredLink href="#features">Instant Quizzes</HoveredLink>
+                    <HoveredLink href="#features">Smart Flashcards</HoveredLink>
+                  </>
+                )}
+                {link.label === "Pricing" && (
+                  <>
+                    <HoveredLink href="#pricing">Free Plan</HoveredLink>
+                    <HoveredLink href="#pricing">Pro Plan</HoveredLink>
+                    <HoveredLink href="#pricing">Team Plan</HoveredLink>
+                  </>
+                )}
+                {link.label === "About" && (
+                  <>
+                    <HoveredLink href="#about">Our Story</HoveredLink>
+                    <HoveredLink href="#about">Careers</HoveredLink>
+                    <HoveredLink href="#about">Contact</HoveredLink>
+                  </>
+                )}
+              </div>
+            </MenuItem>
+          ))}
+          <a href="#signin" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Sign In</a>
+          <a href="#tryforfree" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Try for free</a>
+        </Menu>
+      </div>
+
+      {/* Mobile Navbar */}
+      <div className="fixed top-4 inset-x-0 z-50 md:hidden">
+        <div className="mx-4">
+          <div className="bg-black/20 backdrop-blur-md border border-white/20 rounded-full px-4 py-3 flex items-center justify-between">
+            <div className="text-white font-semibold">Tutorly</div>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-white p-2"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Mobile Menu Dropdown */}
+          <AnimatePresence>
+            {isMobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="mt-2 bg-black/90 backdrop-blur-md border border-white/20 rounded-2xl p-4"
+              >
+                <div className="flex flex-col space-y-4">
+                  {navigationLinks.map((link) => (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className="text-white hover:text-purple-300 transition-colors py-2 px-3 rounded-lg hover:bg-white/10"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                  <div className="border-t border-white/20 pt-4 mt-4">
+                    <a
+                      href="#signin"
+                      className="block text-white hover:text-purple-300 transition-colors py-2 px-3 rounded-lg hover:bg-white/10"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </a>
+                    <a
+                      href="#tryforfree"
+                      className="block text-white hover:text-purple-300 transition-colors py-2 px-3 rounded-lg hover:bg-white/10 mt-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Try for free
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </>
   );
 };
 
@@ -1303,49 +1477,64 @@ const OptimizedLearningPlatform = () => {
 
   const testimonials = [
     {
-      author: {
-        name: "Alice Johnson",
-        handle: "@alice_learns",
-        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face"
-      },
-      text: "I've tried many study apps, but Tutorly's AI tutor feels like having a personal teacher available 24/7.",
-      href: "https://twitter.com/alice_learns"
+      id: 1,
+      name: "Alice Johnson",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face",
+      description: "I've tried many study apps, but Tutorly's AI tutor feels like having a personal teacher available 24/7. It's truly revolutionized my learning process and made complex topics much easier to grasp."
     },
     {
-      author: {
-        name: "Bob Williams",
-        handle: "@study_wiz",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
-      },
-      text: "Tutorly transformed my study routine! The AI summaries save me hours, and the quiz generation is incredibly accurate.",
-      href: "https://twitter.com/study_wiz"
+      id: 2,
+      name: "Bob Williams",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+      description: "Tutorly transformed my study routine! The AI summaries save me hours, and the quiz generation is incredibly accurate. My grades have seen a significant improvement since I started using it."
     },
     {
-      author: {
-        name: "Charlie Brown",
-        handle: "@charlie_grades",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face"
-      },
-      text: "The smart flashcards are a game-changer. I retain so much more information now. Highly recommend Tutorly!",
-      href: "https://twitter.com/charlie_grades"
+      id: 3,
+      name: "Charlie Brown",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face",
+      description: "The smart flashcards are a game-changer. I retain so much more information now. Highly recommend Tutorly! It adapts to my learning style, making revision efficient and effective."
     },
     {
-      author: {
-        name: "Diana Miller",
-        handle: "@diana_reads",
-        avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop&crop=face"
-      },
-      text: "As a busy student, Tutorly's ability to turn lectures into notes and quizzes instantly is a lifesaver. My grades have improved!",
-      href: "https://twitter.com/diana_reads"
+      id: 4,
+      name: "Diana Miller",
+      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop&crop=face",
+      description: "As a busy student, Tutorly's ability to turn lectures into notes and quizzes instantly is a lifesaver. My grades have improved! It's like having a dedicated study assistant always by my side."
     },
     {
-      author: {
-        name: "Eve Davis",
-        handle: "@eve_learns_fast",
-        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face"
-      },
-      text: "The multilingual AI feature is fantastic! I can study complex topics in my native language, which makes a huge difference.",
-      href: "https://twitter.com/eve_learns_fast"
+      id: 5,
+      name: "Eve Davis",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
+      description: "The multilingual AI feature is fantastic! I can study complex topics in my native language, which makes a huge difference. Tutorly truly breaks down language barriers in education."
+    },
+    {
+      id: 6,
+      name: "Frank White",
+      avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop&crop=face",
+      description: "Tutorly's math solver is a blessing! It not only gives answers but explains the steps clearly, helping me understand difficult concepts. It's an invaluable tool for STEM students."
+    },
+    {
+      id: 7,
+      name: "Grace Lee",
+      avatar: "https://images.unsplash.com/photo-1531746020795-81c8555447fd?w=150&h=150&fit=crop&crop=face",
+      description: "I love how Tutorly keeps me organized. All my notes, quizzes, and flashcards are in one place, easily accessible. It's the ultimate study hub for any student."
+    },
+    {
+      id: 8,
+      name: "Henry Kim",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
+      description: "The adaptive learning paths are incredible. Tutorly identifies my weak spots and provides targeted practice, ensuring I master every topic. It's truly personalized education."
+    },
+    {
+      id: 9,
+      name: "Ivy Chen",
+      avatar: "https://images.unsplash.com/photo-1529626465619-b7ee3fdd2cdb?w=150&h=150&fit=crop&crop=face",
+      description: "Tutorly has made studying enjoyable again. The interactive features and engaging content keep me motivated and focused. I actually look forward to my study sessions now!"
+    },
+    {
+      id: 10,
+      name: "Jack Taylor",
+      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
+      description: "The customer support is as impressive as the AI. Any questions I had were answered quickly and thoroughly. It's clear they care about their users' success."
     },
   ];
 
@@ -1387,7 +1576,9 @@ const OptimizedLearningPlatform = () => {
     },
   ];
 
-  <UniversityGallery />
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <UniversityGallery />
 
       {/* Navbar */}
       <Navbar />
@@ -1475,7 +1666,7 @@ const OptimizedLearningPlatform = () => {
               </p>
             </motion.div>
 
-                        <motion.div
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -1728,7 +1919,7 @@ const OptimizedLearningPlatform = () => {
         </div>
       </section>
 
-            {/* Testimonials Section */}
+      {/* Testimonials Section */}
       <section className="bg-black text-foreground py-12 sm:py-24 md:py-32 px-0">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 text-center sm:gap-16">
           <div className="flex flex-col items-center gap-4 px-4 sm:gap-8">
@@ -1741,26 +1932,17 @@ const OptimizedLearningPlatform = () => {
           </div>
 
           <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
-            <div className="group flex overflow-hidden p-2 [--gap:1rem] [gap:var(--gap)] flex-row [--duration:40s]">
-              <div className="flex shrink-0 justify-around [gap:var(--gap)] animate-marquee flex-row group-hover:[animation-play-state:paused]">
-                {[...Array(4)].map((_, setIndex) => (
-                  testimonials.map((testimonial, i) => (
-                    <TestimonialCard 
-                      key={`${setIndex}-${i}`}
-                      {...testimonial}
-                    />
-                  ))
-                ))}
-              </div>
-            </div>
-
-            <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/3 bg-gradient-to-r from-black sm:block" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-black sm:block" />
+            <TestimonialCarousel 
+              testimonials={testimonials}
+              className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto"
+              showArrows={false}
+              showDots={true}
+            />
           </div>
         </div>
       </section>
 
-            {/* Pricing Section */}
+      {/* Pricing Section */}
       <section className="relative overflow-hidden bg-black text-white py-20">
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
@@ -1915,7 +2097,7 @@ const OptimizedLearningPlatform = () => {
         </div>
       </section>
 
-            {/* Final CTA */}
+      {/* Final CTA */}
       <section className="relative py-20 overflow-hidden">
         {/* Animated Gradient Background */}
         <AnimatedGradientBackground
@@ -2021,7 +2203,7 @@ const OptimizedLearningPlatform = () => {
                 <p className="text-sm opacity-75">See Tutorly in action</p>
               </div>
             </div>
-                        <button
+            <button
               className="w-full h-auto py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all duration-300"
               onClick={() => setIsVideoPlaying(false)}
             >
