@@ -1891,8 +1891,6 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
       ]} />
 
       {/* University Logos Section */}
-    export default function TrustedBySection() {
-      return (
       <section className="py-20 bg-black text-white">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-12 relative inline-block pb-2">
