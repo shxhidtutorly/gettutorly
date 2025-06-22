@@ -1267,8 +1267,8 @@ const Navbar = () => {
               </div>
             </MenuItem>
           ))}
-          <a href="#signin" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Sign In</a>
-          <a href="#tryforfree" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Try for free</a>
+          <Link to="/signin" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Sign In</Link>
+<Link to="/signup" className="text-white hover:opacity-[0.9] cursor-pointer flex items-center">Try for free</Link>
         </Menu>
       </div>
 
@@ -1308,20 +1308,20 @@ const Navbar = () => {
                     </a>
                   ))}
                   <div className="border-t border-white/20 pt-4 mt-4">
-                    <a
-                      href="#signin"
-                      className="block text-white hover:text-purple-300 transition-colors py-2 px-3 rounded-lg hover:bg-white/10"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Sign In
-                    </a>
-                    <a
-                      href="#tryforfree"
-                      className="block text-white hover:text-purple-300 transition-colors py-2 px-3 rounded-lg hover:bg-white/10 mt-2"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Try for free
-                    </a>
+                    <Link
+  to="/signin"
+  className="block text-white hover:text-purple-300 transition-colors py-2 px-3 rounded-lg hover:bg-white/10"
+    onClick={() => setIsMobileMenuOpen(false)}
+>
+  Sign In
+</Link>
+<Link
+  to="/signup"
+  className="block text-white hover:text-purple-300 transition-colors py-2 px-3 rounded-lg hover:bg-white/10 mt-2"
+  onClick={() => setIsMobileMenuOpen(false)}
+>
+  Try for free
+</Link>
                   </div>
                 </div>
               </motion.div>
