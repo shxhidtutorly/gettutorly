@@ -53,7 +53,7 @@ import {
   Plus,
   Menu,
 } from "lucide-react";
-
+import { Menu as MenuIcon } from "lucide-react";
 import * as Accordion from "@radix-ui/react-accordion";
 
 import {
