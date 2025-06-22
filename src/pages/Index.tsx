@@ -1928,6 +1928,7 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
             </h2>
             <p className="text-md max-w-[600px] font-medium text-muted-foreground sm:text-xl text-gray-400">
               Join thousands of Students who are already building the future with our AI platform
+                    
             </p>
           </div>
 
@@ -1938,6 +1939,19 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
               showArrows={false}
               showDots={true}
             />
+            {/* Swipe indicator */}
+  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+    <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm animate-pulse">
+      <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      </svg>
+      <span>Swipe for more</span>
+      <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    </div>
+  </div>
+</div>
           </div>
         </div>
       </section>
