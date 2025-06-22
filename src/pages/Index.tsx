@@ -1634,8 +1634,7 @@ const OptimizedLearningPlatform = () => {
                   {titles.map((title, index) => (
                     <motion.span
                       key={index}
-                      className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent dark:from-purple-200 dark:to-blue-200"                      initial={{ opacity: 0, y: "-100" }}
-                      transition={{ type: "spring", stiffness: 50 }}
+        className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent dark:from-purple-200 dark:to-blue-200"                      transition={{ type: "spring", stiffness: 50 }}
                       animate={
                         titleNumber === index
                           ? {
