@@ -1,10 +1,30 @@
-import { useState, useEffect, useMemo, useRef, ElementType, ComponentPropsWithoutRef, memo, useCallback } from "react";
-import { motion, AnimatePresence, useFrame, useThree, animate, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
-import { Canvas } from "@react-three/fiber";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  ElementType,
+  ComponentPropsWithoutRef,
+  memo,
+  useCallback,
+} from "react";
+
+import {
+  motion,
+  AnimatePresence,
+  animate,
+  useMotionValueEvent,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
 import {
   Brain,
   BookOpenText,
@@ -31,19 +51,23 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
+
 import * as Accordion from "@radix-ui/react-accordion";
+
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
+
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+// Types
 type Uniforms = {
   [key: string]: {
     value: number[] | number[][] | number;
@@ -61,6 +85,7 @@ interface ShaderProps {
   };
   maxFps?: number;
 }
+
 
 const CanvasRevealEffect = ({
   animationSpeed = 10,
