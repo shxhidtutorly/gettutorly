@@ -90,6 +90,25 @@ interface ShaderProps {
     };
   };
   maxFps?: number;
+}
+
+const universityLogos = [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Harvard_University_logo.svg/200px-Harvard_University_logo.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/MIT_logo.svg/200px-MIT_logo.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Stanford_University_seal_2003.svg/200px-Stanford_University_seal_2003.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Yale_University_Shield_1.svg/200px-Yale_University_Shield_1.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Princeton_shield.svg/200px-Princeton_shield.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Columbia_University_shield.svg/200px-Columbia_University_shield.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/University_of_Pennsylvania_coat_of_arms.svg/200px-University_of_Pennsylvania_coat_of_arms.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Caltech_logo.svg/200px-Caltech_logo.svg.png",
+];
+
+const UniversityGallery = () => {
+  return (
+    <div className="university-gallery">
+      {/* University gallery content */}
+    </div>
+  );
 };
 
 const CanvasRevealEffect = ({
@@ -1567,6 +1586,10 @@ const OptimizedLearningPlatform = () => {
     },
   ];
 
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <UniversityGallery />
+
       {/* Navbar */}
       <Navbar />
       
@@ -2014,29 +2037,39 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
       </section>
 
       {/* Video Modal */}
-     return (
-  <div>
-    {isVideoPlaying && (
-      <motion.div>
-        <div className="aspect-video bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mb-4">
-          <div className="text-white text-center">
-            <Play className="h-16 w-16 mx-auto mb-4" />
-            <p className="text-lg">Demo Video Coming Soon!</p>
-            <p className="text-sm opacity-75">See Tutorly in action</p>
-          </div>
-        </div>
-        <button
-          className="w-full h-auto py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all duration-300"
+      {isVideoPlaying && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           onClick={() => setIsVideoPlaying(false)}
         >
-          Close
-        </button>
-      </motion.div>
-    )}
-  </div>
-);
-
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.8 }}
+            className="bg-white dark:bg-gray-900 p-8 rounded-xl max-w-2xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="aspect-video bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mb-4">
+              <div className="text-white text-center">
+                <Play className="h-16 w-16 mx-auto mb-4" />
+                <p className="text-lg">Demo Video Coming Soon!</p>
+                <p className="text-sm opacity-75">See Tutorly in action</p>
+              </div>
+            </div>
+            <button
+              className="w-full h-auto py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all duration-300"
+              onClick={() => setIsVideoPlaying(false)}
+            >
+              Close
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </div>
+  );
 };
 
 export default OptimizedLearningPlatform;
-
