@@ -21,7 +21,10 @@ import {
 } from "framer-motion";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-
+import { useUser } from "@clerk/clerk-react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Link } from "react-router-dom";
+import UserProfileButton from "@/components/auth/UserProfileButton";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
