@@ -1892,14 +1892,19 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
 
       {/* University Logos Section */}
       <section className="py-20 bg-black text-white">
-      <div className="container mx-auto px-4 text-center">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-12 relative inline-block pb-2">
-          Loved by students from top global universities
-          <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full opacity-70" />
-        </h2>
-        <universitylogocloud />
-      </div>
-    </section>
+  <div className="container mx-auto px-4 text-center">
+    <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-12 relative inline-block pb-2">
+      Loved by students from top global universities
+      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full opacity-70" />
+    </h2>
+
+    {/* Make sure the logo cloud has space */}
+    <div className="relative w-full max-w-3xl mx-auto aspect-square min-h-[300px]">
+      <UniversityLogoCloud />
+    </div>
+  </div>
+</section>
+
 
 {/* Testimonials Section */}
 <section className="bg-black text-foreground py-12 sm:py-24 md:py-32 px-0">
