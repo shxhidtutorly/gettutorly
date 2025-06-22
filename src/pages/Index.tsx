@@ -1386,9 +1386,7 @@ const OptimizedLearningPlatform = () => {
       answer: "Yes, Tutorly is designed to be fully responsive and accessible across all devices, including smartphones and tablets. You can access your study materials and AI tools anytime, anywhere, directly from your mobile browser.",
     },
   ];
-export default function IndexPage() {
-  return (
-    <div className="min-h-screen flex flex-col bg-background dark:bg-black">
+
   <UniversityGallery />
 
       {/* Navbar */}
