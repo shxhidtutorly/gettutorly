@@ -1,4 +1,4 @@
-
+import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAudioUpload } from "@/hooks/useAudioUpload";
-import { supabase } from "@/integrations/supabase/client";
 import { Mic, MicOff, Upload, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
