@@ -1274,11 +1274,12 @@ const Navbar = () => {
         <div className="mx-4">
           <div className="bg-black/20 backdrop-blur-md border border-white/20 rounded-full px-4 py-3 flex items-center justify-between">
             <div className="text-white font-semibold">Tutorly</div>
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-white p-2"
-            >
-              <Menu className="h-5 w-5" />
+           <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="p-2"
+            aria-label="Open navigation menu"
+    >
+  <MenuIcon className="h-5 w-5 text-black dark:text-white" /> 
             </button>
           </div>
 
