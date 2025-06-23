@@ -8,20 +8,11 @@ const AuthStateHandler = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
+    // Wait until Clerk is fully loaded
     if (!isLoaded) return;
 
-    // List of auth-related routes to redirect away from when user is signed in
-    const authPages = [
-      '/signin',
-      '/signup',
-      '/reset-password',
-      '/verify-email',
-      '/forgot-password',
-      '/magic-link'
-    ];
-
-    const isAuthPage = authPages.includes(location.pathname);
-
+    // Redirect signed-in users away from auth pages
+    const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
     if (user && isAuthPage) {
       navigate('/dashboard', { replace: true });
     }
