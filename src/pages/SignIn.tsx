@@ -3,12 +3,18 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   useSignIn,
   useUser,
-  useAuth
+  useClerk
 } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -42,7 +48,7 @@ declare global {
 const SignInPage = () => {
   const { isSignedIn, user } = useUser();
   const { signIn, isLoaded } = useSignIn();
-  const { getToken } = useUser();
+  const { redirectToSignIn } = useClerk();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,9 +62,9 @@ const SignInPage = () => {
   const [paddleLoaded, setPaddleLoaded] = useState(false);
 
   useEffect(() => {
-    if (isSignedIn && location.pathname === '/signin') {
+    if (isSignedIn && location.pathname === "/signin") {
       const state = location.state as any;
-      const redirectTo = state?.returnTo || '/dashboard';
+      const redirectTo = state?.returnTo || "/dashboard";
       navigate(redirectTo, { replace: true });
     }
   }, [isSignedIn, navigate, location]);
@@ -66,14 +72,14 @@ const SignInPage = () => {
   useEffect(() => {
     const state = location.state as any;
     if (state?.autoCheckout) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+      const script = document.createElement("script");
+      script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
       script.async = true;
       script.onload = () => {
         if (window.Paddle) {
-          window.Paddle.Environment.set('production');
+          window.Paddle.Environment.set("production");
           window.Paddle.Setup({
-            token: 'live_70323ea9dfbc69d45414c712687'
+            token: "live_70323ea9dfbc69d45414c712687",
           });
           setPaddleLoaded(true);
         }
@@ -93,26 +99,26 @@ const SignInPage = () => {
 
     try {
       window.Paddle.Checkout.open({
-        items: [{ priceId: 'pri_01jxq0pfrjcd0gkj08cmqv6rb1', quantity: 1 }],
-        customer: { email: user?.primaryEmailAddress?.emailAddress || '' },
+        items: [{ priceId: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", quantity: 1 }],
+        customer: { email: user?.primaryEmailAddress?.emailAddress || "" },
         customData: {
           user_id: user.id,
-          planName: 'Basic Plan'
+          planName: "Basic Plan",
         },
-        successUrl: 'https://gettutorly.com/pricing?sub=success',
-        cancelUrl: 'https://gettutorly.com/pricing?sub=cancel',
+        successUrl: "https://gettutorly.com/pricing?sub=success",
+        cancelUrl: "https://gettutorly.com/pricing?sub=cancel",
         settings: {
           allowLogout: false,
-          displayMode: 'overlay',
-          theme: 'dark',
-          locale: 'en'
-        }
+          displayMode: "overlay",
+          theme: "dark",
+          locale: "en",
+        },
       });
     } catch (error) {
-      console.error('Failed to open Paddle checkout:', error);
+      console.error("Failed to open Paddle checkout:", error);
       toast({
         title: "Payment Error",
-        description: "Failed to open checkout, please try again"
+        description: "Failed to open checkout, please try again",
       });
     }
   };
@@ -136,20 +142,22 @@ const SignInPage = () => {
         password,
       });
 
-      if (result.status === 'complete') {
+      if (result.status === "complete") {
         const state = location.state as any;
 
         if (state?.autoCheckout) {
           toast({
             title: "Login successful!",
-            description: "Opening checkout..."
+            description: "Opening checkout...",
           });
 
           setTimeout(() => {
-            paddleLoaded ? openPaddleCheckout() : navigate('/pricing', { replace: true });
+            paddleLoaded
+              ? openPaddleCheckout()
+              : navigate("/pricing", { replace: true });
           }, 1000);
         } else {
-          const redirectTo = state?.returnTo || '/dashboard';
+          const redirectTo = state?.returnTo || "/dashboard";
           navigate(redirectTo, { replace: true });
         }
       } else {
@@ -162,7 +170,7 @@ const SignInPage = () => {
     }
   };
 
- const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = () => {
     const state = location.state as any;
     const redirectTo = state?.returnTo || "/dashboard";
 
@@ -172,8 +180,8 @@ const SignInPage = () => {
     });
   };
 
-if (!isLoaded) {
-  return null;
+  if (!isLoaded) {
+    return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -217,13 +225,17 @@ if (!isLoaded) {
               <span className="w-full border-t border-gray-700" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-900 px-2 text-gray-400">Or continue with email</span>
+              <span className="bg-gray-900 px-2 text-gray-400">
+                Or continue with email
+              </span>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Label htmlFor="email" className="text-gray-300">
+                Email
+              </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -238,7 +250,9 @@ if (!isLoaded) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
+              <Label htmlFor="password" className="text-gray-300">
+                Password
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -254,12 +268,20 @@ if (!isLoaded) {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-300"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Signing in..." : "Sign In"}
             </Button>
           </form>
@@ -267,7 +289,10 @@ if (!isLoaded) {
           <div className="mt-6 text-center">
             <p className="text-gray-400">
               Don't have an account?{" "}
-              <Link to="/signup" className="text-blue-500 hover:text-blue-600 font-medium">
+              <Link
+                to="/signup"
+                className="text-blue-500 hover:text-blue-600 font-medium"
+              >
                 Sign up
               </Link>
             </p>
