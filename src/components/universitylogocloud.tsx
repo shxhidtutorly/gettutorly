@@ -68,69 +68,37 @@ const universityLogos = [
 ];
 
 export function UniversityLogoCloud() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section
-      className="fixed inset-0 bg-black w-screen h-screen flex items-center justify-center z-0"
-      style={{ minHeight: "100vh", minWidth: "100vw" }}
-    >
+    <section className="bg-black py-12 px-2 w-full">
       <div
         ref={ref}
-        className="
-          grid
-          w-full h-full
-          grid-cols-2
-          sm:grid-cols-3
-          md:grid-cols-4
-          lg:grid-cols-5
-          xl:grid-cols-5
-          2xl:grid-cols-5
-          gap-4
-          p-4
-        "
-        style={{
-          height: "100vh",
-          width: "100vw",
-          maxWidth: "100vw",
-          maxHeight: "100vh",
-        }}
+        className="mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 max-w-7xl"
       >
         {universityLogos.map((logo, i) => (
           <motion.div
             key={logo.alt}
-            initial={{ opacity: 0, scale: 0.7, y: 40 }}
+            initial={{ opacity: 0, scale: 0.8, y: 40 }}
             animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
             transition={{
-              delay: isInView ? i * 0.06 : 0,
-              duration: 0.45,
-              ease: "easeOut",
+              delay: isInView ? i * 0.07 : 0,
+              duration: 0.5,
+              ease: "easeOut"
             }}
-            className="flex items-center justify-center w-full h-full bg-white rounded-xl shadow-lg hover:scale-105 transition-transform"
-            style={{
-              aspectRatio: "1/1",
-              minHeight: 0,
-              minWidth: 0,
-            }}
+            className="flex items-center justify-center w-full h-32 bg-white rounded-xl shadow-lg hover:scale-105 transition-transform"
           >
             <img
               src={logo.src}
               alt={logo.alt}
               title={logo.alt}
-              className="object-contain w-full h-full"
-              style={{
-                maxHeight: "90%",
-                maxWidth: "90%",
-                display: "block",
-                margin: "auto",
-              }}
+              className="object-contain max-h-28 max-w-11/12"
               loading="lazy"
-              draggable={false}
             />
           </motion.div>
         ))}
       </div>
     </section>
-  )
+  );
 }
