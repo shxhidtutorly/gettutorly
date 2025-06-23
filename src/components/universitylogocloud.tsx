@@ -164,6 +164,5 @@ export function UniversityLogoCloud() {
           </div>
         </motion.div>
       </div>
-    </div>
   );
 }
