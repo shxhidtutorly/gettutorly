@@ -178,7 +178,6 @@ const SignInPage = () => {
   <Button variant="outline" className="w-full">Continue with Google</Button>
 </SignInButton>
     };
-  };
 
   if (!isLoaded) {
     return (
