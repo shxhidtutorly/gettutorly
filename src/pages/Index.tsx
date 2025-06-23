@@ -20,6 +20,7 @@ import {
   PanInfo,
 } from "framer-motion";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { FooterSection } from "@/components/ui/footer-section";
 import * as THREE from "three";
 import { useUser } from "@clerk/clerk-react";
 import { UniversityLogoCloud } from "@/components/universitylogocloud"
@@ -2073,6 +2074,7 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
           </motion.div>
         </motion.div>
       )}
+       <FooterSection />
     </div>
   );
 };
