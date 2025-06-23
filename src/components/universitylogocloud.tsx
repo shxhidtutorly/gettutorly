@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { useRef } from "react"
 import { useInView } from "framer-motion"
+import { universityLogos } from "@/data/university-logos";
 
 const universityLogos = [
   {
@@ -67,36 +68,32 @@ const universityLogos = [
   },
 ];
 
-
 export function UniversityLogoCloud() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
     <div
       ref={ref}
-      className="grid grid-cols-2 sm:grid-cols-4 gap-8 justify-items-center items-center py-8"
+      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 justify-items-center items-center py-12 px-4 bg-white dark:bg-black"
     >
       {universityLogos.map((logo, i) => (
         <motion.div
           key={logo.alt}
-          initial={{ opacity: 0, y: 40 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-          transition={{ delay: i * 0.15, duration: 0.6, type: "spring" }}
-          className="flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
+          className="transition-transform hover:scale-105"
         >
           <img
             src={logo.src}
             alt={logo.alt}
             title={logo.alt}
-            width={80}
-            height={80}
-            className="object-contain rounded-md shadow-lg bg-white/90 p-2"
+            className="object-contain w-28 h-20 sm:w-32 sm:h-24 md:w-36 md:h-28 lg:w-40 lg:h-32 rounded-md shadow-md bg-white p-2"
             loading="lazy"
           />
-          <span className="mt-2 text-sm text-center text-gray-700 dark:text-gray-200">{logo.alt}</span>
         </motion.div>
       ))}
     </div>
-  )
+  );
 }
