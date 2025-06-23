@@ -174,9 +174,9 @@ const SignInPage = () => {
     const state = location.state as any;
     const redirectTo = state?.returnTo || "/dashboard";
 
-    redirectToSignIn({
-      redirectUrl: redirectTo,
-      strategy: "oauth_google",
+   <SignInButton mode="modal" redirectUrl="/dashboard">
+  <Button variant="outline" className="w-full">Continue with Google</Button>
+</SignInButton>
     });
   };
 
