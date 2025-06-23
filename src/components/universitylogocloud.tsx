@@ -1,104 +1,130 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { useRef } from "react"
-import { useInView } from "framer-motion"
+import { Cloud } from "react-icon-cloud"
 
 const universityLogos = [
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
-    alt: "Harvard University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Harvard_University_logo.svg/400px-Harvard_University_logo.svg.png",
+    alt: "Harvard",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Stanford-University-Logo.png",
-    alt: "Stanford University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/MIT_logo.svg/400px-MIT_logo.svg.png",
+    alt: "MIT",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Columbia-University-Logo.png",
-    alt: "Columbia University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Stanford_University_seal_2003.svg/400px-Stanford_University_seal_2003.svg.png",
+    alt: "Stanford",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Chicago-University-Logo.png",
-    alt: "University of Chicago",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Yale_University_Shield_1.svg/400px-Yale_University_Shield_1.svg.png",
+    alt: "Yale",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Florida-University-Logo.png",
-    alt: "University of Florida",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Princeton_shield.svg/400px-Princeton_shield.svg.png",
+    alt: "Princeton",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Brown-Unversity-Logo.png",
-    alt: "Brown University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Columbia_University_shield.svg/400px-Columbia_University_shield.svg.png",
+    alt: "Columbia",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Georgetown-University-Logo.png",
-    alt: "Georgetown University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/University_of_Pennsylvania_coat_of_arms.svg/400px-University_of_Pennsylvania_coat_of_arms.svg.png",
+    alt: "UPenn",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Northeastern-University-Logo.png",
-    alt: "Northeastern University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Caltech_logo.svg/400px-Caltech_logo.svg.png",
+    alt: "Caltech",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Ohio-State-University-Logo.png",
-    alt: "Ohio State University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/University_of_Chicago_shield.svg/400px-University_of_Chicago_shield.svg.png",
+    alt: "UChicago",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Oregon-State-University-Logo-1.png",
-    alt: "Oregon State University",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/University_of_Cambridge_coat_of_arms.svg/400px-University_of_Cambridge_coat_of_arms.svg.png",
+    alt: "Cambridge",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Pittsburgh-University-Logo.png",
-    alt: "University of Pittsburgh",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Oxford_University_Coat_Of_Arms.svg/400px-Oxford_University_Coat_Of_Arms.svg.png",
+    alt: "Oxford",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/South-Carolina.png",
-    alt: "University of South Carolina",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Imperial_College_London_coat_of_arms.svg/400px-Imperial_College_London_coat_of_arms.svg.png",
+    alt: "Imperial College",
   },
   {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Melbourne-University-Logo.png",
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/ETH_Z%C3%BCrich_Logo.svg/400px-ETH_Z%C3%BCrich_Logo.svg.png",
+    alt: "ETH Zurich",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/University_of_Tokyo_Logo.svg/400px-University_of_Tokyo_Logo.svg.png",
+    alt: "University of Tokyo",
+  },
+  {
+    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/University_of_Melbourne_coat_of_arms.svg/400px-University_of_Melbourne_coat_of_arms.svg.png",
     alt: "University of Melbourne",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Otago-University-Logo.png",
-    alt: "University of Otago",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Auckland-University-Logo.png",
-    alt: "University of Auckland",
-  },
-];
+  }
+]
 
 export function UniversityLogoCloud() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-
   return (
-    <section className="bg-black py-12 px-2 w-full">
-      <div
-        ref={ref}
-        className="mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 max-w-7xl"
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        background: "#000",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        position: "fixed",
+        inset: 0,
+        zIndex: 0
+      }}
+    >
+      {/* @ts-ignore */}
+      <Cloud
+        options={{
+          depth: 1.2,
+          imageScale: 6,
+          tooltip: "native",
+          clickToFront: 700,
+          reverse: true,
+          outlineColour: "#0000",
+          maxSpeed: 0.10,
+          minSpeed: 0.04,
+          freezeActive: false,
+          freezeDecel: false,
+          wheelZoom: false,
+          dragControl: true,
+        }}
+        containerProps={{
+          style: {
+            width: "100vw",
+            height: "100vh",
+            pointerEvents: "auto"
+          }
+        }}
       >
         {universityLogos.map((logo, i) => (
-          <motion.div
-            key={logo.alt}
-            initial={{ opacity: 0, scale: 0.8, y: 40 }}
-            animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
-            transition={{
-              delay: isInView ? i * 0.07 : 0,
-              duration: 0.5,
-              ease: "easeOut"
-            }}
-            className="flex items-center justify-center w-full h-32 bg-white rounded-xl shadow-lg hover:scale-105 transition-transform"
-          >
+          <a key={i} href="#" tabIndex={-1}>
             <img
               src={logo.src}
               alt={logo.alt}
               title={logo.alt}
-              className="object-contain max-h-28 max-w-11/12"
-              loading="lazy"
+              width={200}
+              height={200}
+              draggable={false}
+              style={{
+                objectFit: "contain",
+                maxWidth: "200px",
+                maxHeight: "200px",
+                userSelect: "none",
+                pointerEvents: "none"
+              }}
             />
-          </motion.div>
+          </a>
         ))}
-      </div>
-    </section>
-  );
+      </Cloud>
+    </div>
+  )
 }
