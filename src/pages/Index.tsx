@@ -1459,7 +1459,7 @@ const OptimizedLearningPlatform = () => {
   const [pricingToggle, setPricingToggle] = useState<"monthly" | "yearly">("monthly");
   const [titleNumber, setTitleNumber] = useState(0);
   const titles = useMemo(
-    () => ["amazing", "new", "wonderful", "beautiful", "smart"],
+    () => ["Smarter", "Faster", "Effortless", "AI-Powered", "Intelligent", "Next-Gen"],
     []
   );
 
@@ -1637,7 +1637,7 @@ const OptimizedLearningPlatform = () => {
               </div>
               
               <h1 className="text-5xl md:text-7xl font-extrabold leading-tight text-center mb-6 text-white">
-                Your Personal
+                Meet Your
                 <span className="relative flex w-full justify-center overflow-hidden text-center md:pb-4 md:pt-1">
                   &nbsp;
                  {titles.map((title, index) => (
