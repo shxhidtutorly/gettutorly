@@ -177,7 +177,7 @@ const SignInPage = () => {
    <SignInButton mode="modal" redirectUrl="/dashboard">
   <Button variant="outline" className="w-full">Continue with Google</Button>
 </SignInButton>
-    });
+    };
   };
 
   if (!isLoaded) {
