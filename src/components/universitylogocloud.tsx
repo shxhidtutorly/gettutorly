@@ -3,7 +3,6 @@
 import { motion } from "framer-motion"
 import { useRef } from "react"
 import { useInView } from "framer-motion"
-import { universityLogos } from "@/data/university-logos";
 
 const universityLogos = [
   {
@@ -73,33 +72,28 @@ export function UniversityLogoCloud() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section className="bg-[#000000] py-16 px-4 w-full">
-      <motion.h2
-        initial={{ opacity: 0, y: -20 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        className="text-center text-2xl sm:text-3xl font-bold text-white mb-10"
-      >
-        Loved by students from top global universities
-      </motion.h2>
-
+    <section className="bg-black py-12 px-2 w-full">
       <div
         ref={ref}
-        className="mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 max-w-7xl"
+        className="mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 max-w-7xl"
       >
         {universityLogos.map((logo, i) => (
           <motion.div
             key={logo.alt}
-            initial={{ opacity: 0, y: 30 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: i * 0.05, duration: 0.4, ease: "easeOut" }}
-            className="flex items-center justify-center w-full h-28 bg-white rounded-md shadow hover:scale-105 transition-transform"
+            initial={{ opacity: 0, scale: 0.8, y: 40 }}
+            animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
+            transition={{
+              delay: isInView ? i * 0.07 : 0,
+              duration: 0.5,
+              ease: "easeOut"
+            }}
+            className="flex items-center justify-center w-full h-32 bg-white rounded-xl shadow-lg hover:scale-105 transition-transform"
           >
             <img
               src={logo.src}
               alt={logo.alt}
               title={logo.alt}
-              className="object-contain max-h-20 max-w-[80%]"
+              className="object-contain max-h-28 max-w-11/12"
               loading="lazy"
             />
           </motion.div>
