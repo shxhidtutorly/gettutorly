@@ -4,7 +4,6 @@ import { useRef } from "react"
 import { useInView } from "framer-motion"
 
 const universityLogos = [
-  // Top tier universities from first image
   {
     src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
     alt: "Harvard University",
@@ -14,65 +13,16 @@ const universityLogos = [
     alt: "Stanford University",
   },
   {
-    src: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Princeton_shield.svg",
-    alt: "Princeton University",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2021/10/MIT-Logo.png",
-    alt: "Massachusetts Institute of Technology",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2021/11/University-of-Cambridge-Logo.png",
-    alt: "University of Cambridge",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2021/11/Yale-University-Logo.png",
-    alt: "Yale University",
-  },
-  {
-    src: "https://upload.wikimedia.org/wikipedia/commons/a/a4/McGill_University_CoA.svg",
-    alt: "McGill University",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2020/06/New-York-University-NYU-Logo.png",
-    alt: "New York University",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2021/11/University-of-Pennsylvania-Logo.png",
-    alt: "University of Pennsylvania",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2021/11/University-of-British-Columbia-Logo.png",
-    alt: "University of British Columbia",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Ohio-State-University-Logo.png",
-    alt: "Ohio State University",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2021/11/National-University-of-Singapore-Logo.png",
-    alt: "National University of Singapore",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2020/06/LAUSD-Logo.png",
-    alt: "LAUSD",
-  },
-  {
-    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Melbourne-University-Logo.png",
-    alt: "University of Melbourne",
-  },
-  {
-    src: "https://logos-world.net/wp-content/uploads/2021/11/University-of-Michigan-Logo.png",
-    alt: "University of Michigan",
-  },
-  // Additional universities from your original list
-  {
     src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Columbia-University-Logo.png",
     alt: "Columbia University",
   },
   {
     src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Chicago-University-Logo.png",
     alt: "University of Chicago",
+  },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Florida-University-Logo.png",
+    alt: "University of Florida",
   },
   {
     src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Brown-Unversity-Logo.png",
@@ -86,7 +36,36 @@ const universityLogos = [
     src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Northeastern-University-Logo.png",
     alt: "Northeastern University",
   },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Ohio-State-University-Logo.png",
+    alt: "Ohio State University",
+  },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Oregon-State-University-Logo-1.png",
+    alt: "Oregon State University",
+  },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Pittsburgh-University-Logo.png",
+    alt: "University of Pittsburgh",
+  },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/South-Carolina.png",
+    alt: "University of South Carolina",
+  },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Melbourne-University-Logo.png",
+    alt: "University of Melbourne",
+  },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Otago-University-Logo.png",
+    alt: "University of Otago",
+  },
+  {
+    src: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Auckland-University-Logo.png",
+    alt: "University of Auckland",
+  },
 ];
+
 
 export function UniversityLogoCloud() {
   const ref = useRef(null);
