@@ -1,6 +1,8 @@
 "use client"
 
-import { Cloud } from "react-icon-cloud"
+import { motion } from "framer-motion"
+import { useRef } from "react"
+import { useInView } from "framer-motion"
 
 const universityLogos = [
   {
@@ -38,32 +40,34 @@ const universityLogos = [
 ]
 
 export function UniversityLogoCloud() {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: "-100px" })
+
   return (
-    // @ts-ignore
-    <Cloud
-      options={{
-        depth: 1,
-        imageScale: 2,
-        tooltip: "native",
-        clickToFront: 500,
-        reverse: true,
-        outlineColour: "#0000",
-        maxSpeed: 0.05,
-        minSpeed: 0.02,
-      }}
+    <div
+      ref={ref}
+      className="grid grid-cols-2 sm:grid-cols-4 gap-8 justify-items-center items-center py-8"
     >
       {universityLogos.map((logo, i) => (
-        <a key={i} href="#">
+        <motion.div
+          key={logo.alt}
+          initial={{ opacity: 0, y: 40 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+          transition={{ delay: i * 0.15, duration: 0.6, type: "spring" }}
+          className="flex flex-col items-center"
+        >
           <img
             src={logo.src}
             alt={logo.alt}
             title={logo.alt}
-            width={42}
-            height={42}
-            className="object-contain"
+            width={80}
+            height={80}
+            className="object-contain rounded-md shadow-lg bg-white/90 p-2"
+            loading="lazy"
           />
-        </a>
+          <span className="mt-2 text-sm text-center text-gray-700 dark:text-gray-200">{logo.alt}</span>
+        </motion.div>
       ))}
-    </Cloud>
+    </div>
   )
 }
