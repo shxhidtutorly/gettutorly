@@ -1459,7 +1459,7 @@ const OptimizedLearningPlatform = () => {
   const [pricingToggle, setPricingToggle] = useState<"monthly" | "yearly">("monthly");
   const [titleNumber, setTitleNumber] = useState(0);
   const titles = useMemo(
-    () => ["Smarter", "Faster", "Effortless", "AI-Powered", "Intelligent", "Next-Gen"],
+    () => ["Smart", "Next-Gen", "AI-Powered", "Effortless", "Trusted", "Supercharged"],
     []
   );
 
