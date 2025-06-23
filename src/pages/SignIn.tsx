@@ -174,10 +174,21 @@ const SignInPage = () => {
     const state = location.state as any;
     const redirectTo = state?.returnTo || "/dashboard";
 
-   <SignInButton mode="modal" redirectUrl="/dashboard">
-  <Button variant="outline" className="w-full">Continue with Google</Button>
+ <SignInButton mode="modal" redirectUrl="/dashboard">
+  <Button
+    variant="outline"
+    className="w-full bg-white text-gray-900 hover:bg-gray-100 border-gray-300"
+  >
+    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+      <path
+        fill="currentColor"
+        d="M21.35 11.1H12v2.83h5.41c-.24 1.27-1.44 3.7-5.41 3.7-3.26 0-5.93-2.7-5.93-6s2.67-6 5.93-6c1.86 0 3.11.8 3.83 1.5l2.6-2.5C17.5 3.87 15.04 3 12 3 6.48 3 2 7.48 2 13s4.48 10 10 10c5.75 0 9.69-4.04 9.69-9.75 0-.67-.09-1.18-.24-1.68z"
+      />
+    </svg>
+    Continue with Google
+  </Button>
 </SignInButton>
-    };
+  };
 
   if (!isLoaded) {
     return (
