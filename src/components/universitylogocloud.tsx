@@ -73,27 +73,38 @@ export function UniversityLogoCloud() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <div
-      ref={ref}
-      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 justify-items-center items-center py-12 px-4 bg-white dark:bg-black"
-    >
-      {universityLogos.map((logo, i) => (
-        <motion.div
-          key={logo.alt}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
-          className="transition-transform hover:scale-105"
-        >
-          <img
-            src={logo.src}
-            alt={logo.alt}
-            title={logo.alt}
-            className="object-contain w-28 h-20 sm:w-32 sm:h-24 md:w-36 md:h-28 lg:w-40 lg:h-32 rounded-md shadow-md bg-white p-2"
-            loading="lazy"
-          />
-        </motion.div>
-      ))}
-    </div>
+    <section className="bg-[#000000] py-16 px-4 w-full">
+      <motion.h2
+        initial={{ opacity: 0, y: -20 }}
+        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.6 }}
+        className="text-center text-2xl sm:text-3xl font-bold text-white mb-10"
+      >
+        Loved by students from top global universities
+      </motion.h2>
+
+      <div
+        ref={ref}
+        className="mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 max-w-7xl"
+      >
+        {universityLogos.map((logo, i) => (
+          <motion.div
+            key={logo.alt}
+            initial={{ opacity: 0, y: 30 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: i * 0.05, duration: 0.4, ease: "easeOut" }}
+            className="flex items-center justify-center w-full h-28 bg-white rounded-md shadow hover:scale-105 transition-transform"
+          >
+            <img
+              src={logo.src}
+              alt={logo.alt}
+              title={logo.alt}
+              className="object-contain max-h-20 max-w-[80%]"
+              loading="lazy"
+            />
+          </motion.div>
+        ))}
+      </div>
+    </section>
   );
 }
