@@ -162,15 +162,18 @@ const SignInPage = () => {
     }
   };
 
-  const handleGoogleSignIn = () => {
+ const handleGoogleSignIn = () => {
     const state = location.state as any;
     const redirectTo = state?.returnTo || "/dashboard";
 
-    window.location.href = `https://clerk.gettutorly.com/oauth/google?redirect_url=${window.location.origin}${redirectTo}`;
+    redirectToSignIn({
+      redirectUrl: redirectTo,
+      strategy: "oauth_google",
+    });
   };
 
-  if (!isLoaded) {
-    return (
+if (!isLoaded) {
+  return null;
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
