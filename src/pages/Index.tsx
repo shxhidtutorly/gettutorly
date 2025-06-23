@@ -1671,7 +1671,7 @@ className="absolute font-semibold text-4xl md:text-5xl bg-gradient-to-r from-pur
               </p>
               
               <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
-                Turn your lectures, notes, and readings into flashcards, summaries, and quizzes — all powered by AI.
+                Transform how you learn — generate notes, flashcards, quizzes, math solutions, summaries, audio recaps, and get insights with Tutorly’s all-in-one AI.
               </p>
             </motion.div>
 
