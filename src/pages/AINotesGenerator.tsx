@@ -85,8 +85,7 @@ const AINotesGenerator = () => {
         transition: "background 0.5s",
       }}
     >
-      <Navbar />
-
+    
       <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
           {/* Back to Dashboard button top left */}
