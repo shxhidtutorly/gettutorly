@@ -122,7 +122,7 @@ const Dashboard = () => {
       title: "AI Notes",
   desc: "Generate smart notes from files",
   icon: <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
-  route: "/dashboard/ai-notes-generator"
+  route: "/dashboard/ai-notes"
     },
     {
       title: "Audio Recap",
