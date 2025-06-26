@@ -26,7 +26,7 @@ export const AudioNotesUploader = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  
+
   const {
     uploadAndProcess,
     isProcessing,
@@ -119,7 +119,7 @@ export const AudioNotesUploader = () => {
     try {
       setCurrentStep(1);
       const uploadResult = await uploadAndProcess(fileToUpload);
-      
+
       if (uploadResult) {
         setCurrentStep(4);
         setResult(uploadResult);
@@ -150,7 +150,7 @@ export const AudioNotesUploader = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-bl from-[#0A0A0A] via-[#1a1a2e] to-[#16213e] text-white p-4">
+    <div className="min-h-screen bg-gradient-to-bl from-[#0A0A0A] via-[#1a1a2e] to-[#16213e] text-white p-2 sm:p-4">
       <style>
         {`
           .progress-bar {
@@ -162,17 +162,17 @@ export const AudioNotesUploader = () => {
         `}
       </style>
 
-      <div className="container max-w-4xl mx-auto">
+      <div className="container max-w-2xl md:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-8"
+          className="text-center mb-4 sm:mb-8"
         >
-          <h1 className="text-4xl font-bold mb-2 flex items-center justify-center gap-3">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2 flex items-center justify-center gap-2 sm:gap-3">
             🧠 AI Notes
           </h1>
-          <p className="text-gray-400 text-lg italic">
+          <p className="text-gray-400 text-base sm:text-lg italic">
             👉 Record your lectures or upload your class audio with the click of a button.
           </p>
         </motion.div>
@@ -184,7 +184,7 @@ export const AudioNotesUploader = () => {
               initial={{ opacity: 0, scaleX: 0 }}
               animate={{ opacity: 1, scaleX: 1 }}
               exit={{ opacity: 0, scaleX: 0 }}
-              className="w-full bg-gray-800 rounded-full h-1 mb-6"
+              className="w-full bg-gray-800 rounded-full h-1 mb-4 sm:mb-6"
             >
               <div 
                 className="progress-bar" 
@@ -199,28 +199,26 @@ export const AudioNotesUploader = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="flex justify-center mb-8"
+          className="flex justify-center mb-4 sm:mb-8"
         >
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 w-full">
             {STEP_INDICATORS.map((item, index) => {
               const Icon = item.icon;
               const isActive = currentStep >= item.step;
               const isCurrent = currentStep === item.step;
-              
+
               return (
                 <motion.div
                   key={item.step}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: index * 0.1 }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                    isActive 
-                      ? 'bg-purple-600/30 text-purple-200' 
-                      : 'bg-gray-800/50 text-gray-500'
-                  } ${isCurrent ? 'ring-2 ring-purple-400' : ''}`}
+                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg transition-all 
+                    ${isActive ? 'bg-purple-600/30 text-purple-200' : 'bg-gray-800/50 text-gray-500'} 
+                    ${isCurrent ? 'ring-2 ring-purple-400' : ''} text-xs sm:text-sm`}
                 >
                   <Icon className={`w-4 h-4 ${isCurrent && isProcessing ? 'animate-spin' : ''}`} />
-                  <span className="text-sm font-medium hidden sm:block">{item.label}</span>
+                  <span className="font-medium">{item.label}</span>
                 </motion.div>
               );
             })}
@@ -234,28 +232,29 @@ export const AudioNotesUploader = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm">
+            <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm mx-1 sm:mx-0">
               <CardHeader>
-                <CardTitle className="text-white">Upload Notes</CardTitle>
+                <CardTitle className="text-white text-lg sm:text-xl">Upload Notes</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-5 sm:space-y-6">
                 {/* Recording Section */}
-                <div className="space-y-4">
-                  <Label className="text-gray-300">Record Live Audio</Label>
-                  <div className="flex items-center gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-base sm:text-lg">Record Live Audio</Label>
+                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4">
                     <Button
                       onClick={isRecording ? stopRecording : startRecording}
                       className={`flex items-center gap-2 ${
                         isRecording 
                           ? 'bg-red-600 hover:bg-red-700' 
                           : 'bg-purple-600 hover:bg-purple-700'
-                      }`}
+                      } text-base`}
+                      aria-label={isRecording ? 'Stop recording' : 'Start recording'}
                     >
                       {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                       {isRecording ? 'Stop Recording' : 'Start Recording'}
                     </Button>
                     {audioBlob && (
-                      <span className="text-green-400 text-sm flex items-center gap-1">
+                      <span className="text-green-400 text-sm flex items-center gap-1 pt-1">
                         <CheckCircle className="w-4 h-4" />
                         Audio recorded
                       </span>
@@ -264,7 +263,7 @@ export const AudioNotesUploader = () => {
                 </div>
 
                 <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
                     <span className="w-full border-t border-gray-600" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
@@ -273,19 +272,20 @@ export const AudioNotesUploader = () => {
                 </div>
 
                 {/* File Upload Section */}
-                <div className="space-y-4">
-                  <Label className="text-gray-300">Upload Audio File</Label>
-                  <div className="flex items-center gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-base sm:text-lg">Upload Audio File</Label>
+                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4">
                     <Button
                       onClick={() => fileInputRef.current?.click()}
                       variant="outline"
-                      className="flex items-center gap-2 border-gray-600 text-white hover:bg-gray-800"
+                      className="flex items-center gap-2 border-gray-600 text-white hover:bg-gray-800 text-base"
+                      aria-label="Choose audio file"
                     >
                       <Upload className="w-4 h-4" />
                       Choose File
                     </Button>
                     {uploadFile && (
-                      <span className="text-green-400 text-sm flex items-center gap-1">
+                      <span className="text-green-400 text-sm flex items-center gap-1 pt-1">
                         <CheckCircle className="w-4 h-4" />
                         {uploadFile.name}
                       </span>
@@ -297,6 +297,7 @@ export const AudioNotesUploader = () => {
                     accept="audio/*"
                     onChange={handleFileUpload}
                     className="hidden"
+                    aria-label="Upload audio file"
                   />
                 </div>
 
@@ -304,7 +305,8 @@ export const AudioNotesUploader = () => {
                 <Button
                   onClick={handleUpload}
                   disabled={!audioBlob && !uploadFile || isProcessing}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3"
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 text-base"
+                  aria-label="Generate notes"
                 >
                   {isProcessing ? (
                     <>
@@ -331,7 +333,7 @@ export const AudioNotesUploader = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -40 }}
               transition={{ duration: 0.6 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
               {/* Success Header */}
               <motion.div
@@ -339,14 +341,14 @@ export const AudioNotesUploader = () => {
                 animate={{ scale: 1 }}
                 className="text-center"
               >
-                <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-2">
                   <CheckCircle className="w-8 h-8 text-green-400" />
-                  <h2 className="text-2xl font-bold text-green-400">Notes Generated Successfully!</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-green-400">Notes Generated Successfully!</h2>
                 </div>
               </motion.div>
 
               {/* Results Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Summary Section */}
                 {result.summary && (
                   <motion.div
@@ -356,13 +358,13 @@ export const AudioNotesUploader = () => {
                   >
                     <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm h-full">
                       <CardHeader className="sticky top-0 bg-gray-900/90 backdrop-blur-sm border-b border-gray-700">
-                        <CardTitle className="text-white flex items-center gap-2">
+                        <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
                           📌 Summary
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="max-h-96 overflow-y-auto p-6">
+                      <CardContent className="max-h-96 overflow-y-auto p-4 sm:p-6">
                         <div className="prose prose-invert max-w-none">
-                          <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
                             {result.summary}
                           </p>
                         </div>
@@ -380,13 +382,13 @@ export const AudioNotesUploader = () => {
                   >
                     <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm h-full">
                       <CardHeader className="sticky top-0 bg-gray-900/90 backdrop-blur-sm border-b border-gray-700">
-                        <CardTitle className="text-white flex items-center gap-2">
+                        <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
                           📖 Detailed Notes
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="max-h-96 overflow-y-auto p-6">
+                      <CardContent className="max-h-96 overflow-y-auto p-4 sm:p-6">
                         <div className="prose prose-invert max-w-none">
-                          <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          <div className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
                             {result.notes}
                           </div>
                         </div>
@@ -401,11 +403,12 @@ export const AudioNotesUploader = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="flex justify-center gap-4"
+                className="flex justify-center gap-2 sm:gap-4"
               >
                 <Button
                   onClick={resetForm}
-                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-base"
+                  aria-label="Upload another"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Upload Another
