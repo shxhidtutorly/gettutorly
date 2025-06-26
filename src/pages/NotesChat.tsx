@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
-import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import NotesChat from "@/components/features/NotesChat";
@@ -120,7 +119,6 @@ const NotesChatPage = () => {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
-        <Navbar />
         <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
           <div className="container max-w-6xl mx-auto">
             <div className="flex items-center gap-4 mb-6">
@@ -158,7 +156,6 @@ const NotesChatPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
-      <Navbar />
       
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
