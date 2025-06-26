@@ -36,7 +36,6 @@ const AudioNotes = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white transition-colors">
-      <Navbar />
 
       {/* Top bar with back button */}
       <div className="w-full max-w-6xl mx-auto flex justify-between items-center mt-4 md:mt-6 mb-2 px-2 md:px-4 animate-fade-in">
