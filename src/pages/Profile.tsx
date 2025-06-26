@@ -22,6 +22,7 @@ const Profile = () => {
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
+    avatar_url: "",
   });
 
   useEffect(() => {
@@ -34,27 +35,27 @@ const Profile = () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
-        .from("users")
+        .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("user_id", user.id) // Use user_id to match the foreign key
         .single();
 
       if (error && error.code !== "PGRST116") {
         throw error;
       }
 
-      setProfile(
-        data || {
-          id: user.id,
-          email: user.primaryEmailAddress?.emailAddress,
-          full_name: user.fullName || "",
-          role: "student",
-        }
-      );
+      setProfile(data || {
+        id: user.id,
+        email: user.primaryEmailAddress?.emailAddress,
+        full_name: user.fullName || "",
+        role: "student",
+        avatar_url: "", // Default avatar URL if not provided
+      });
 
       setFormData({
         full_name: data?.full_name || user.fullName || "",
         email: data?.email || user.primaryEmailAddress?.emailAddress || "",
+        avatar_url: data?.avatar_url || "", // Set avatar URL
       });
     } catch (error) {
       console.error("Error loading profile:", error);
@@ -71,8 +72,8 @@ const Profile = () => {
   const handleSave = async () => {
     if (!user) return;
     try {
-      const { error } = await supabase.from("users").upsert({
-        id: user.id,
+      const { error } = await supabase.from("profiles").upsert({
+        user_id: user.id, // Use user_id for the foreign key
         ...formData,
         updated_at: new Date().toISOString(),
       });
@@ -131,22 +132,21 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-
       <main className="container mx-auto px-4 py-8 pb-20 md:pb-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Profile Header */}
           <Card className="bg-white/10 backdrop-blur-lg border-white/20">
             <CardHeader className="text-center">
               <Avatar className="w-24 h-24 mx-auto mb-4">
-                <AvatarImage src={profile?.avatar_url} />
+                <AvatarImage src={formData.avatar_url} />
                 <AvatarFallback className="bg-purple-600 text-white text-2xl">
-                  {profile?.full_name?.charAt(0) || profile?.email?.charAt(0) || "U"}
+                  {formData.full_name.charAt(0) || formData.email.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
               <CardTitle className="text-2xl text-white">
-                {profile?.full_name || "User"}
+                {formData.full_name || "User"}
               </CardTitle>
-              <p className="text-white/70">{profile?.email}</p>
+              <p className="text-white/70">{formData.email}</p>
               <Badge variant="outline" className="text-purple-400 border-purple-400 w-fit mx-auto">
                 <Trophy className="w-4 h-4 mr-1" />
                 {profile?.role || "Student"}
@@ -184,6 +184,16 @@ const Profile = () => {
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="bg-white/10 border-white/20 text-white"
                       disabled
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1">
+                      Avatar URL
+                    </label>
+                    <Input
+                      value={formData.avatar_url}
+                      onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                      className="bg-white/10 border-white/20 text-white"
                     />
                   </div>
                   <div className="flex gap-2">
