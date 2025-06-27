@@ -60,7 +60,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <SubscriptionGuard>{children}</SubscriptionGuard>;
 };
 
-const App = () => (
+const App = () => {
   useSyncClerkToSupabase(); // <- Add this line at the top of your App component
 
   return (
@@ -109,6 +109,7 @@ const App = () => (
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
-);
+   );
+};
 
 export default App;
