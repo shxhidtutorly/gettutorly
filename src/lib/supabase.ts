@@ -12,7 +12,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
-    persistSession: false, // No auth, Clerk handles it
+    persistSession: true, // <-- CHANGE THIS TO true
+    detectSessionInUrl: false, persistSession: false, // No auth, Clerk handles it
   },
   realtime: {
     params: {
