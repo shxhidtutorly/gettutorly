@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase"; // Adjust path if needed
 
 export default function useSyncClerkToSupabase() {
   const { getToken, isSignedIn } = useAuth();
