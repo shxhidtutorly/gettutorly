@@ -3,7 +3,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { supabase } from "@/lib/supabase";
 
 export default function useSyncClerkToSupabase() {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn } = useUser();
 
   useEffect(() => {
     const syncSession = async () => {
