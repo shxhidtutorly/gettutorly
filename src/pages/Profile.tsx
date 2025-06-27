@@ -37,7 +37,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("user_id", user.id) // Use user_id to match the foreign key
+        .eq("clerk_user_id", user.id) // CHANGED from user_id to clerk_user_id
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -49,13 +49,13 @@ const Profile = () => {
         email: user.primaryEmailAddress?.emailAddress,
         full_name: user.fullName || "",
         role: "student",
-        avatar_url: "", // Default avatar URL if not provided
+        avatar_url: "",
       });
 
       setFormData({
         full_name: data?.full_name || user.fullName || "",
         email: data?.email || user.primaryEmailAddress?.emailAddress || "",
-        avatar_url: data?.avatar_url || "", // Set avatar URL
+        avatar_url: data?.avatar_url || "",
       });
     } catch (error) {
       console.error("Error loading profile:", error);
@@ -73,7 +73,7 @@ const Profile = () => {
     if (!user) return;
     try {
       const { error } = await supabase.from("profiles").upsert({
-        user_id: user.id, // Use user_id for the foreign key
+        clerk_user_id: user.id, // CHANGED from user_id to clerk_user_id
         ...formData,
         updated_at: new Date().toISOString(),
       });
@@ -96,6 +96,7 @@ const Profile = () => {
       });
     }
   };
+
 
   const handleSignOut = async () => {
     try {
