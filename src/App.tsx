@@ -6,6 +6,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { RedirectToSignIn } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
+import { useSyncClerkToSupabase } from "@/hooks/useSyncClerkToSupabase";
+
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -59,7 +61,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
+  useSyncClerkToSupabase(); // <- Add this line at the top of your App component
 
+  return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
