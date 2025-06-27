@@ -6,9 +6,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { RedirectToSignIn } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
-import { useSyncClerkToSupabase } from "@/hooks/useSyncClerkToSupabase";
-
-
+import useSyncClerkToSupabase from "@/hooks/useSyncClerkToSupabase";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Library from "./pages/Library";
