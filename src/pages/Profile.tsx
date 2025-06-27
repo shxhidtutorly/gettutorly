@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { supabase } from "@/lib/supabase"; // Update to your correct path for DB-only usage
 import { useToast } from "@/hooks/use-toast";
+import useSyncClerkToSupabase from "@/hooks/useSyncClerkToSupabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 
 const Profile = () => {
+useSyncClerkToSupabase(); 
   const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const { toast } = useToast();
