@@ -1,17 +1,22 @@
+// src/hooks/useSyncClerkToSupabase.ts
 import { useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase } from "@/lib/supabase"; // Adjust path if needed
+import { supabase } from "@/lib/supabase";
 
-export function useSyncClerkToSupabase() {
-  const { getToken } = useAuth();
+export default function useSyncClerkToSupabase() {
+  const { getToken, isSignedIn } = useAuth();
 
   useEffect(() => {
-    (async () => {
-      const token = await getToken({ template: "supabase" });
-      if (token) {
-        // For supabase-js v2.x:
-        await supabase.auth.setSession({ access_token: token, refresh_token: "" });
+    const syncSession = async () => {
+      if (isSignedIn) {
+        const token = await getToken({ template: "supabase" });
+        if (token) {
+          await supabase.auth.setSession({ access_token: token, refresh_token: "" });
+        }
+      } else {
+        await supabase.auth.signOut();
       }
-    })();
-  }, [getToken]);
+    };
+    syncSession();
+  }, [getToken, isSignedIn]);
 }
