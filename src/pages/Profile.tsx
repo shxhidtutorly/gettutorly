@@ -21,7 +21,6 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
-    email: "",
     avatar_url: "",
   });
 
@@ -37,7 +36,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("clerk_user_id", user.id) // CHANGED from user_id to clerk_user_id
+        .eq("clerk_user_id", user.id)
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -46,7 +45,6 @@ const Profile = () => {
 
       setProfile(data || {
         id: user.id,
-        email: user.primaryEmailAddress?.emailAddress,
         full_name: user.fullName || "",
         role: "student",
         avatar_url: "",
@@ -54,7 +52,6 @@ const Profile = () => {
 
       setFormData({
         full_name: data?.full_name || user.fullName || "",
-        email: data?.email || user.primaryEmailAddress?.emailAddress || "",
         avatar_url: data?.avatar_url || "",
       });
     } catch (error) {
@@ -73,7 +70,7 @@ const Profile = () => {
     if (!user) return;
     try {
       const { error } = await supabase.from("profiles").upsert({
-        clerk_user_id: user.id, // CHANGED from user_id to clerk_user_id
+        clerk_user_id: user.id,
         ...formData,
         updated_at: new Date().toISOString(),
       });
