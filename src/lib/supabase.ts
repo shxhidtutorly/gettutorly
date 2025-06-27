@@ -13,7 +13,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true, // <-- CHANGE THIS TO true
-    detectSessionInUrl: false, persistSession: false, // No auth, Clerk handles it
+    detectSessionInUrl: false, 
   },
   realtime: {
     params: {
