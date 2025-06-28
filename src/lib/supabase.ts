@@ -12,7 +12,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
-    persistSession: true, // <-- CHANGE THIS TO true
+    persistSession: true, // <-- This is set to true
     detectSessionInUrl: false, 
   },
   realtime: {
