@@ -10,7 +10,10 @@ export default function useSyncClerkToSupabase() {
       if (isSignedIn) {
         const token = await getToken({ template: "supabase" });
         if (token) {
-          await supabase.auth.setSession({ access_token: token, refresh_token: "" });
+          const { error } = await supabase.auth.setSession({ access_token: token, refresh_token: "" });
+          if (error) {
+            console.error("Error setting Supabase session:", error.message);
+          }
         }
       } else {
         await supabase.auth.signOut();
