@@ -288,7 +288,7 @@ export default function Summaries() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#0a0a0a] via-[#1a0f2e] to-[#0a0a0a]">
-      <Navbar />
+     
 
       <div className="flex-1 flex flex-col justify-center">
         <div className="container mx-auto px-4 py-6 pb-32">
