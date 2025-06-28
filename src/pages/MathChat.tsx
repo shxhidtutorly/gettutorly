@@ -134,7 +134,7 @@ const MathChat = () => {
         aria-hidden
       >{EMOJI_SOLVE}</motion.div>
 
-      <Navbar />
+     
 
 {/* Top Buttons Row */}
 <div className="w-full flex justify-between items-center absolute top-4 left-0 px-4 z-20">
