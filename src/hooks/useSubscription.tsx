@@ -16,12 +16,30 @@ export const useSubscription = () => {
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const isDev = import.meta.env.DEV || process.env.NODE_ENV === "development";
+
   useEffect(() => {
     if (!userLoaded) return;
 
     if (!user) {
       setSubscription(null);
       setHasActiveSubscription(false);
+      setLoading(false);
+      return;
+    }
+
+    // ✅ Bypass everything in dev mode
+    if (isDev) {
+      console.warn("[DEV] Subscription bypass");
+      setHasActiveSubscription(true);
+      setSubscription({
+        id: 'dev-sub-id',
+        plan_name: 'dev_plan',
+        status: 'active',
+        trial_end_date: null,
+        subscription_end_date: null,
+        is_trial: true,
+      });
       setLoading(false);
       return;
     }
@@ -35,32 +53,10 @@ export const useSubscription = () => {
     try {
       setLoading(true);
 
-      // ✅ BYPASS IN DEVELOPMENT
-      if (import.meta.env.DEV || process.env.NODE_ENV === "development") {
-        console.warn('[DEV] Bypassing subscription check — REMOVE IN PRODUCTION');
-        setHasActiveSubscription(true);
-        setSubscription({
-          id: 'dev-sub-id',
-          plan_name: 'dev_plan',
-          status: 'active',
-          trial_end_date: null,
-          subscription_end_date: null,
-          is_trial: true,
-        });
-        setLoading(false); // ✅ end loading
-        return; // ✅ STOP the function
-      }
-
-      // 🔒 ONLY RUN IN PROD
       const res = await fetch(`/api/subscription?userId=${user.id}`);
 
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-      }
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Response is not valid JSON");
       }
 
       const data = await res.json();
