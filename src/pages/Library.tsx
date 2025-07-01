@@ -23,7 +23,6 @@ import {
   Bug,
 } from "lucide-react";
 import { getUserStudyMaterials } from "@/lib/database";
-import SupabaseDebugger from "@/components/debug/SupabaseDebugger";
 
 const Library = () => {
   const [materials, setMaterials] = useState<any[]>([]);
