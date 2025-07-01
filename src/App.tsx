@@ -29,6 +29,7 @@ import AudioNotes from "./pages/AudioNotes";
 import MathChat from "./pages/MathChat";
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
+import PricingPage from "./pages/Pricing"; 
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
