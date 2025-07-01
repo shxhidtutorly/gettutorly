@@ -35,7 +35,7 @@ export const useSubscription = () => {
     try {
       setLoading(true);
 
-      // ✅ DEV BYPASS
+      // ✅ BYPASS IN DEVELOPMENT
       if (import.meta.env.DEV || process.env.NODE_ENV === "development") {
         console.warn('[DEV] Bypassing subscription check — REMOVE IN PRODUCTION');
         setHasActiveSubscription(true);
@@ -47,14 +47,20 @@ export const useSubscription = () => {
           subscription_end_date: null,
           is_trial: true,
         });
-        return;
+        setLoading(false); // ✅ end loading
+        return; // ✅ STOP the function
       }
 
-      // 🔒 Production logic (replace with real API)
+      // 🔒 ONLY RUN IN PROD
       const res = await fetch(`/api/subscription?userId=${user.id}`);
 
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+      }
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response is not valid JSON");
       }
 
       const data = await res.json();
