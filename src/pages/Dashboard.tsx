@@ -67,7 +67,7 @@ const Dashboard = () => {
     navigate('/signin');
     return null;
   }
-};
+
   
 
   // Activity stats with clean icons
