@@ -19,33 +19,35 @@ export const useSubscription = () => {
   const isDev = import.meta.env.DEV || process.env.NODE_ENV === "development";
 
   useEffect(() => {
-    if (!userLoaded) return;
+  if (!userLoaded) return;
 
-    if (!user) {
-      setSubscription(null);
-      setHasActiveSubscription(false);
-      setLoading(false);
-      return;
-    }
+  // ✅ DEV MODE SHORT-CIRCUIT
+  const isDev = import.meta.env.DEV || process.env.NODE_ENV === "development";
+  if (isDev) {
+    console.warn("[DEV] Subscription bypass active");
+    setHasActiveSubscription(true);
+    setSubscription({
+      id: 'dev-sub-id',
+      plan_name: 'dev_plan',
+      status: 'active',
+      trial_end_date: null,
+      subscription_end_date: null,
+      is_trial: true,
+    });
+    setLoading(false);
+    return;
+  }
 
-    // ✅ Bypass everything in dev mode
-    if (isDev) {
-      console.warn("[DEV] Subscription bypass");
-      setHasActiveSubscription(true);
-      setSubscription({
-        id: 'dev-sub-id',
-        plan_name: 'dev_plan',
-        status: 'active',
-        trial_end_date: null,
-        subscription_end_date: null,
-        is_trial: true,
-      });
-      setLoading(false);
-      return;
-    }
-
+  // ✅ Only call fetchSubscription in production
+  if (user) {
     fetchSubscription();
-  }, [user, userLoaded]);
+  } else {
+    setSubscription(null);
+    setHasActiveSubscription(false);
+    setLoading(false);
+  }
+}, [user, userLoaded]);
+
 
   const fetchSubscription = async () => {
     if (!user?.id) return;
