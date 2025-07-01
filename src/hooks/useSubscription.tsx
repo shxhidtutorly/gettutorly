@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useUser } from "./useUser";
 
-const IS_DEV = import.meta.env.DEV || process.env.NODE_ENV === "development";
+const IS_DEV = import.meta.env.DEV ?? process.env.NODE_ENV === "development";
 
 export const useSubscription = () => {
   const { user, isLoaded } = useUser();
