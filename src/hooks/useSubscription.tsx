@@ -1,40 +1,94 @@
-const fetchSubscription = async () => {
-  if (!user?.id) return;
+import { useState, useEffect } from 'react';
+import { useUser } from "@/hooks/useUser";
 
-  try {
-    setLoading(true);
+interface Subscription {
+  id: string;
+  plan_name: string;
+  status: string;
+  trial_end_date: string | null;
+  subscription_end_date: string | null;
+  is_trial: boolean;
+}
 
-    // ✅ Safe bypass only in development
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[DEV] Bypassing subscription check — REMOVE IN PRODUCTION');
-      setHasActiveSubscription(true);
-      setSubscription({
-        id: 'dev-sub-id',
-        plan_name: 'dev_plan',
-        status: 'active',
-        trial_end_date: null,
-        subscription_end_date: null,
-        is_trial: true,
-      });
+export const useSubscription = () => {
+  const { user, isLoaded: userLoaded } = useUser();
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userLoaded) return;
+
+    if (!user) {
+      setSubscription(null);
+      setHasActiveSubscription(false);
+      setLoading(false);
       return;
     }
 
-    // 🟡 TODO: Replace with real subscription fetch logic for production
-    const res = await fetch(`/api/subscription?userId=${user.id}`);
-    const data = await res.json();
+    fetchSubscription();
+  }, [user, userLoaded]);
 
-    if (data?.status === 'active') {
-      setHasActiveSubscription(true);
-      setSubscription(data);
-    } else {
+  const fetchSubscription = async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+
+      // ✅ Bypass in dev only
+      if (import.meta.env.DEV || process.env.NODE_ENV === "development") {
+        console.warn('[DEV] Bypassing subscription check — REMOVE IN PRODUCTION');
+        setHasActiveSubscription(true);
+        setSubscription({
+          id: 'dev-sub-id',
+          plan_name: 'dev_plan',
+          status: 'active',
+          trial_end_date: null,
+          subscription_end_date: null,
+          is_trial: true,
+        });
+        return;
+      }
+
+      // 🟡 Replace with real fetch call in production
+      const res = await fetch(`/api/subscription?userId=${user.id}`);
+      const data = await res.json();
+
+      if (data?.status === 'active') {
+        setHasActiveSubscription(true);
+        setSubscription(data);
+      } else {
+        setHasActiveSubscription(false);
+        setSubscription(null);
+      }
+
+    } catch (err) {
+      console.error('[Subscription] Unexpected error:', err);
       setHasActiveSubscription(false);
       setSubscription(null);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('[Subscription] Unexpected error:', err);
-    setHasActiveSubscription(false);
-    setSubscription(null);
-  } finally {
-    setLoading(false);
-  }
+  };
+
+  const createTrialSubscription = async (planName: string) => {
+    if (!user?.id) return false;
+
+    try {
+      // Mock trial for now (update with real logic later)
+      await fetchSubscription();
+      return true;
+    } catch (err) {
+      console.error('[Subscription] Unexpected error on trial creation:', err);
+      return false;
+    }
+  };
+
+  return {
+    subscription,
+    hasActiveSubscription,
+    loading: loading || !userLoaded,
+    fetchSubscription,
+    createTrialSubscription,
+  };
 };
