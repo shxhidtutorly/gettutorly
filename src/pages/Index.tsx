@@ -22,7 +22,6 @@ import {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { FooterSection } from "@/components/ui/footer-section";
 import * as THREE from "three";
-import { useUser } from "@clerk/clerk-react";
 import { UniversityLogoCloud } from "@/components/universitylogocloud"
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
