@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/useUser";
 
 interface Subscription {
@@ -37,12 +37,12 @@ export const useSubscription = () => {
 
       // ✅ DEV BYPASS
       if (import.meta.env.DEV || process.env.NODE_ENV === "development") {
-        console.warn('[DEV] Bypassing subscription check — REMOVE IN PRODUCTION');
+        console.warn("[DEV] Bypassing subscription check — REMOVE IN PRODUCTION");
         setHasActiveSubscription(true);
         setSubscription({
-          id: 'dev-sub-id',
-          plan_name: 'dev_plan',
-          status: 'active',
+          id: "dev-sub-id",
+          plan_name: "dev_plan",
+          status: "active",
           trial_end_date: null,
           subscription_end_date: null,
           is_trial: true,
@@ -50,16 +50,24 @@ export const useSubscription = () => {
         return;
       }
 
-      // 🔒 Production logic (replace with real API)
+      // 🔒 Production API request
       const res = await fetch(`/api/subscription?userId=${user.id}`);
 
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+        console.error("[Subscription] Server responded with:", res.status);
+        setHasActiveSubscription(false);
+        setSubscription(null);
+        return;
+      }
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response is not valid JSON");
       }
 
       const data = await res.json();
 
-      if (data?.status === 'active') {
+      if (data?.status === "active") {
         setHasActiveSubscription(true);
         setSubscription(data);
       } else {
@@ -68,7 +76,7 @@ export const useSubscription = () => {
       }
 
     } catch (err) {
-      console.error('[Subscription] Unexpected error:', err);
+      console.error("[Subscription] Unexpected error:", err);
       setHasActiveSubscription(false);
       setSubscription(null);
     } finally {
@@ -83,7 +91,7 @@ export const useSubscription = () => {
       await fetchSubscription();
       return true;
     } catch (err) {
-      console.error('[Subscription] Unexpected error on trial creation:', err);
+      console.error("[Subscription] Trial creation error:", err);
       return false;
     }
   };
