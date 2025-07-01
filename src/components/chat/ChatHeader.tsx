@@ -21,7 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 
 const ChatHeader: React.FC = () => {
   const navigate = useNavigate();
