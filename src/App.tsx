@@ -102,14 +102,14 @@ const App = () => {
               <Route path="/doubt-chain" element={<ProtectedRoute><DoubtChain /></ProtectedRoute>} />
               <Route path="/doubt-bookmarks" element={<ProtectedRoute><DoubtBookmarks /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-
-              <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
+             <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
               {/* Public pages */}
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/support" element={<Support />} />
               <Route path="/cancellation" element={<Cancellation />} />
               <Route path="/privacy" element={<Privacy />} />
+             <Route path="/pricing" element={<PricingPage />} />
 
               <Route path="*" element={<NotFound />} />
           </Routes>
