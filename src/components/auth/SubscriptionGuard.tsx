@@ -17,25 +17,27 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
   const allowedPublicPaths = ['/pricing', '/signin', '/signup', '/settings', '/'];
 
   useEffect(() => {
-    if (!isAuthLoaded || isSubLoading) return;
+  if (!isAuthLoaded || isSubLoading) return;
 
-    const isPublicPath = allowedPublicPaths.includes(location.pathname);
+  const isPublicPath = allowedPublicPaths.includes(location.pathname);
 
-    if (!user) {
-      if (!isPublicPath) {
-        navigate('/signin', {
-          state: { returnTo: location.pathname },
-          replace: true,
-        });
-      }
-      return;
+  // Bypass subscription redirect in development mode
+  const isDev = import.meta.env?.MODE === 'development' || process.env.NODE_ENV === 'development';
+
+  if (!user) {
+    if (!isPublicPath) {
+      navigate('/signin', {
+        state: { returnTo: location.pathname },
+        replace: true,
+      });
     }
+    return;
+  }
 
-    if (user && !hasActiveSubscription && !isPublicPath) {
-      navigate('/pricing', { replace: true });
-    }
-  }, [user, isAuthLoaded, hasActiveSubscription, isSubLoading, location.pathname, navigate]);
-
+  if (!isDev && user && !hasActiveSubscription && !isPublicPath) {
+    navigate('/pricing', { replace: true });
+  }
+}, [user, isAuthLoaded, hasActiveSubscription, isSubLoading, location.pathname, navigate]);
   if (!isAuthLoaded || isSubLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
