@@ -2,11 +2,16 @@
 import { useState, useEffect } from 'react';
 import { useUser } from "@/hooks/useUser";
 import { useToast } from '@/hooks/use-toast';
-import { getUserStudyMaterials, subscribeToStudyMaterials, subscribeToUserStats } from '@/lib/firebase-db';
+import { 
+  getUserStudyMaterials, 
+  subscribeToStudyMaterials, 
+  subscribeToUserStats,
+  getUserStudySessions
+} from '@/lib/firebase-firestore';
 
 interface UserStat {
   count: number;
-  last_updated: string;
+  last_updated: Date;
 }
 
 interface UserStats {
@@ -66,8 +71,8 @@ export const useRealTimeStudySessions = () => {
 
     const fetchSessions = async () => {
       try {
-        // Implement getUserStudySessions in firebase-db.ts if needed
-        setSessions([]);
+        const data = await getUserStudySessions(user.id);
+        setSessions(data || []);
       } catch (error) {
         console.error('Error fetching sessions:', error);
         toast({

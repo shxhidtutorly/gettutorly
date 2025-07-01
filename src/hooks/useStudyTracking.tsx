@@ -1,6 +1,14 @@
+
 import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from 'react';
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { 
+  createStudySession, 
+  updateStudySession, 
+  getUserStudySessions, 
+  updateUserStat, 
+  getUserStats,
+  subscribeToUserStats 
+} from '@/lib/firebase-firestore';
 
 interface StudyStats {
   totalStudyHours: number;
@@ -38,7 +46,7 @@ export const useStudyTracking = () => {
 
   const [sessions, setSessions] = useState<StudySession[]>([]);
 
-  // Track activity using study_sessions table
+  // Track activity using Firebase Firestore
   const trackActivity = async (activityType: string, details: any = {}) => {
     if (!user?.id) {
       console.log('No current user, skipping activity tracking');
@@ -50,21 +58,13 @@ export const useStudyTracking = () => {
       
       // Create a study session entry
       try {
-        const { error } = await supabase
-          .from('study_sessions')
-          .insert({
-            user_id: user.id,
-            session_type: activityType,
-            duration: details.duration || 0,
-            material_id: details.material_id || null,
-            started_at: new Date().toISOString()
-          });
+        await createStudySession(user.id, {
+          session_type: activityType,
+          duration: details.duration || 0,
+          material_id: details.material_id || null,
+        });
 
-        if (error) {
-          console.warn('Could not save to study_sessions:', error.message);
-        } else {
-          console.log('Activity tracked successfully');
-        }
+        console.log('Activity tracked successfully');
       } catch (dbError) {
         console.warn('Database activity logging failed, continuing with local state');
       }
@@ -130,7 +130,7 @@ export const useStudyTracking = () => {
 
   const getSessions = () => sessions;
 
-  // Load user stats from database with better error handling
+  // Load user stats from Firebase Firestore
   useEffect(() => {
     const loadStats = async () => {
       if (!user?.id) return;
@@ -138,80 +138,27 @@ export const useStudyTracking = () => {
       try {
         console.log('Loading stats for user:', user.id);
         
-        // Get study sessions for stats calculation
-        let sessions: any[] = [];
-        try {
-          const { data, error } = await supabase
-            .from('study_sessions')
-            .select('session_type, duration, started_at')
-            .eq('user_id', user.id)
-            .order('started_at', { ascending: false });
+        const statsData = await getUserStats(user.id);
+        console.log('Loaded stats:', statsData);
 
-          if (error) {
-            console.warn('Could not load study sessions:', error.message);
-          } else {
-            sessions = data || [];
-          }
-        } catch (sessionError) {
-          console.warn('Study sessions not accessible, using fallback');
-        }
-
-        console.log('Loaded sessions:', sessions?.length || 0);
-
-        // Calculate stats from sessions
-        const quizzesCompleted = sessions?.filter(s => s.session_type === 'quiz_completed').length || 0;
-        const summariesGenerated = sessions?.filter(s => s.session_type === 'summary_generated').length || 0;
-        const notesCreated = sessions?.filter(s => 
-          s.session_type === 'notes_created' || 
-          s.session_type === 'ai_notes_generated' ||
-          s.session_type === 'material_uploaded'
-        ).length || 0;
-        const mathProblemsSolved = sessions?.filter(s => s.session_type === 'math_problem_solved').length || 0;
-        const sessionCount = sessions?.filter(s => s.session_type === 'study_session_started').length || 0;
-        const doubtsResolved = sessions?.filter(s => s.session_type === 'doubt_resolved').length || 0;
-
-        // Calculate total study time from sessions
-        const totalStudyHours = (sessions?.reduce((total, s) => total + (s.duration || 0), 0) || 0) / 3600;
-
-        // Try to count materials and notes from their respective tables
-        let materialsCount = 0;
-        let notesCount = 0;
-        
-        try {
-          const { data: materials } = await supabase
-            .from('study_materials')
-            .select('id')
-            .eq('user_id', user.id);
-          materialsCount = materials?.length || 0;
-        } catch (materialsError) {
-          console.warn('Could not load study_materials');
-        }
-
-        try {
-          const { data: notes } = await supabase
-            .from('notes')
-            .select('id')
-            .eq('user_id', user.id);
-          notesCount = notes?.length || 0;
-        } catch (notesError) {
-          console.warn('Could not load notes');
-        }
+        // Calculate stats from Firebase data
+        const quizzesCompleted = statsData.quizzes_taken?.count || 0;
+        const summariesGenerated = statsData.summaries_created?.count || 0;
+        const notesCreated = statsData.notes_created?.count || 0;
+        const mathProblemsSolved = statsData.math_problems_solved?.count || 0;
+        const sessionCount = statsData.sessions_started?.count || 0;
+        const doubtsResolved = statsData.doubts_resolved?.count || 0;
+        const totalStudyHours = (statsData.total_study_time?.count || 0) / 3600;
 
         // Calculate streak (simplified - based on recent activity)
-        const recentSessions = sessions?.filter(s => {
-          const sessionDate = new Date(s.started_at);
-          const daysDiff = Math.floor((Date.now() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
-          return daysDiff <= 7;
-        }) || [];
-
-        const streakDays = Math.max(1, Math.min(7, recentSessions.length));
+        const streakDays = Math.max(1, Math.min(7, sessionCount));
 
         const newStats = {
           totalStudyHours,
           sessionCount,
           quizzesCompleted,
-          summariesGenerated: Math.max(summariesGenerated, materialsCount),
-          notesCreated: Math.max(notesCreated, notesCount),
+          summariesGenerated,
+          notesCreated,
           mathProblemsSolved,
           streakDays,
           doubtsResolved,
@@ -232,28 +179,41 @@ export const useStudyTracking = () => {
 
     loadStats();
 
-    // Set up real-time listener for study sessions
-    let channel: any = null;
-    try {
-      channel = supabase
-        .channel('session_changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'study_sessions',
-          filter: `user_id=eq.${user?.id}`
-        }, () => {
-          console.log('Real-time session update detected, reloading stats');
-          loadStats();
-        })
-        .subscribe();
-    } catch (realtimeError) {
-      console.warn('Real-time updates not available');
+    // Set up real-time listener for stats
+    let unsubscribe: (() => void) | null = null;
+    if (user?.id) {
+      try {
+        unsubscribe = subscribeToUserStats(user.id, (updatedStats) => {
+          console.log('Real-time stats update detected, updating state');
+          
+          const quizzesCompleted = updatedStats.quizzes_taken?.count || 0;
+          const summariesGenerated = updatedStats.summaries_created?.count || 0;
+          const notesCreated = updatedStats.notes_created?.count || 0;
+          const mathProblemsSolved = updatedStats.math_problems_solved?.count || 0;
+          const sessionCount = updatedStats.sessions_started?.count || 0;
+          const doubtsResolved = updatedStats.doubts_resolved?.count || 0;
+          const totalStudyHours = (updatedStats.total_study_time?.count || 0) / 3600;
+          const streakDays = Math.max(1, Math.min(7, sessionCount));
+
+          setStats({
+            totalStudyHours,
+            sessionCount,
+            quizzesCompleted,
+            summariesGenerated,
+            notesCreated,
+            mathProblemsSolved,
+            streakDays,
+            doubtsResolved,
+          });
+        });
+      } catch (realtimeError) {
+        console.warn('Real-time updates not available');
+      }
     }
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
   }, [user?.id]);

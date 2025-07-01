@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getDatabase, connectDatabaseEmulator } from "firebase/database";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
@@ -16,7 +16,6 @@ const firebaseConfig = {
   measurementId: "G-VLHJ0SX0GG"
 };
 
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
@@ -29,8 +28,8 @@ if (typeof window !== 'undefined') {
 // Initialize Firebase Auth
 export const auth = getAuth(app);
 
-// Initialize Realtime Database
-export const db = getDatabase(app);
+// Initialize Firestore
+export const db = getFirestore(app);
 
 // Initialize Firebase Storage
 export const storage = getStorage(app);
@@ -39,7 +38,7 @@ export const storage = getStorage(app);
 if (import.meta.env.DEV) {
   // Uncomment these lines if you want to use Firebase emulators for local development
   // connectAuthEmulator(auth, "http://localhost:9099");
-  // connectDatabaseEmulator(db, "localhost", 9000);
+  // connectFirestoreEmulator(db, "localhost", 8080);
   // connectStorageEmulator(storage, "localhost", 9199);
 }
 
