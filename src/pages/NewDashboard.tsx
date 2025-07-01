@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser } from "@/hooks/useUser";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { motion, AnimatePresence } from "framer-motion";
 import AnimeChat from "@/components/dashboard/AnimeChat";
@@ -11,7 +11,7 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 
 const TutorlyDashboard = () => {
-  const { user, loading } = useUser();
+  const { user, isLoaded } = useUser();
   const { stats } = useStudyTracking();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,13 +23,12 @@ const TutorlyDashboard = () => {
   }, []);
 
   const getUserDisplayName = () => {
-    if (user?.user_metadata?.name) return user.user_metadata.name;
-    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+    if (user?.fullName) return user.fullName;
     if (user?.email) return user.email.split('@')[0];
     return 'Student';
   };
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
         <motion.div

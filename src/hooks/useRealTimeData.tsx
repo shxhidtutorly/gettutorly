@@ -1,8 +1,17 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from "@/hooks/useUser";
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { getUserStudyMaterials, subscribeToStudyMaterials, subscribeToUserStats } from '@/lib/firebase-db';
+
+interface UserStat {
+  count: number;
+  last_updated: string;
+}
+
+interface UserStats {
+  [key: string]: UserStat;
+}
 
 export const useRealTimeStudyMaterials = () => {
   const { user } = useUser();
@@ -104,7 +113,7 @@ export const useRealTimeUserStats = () => {
     fetchStats();
 
     // Set up real-time subscription
-    const unsubscribe = subscribeToUserStats(user.id, (updatedStats) => {
+    const unsubscribe = subscribeToUserStats(user.id, (updatedStats: UserStats) => {
       setStats(Object.entries(updatedStats).map(([key, value]) => ({
         stat_type: key,
         count: value.count,

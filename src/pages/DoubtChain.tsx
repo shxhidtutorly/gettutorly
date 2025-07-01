@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +26,8 @@ import {
   Award,
   ArrowLeftCircle
 } from "lucide-react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser } from "@/hooks/useUser";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface DoubtNode {
@@ -68,22 +70,36 @@ const DoubtChain = () => {
   // Animations
   const nodeAnim = {
     hidden: { opacity: 0, x: -30, scale: 0.97 },
-    visible: (i: number) => ({
-      opacity: 1, x: 0, scale: 1,
-      transition: { delay: i * 0.08, type: "spring", stiffness: 150, damping: 15 }
-    })
+    visible: { 
+      opacity: 1, 
+      x: 0, 
+      scale: 1,
+      transition: { 
+        type: "spring" as const, 
+        stiffness: 150, 
+        damping: 15 
+      }
+    }
   };
+  
   const followupAnim = {
     hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35, type: "spring" } }
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { 
+        duration: 0.35, 
+        type: "spring" as const 
+      } 
+    }
   };
 
   // Load stats and bookmarks on mount
   useEffect(() => {
-    if (currentUser) {
+    if (user) {
       loadUserData();
     }
-  }, [currentUser]);
+  }, [user]);
 
   // Handle pre-filled question from navigation
   useEffect(() => {
@@ -93,15 +109,15 @@ const DoubtChain = () => {
   }, [location.state]);
 
   const loadUserData = () => {
-    const savedStats = localStorage.getItem(`doubt_stats_${currentUser?.id}`);
-    const savedBookmarks = localStorage.getItem(`doubt_bookmarks_${currentUser?.id}`);
+    const savedStats = localStorage.getItem(`doubt_stats_${user?.id}`);
+    const savedBookmarks = localStorage.getItem(`doubt_bookmarks_${user?.id}`);
     if (savedStats) setStats(JSON.parse(savedStats));
     if (savedBookmarks) setBookmarkedChains(JSON.parse(savedBookmarks));
   };
 
   const saveUserData = () => {
-    localStorage.setItem(`doubt_stats_${currentUser?.id}`, JSON.stringify(stats));
-    localStorage.setItem(`doubt_bookmarks_${currentUser?.id}`, JSON.stringify(bookmarkedChains));
+    localStorage.setItem(`doubt_stats_${user?.id}`, JSON.stringify(stats));
+    localStorage.setItem(`doubt_bookmarks_${user?.id}`, JSON.stringify(bookmarkedChains));
   };
 
   const buildDoubtChain = async (question: string, depth = 0): Promise<DoubtNode> => {
@@ -280,7 +296,6 @@ const DoubtChain = () => {
       variants={nodeAnim}
       initial="hidden"
       animate="visible"
-      custom={i}
       className="mb-4"
       layout
     >
@@ -412,8 +427,8 @@ const DoubtChain = () => {
             <div className="flex items-center justify-center gap-2 mb-4">
               <Brain className="h-8 w-8 text-purple-500" />
               <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-[0_1px_8px_rgba(139,92,246,0.5)]">
-  AI Doubt Chain
-</h1>
+                AI Doubt Chain
+              </h1>
             </div>
             <p className="text-muted-foreground">
               Break down complex concepts into simple, understandable parts
@@ -433,7 +448,7 @@ const DoubtChain = () => {
                 style={{ fontWeight: 600, fontSize: "1.1rem", color: "#222" }}
               >
                 <span role="img" aria-label="celebrate">🎉</span>
-                Great job! You’ve fully understood this concept step-by-step.
+                Great job! You've fully understood this concept step-by-step.
                 <span role="img" aria-label="party">🌟</span>
               </div>
             </motion.div>

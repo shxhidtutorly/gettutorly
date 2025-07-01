@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Zap, Clock } from "lucide-react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser } from "@/hooks/useUser";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 declare global {
   interface Window {
@@ -36,11 +37,12 @@ declare global {
 }
 
 const PaddlePricing = () => {
-  const { user, loading } =useUser();
+  const { user, isLoaded } = useUser();
   const { subscription, hasActiveSubscription, createTrialSubscription } = useSubscription();
   const navigate = useNavigate();
   const [paddleLoaded, setPaddleLoaded] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Load Paddle.js script
@@ -59,7 +61,11 @@ const PaddlePricing = () => {
     };
     script.onerror = (error) => {
       console.error('Failed to load Paddle script:', error);
-      toast.error("Payment system failed to load. Please refresh the page.");
+      toast({
+        title: "Error",
+        description: "Payment system failed to load. Please refresh the page.",
+        variant: "destructive"
+      });
     };
     document.head.appendChild(script);
 
@@ -68,22 +74,31 @@ const PaddlePricing = () => {
         document.head.removeChild(script);
       }
     };
-  }, []);
+  }, [toast]);
 
   const handleStartTrial = async (planName: string) => {
-    if (loading) {
-      toast.info("Please wait while we check your authentication status...");
+    if (!isLoaded) {
+      toast({
+        title: "Loading",
+        description: "Please wait while we check your authentication status...",
+      });
       return;
     }
 
     if (!user) {
-      toast.info("Please sign in to start your trial");
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to start your trial",
+      });
       navigate("/signin", { state: { returnTo: "/pricing" } });
       return;
     }
 
     if (hasActiveSubscription) {
-      toast.info("You already have an active subscription");
+      toast({
+        title: "Active Subscription",
+        description: "You already have an active subscription",
+      });
       return;
     }
 
@@ -92,38 +107,61 @@ const PaddlePricing = () => {
     try {
       const success = await createTrialSubscription(planName);
       if (success) {
-        toast.success("🎉 Trial started! Welcome to Tutorly!");
+        toast({
+          title: "Trial Started!",
+          description: "🎉 Trial started! Welcome to Tutorly!",
+        });
         navigate("/dashboard");
       } else {
-        toast.error("Failed to start trial. Please try again.");
+        toast({
+          title: "Error",
+          description: "Failed to start trial. Please try again.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Trial creation error:', error);
-      toast.error("Failed to start trial. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to start trial. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoadingPlan(null);
     }
   };
 
   const handleSubscribe = (priceId: string, planName: string) => {
-    if (loading) {
-      toast.info("Please wait while we check your authentication status...");
+    if (!isLoaded) {
+      toast({
+        title: "Loading",
+        description: "Please wait while we check your authentication status...",
+      });
       return;
     }
 
     if (!user) {
-      toast.info("Please sign in to continue with your subscription");
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to continue with your subscription",
+      });
       navigate("/signin", { state: { returnTo: "/pricing", autoCheckout: true } });
       return;
     }
 
     if (!paddleLoaded || !window.Paddle) {
-      toast.error("Payment system is still loading, please try again in a moment");
+      toast({
+        title: "Loading",
+        description: "Payment system is still loading, please try again in a moment",
+      });
       return;
     }
 
     setLoadingPlan(priceId);
-    toast.success("Redirecting to checkout...");
+    toast({
+      title: "Redirecting",
+      description: "Redirecting to checkout...",
+    });
 
     try {
       window.Paddle.Checkout.open({
@@ -145,7 +183,11 @@ const PaddlePricing = () => {
       console.log('Paddle checkout opened for:', planName);
     } catch (error) {
       console.error('Failed to open Paddle checkout:', error);
-      toast.error("Failed to open checkout, please try again");
+      toast({
+        title: "Error",
+        description: "Failed to open checkout, please try again",
+        variant: "destructive"
+      });
     } finally {
       setLoadingPlan(null);
     }
@@ -311,7 +353,7 @@ const PaddlePricing = () => {
                     <div className="space-y-3">
                       <Button
                         onClick={() => handleStartTrial(`${plan.name} ${plan.subtitle}`)}
-                        disabled={loadingPlan === `${plan.name} ${plan.subtitle}` || loading}
+                        disabled={loadingPlan === `${plan.name} ${plan.subtitle}` || !isLoaded}
                         className={`w-full py-3 text-white font-semibold ${
                           plan.popular
                             ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
@@ -325,7 +367,7 @@ const PaddlePricing = () => {
                       
                       <Button
                         onClick={() => handleSubscribe(plan.priceId, `${plan.name} ${plan.subtitle}`)}
-                        disabled={!paddleLoaded || loadingPlan === plan.priceId || loading}
+                        disabled={!paddleLoaded || loadingPlan === plan.priceId || !isLoaded}
                         variant="outline"
                         className="w-full py-3 border-gray-300 dark:border-gray-600"
                       >
