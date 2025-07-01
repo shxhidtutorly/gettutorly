@@ -30,15 +30,16 @@ import {
   Users
 } from "lucide-react";
 import { useUserStats } from "@/hooks/useUserStats";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Dashboard = () => {
-  const { user, isLoaded: userLoaded } = useUser();
+  const [user, loading, error] = useAuthState(auth);
   const { stats, loading: statsLoading } = useUserStats();
   const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Confetti appears on mount for Today's Activity
   useEffect(() => {
     setShowConfetti(true);
     const timer = setTimeout(() => setShowConfetti(false), 2300);
@@ -46,14 +47,12 @@ const Dashboard = () => {
   }, []);
 
   const getUserDisplayName = () => {
-    if (user?.fullName) return user.fullName;
-    if (user?.primaryEmailAddress?.emailAddress)
-      return user.primaryEmailAddress.emailAddress.split('@')[0];
+    if (user?.displayName) return user.displayName;
+    if (user?.email) return user.email.split('@')[0];
     return "User";
   };
 
-  // Show loading state while authentication or stats are loading
-  if (!userLoaded || statsLoading) {
+  if (loading || statsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
@@ -64,18 +63,12 @@ const Dashboard = () => {
     );
   }
 
-  // Show sign-in message only after loading is complete and user is not authenticated
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Welcome to Tutorly</h2>
-          <p className="text-lg mb-6">Please sign in to view your dashboard.</p>
-          <Button onClick={() => navigate('/signin')}>Go to Sign In</Button>
-        </div>
-      </div>
-    );
+    navigate('/signin');
+    return null;
   }
+};
+  
 
   // Activity stats with clean icons
   const activityStats = [
