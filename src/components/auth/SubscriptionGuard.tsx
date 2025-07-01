@@ -7,6 +7,12 @@ interface SubscriptionGuardProps {
   children: React.ReactNode;
 }
 
+const IS_DEV = Boolean(
+  typeof import.meta !== "undefined"
+    ? import.meta.env.DEV
+    : process.env.NODE_ENV === "development"
+);
+
 const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
   const { user, isLoaded: isAuthLoaded } = useUser();
   const { hasActiveSubscription, loading: isSubLoading } = useSubscription();
@@ -14,9 +20,6 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
   const location = useLocation();
 
   const allowedPublicPaths = ['/pricing', '/signin', '/signup', '/settings', '/'];
-
-  // ✅ detect dev mode
-  const isDev = import.meta.env.DEV || process.env.NODE_ENV === "development";
 
   useEffect(() => {
     if (!isAuthLoaded || isSubLoading) return;
@@ -33,12 +36,11 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
       return;
     }
 
-    // ✅ BYPASS REDIRECT IN DEV MODE
-    if (!isDev && user && !hasActiveSubscription && !isPublicPath) {
+    // BYPASS SUBSCRIPTION GUARD IN DEV
+    if (!IS_DEV && user && !hasActiveSubscription && !isPublicPath) {
       navigate('/pricing', { replace: true });
     }
-
-  }, [user, isAuthLoaded, hasActiveSubscription, isSubLoading, location.pathname, navigate, isDev]);
+  }, [user, isAuthLoaded, hasActiveSubscription, isSubLoading, location.pathname, navigate]);
 
   if (!isAuthLoaded || isSubLoading) {
     return (
