@@ -29,7 +29,6 @@ import {
   MessageCircle,
   Users
 } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
 import { useUserStats } from "@/hooks/useUserStats";
 import { motion, AnimatePresence } from "framer-motion";
 
