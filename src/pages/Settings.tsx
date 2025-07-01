@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 
 const SettingsPage = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const { signOut } = useFirebaseAuth();
   const { subscription, loading } = useSubscription();
   const navigate = useNavigate();
@@ -49,7 +49,7 @@ const SettingsPage = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  if (loading) {
+  if (loading || !isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-950 dark:via-blue-950 dark:to-indigo-950">
         <div className="text-center">

@@ -1,317 +1,218 @@
-
 import { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Send, 
-  MessageCircle, 
-  FileText, 
-  Brain,
-  Bot,
-  User,
-  Sparkles,
-  BookOpen,
-  ChevronDown,
-  Copy,
-  ThumbsUp,
-  ArrowLeft
-} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/useUser";
+import { useToast } from "@/hooks/use-toast";
+import { Send, Bot, User, ArrowLeft, FileText } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
-
-interface Message {
-  id: string;
-  type: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  isTyping?: boolean;
-}
+import BackToDashboardButton from "@/components/features/BackToDashboardButton";
 
 const NotesChat = () => {
+  const { noteId } = useParams();
   const { user, isLoaded } = useUser();
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  
+  const [messages, setMessages] = useState<any[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
+  const [note, setNote] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const fetchNoteAndMessages = async () => {
+      if (!noteId || !user) return;
+      setIsLoading(true);
+      try {
+        // Fetch note details (replace with your actual data fetching logic)
+        const fetchedNote = { id: noteId, title: "Sample Note", content: "This is a sample note content." };
+        setNote(fetchedNote);
+
+        // Fetch chat messages (replace with your actual data fetching logic)
+        const initialMessages = [
+          { id: '1', role: 'bot', content: "Hello! How can I help you with this note?", createdAt: new Date() },
+        ];
+        setMessages(initialMessages);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load note and messages.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchNoteAndMessages();
+    }
+  }, [noteId, user, toast]);
+
+  useEffect(() => {
+    // Scroll to bottom on new messages
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    if (isLoaded && user) {
-      // Add welcome message
-      setMessages([{
-        id: '1',
-        type: 'assistant',
-        content: "Hello! I'm your AI study assistant. Upload your notes or documents and I'll help you understand them better. Ask me questions, request summaries, or get explanations!",
-        timestamp: new Date()
-      }]);
-    }
-  }, [user, isLoaded]);
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || !noteId || !user) return;
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
-          <h2 className="text-3xl font-bold mb-4 text-white">Sign In Required</h2>
-          <p className="text-white/80 text-lg mb-6">Please sign in to chat with your notes</p>
-          <Button onClick={() => navigate('/signin')}>
-            Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: input,
-      timestamp: new Date()
+    const newMessage = {
+      id: String(Date.now()),
+      role: "user",
+      content: inputMessage,
+      createdAt: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput("");
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setInputMessage("");
     setIsLoading(true);
 
-    // Add typing indicator
-    const typingMessage: Message = {
-      id: 'typing',
-      type: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      isTyping: true
-    };
-    setMessages(prev => [...prev, typingMessage]);
-
     try {
-      const response = await fetch('/api/chat-notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: input,
-          userId: user.id,
-          notes: selectedNotes
-        }),
-      });
+      // Simulate AI response (replace with your actual AI logic)
+      const aiResponse = {
+        id: String(Date.now() + 1),
+        role: "bot",
+        content: `AI response to: ${inputMessage}`,
+        createdAt: new Date(),
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
-
-      // Remove typing indicator and add response
-      setMessages(prev => {
-        const withoutTyping = prev.filter(msg => msg.id !== 'typing');
-        return [...withoutTyping, {
-          id: Date.now().toString(),
-          type: 'assistant',
-          content: data.response,
-          timestamp: new Date()
-        }];
-      });
-
+      setMessages((prevMessages) => [...prevMessages, aiResponse]);
     } catch (error) {
-      console.error('Error sending message:', error);
-      setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      console.error("AI response error:", error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
+        description: "Failed to get AI response.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: "Message copied to clipboard"
-    });
-  };
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="text-center text-white">
+          <p className="text-lg">Please sign in to access notes chat.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8 pb-20 md:pb-8 h-[calc(100vh-160px)]">
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/dashboard')}
-                className="text-white/70 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            </div>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent mb-2">
-                Chat with Your Notes
-              </h1>
-              <p className="text-white/70">
-                Ask questions about your study materials and get instant answers
-              </p>
-            </div>
-          </motion.div>
+      <main className="container mx-auto px-4 py-8">
+        <BackToDashboardButton />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-3xl mx-auto space-y-6"
+        >
+          {/* Note Header */}
+          <Card className="bg-white/5 backdrop-blur-lg border-white/10">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-purple-400" />
+                <CardTitle>{note?.title || "Loading..."}</CardTitle>
+              </div>
+              <Badge variant="secondary">
+                Note ID: {noteId}
+              </Badge>
+            </CardHeader>
+            <CardContent>
+              <p>{note?.content || "Loading note content..."}</p>
+            </CardContent>
+          </Card>
 
           {/* Chat Interface */}
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 flex-1 flex flex-col">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-white flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
-                Study Assistant
-                <Badge variant="secondary" className="ml-auto">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  AI Powered
-                </Badge>
-              </CardTitle>
+          <Card className="bg-white/5 backdrop-blur-lg border-white/10">
+            <CardHeader>
+              <CardTitle>Chat with AI</CardTitle>
             </CardHeader>
-
-            <CardContent className="flex-1 flex flex-col p-0">
-              {/* Messages */}
-              <ScrollArea className="flex-1 px-6 py-4">
-                <div className="space-y-4">
-                  <AnimatePresence>
-                    {messages.map((message) => (
-                      <motion.div
-                        key={message.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className={`flex gap-3 ${
-                          message.type === 'user' ? 'justify-end' : 'justify-start'
-                        }`}
-                      >
-                        {message.type === 'assistant' && (
-                          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Bot className="h-4 w-4 text-white" />
-                          </div>
-                        )}
-                        
-                        <div
-                          className={`max-w-[80%] rounded-lg p-4 ${
-                            message.type === 'user'
-                              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                              : 'bg-white/10 text-white border border-white/20'
-                          }`}
-                        >
-                          {message.isTyping ? (
-                            <div className="flex items-center gap-2">
-                              <div className="flex gap-1">
-                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                              </div>
-                              <span className="text-sm text-white/70">Thinking...</span>
-                            </div>
-                          ) : (
-                            <>
-                              <p className="whitespace-pre-wrap">{message.content}</p>
-                              {message.type === 'assistant' && (
-                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(message.content)}
-                                    className="text-white/60 hover:text-white h-6 p-1"
-                                  >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-white/60 hover:text-white h-6 p-1"
-                                  >
-                                    <ThumbsUp className="h-3 w-3" />
-                                  </Button>
-                                  <span className="text-xs text-white/40 ml-auto">
-                                    {message.timestamp.toLocaleTimeString()}
-                                  </span>
-                                </div>
-                              )}
-                            </>
-                          )}
+            <CardContent className="h-[400px] flex flex-col">
+              <ScrollArea className="flex-grow">
+                <div className="space-y-4 p-3">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex items-start gap-2 ${message.role === 'user' ? 'justify-end' : ''}`}
+                    >
+                      {message.role === 'bot' && (
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src="/bot.png" alt="AI Bot" />
+                          <AvatarFallback>AI</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div className="flex flex-col text-sm">
+                        <div className={`px-3 py-2 rounded-lg ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-800'}`}>
+                          <p>{message.content}</p>
                         </div>
-
-                        {message.type === 'user' && (
-                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User className="h-4 w-4 text-white" />
-                          </div>
-                        )}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                  <div ref={messagesEndRef} />
+                        <time className="text-xs text-gray-500 mt-1">
+                          {new Date(message.createdAt).toLocaleTimeString()}
+                        </time>
+                      </div>
+                      {message.role === 'user' && (
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={user?.imageUrl || ""} alt={user?.fullName || "User"} />
+                          <AvatarFallback>{user?.fullName?.charAt(0) || "U"}</AvatarFallback>
+                        </Avatar>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} /> {/* Scroll anchor */}
                 </div>
               </ScrollArea>
 
-              {/* Input */}
-              <div className="border-t border-white/10 p-6">
-                <div className="flex gap-3">
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder="Ask about your notes..."
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    disabled={isLoading}
-                  />
-                  <Button
-                    onClick={sendMessage}
-                    disabled={!input.trim() || isLoading}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-white/50 mt-2">
-                  Upload notes first to get better context-aware answers
-                </p>
+              {/* Input Area */}
+              <div className="mt-4 flex items-center gap-2">
+                <Input
+                  type="text"
+                  placeholder="Type your message..."
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  className="flex-grow bg-white/10 border-white/20 text-white"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSendMessage();
+                    }
+                  }}
+                />
+                <Button onClick={handleSendMessage} disabled={isLoading}>
+                  {isLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </main>
 
       <Footer />
-      <BottomNav />
     </div>
   );
 };

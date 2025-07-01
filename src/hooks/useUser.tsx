@@ -1,24 +1,27 @@
 
-import { useFirebaseAuth } from './useFirebaseAuth';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
 
-// This hook replaces the Clerk useUser hook
+// This hook replaces the Clerk useUser hook with Firebase Auth
 export const useUser = () => {
-  const { user, loading } = useFirebaseAuth();
+  const [firebaseUser, loading, error] = useAuthState(auth);
   
   return {
-    user: user ? {
-      id: user.uid,
-      email: user.email,
-      fullName: user.displayName,
-      imageUrl: user.photoURL,
-      emailVerified: user.emailVerified
+    user: firebaseUser ? {
+      id: firebaseUser.uid,
+      email: firebaseUser.email,
+      fullName: firebaseUser.displayName,
+      imageUrl: firebaseUser.photoURL,
+      emailVerified: firebaseUser.emailVerified
     } : null,
     isLoaded: !loading,
-    isSignedIn: !!user
+    isSignedIn: !!firebaseUser,
+    loading,
+    error
   };
 };
 
-// For backward compatibility with existing code that uses useClerk
+// For backward compatibility
 export const useClerk = () => {
   const { signOut } = useFirebaseAuth();
   
@@ -26,3 +29,6 @@ export const useClerk = () => {
     signOut
   };
 };
+
+// Import the Firebase auth hook
+import { useFirebaseAuth } from './useFirebaseAuth';

@@ -31,6 +31,7 @@ import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
+import Settings from "./pages/Settings";
 
 import "./css/animations.css";
 import "./css/darkMode.css";
@@ -100,6 +101,7 @@ const App = () => {
               <Route path="/study-techniques" element={<ProtectedRoute><StudyTechniques /></ProtectedRoute>} />
               <Route path="/doubt-chain" element={<ProtectedRoute><DoubtChain /></ProtectedRoute>} />
               <Route path="/doubt-bookmarks" element={<ProtectedRoute><DoubtBookmarks /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
               <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 

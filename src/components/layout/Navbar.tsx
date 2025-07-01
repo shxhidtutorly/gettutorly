@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@/hooks/useUser";
 
 const navbarLinks = [
   { href: "/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
@@ -146,7 +147,7 @@ const Navbar = () => {
                 <Avatar className="hover:opacity-80 transition-opacity">
                   <AvatarImage src={user?.imageUrl || ""} />
                   <AvatarFallback className="bg-purple-600 text-white">
-                    {user?.fullName?.charAt(0) || "U"}
+                    {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
               </Link>
@@ -251,7 +252,7 @@ const Navbar = () => {
   );
 };
 
-const NavLink = ({ href, icon, label, active }) => (
+const NavLink = ({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active: boolean }) => (
   <Link
     to={href}
     className={`group flex flex-col items-center gap-1 text-sm font-medium transition-colors relative
@@ -272,7 +273,7 @@ const NavLink = ({ href, icon, label, active }) => (
   </Link>
 );
 
-const MobileNavLink = ({ href, icon, label, active, onClick }) => (
+const MobileNavLink = ({ href, icon, label, active, onClick }: { href: string; icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) => (
   <button
     onClick={onClick}
     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-left transition-colors
