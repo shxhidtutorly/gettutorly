@@ -1,30 +1,30 @@
 import { useEffect, useState } from "react";
 import { useUser } from "./useUser";
 
-// Correct dev mode detection for all build tools
-const IS_DEV =
+// True in all development environments (Vite, Next.js, etc)
+const IS_DEV = Boolean(
   typeof import.meta !== "undefined"
     ? import.meta.env.DEV
-    : process.env.NODE_ENV === "development";
+    : process.env.NODE_ENV === "development"
+);
 
 export const useSubscription = () => {
   const { user, isLoaded } = useUser();
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Always "subscribed" in dev. No API call ever.
+  // This value is computed based on the subscription state
+  const hasActiveSubscription = !!subscription && !subscription.is_expired;
+
   useEffect(() => {
+    // BYPASS: Always "subscribed" in dev, NEVER call API
     if (IS_DEV) {
-      setSubscription({
-        plan_name: "Pro",
-        is_trial: true,
-        is_expired: false,
-      });
+      setSubscription({ plan_name: "Pro", is_trial: true, is_expired: false });
       setLoading(false);
       return;
     }
 
-    // Only fetch in production
+    // In production, fetch real subscription
     if (!isLoaded || !user) return;
 
     const fetchSubscription = async () => {
@@ -45,16 +45,9 @@ export const useSubscription = () => {
     fetchSubscription();
   }, [user, isLoaded]);
 
-  const hasActiveSubscription =
-    !!subscription && !subscription.is_expired;
-
   const createTrialSubscription = async (planName: string) => {
     if (IS_DEV) {
-      setSubscription({
-        plan_name: planName,
-        is_trial: true,
-        is_expired: false,
-      });
+      setSubscription({ plan_name: planName, is_trial: true, is_expired: false });
       return true;
     }
     try {
