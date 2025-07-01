@@ -1,10 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import {
-  useSignIn,
-  useUser,
-  useClerk
-} from "@clerk/clerk-react";
+import { useUser } from "@/hooks/useUser";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,36 +17,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-declare global {
-  interface Window {
-    Paddle?: {
-      Environment: {
-        set: (env: string) => void;
-      };
-      Setup: (config: { token: string }) => void;
-      Checkout: {
-        open: (config: {
-          items: { priceId: string; quantity: number }[];
-          customer?: { email?: string };
-          customData?: Record<string, any>;
-          successUrl?: string;
-          cancelUrl?: string;
-          settings?: {
-            allowLogout?: boolean;
-            displayMode?: string;
-            theme?: string;
-            locale?: string;
-          };
-        }) => void;
-      };
-    };
-  }
-}
-
 const SignInPage = () => {
-  const { isSignedIn, user } = useUser();
-  const { signIn, isLoaded } = useSignIn();
-  const { redirectToSignIn } = useClerk();
+  const { user, isLoaded } = useUser();
+  const { signIn } = useFirebaseAuth();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,69 +30,14 @@ const SignInPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paddleLoaded, setPaddleLoaded] = useState(false);
 
   useEffect(() => {
-    if (isSignedIn && location.pathname === "/signin") {
+    if (user && location.pathname === "/signin") {
       const state = location.state as any;
       const redirectTo = state?.returnTo || "/dashboard";
       navigate(redirectTo, { replace: true });
     }
-  }, [isSignedIn, navigate, location]);
-
-  useEffect(() => {
-    const state = location.state as any;
-    if (state?.autoCheckout) {
-      const script = document.createElement("script");
-      script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-      script.async = true;
-      script.onload = () => {
-        if (window.Paddle) {
-          window.Paddle.Environment.set("production");
-          window.Paddle.Setup({
-            token: "live_70323ea9dfbc69d45414c712687",
-          });
-          setPaddleLoaded(true);
-        }
-      };
-      document.head.appendChild(script);
-
-      return () => {
-        if (document.head.contains(script)) {
-          document.head.removeChild(script);
-        }
-      };
-    }
-  }, [location.state]);
-
-  const openPaddleCheckout = () => {
-    if (!user || !paddleLoaded || !window.Paddle) return;
-
-    try {
-      window.Paddle.Checkout.open({
-        items: [{ priceId: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", quantity: 1 }],
-        customer: { email: user?.primaryEmailAddress?.emailAddress || "" },
-        customData: {
-          user_id: user.id,
-          planName: "Basic Plan",
-        },
-        successUrl: "https://gettutorly.com/pricing?sub=success",
-        cancelUrl: "https://gettutorly.com/pricing?sub=cancel",
-        settings: {
-          allowLogout: false,
-          displayMode: "overlay",
-          theme: "dark",
-          locale: "en",
-        },
-      });
-    } catch (error) {
-      console.error("Failed to open Paddle checkout:", error);
-      toast({
-        title: "Payment Error",
-        description: "Failed to open checkout, please try again",
-      });
-    }
-  };
+  }, [user, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,59 +51,20 @@ const SignInPage = () => {
     }
 
     try {
-      if (!isLoaded) return;
-
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
-
-      if (result.status === "complete") {
-        const state = location.state as any;
-
-        if (state?.autoCheckout) {
-          toast({
-            title: "Login successful!",
-            description: "Opening checkout...",
-          });
-
-          setTimeout(() => {
-            paddleLoaded
-              ? openPaddleCheckout()
-              : navigate("/pricing", { replace: true });
-          }, 1000);
-        } else {
-          const redirectTo = state?.returnTo || "/dashboard";
-          navigate(redirectTo, { replace: true });
-        }
+      const result = await signIn(email, password);
+      
+      if (result.error) {
+        setError(result.error.message || "Login failed");
       } else {
-        setError("Unknown login status");
+        const state = location.state as any;
+        const redirectTo = state?.returnTo || "/dashboard";
+        navigate(redirectTo, { replace: true });
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Login failed");
+      setError(err.message || "Login failed");
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleGoogleSignIn = () => {
-    const state = location.state as any;
-    const redirectTo = state?.returnTo || "/dashboard";
-
- <SignInButton mode="modal" redirectUrl="/dashboard">
-  <Button
-    variant="outline"
-    className="w-full bg-white text-gray-900 hover:bg-gray-100 border-gray-300"
-  >
-    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-      <path
-        fill="currentColor"
-        d="M21.35 11.1H12v2.83h5.41c-.24 1.27-1.44 3.7-5.41 3.7-3.26 0-5.93-2.7-5.93-6s2.67-6 5.93-6c1.86 0 3.11.8 3.83 1.5l2.6-2.5C17.5 3.87 15.04 3 12 3 6.48 3 2 7.48 2 13s4.48 10 10 10c5.75 0 9.69-4.04 9.69-9.75 0-.67-.09-1.18-.24-1.68z"
-      />
-    </svg>
-    Continue with Google
-  </Button>
-</SignInButton>
   };
 
   if (!isLoaded) {
@@ -218,28 +95,6 @@ const SignInPage = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-
-          <Button
-            onClick={handleGoogleSignIn}
-            variant="outline"
-            className="w-full bg-white text-gray-900 hover:bg-gray-100 border-gray-300"
-          >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-              <path fill="currentColor" d="..." />
-            </svg>
-            Continue with Google
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-700" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-900 px-2 text-gray-400">
-                Or continue with email
-              </span>
-            </div>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

@@ -1,5 +1,6 @@
+
 import { useEffect } from 'react';
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@/hooks/useUser";
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const AuthStateHandler = ({ children }: { children: React.ReactNode }) => {
@@ -8,7 +9,7 @@ const AuthStateHandler = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Wait until Clerk is fully loaded
+    // Wait until Firebase auth is fully loaded
     if (!isLoaded) return;
 
     // Redirect signed-in users away from auth pages

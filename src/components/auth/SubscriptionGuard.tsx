@@ -1,6 +1,7 @@
+
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser } from '@/hooks/useUser';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface SubscriptionGuardProps {

@@ -1,12 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { RedirectToSignIn } from "@clerk/clerk-react";
-import { useUser } from "@clerk/clerk-react";
-import useSyncClerkToSupabase from "@/hooks/useSyncClerkToSupabase";
+import { useUser } from "@/hooks/useUser";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Library from "./pages/Library";
@@ -39,8 +38,6 @@ import "./css/mobile.css";
 
 import SubscriptionGuard from "./components/auth/SubscriptionGuard";
 
-const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -52,15 +49,27 @@ const queryClient = new QueryClient({
 
 // Protect routes for signed-in + subscribed users
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isSignedIn } = useUser();
+  const { user, isLoaded } = useUser();
 
-  if (!isSignedIn) return <RedirectToSignIn />;
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
   return <SubscriptionGuard>{children}</SubscriptionGuard>;
 };
 
 const App = () => {
-  useSyncClerkToSupabase(); // <- Add this line at the top of your App component
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

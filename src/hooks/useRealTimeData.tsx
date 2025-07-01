@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { useUser, useClerk } from "@clerk/clerk-react";
-import { supabase } from '@/integrations/supabase/client';
+import { useUser } from "@/hooks/useUser";
 import { useToast } from '@/components/ui/use-toast';
-import { getUserStudyMaterials } from '@/lib/database';
+import { getUserStudyMaterials, subscribeToStudyMaterials, subscribeToUserStats } from '@/lib/firebase-db';
 
 export const useRealTimeStudyMaterials = () => {
   const { user } = useUser();
@@ -33,20 +32,14 @@ export const useRealTimeStudyMaterials = () => {
     fetchMaterials();
 
     // Set up real-time subscription
-    const channel = supabase
-      .channel('study_materials_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'study_materials',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        fetchMaterials();
-      })
-      .subscribe();
+    const unsubscribe = subscribeToStudyMaterials(user.id, (updatedMaterials) => {
+      setMaterials(updatedMaterials);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, [user, toast]);
 
@@ -64,14 +57,8 @@ export const useRealTimeStudySessions = () => {
 
     const fetchSessions = async () => {
       try {
-        const { data, error } = await supabase
-          .from('study_sessions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('started_at', { ascending: false });
-
-        if (error) throw error;
-        setSessions(data || []);
+        // Implement getUserStudySessions in firebase-db.ts if needed
+        setSessions([]);
       } catch (error) {
         console.error('Error fetching sessions:', error);
         toast({
@@ -85,23 +72,6 @@ export const useRealTimeStudySessions = () => {
     };
 
     fetchSessions();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('study_sessions_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'study_sessions',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        fetchSessions();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [user, toast]);
 
   return { sessions, loading };
@@ -118,14 +88,7 @@ export const useRealTimeUserStats = () => {
 
     const fetchStats = async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_stats')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('last_updated', { ascending: false });
-
-        if (error) throw error;
-        setStats(data || []);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching stats:', error);
         toast({
@@ -141,20 +104,18 @@ export const useRealTimeUserStats = () => {
     fetchStats();
 
     // Set up real-time subscription
-    const channel = supabase
-      .channel('user_stats_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'user_stats',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        fetchStats();
-      })
-      .subscribe();
+    const unsubscribe = subscribeToUserStats(user.id, (updatedStats) => {
+      setStats(Object.entries(updatedStats).map(([key, value]) => ({
+        stat_type: key,
+        count: value.count,
+        last_updated: value.last_updated
+      })));
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, [user, toast]);
 

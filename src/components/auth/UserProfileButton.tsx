@@ -1,5 +1,4 @@
 
-import { UserButton, useUser } from "@clerk/clerk-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut, User as UserIcon } from "lucide-react";
@@ -12,18 +11,19 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@/hooks/useUser";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 
 const UserProfileButton = () => {
-  const { currentUser, signOut } = useUser();
+  const { user } = useUser();
+  const { signOut } = useFirebaseAuth();
   const navigate = useNavigate();
 
-  if (!currentUser) return null;
+  if (!user) return null;
 
-  // Get user metadata for display name
-  const userData = currentUser.user_metadata;
-  const userInitials = userData?.name 
-    ? userData.name.split(" ").map((name: string) => name[0]).join("").toUpperCase()
-    : (userData?.email ? userData.email[0].toUpperCase() : "U");
+  const userInitials = user.fullName 
+    ? user.fullName.split(" ").map((name: string) => name[0]).join("").toUpperCase()
+    : (user.email ? user.email[0].toUpperCase() : "U");
 
   const handleSignOut = async () => {
     try {
@@ -39,8 +39,8 @@ const UserProfileButton = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-9 w-9">
-            {userData?.avatar_url ? (
-              <AvatarImage src={userData.avatar_url} alt={userData?.name || "User"} />
+            {user.imageUrl ? (
+              <AvatarImage src={user.imageUrl} alt={user.fullName || "User"} />
             ) : (
               <AvatarFallback>{userInitials}</AvatarFallback>
             )}

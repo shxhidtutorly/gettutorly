@@ -1,6 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { useUser } from "@clerk/clerk-react";
-import { supabase } from '@/integrations/supabase/client';
+import { useUser } from "@/hooks/useUser";
 
 interface Subscription {
   id: string;
@@ -49,31 +49,6 @@ export const useSubscription = () => {
       });
       return;
 
-      // Uncomment below for actual Supabase check once UUID mapping is fixed
-      /*
-      const { data: hasActive, error: activeError } = await supabase.rpc('has_active_subscription', {
-        p_user_id: user.id,
-      });
-
-      if (activeError) {
-        console.error('[Subscription] Error checking active status:', activeError.message);
-        setHasActiveSubscription(false);
-      } else {
-        setHasActiveSubscription(Boolean(hasActive));
-      }
-
-      const { data: subscriptionData, error: subError } = await supabase.rpc('get_user_subscription', {
-        p_user_id: user.id,
-      });
-
-      if (subError) {
-        console.error('[Subscription] Error fetching subscription:', subError.message);
-        setSubscription(null);
-      } else {
-        setSubscription(subscriptionData?.[0] ?? null);
-      }
-      */
-
     } catch (err) {
       console.error('[Subscription] Unexpected error:', err);
       setHasActiveSubscription(false);
@@ -87,19 +62,7 @@ export const useSubscription = () => {
     if (!user?.id) return false;
 
     try {
-      const { error } = await supabase.from('subscriptions').insert([{
-        user_id: user.id,
-        plan_name: planName,
-        status: 'trialing',
-        trial_start_date: new Date().toISOString(),
-        trial_end_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-      }]);
-
-      if (error) {
-        console.error('[Subscription] Error creating trial:', error.message);
-        return false;
-      }
-
+      // Mock trial creation for dev
       await fetchSubscription();
       return true;
     } catch (err) {

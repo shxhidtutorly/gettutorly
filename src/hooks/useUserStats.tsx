@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
-import { useUser } from "@clerk/clerk-react";
-import { supabase } from '@/integrations/supabase/client';
+import { useUser } from "@/hooks/useUser";
+import { getUserStats, updateUserStat } from '@/lib/firebase-db';
 
 export interface UserStats {
   materials_created: number;
@@ -41,24 +42,21 @@ export const useUserStats = () => {
 
     const fetchStats = async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_stats')
-          .select('stat_type, count')
-          .eq('user_id', userId);
+        const firebaseStats = await getUserStats(userId);
+        
+        const updatedStats: UserStats = {
+          materials_created: firebaseStats.materials_created?.count || 0,
+          notes_created: firebaseStats.notes_created?.count || 0,
+          flashcards_created: firebaseStats.flashcards_created?.count || 0,
+          quizzes_created: firebaseStats.quizzes_created?.count || 0,
+          quizzes_taken: firebaseStats.quizzes_taken?.count || 0,
+          summaries_created: firebaseStats.summaries_created?.count || 0,
+          doubts_asked: firebaseStats.doubts_asked?.count || 0,
+          audio_notes_created: firebaseStats.audio_notes_created?.count || 0,
+          total_study_time: firebaseStats.total_study_time?.count || 0,
+        };
 
-        if (error) {
-          console.error('❌ Error fetching stats:', error);
-          return;
-        }
-
-        const updatedStats: Partial<UserStats> = { ...defaultStats };
-        data?.forEach(stat => {
-          if (stat.stat_type in defaultStats) {
-            updatedStats[stat.stat_type as keyof UserStats] = stat.count;
-          }
-        });
-
-        setStats(updatedStats as UserStats);
+        setStats(updatedStats);
       } catch (err) {
         console.error('❌ Error in fetchStats:', err);
       } finally {
@@ -67,44 +65,15 @@ export const useUserStats = () => {
     };
 
     fetchStats();
-
-    const channel = supabase
-      .channel('user_stats_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_stats',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          console.log("🔁 Real-time update received. Refetching stats...");
-          fetchStats();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [userId]);
 
   const updateStat = async (statType: keyof UserStats, increment = 1) => {
     if (!userId) return;
 
     try {
-      const { error } = await supabase.rpc('update_user_stat', {
-        p_user_id: userId,
-        p_stat_type: statType,
-        p_increment: increment
-      });
-
-      if (error) {
-        console.error('❌ Error updating stat:', error);
-      }
+      await updateUserStat(userId, statType, increment);
     } catch (err) {
-      console.error('❌ Error calling update_user_stat RPC:', err);
+      console.error('❌ Error updating stat:', err);
     }
   };
 
