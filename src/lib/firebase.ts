@@ -6,13 +6,14 @@ import { getDatabase, connectDatabaseEmulator } from "firebase/database";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCrrePl9YgXRHzoGrvNhxW--LGwCIqAYy4",
-  authDomain: "tutorly-76b09.firebaseapp.com",
-  projectId: "tutorly-76b09",
-  storageBucket: "tutorly-76b09.firebasestorage.app",
-  messagingSenderId: "139893500065",
-  appId: "1:139893500065:web:2d65b5fcd830eb86ea68e0",
-  measurementId: "G-PGJX4C1P5D"
+  apiKey: "AIzaSyBzVjEtj1jTM7P-MKmoUkEneA121juKOjw",
+  authDomain: "studyai-39fb8.firebaseapp.com",
+  databaseURL: "https://studyai-39fb8-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "studyai-39fb8",
+  storageBucket: "studyai-39fb8.firebasestorage.app",
+  messagingSenderId: "167999192726",
+  appId: "1:167999192726:web:ec58b6169c7398743dccb7",
+  measurementId: "G-VLHJ0SX0GG"
 };
 
 
