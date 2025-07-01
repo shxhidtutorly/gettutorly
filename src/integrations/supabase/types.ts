@@ -12,6 +12,7 @@ export type Database = {
       audio_notes: {
         Row: {
           audio_url: string | null
+          clerk_user_id: string | null
           created_at: string | null
           duration: number | null
           id: string
@@ -22,6 +23,7 @@ export type Database = {
         }
         Insert: {
           audio_url?: string | null
+          clerk_user_id?: string | null
           created_at?: string | null
           duration?: number | null
           id?: string
@@ -32,6 +34,7 @@ export type Database = {
         }
         Update: {
           audio_url?: string | null
+          clerk_user_id?: string | null
           created_at?: string | null
           duration?: number | null
           id?: string
@@ -137,6 +140,7 @@ export type Database = {
       }
       note_chats: {
         Row: {
+          clerk_user_id: string | null
           created_at: string | null
           id: string
           message: string
@@ -145,6 +149,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           created_at?: string | null
           id?: string
           message: string
@@ -153,6 +158,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           created_at?: string | null
           id?: string
           message?: string
@@ -179,6 +185,7 @@ export type Database = {
       }
       notes: {
         Row: {
+          clerk_user_id: string | null
           content: string
           created_at: string | null
           id: string
@@ -188,6 +195,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           content: string
           created_at?: string | null
           id?: string
@@ -197,6 +205,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           content?: string
           created_at?: string | null
           id?: string
@@ -221,6 +230,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          clerk_user_id: string | null
+          created_at: string | null
+          full_name: string | null
+          id: number
+          role: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          clerk_user_id?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: never
+          role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          clerk_user_id?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: never
+          role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       quiz_attempts: {
         Row: {
@@ -307,6 +349,7 @@ export type Database = {
       }
       study_materials: {
         Row: {
+          clerk_user_id: string | null
           content_type: string | null
           created_at: string | null
           file_name: string | null
@@ -320,6 +363,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           content_type?: string | null
           created_at?: string | null
           file_name?: string | null
@@ -333,6 +377,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           content_type?: string | null
           created_at?: string | null
           file_name?: string | null
@@ -357,6 +402,7 @@ export type Database = {
       }
       study_sessions: {
         Row: {
+          clerk_user_id: string | null
           duration: number | null
           ended_at: string | null
           id: string
@@ -366,6 +412,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           duration?: number | null
           ended_at?: string | null
           id?: string
@@ -375,6 +422,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           duration?: number | null
           ended_at?: string | null
           id?: string
@@ -498,6 +546,7 @@ export type Database = {
       }
       user_stats: {
         Row: {
+          clerk_user_id: string | null
           count: number | null
           id: string
           last_updated: string | null
@@ -505,6 +554,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          clerk_user_id?: string | null
           count?: number | null
           id?: string
           last_updated?: string | null
@@ -512,21 +562,14 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          clerk_user_id?: string | null
           count?: number | null
           id?: string
           last_updated?: string | null
           stat_type?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_stats_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       users: {
         Row: {
@@ -563,6 +606,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      customize_jwt_claims: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_dashboard_stats: {
         Args: { p_user_id: string }
         Returns: {
@@ -587,6 +634,10 @@ export type Database = {
       has_active_subscription: {
         Args: { p_user_id: string }
         Returns: boolean
+      }
+      requesting_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       update_user_stat: {
         Args: { p_user_id: string; p_stat_type: string; p_increment?: number }
