@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/firebase";
+import { auth } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Dashboard = () => {
