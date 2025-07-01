@@ -35,7 +35,7 @@ export const useSubscription = () => {
     try {
       setLoading(true);
 
-      // ✅ Bypass in dev only
+      // ✅ DEV BYPASS
       if (import.meta.env.DEV || process.env.NODE_ENV === "development") {
         console.warn('[DEV] Bypassing subscription check — REMOVE IN PRODUCTION');
         setHasActiveSubscription(true);
@@ -50,8 +50,13 @@ export const useSubscription = () => {
         return;
       }
 
-      // 🟡 Replace with real fetch call in production
+      // 🔒 Production logic (replace with real API)
       const res = await fetch(`/api/subscription?userId=${user.id}`);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+      }
+
       const data = await res.json();
 
       if (data?.status === 'active') {
@@ -75,7 +80,6 @@ export const useSubscription = () => {
     if (!user?.id) return false;
 
     try {
-      // Mock trial for now (update with real logic later)
       await fetchSubscription();
       return true;
     } catch (err) {
