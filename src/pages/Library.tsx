@@ -22,7 +22,6 @@ import {
   Calendar,
   Bug,
 } from "lucide-react";
-import { useUser, useClerk } from "@clerk/clerk-react";
 import { getUserStudyMaterials } from "@/lib/database";
 import SupabaseDebugger from "@/components/debug/SupabaseDebugger";
 
