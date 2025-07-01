@@ -1,33 +1,23 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/hooks/useUser';
-import { useSubscription } from '@/hooks/useSubscription';
 
 interface SubscriptionGuardProps {
   children: React.ReactNode;
 }
 
-const IS_DEV = Boolean(
-  typeof import.meta !== "undefined"
-    ? import.meta.env.DEV
-    : process.env.NODE_ENV === "development"
-);
-
 const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
   const { user, isLoaded: isAuthLoaded } = useUser();
-  const { hasActiveSubscription, loading: isSubLoading } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const allowedPublicPaths = ['/pricing', '/signin', '/signup', '/settings', '/'];
-
   useEffect(() => {
-    if (!isAuthLoaded || isSubLoading) return;
+    // Wait for auth to load
+    if (!isAuthLoaded) return;
 
-    const isPublicPath = allowedPublicPaths.includes(location.pathname);
-
+    // If not logged in, go to signin
     if (!user) {
-      if (!isPublicPath) {
+      if (location.pathname !== '/signin') {
         navigate('/signin', {
           state: { returnTo: location.pathname },
           replace: true,
@@ -36,22 +26,11 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
       return;
     }
 
-    // BYPASS SUBSCRIPTION GUARD IN DEV
-    if (!IS_DEV && user && !hasActiveSubscription && !isPublicPath) {
-      navigate('/pricing', { replace: true });
+    // IF AUTHENTICATED, ALWAYS GO TO DASHBOARD
+    if (user && location.pathname !== '/dashboard') {
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, isAuthLoaded, hasActiveSubscription, isSubLoading, location.pathname, navigate]);
-
-  if (!isAuthLoaded || isSubLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [user, isAuthLoaded, location.pathname, navigate]);
 
   return <>{children}</>;
 };
