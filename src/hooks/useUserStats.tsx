@@ -15,6 +15,18 @@ interface UserStats {
   total_study_time: number;
 }
 
+interface UserStatsData {
+  materials_created?: { count: number };
+  notes_created?: { count: number };
+  flashcards_created?: { count: number };
+  quizzes_created?: { count: number };
+  quizzes_taken?: { count: number };
+  summaries_created?: { count: number };
+  doubts_asked?: { count: number };
+  audio_notes_created?: { count: number };
+  total_study_time?: { count: number };
+}
+
 export const useUserStats = () => {
   const { user } = useUser();
   const [stats, setStats] = useState<UserStats>({
@@ -38,7 +50,7 @@ export const useUserStats = () => {
 
     const loadStats = async () => {
       try {
-        const userStats = await getUserStats(user.id);
+        const userStats: UserStatsData = await getUserStats(user.id) || {};
         
         const formattedStats: UserStats = {
           materials_created: userStats.materials_created?.count || 0,
@@ -64,16 +76,17 @@ export const useUserStats = () => {
 
     // Set up real-time subscription
     const unsubscribe = subscribeToUserStats(user.id, (updatedStats) => {
+      const statsData: UserStatsData = updatedStats || {};
       const formattedStats: UserStats = {
-        materials_created: updatedStats.materials_created?.count || 0,
-        notes_created: updatedStats.notes_created?.count || 0,
-        flashcards_created: updatedStats.flashcards_created?.count || 0,
-        quizzes_created: updatedStats.quizzes_created?.count || 0,
-        quizzes_taken: updatedStats.quizzes_taken?.count || 0,
-        summaries_created: updatedStats.summaries_created?.count || 0,
-        doubts_asked: updatedStats.doubts_asked?.count || 0,
-        audio_notes_created: updatedStats.audio_notes_created?.count || 0,
-        total_study_time: updatedStats.total_study_time?.count || 0,
+        materials_created: statsData.materials_created?.count || 0,
+        notes_created: statsData.notes_created?.count || 0,
+        flashcards_created: statsData.flashcards_created?.count || 0,
+        quizzes_created: statsData.quizzes_created?.count || 0,
+        quizzes_taken: statsData.quizzes_taken?.count || 0,
+        summaries_created: statsData.summaries_created?.count || 0,
+        doubts_asked: statsData.doubts_asked?.count || 0,
+        audio_notes_created: statsData.audio_notes_created?.count || 0,
+        total_study_time: statsData.total_study_time?.count || 0,
       };
       
       setStats(formattedStats);

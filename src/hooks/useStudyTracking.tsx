@@ -31,6 +31,16 @@ export interface StudySession {
   duration: number;
 }
 
+interface UserStatsData {
+  quizzes_taken?: { count: number };
+  summaries_created?: { count: number };
+  notes_created?: { count: number };
+  math_problems_solved?: { count: number };
+  sessions_started?: { count: number };
+  doubts_resolved?: { count: number };
+  total_study_time?: { count: number };
+}
+
 export const useStudyTracking = () => {
   const { user } = useUser();
   const [stats, setStats] = useState<StudyStats>({
@@ -138,10 +148,10 @@ export const useStudyTracking = () => {
       try {
         console.log('Loading stats for user:', user.id);
         
-        const statsData = await getUserStats(user.id);
+        const statsData: UserStatsData = await getUserStats(user.id) || {};
         console.log('Loaded stats:', statsData);
 
-        // Calculate stats from Firebase data
+        // Calculate stats from Firebase data with safe property access
         const quizzesCompleted = statsData.quizzes_taken?.count || 0;
         const summariesGenerated = statsData.summaries_created?.count || 0;
         const notesCreated = statsData.notes_created?.count || 0;
@@ -186,13 +196,14 @@ export const useStudyTracking = () => {
         unsubscribe = subscribeToUserStats(user.id, (updatedStats) => {
           console.log('Real-time stats update detected, updating state');
           
-          const quizzesCompleted = updatedStats.quizzes_taken?.count || 0;
-          const summariesGenerated = updatedStats.summaries_created?.count || 0;
-          const notesCreated = updatedStats.notes_created?.count || 0;
-          const mathProblemsSolved = updatedStats.math_problems_solved?.count || 0;
-          const sessionCount = updatedStats.sessions_started?.count || 0;
-          const doubtsResolved = updatedStats.doubts_resolved?.count || 0;
-          const totalStudyHours = (updatedStats.total_study_time?.count || 0) / 3600;
+          const statsData: UserStatsData = updatedStats || {};
+          const quizzesCompleted = statsData.quizzes_taken?.count || 0;
+          const summariesGenerated = statsData.summaries_created?.count || 0;
+          const notesCreated = statsData.notes_created?.count || 0;
+          const mathProblemsSolved = statsData.math_problems_solved?.count || 0;
+          const sessionCount = statsData.sessions_started?.count || 0;
+          const doubtsResolved = statsData.doubts_resolved?.count || 0;
+          const totalStudyHours = (statsData.total_study_time?.count || 0) / 3600;
           const streakDays = Math.max(1, Math.min(7, sessionCount));
 
           setStats({
