@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useUser, useClerk } from "@clerk/clerk-react";
-import { supabase } from '@/integrations/supabase/client';
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 
 interface StudyStats {
   totalStudyHours: number;
