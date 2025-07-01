@@ -1,220 +1,312 @@
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useUser, useClerk } from "@clerk/clerk-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Send, 
+  MessageCircle, 
+  FileText, 
+  Brain,
+  Bot,
+  User,
+  Sparkles,
+  BookOpen,
+  ChevronDown,
+  Copy,
+  ThumbsUp,
+  ArrowLeft
+} from "lucide-react";
+import { useUser } from "@/hooks/useUser";
+import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import NotesChat from "@/components/features/NotesChat";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, MessageCircle, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
-const NotesChatPage = () => {
-  const { noteId } = useParams();
+interface Message {
+  id: string;
+  type: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  isTyping?: boolean;
+}
+
+const NotesChat = () => {
+  const { user, isLoaded } = useUser();
   const navigate = useNavigate();
-  const { user, loading } = useUser();
   const { toast } = useToast();
-  const [noteContent, setNoteContent] = useState("");
-  const [noteTitle, setNoteTitle] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/signin');
-      return;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    if (user && noteId) {
-      loadNoteContent();
-    } else if (!noteId) {
-      navigate('/ai-notes');
+  useEffect(() => {
+    if (isLoaded && user) {
+      // Add welcome message
+      setMessages([{
+        id: '1',
+        type: 'assistant',
+        content: "Hello! I'm your AI study assistant. Upload your notes or documents and I'll help you understand them better. Ask me questions, request summaries, or get explanations!",
+        timestamp: new Date()
+      }]);
     }
-  }, [user, loading, noteId, navigate]);
+  }, [user, isLoaded]);
 
-  const loadNoteContent = async () => {
-    if (!user || !noteId) return;
-    
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
+          <h2 className="text-3xl font-bold mb-4 text-white">Sign In Required</h2>
+          <p className="text-white/80 text-lg mb-6">Please sign in to chat with your notes</p>
+          <Button onClick={() => navigate('/signin')}>
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: input,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    // Add typing indicator
+    const typingMessage: Message = {
+      id: 'typing',
+      type: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isTyping: true
+    };
+    setMessages(prev => [...prev, typingMessage]);
+
     try {
-      setIsLoading(true);
-      setError("");
+      const response = await fetch('/api/chat-notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input,
+          userId: user.id,
+          notes: selectedNotes
+        }),
+      });
 
-      // Try study_materials
-      let { data, error } = await supabase
-        .from('study_materials')
-        .select('title, file_name, metadata')
-        .eq('user_id', user.id)
-        .eq('id', noteId)
-        .single();
-
-      if (error && error.code === 'PGRST116') {
-        // Try notes table
-        const notesResult = await supabase
-          .from('notes')
-          .select('title, content')
-          .eq('user_id', user.id)
-          .eq('id', noteId)
-          .single();
-        
-        if (notesResult.error) {
-          console.error('Error loading note:', notesResult.error);
-          setError("Note not found");
-          toast({
-            variant: "destructive",
-            title: "Note not found",
-            description: "The requested note could not be found."
-          });
-          return;
-        }
-        const noteData = notesResult.data;
-        setNoteTitle(noteData.title || "Untitled Note");
-        setNoteContent(noteData.content || "");
-      } else if (error) {
-        console.error('Error loading note:', error);
-        setError("Failed to load note content");
-        toast({
-          variant: "destructive",
-          title: "Error loading note",
-          description: "Could not load the note content. Please try again."
-        });
-        return;
-      } else if (data) {
-        setNoteTitle(data.title || data.file_name || "Untitled Note");
-        const meta = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, any> : {};
-        const extractedText = meta && typeof meta["extractedText"] === "string" ? meta["extractedText"] : "";
-        setNoteContent(extractedText || "This is a study material. Upload a document with text content for better AI responses.");
+      if (!response.ok) {
+        throw new Error('Failed to get response');
       }
 
+      const data = await response.json();
+
+      // Remove typing indicator and add response
+      setMessages(prev => {
+        const withoutTyping = prev.filter(msg => msg.id !== 'typing');
+        return [...withoutTyping, {
+          id: Date.now().toString(),
+          type: 'assistant',
+          content: data.response,
+          timestamp: new Date()
+        }];
+      });
+
     } catch (error) {
-      console.error('Error loading note:', error);
-      setError("Failed to load note");
+      console.error('Error sending message:', error);
+      setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
       toast({
-        variant: "destructive",
         title: "Error",
-        description: "An unexpected error occurred while loading the note."
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (loading || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading your note...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
-        <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
-          <div className="container max-w-6xl mx-auto">
-            <div className="flex items-center gap-4 mb-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/ai-notes')}
-                className="text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Notes
-              </Button>
-            </div>
-            
-            <Card className="bg-gradient-to-r from-red-900/30 to-orange-900/30 border-red-500/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <AlertCircle className="w-5 h-5 text-red-400" />
-                  {error}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-gray-300">
-                <p className="mb-4">The note you're looking for could not be loaded.</p>
-                <Button onClick={() => navigate('/ai-notes')}>
-                  Go to AI Notes Generator
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-        <Footer />
-        <BottomNav />
-      </div>
-    );
-  }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: "Message copied to clipboard"
+    });
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-bl from-[#101010] via-[#23272e] to-[#09090b] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      <Navbar />
       
-      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
-        <div className="container max-w-6xl mx-auto">
+      <main className="container mx-auto px-4 py-8 pb-20 md:pb-8 h-[calc(100vh-160px)]">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8"
+            className="mb-6"
           >
-            <div className="flex items-center gap-4 mb-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/ai-notes')}
-                className="text-gray-400 hover:text-white"
+            <div className="flex items-center gap-3 mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="text-white/70 hover:text-white"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Notes
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
               </Button>
             </div>
-
-            <div className="flex items-center gap-3 mb-2">
-              <FileText className="w-6 h-6 text-purple-400" />
-              <h1 className="text-2xl md:text-3xl font-bold">Chat with Your Notes</h1>
+            <div className="text-center">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent mb-2">
+                Chat with Your Notes
+              </h1>
+              <p className="text-white/70">
+                Ask questions about your study materials and get instant answers
+              </p>
             </div>
-            <p className="text-gray-400">Ask your AI tutor questions about your uploaded notes and get instant help.</p>
           </motion.div>
 
-          {noteId && (
-            <NotesChat 
-              noteId={noteId}
-              noteContent={noteContent}
-              noteTitle={noteTitle}
-            />
-          )}
+          {/* Chat Interface */}
+          <Card className="bg-white/10 backdrop-blur-lg border-white/20 flex-1 flex flex-col">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-white flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                Study Assistant
+                <Badge variant="secondary" className="ml-auto">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  AI Powered
+                </Badge>
+              </CardTitle>
+            </CardHeader>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-8"
-          >
-            <Card className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-purple-500/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <MessageCircle className="w-5 h-5 text-purple-400" />
-                  How to use Notes Chat
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-gray-300">
-                <ul className="space-y-2 text-sm">
-                  <li>• Ask specific questions about concepts in your notes</li>
-                  <li>• Request explanations of difficult topics</li>
-                  <li>• Get examples and analogies to better understand the material</li>
-                  <li>• Ask for practice problems or quiz questions</li>
-                  <li>• Request summaries of specific sections</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </motion.div>
+            <CardContent className="flex-1 flex flex-col p-0">
+              {/* Messages */}
+              <ScrollArea className="flex-1 px-6 py-4">
+                <div className="space-y-4">
+                  <AnimatePresence>
+                    {messages.map((message) => (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className={`flex gap-3 ${
+                          message.type === 'user' ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        {message.type === 'assistant' && (
+                          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Bot className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                        
+                        <div
+                          className={`max-w-[80%] rounded-lg p-4 ${
+                            message.type === 'user'
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                              : 'bg-white/10 text-white border border-white/20'
+                          }`}
+                        >
+                          {message.isTyping ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex gap-1">
+                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                              </div>
+                              <span className="text-sm text-white/70">Thinking...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="whitespace-pre-wrap">{message.content}</p>
+                              {message.type === 'assistant' && (
+                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(message.content)}
+                                    className="text-white/60 hover:text-white h-6 p-1"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-white/60 hover:text-white h-6 p-1"
+                                  >
+                                    <ThumbsUp className="h-3 w-3" />
+                                  </Button>
+                                  <span className="text-xs text-white/40 ml-auto">
+                                    {message.timestamp.toLocaleTimeString()}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {message.type === 'user' && (
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+
+              {/* Input */}
+              <div className="border-t border-white/10 p-6">
+                <div className="flex gap-3">
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                    placeholder="Ask about your notes..."
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!input.trim() || isLoading}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-white/50 mt-2">
+                  Upload notes first to get better context-aware answers
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
 
@@ -224,4 +316,4 @@ const NotesChatPage = () => {
   );
 };
 
-export default NotesChatPage;
+export default NotesChat;

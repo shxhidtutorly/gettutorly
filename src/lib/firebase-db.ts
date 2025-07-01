@@ -30,6 +30,20 @@ export const getUserProfile = async (userId: string) => {
   }
 };
 
+export const updateUserProfile = async (userId: string, userData: any) => {
+  try {
+    const userRef = ref(db, `users/${userId}`);
+    await update(userRef, {
+      ...userData,
+      updated_at: new Date().toISOString(),
+    });
+    return true;
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    throw error;
+  }
+};
+
 export const updateUserRole = async (userId: string, role: string) => {
   try {
     const userRef = ref(db, `users/${userId}`);
@@ -118,6 +132,20 @@ export const createNote = async (userId: string, noteData: any) => {
     return newNoteRef.key;
   } catch (error) {
     console.error("Error creating note:", error);
+    throw error;
+  }
+};
+
+export const updateNote = async (userId: string, noteId: string, noteData: any) => {
+  try {
+    const noteRef = ref(db, `notes/${userId}/${noteId}`);
+    await update(noteRef, {
+      ...noteData,
+      updated_at: new Date().toISOString()
+    });
+    return true;
+  } catch (error) {
+    console.error("Error updating note:", error);
     throw error;
   }
 };

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from "react";
-import { useUser, useClerk } from "@clerk/clerk-react";
-import { supabase } from "@/lib/supabase"; // Update to your correct path for DB-only usage
+import { useUser } from "@/hooks/useUser";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { getUserProfile, updateUserProfile } from "@/lib/firebase-db";
 import { useToast } from "@/hooks/use-toast";
-import useSyncClerkToSupabase from "@/hooks/useSyncClerkToSupabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +15,8 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 
 const Profile = () => {
-useSyncClerkToSupabase(); 
-  const { user, isSignedIn } = useUser();
-  const { signOut } = useClerk();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useFirebaseAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,7 @@ useSyncClerkToSupabase();
   const [formData, setFormData] = useState({
     full_name: "",
     avatar_url: "",
+    email: "",
   });
 
   useEffect(() => {
@@ -35,27 +36,30 @@ useSyncClerkToSupabase();
   const loadProfile = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("clerk_user_id", user.id)
-        .single();
+      const data = await getUserProfile(user.id);
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
+      if (data) {
+        setProfile(data);
+        setFormData({
+          full_name: data.full_name || user.fullName || "",
+          avatar_url: data.avatar_url || "",
+          email: user.email || "",
+        });
+      } else {
+        // Create initial profile
+        const initialProfile = {
+          full_name: user.fullName || "",
+          email: user.email || "",
+          role: "student",
+          avatar_url: "",
+        };
+        setProfile(initialProfile);
+        setFormData({
+          full_name: initialProfile.full_name,
+          avatar_url: initialProfile.avatar_url,
+          email: initialProfile.email,
+        });
       }
-
-      setProfile(data || {
-        id: user.id,
-        full_name: user.fullName || "",
-        role: "student",
-        avatar_url: "",
-      });
-
-      setFormData({
-        full_name: data?.full_name || user.fullName || "",
-        avatar_url: data?.avatar_url || "",
-      });
     } catch (error) {
       console.error("Error loading profile:", error);
       toast({
@@ -71,13 +75,11 @@ useSyncClerkToSupabase();
   const handleSave = async () => {
     if (!user) return;
     try {
-      const { error } = await supabase.from("profiles").upsert({
-        clerk_user_id: user.id,
-        ...formData,
-        updated_at: new Date().toISOString(),
+      await updateUserProfile(user.id, {
+        full_name: formData.full_name,
+        avatar_url: formData.avatar_url,
+        email: formData.email,
       });
-
-      if (error) throw error;
 
       setProfile({ ...profile, ...formData });
       setEditing(false);
@@ -95,7 +97,6 @@ useSyncClerkToSupabase();
       });
     }
   };
-
 
   const handleSignOut = async () => {
     try {
@@ -122,7 +123,7 @@ useSyncClerkToSupabase();
     );
   }
 
-  if (!isSignedIn) {
+  if (!isLoaded || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
         <div>Please sign in to view your profile.</div>
@@ -132,6 +133,7 @@ useSyncClerkToSupabase();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      <Navbar />
       <main className="container mx-auto px-4 py-8 pb-20 md:pb-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Profile Header */}
@@ -217,7 +219,7 @@ useSyncClerkToSupabase();
                   </div>
                   <div className="flex items-center text-white/90">
                     <Mail className="w-4 h-4 mr-3 text-purple-400" />
-                    <span>{profile?.email}</span>
+                    <span>{profile?.email || user.email}</span>
                   </div>
                   <div className="flex items-center text-white/90">
                     <Calendar className="w-4 h-4 mr-3 text-purple-400" />

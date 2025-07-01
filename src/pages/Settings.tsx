@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@/hooks/useUser";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -20,7 +21,8 @@ import {
 import { toast } from "sonner";
 
 const SettingsPage = () => {
-  const { user, signOut } = useUser();
+  const { user } = useUser();
+  const { signOut } = useFirebaseAuth();
   const { subscription, loading } = useSubscription();
   const navigate = useNavigate();
 
