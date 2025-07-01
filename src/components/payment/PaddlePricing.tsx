@@ -76,122 +76,67 @@ const PaddlePricing = () => {
     };
   }, [toast]);
 
-  const handleStartTrial = async (planName: string) => {
-    if (!isLoaded) {
-      toast({
-        title: "Loading",
-        description: "Please wait while we check your authentication status...",
-      });
+ const handleStartTrial = async (planName: string) => {
+  if (!isLoaded) {
+    toast({
+      title: "Loading",
+      description: "Please wait while we check your authentication status...",
+    });
+    return;
+  }
+
+  if (!user) {
+    toast({
+      title: "Sign In Required",
+      description: "Please sign in to start your trial",
+    });
+    navigate("/signin", { state: { returnTo: "/pricing" } });
+    return;
+  }
+
+  if (hasActiveSubscription) {
+    toast({
+      title: "Active Subscription",
+      description: "You already have an active subscription",
+    });
+    return;
+  }
+
+  setLoadingPlan(planName);
+
+  try {
+    if (IS_DEV) {
+      console.warn("[DEV] Skipping trial and redirecting to dashboard");
+      navigate("/dashboard");
       return;
     }
 
-    if (!user) {
+    const success = await createTrialSubscription(planName);
+    if (success) {
       toast({
-        title: "Sign In Required",
-        description: "Please sign in to start your trial",
+        title: "Trial Started!",
+        description: "🎉 Trial started! Welcome to Tutorly!",
       });
-      navigate("/signin", { state: { returnTo: "/pricing" } });
-      return;
-    }
-
-    if (hasActiveSubscription) {
-      toast({
-        title: "Active Subscription",
-        description: "You already have an active subscription",
-      });
-      return;
-    }
-
-    setLoadingPlan(planName);
-    
-    try {
-      const success = await createTrialSubscription(planName);
-      if (success) {
-        toast({
-          title: "Trial Started!",
-          description: "🎉 Trial started! Welcome to Tutorly!",
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to start trial. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Trial creation error:', error);
+      navigate("/dashboard");
+    } else {
       toast({
         title: "Error",
         description: "Failed to start trial. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setLoadingPlan(null);
     }
-  };
-
-  const handleSubscribe = (priceId: string, planName: string) => {
-    if (!isLoaded) {
-      toast({
-        title: "Loading",
-        description: "Please wait while we check your authentication status...",
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({
-        title: "Sign In Required",
-        description: "Please sign in to continue with your subscription",
-      });
-      navigate("/signin", { state: { returnTo: "/pricing", autoCheckout: true } });
-      return;
-    }
-
-    if (!paddleLoaded || !window.Paddle) {
-      toast({
-        title: "Loading",
-        description: "Payment system is still loading, please try again in a moment",
-      });
-      return;
-    }
-
-    setLoadingPlan(priceId);
+  } catch (error) {
+    console.error('Trial creation error:', error);
     toast({
-      title: "Redirecting",
-      description: "Redirecting to checkout...",
+      title: "Error",
+      description: "Failed to start trial. Please try again.",
+      variant: "destructive"
     });
+  } finally {
+    setLoadingPlan(null);
+  }
+};
 
-    try {
-      window.Paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        customer: { email: user.email || '' },
-        customData: {
-          user_id: user.id,
-          planName: planName
-        },
-        successUrl: 'https://gettutorly.com/dashboard?payment=success',
-        cancelUrl: 'https://gettutorly.com/pricing?payment=cancel',
-        settings: {
-          allowLogout: false,
-          displayMode: 'overlay',
-          theme: 'dark',
-          locale: 'en'
-        }
-      });
-      console.log('Paddle checkout opened for:', planName);
-    } catch (error) {
-      console.error('Failed to open Paddle checkout:', error);
-      toast({
-        title: "Error",
-        description: "Failed to open checkout, please try again",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
 
   const plans = [
     {
