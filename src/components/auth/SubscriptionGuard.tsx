@@ -21,9 +21,6 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
 
   const isPublicPath = allowedPublicPaths.includes(location.pathname);
 
-  // Bypass subscription redirect in development mode
-  const isDev = import.meta.env?.MODE === 'development' || process.env.NODE_ENV === 'development';
-
   if (!user) {
     if (!isPublicPath) {
       navigate('/signin', {
@@ -34,10 +31,13 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
     return;
   }
 
-  if (!isDev && user && !hasActiveSubscription && !isPublicPath) {
-    navigate('/pricing', { replace: true });
-  }
+  // PERMANENT BYPASS: Never redirect for missing subscription
+  // REMOVE OR MODIFY THIS FOR REAL SUBSCRIPTION ENFORCEMENT
+  // if (user && !hasActiveSubscription && !isPublicPath) {
+  //   navigate('/pricing', { replace: true });
+  // }
 }, [user, isAuthLoaded, hasActiveSubscription, isSubLoading, location.pathname, navigate]);
+  
   if (!isAuthLoaded || isSubLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
