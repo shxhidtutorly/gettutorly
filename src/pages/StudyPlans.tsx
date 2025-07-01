@@ -7,7 +7,6 @@ import BottomNav from "@/components/layout/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useUser, useClerk } from "@clerk/clerk-react";
 import { getUserStudyPlans } from "@/lib/database";
 
 interface StudyPlan {
