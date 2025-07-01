@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useToast } from "@/hooks/use-toast";
 
 export interface AudioUploadResult {
