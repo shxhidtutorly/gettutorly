@@ -196,7 +196,7 @@ const activityStats = useMemo(() => {
     }
   ], []);
 
-const totalStudyHours = total_study_time / 3600;
+const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
   
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white relative overflow-x-hidden max-w-full">
