@@ -1,69 +1,66 @@
 
-import { useState, useEffect } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion } from "framer-motion";
 import { Progress as ProgressBar } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import {
-  TrendingUp,
-  BookOpen,
-  Target,
-  Calendar,
-  Award,
-  Activity,
-  Clock,
-  Brain,
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Calendar, TrendingUp, BookOpen, Award, Target, Clock, Brain, Users, Trophy, ChevronRight } from "lucide-react";
 import { useUserStats } from "@/hooks/useUserStats";
-import { useUser } from "@/hooks/useUser";
-import { motion } from "framer-motion";
-import WeeklyStudyHoursChart from "@/components/progress/WeeklyStudyHoursChart";
-import MonthlyProgressChart from "@/components/progress/MonthlyProgressChart";
-import ProgressStatCard from "@/components/progress/ProgressStatCard";
-import MaterialProgressCard from "@/components/progress/MaterialProgressCard";
-import LearningInsightCard from "@/components/progress/LearningInsightCard";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
 
-const Progress = () => {
-  const { stats, loading: statsLoading } = useUserStats();
-  const { user } = useUser();
-  const [weeklyGoal] = useState(10); // hours per week
+const ProgressPage = () => {
+  const [user] = useAuthState(auth);
+  const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
 
-  // Mock data for now - in a real app, this would come from your backend
-  const { data: progressData, isLoading } = useQuery({
-    queryKey: ['progress', user?.id],
+  // Mock query for materials
+  const { data: materials, isLoading: materialsLoading } = useQuery({
+    queryKey: ['materials', user?.uid],
     queryFn: async () => {
-      // Mock implementation - replace with actual API call
-      return {
-        weeklyHours: [
-          { day: 'Mon', hours: 2 },
-          { day: 'Tue', hours: 4 },
-          { day: 'Wed', hours: 3 },
-          { day: 'Thu', hours: 5 },
-          { day: 'Fri', hours: 6 },
-          { day: 'Sat', hours: 4 },
-          { day: 'Sun', hours: 7 }
-        ],
-        monthlyProgress: [
-          { name: 'Jan', hours: 65 },
-          { name: 'Feb', hours: 70 },
-          { name: 'Mar', hours: 75 },
-          { name: 'Apr', hours: 80 },
-          { name: 'May', hours: 78 },
-          { name: 'Jun', hours: 85 }
-        ],
-        streakDays: 7,
-        totalStudyTime: stats.total_study_time,
-        completedGoals: 12,
-        totalGoals: 15,
-      };
+      // Mock data for now
+      return [];
     },
-    enabled: !!user,
+    enabled: !!user
   });
 
-  if (statsLoading || isLoading) {
+  const mockStats = {
+    totalStudyHours: 24.5,
+    completedSessions: 18,
+    streakDays: 7,
+    averageScore: 85,
+    weeklyGoal: 25,
+    monthlyGoal: 100,
+    totalMaterials: stats.materials_created || 0,
+    completedQuizzes: stats.quizzes_taken || 0,
+    generatedNotes: stats.notes_created || 0,
+    flashcardsSets: stats.flashcards_created || 0,
+  };
+
+  const weeklyProgress = (mockStats.totalStudyHours / mockStats.weeklyGoal) * 100;
+  const monthlyProgress = (mockStats.totalStudyHours / mockStats.monthlyGoal) * 100;
+
+  const achievements = [
+    { id: 1, title: "First Steps", description: "Complete your first study session", earned: true, icon: "🎯" },
+    { id: 2, title: "Week Warrior", description: "Study for 7 consecutive days", earned: mockStats.streakDays >= 7, icon: "🔥" },
+    { id: 3, title: "Note Master", description: "Generate 10 AI notes", earned: mockStats.generatedNotes >= 10, icon: "📝" },
+    { id: 4, title: "Quiz Champion", description: "Complete 25 quizzes", earned: mockStats.completedQuizzes >= 25, icon: "🏆" },
+  ];
+
+  const studyInsights = [
+    { label: "Best Study Time", value: "2:00 PM - 4:00 PM", icon: Clock },
+    { label: "Favorite Subject", value: "Mathematics", icon: Brain },
+    { label: "Learning Style", value: "Visual + Practice", icon: Target },
+    { label: "Study Streak", value: `${mockStats.streakDays} days`, icon: TrendingUp },
+  ];
+
+  if (statsLoading || materialsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
         <div className="text-center">
@@ -74,37 +71,10 @@ const Progress = () => {
     );
   }
 
-  const weeklyHours = stats.total_study_time / 3600; // Convert seconds to hours
-  const weeklyProgress = Math.min((weeklyHours / weeklyGoal) * 100, 100);
-
-  const studyData = progressData || {
-    weeklyHours: [
-      { day: 'Mon', hours: 2 },
-      { day: 'Tue', hours: 4 },
-      { day: 'Wed', hours: 3 },
-      { day: 'Thu', hours: 5 },
-      { day: 'Fri', hours: 6 },
-      { day: 'Sat', hours: 4 },
-      { day: 'Sun', hours: 7 }
-    ],
-    monthlyProgress: [
-      { name: 'Jan', hours: 65 },
-      { name: 'Feb', hours: 70 },
-      { name: 'Mar', hours: 75 },
-      { name: 'Apr', hours: 80 },
-      { name: 'May', hours: 78 },
-      { name: 'Jun', hours: 85 }
-    ],
-    streakDays: 7,
-    totalStudyTime: stats.total_study_time,
-    completedGoals: 12,
-    totalGoals: 15,
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
       <Navbar />
-
+      
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
           {/* Header */}
@@ -114,107 +84,223 @@ const Progress = () => {
             transition={{ duration: 0.5 }}
             className="mb-8"
           >
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
-              <TrendingUp className="text-primary" />
-              Learning Progress
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+              📊 Your Progress
             </h1>
             <p className="text-muted-foreground text-lg">
-              Track your study journey and achievements
+              Track your learning journey and achievements
             </p>
           </motion.div>
 
-          {/* Stats Overview */}
+          {/* Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <ProgressStatCard
-              title="Study Hours"
-              value={weeklyHours.toFixed(1)}
-              unit="h"
-              change={2.5}
-              icon={<Clock />}
-            />
-            <ProgressStatCard
-              title="Materials Studied"
-              value={stats.materials_created}
-              change={3}
-              icon={<BookOpen />}
-            />
-            <ProgressStatCard
-              title="Quiz Score"
-              value="85"
-              unit="%"
-              change={5}
-              icon={<Target />}
-            />
-            <ProgressStatCard
-              title="Study Streak"
-              value={`${studyData.streakDays} days`}
-              icon={<Award />}
-            />
-          </div>
-
-          {/* Weekly Goal Progress */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-8"
-          >
-            <Card className="bg-card border-border shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-card-foreground flex items-center gap-2">
-                  <Target className="text-primary" />
-                  Weekly Study Goal
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Progress</span>
-                    <span>{weeklyHours.toFixed(1)}h / {weeklyGoal}h</span>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Card className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 border-purple-500/30 hover:border-purple-400/50 transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-purple-200">Study Hours</p>
+                      <p className="text-2xl font-bold text-white">{mockStats.totalStudyHours}h</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-purple-400" />
                   </div>
-                  <ProgressBar value={weeklyProgress} className="h-3" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Keep going! You're {weeklyProgress.toFixed(0)}% there</span>
-                    <Badge variant={weeklyProgress >= 100 ? "default" : "secondary"}>
-                      {weeklyProgress >= 100 ? "Goal Achieved!" : "In Progress"}
-                    </Badge>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Card className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border-blue-500/30 hover:border-blue-400/50 transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-200">Materials</p>
+                      <p className="text-2xl font-bold text-white">{materials?.length || 0}</p>
+                    </div>
+                    <BookOpen className="h-8 w-8 text-blue-400" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <WeeklyStudyHoursChart data={studyData.weeklyHours} isLoading={false} />
-            <MonthlyProgressChart data={studyData.monthlyProgress} isLoading={false} />
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Card className="bg-gradient-to-br from-green-600/20 to-green-800/20 border-green-500/30 hover:border-green-400/50 transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-200">Streak</p>
+                      <p className="text-2xl font-bold text-white">{mockStats.streakDays} days</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Card className="bg-gradient-to-br from-orange-600/20 to-orange-800/20 border-orange-500/30 hover:border-orange-400/50 transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-200">Avg Score</p>
+                      <p className="text-2xl font-bold text-white">{mockStats.averageScore}%</p>
+                    </div>
+                    <Award className="h-8 w-8 text-orange-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
-          {/* Material Progress */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <MaterialProgressCard
-              name="Notes Created"
-              progress={(stats.notes_created / (stats.notes_created + 5)) * 100}
-            />
-            <MaterialProgressCard
-              name="Flashcards Mastered"
-              progress={(stats.flashcards_created / (stats.flashcards_created + 10)) * 100}
-            />
-          </div>
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4 bg-[#1A1A1A] border border-slate-700">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="goals">Goals</TabsTrigger>
+              <TabsTrigger value="achievements">Achievements</TabsTrigger>
+              <TabsTrigger value="insights">Insights</TabsTrigger>
+            </TabsList>
 
-          {/* Learning Insights */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <LearningInsightCard
-              icon={<Brain />}
-              title="Learning Insights"
-              value="3 Key Patterns"
-              description="Based on your study habits"
-            />
-          </motion.div>
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-[#121212] border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Study Statistics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Sessions Completed</span>
+                        <span className="font-semibold">{mockStats.completedSessions}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Notes Generated</span>
+                        <span className="font-semibold">{mockStats.generatedNotes}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Quizzes Taken</span>
+                        <span className="font-semibold">{mockStats.completedQuizzes}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Flashcard Sets</span>
+                        <span className="font-semibold">{mockStats.flashcardsSets}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-purple-600/10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                          <span className="text-sm">Generated AI notes</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">2 hours ago</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-blue-600/10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                          <span className="text-sm">Completed quiz</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">5 hours ago</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-green-600/10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span className="text-sm">Study session completed</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">1 day ago</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="goals" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="bg-[#121212] border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Weekly Goal</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {mockStats.totalStudyHours} / {mockStats.weeklyGoal} hours
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ProgressBar value={weeklyProgress} className="mb-4" />
+                    <p className="text-sm text-muted-foreground">
+                      {mockStats.weeklyGoal - mockStats.totalStudyHours > 0 
+                        ? `${(mockStats.weeklyGoal - mockStats.totalStudyHours).toFixed(1)} hours remaining`
+                        : "Goal achieved! 🎉"
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border-slate-700">
+                  <CardHeader>
+                    <CardTitle>Monthly Goal</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {mockStats.totalStudyHours} / {mockStats.monthlyGoal} hours
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ProgressBar value={monthlyProgress} className="mb-4" />
+                    <p className="text-sm text-muted-foreground">
+                      {mockStats.monthlyGoal - mockStats.totalStudyHours > 0 
+                        ? `${(mockStats.monthlyGoal - mockStats.totalStudyHours).toFixed(1)} hours remaining`
+                        : "Goal achieved! 🎉"
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="achievements" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {achievements.map((achievement) => (
+                  <Card key={achievement.id} className={`bg-[#121212] border-slate-700 ${achievement.earned ? 'ring-2 ring-yellow-500/50' : ''}`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="text-3xl">{achievement.icon}</div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-white">{achievement.title}</h3>
+                          <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                        </div>
+                        {achievement.earned && (
+                          <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400">
+                            Earned
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="insights" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {studyInsights.map((insight, index) => (
+                  <Card key={index} className="bg-[#121212] border-slate-700">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4">
+                        <insight.icon className="h-8 w-8 text-purple-400" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">{insight.label}</p>
+                          <p className="font-semibold text-white">{insight.value}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
@@ -224,4 +310,4 @@ const Progress = () => {
   );
 };
 
-export default Progress;
+export default ProgressPage;

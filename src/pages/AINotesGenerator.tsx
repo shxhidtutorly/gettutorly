@@ -41,6 +41,15 @@ const AINotesGenerator = () => {
   const hasNotes = useMemo(() => generatedNotes.length > 0, [generatedNotes]);
   const canChat = useMemo(() => hasNotes && generatedNotes, [hasNotes, generatedNotes]);
 
+  // Create a mock note object for NotesDisplay component
+  const noteForDisplay = useMemo(() => ({
+    id: `note-${Date.now()}`,
+    title: uploadedFile?.name || "Generated Notes",
+    content: generatedNotes,
+    filename: uploadedFile?.name || "document",
+    timestamp: new Date().toISOString()
+  }), [generatedNotes, uploadedFile]);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
       <Navbar />
@@ -101,7 +110,12 @@ const AINotesGenerator = () => {
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    <NotesDisplay notes={generatedNotes} />
+                    <NotesDisplay 
+                      note={noteForDisplay}
+                      onFlashcardsGenerated={(flashcards) => {
+                        console.log('Flashcards generated:', flashcards);
+                      }}
+                    />
                   </CardContent>
                 </Card>
               )}
@@ -116,7 +130,11 @@ const AINotesGenerator = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <NotesChat notes={generatedNotes} />
+                    <NotesChat 
+                      noteId={noteForDisplay.id}
+                      noteContent={generatedNotes}
+                      noteTitle={noteForDisplay.title}
+                    />
                   </CardContent>
                 </Card>
               )}

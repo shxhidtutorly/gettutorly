@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -139,41 +140,39 @@ const Library = () => {
     }
   };
 
- const onSubmit = async (values: z.infer<typeof formSchema>) => {
-  setIsUploading(true);
-  try {
-    // Defensive: check that values.file is a File
-    if (!values.file || !(values.file instanceof File)) {
-      throw new Error("Please select a file to upload.");
-    }
+  const handleUpload = async () => {
+    if (!selectedFile || !user) return;
+    
+    setUploading(true);
+    try {
+      const uploadResult = await uploadFile(selectedFile);
 
-    const uploadResult = await uploadFile(values.file);
-
-    if (uploadResult) {
-      toast({
-        title: "Success",
-        description: "File uploaded successfully.",
-      });
-      form.reset();
-      fetchFiles();
-    } else {
+      if (uploadResult) {
+        toast({
+          title: "Success",
+          description: "File uploaded successfully.",
+        });
+        setSelectedFile(null);
+        setShowUploader(false);
+        fetchMaterials();
+      } else {
+        toast({
+          title: "Error",
+          description: "File upload failed. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("File upload error:", error);
       toast({
         title: "Error",
-        description: "File upload failed. Please try again.",
+        description: error.message || "File upload failed. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
     }
-  } catch (error: any) {
-    console.error("File upload error:", error);
-    toast({
-      title: "Error",
-      description: error.message || "File upload failed. Please try again.",
-      variant: "destructive",
-    });
-  } finally {
-    setIsUploading(false);
-  }
-};
+  };
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim() || !user) return;
