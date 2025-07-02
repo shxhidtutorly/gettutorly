@@ -32,12 +32,15 @@ import {
 import { useUserStats } from "@/hooks/useUserStats";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const Dashboard = () => {
   const [user, loading] = useAuthState(auth);
   const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Always call hooks at the top level, even if user is null
+  // The hook implementation should handle null/undefined safely
   const { stats, loading: statsLoading } = useUserStats(user?.uid ?? null);
 
   useEffect(() => {
@@ -46,9 +49,7 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Simple navigation handler without WebGL cleanup (handled globally)
   const handleNavigation = useCallback((path: string) => {
-    console.log('Navigating to:', path);
     navigate(path);
   }, [navigate]);
 
@@ -58,7 +59,7 @@ const Dashboard = () => {
     return "User";
   }, [user]);
 
-  // Only show loading if stats are still loading (auth is handled by ProtectedRoute)
+  // Only show loading if stats are still loading
   if (statsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
@@ -184,7 +185,7 @@ const Dashboard = () => {
   const summaries_created = stats?.summaries_created ?? 0;
   const notes_created = stats?.notes_created ?? 0;
   const flashcards_created = stats?.flashcards_created ?? 0;
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white relative overflow-x-hidden max-w-full">
       <Navbar />
