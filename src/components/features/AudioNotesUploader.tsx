@@ -156,4 +156,4 @@ const AudioNotesUploader: React.FC = () => {
   );
 };
 
-export default AudioNotesUploader;
+export const AudioNotesUploader = () => { ... }
