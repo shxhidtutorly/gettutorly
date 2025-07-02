@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { UploadButton } from "@uploadthing/react";
+import { UploadButton } from "@/utils/uploadthing";
 import type { OurFileRouter } from "@/uploadthing.config";
 import { useAudioUpload } from "@/hooks/useAudioUpload";
 import { useToast } from "@/hooks/use-toast";
