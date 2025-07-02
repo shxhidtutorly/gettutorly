@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useStorage } from "@/hooks/useStorage";
+import { useFirebaseStorage } from "@/hooks/useFirebaseStorage";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StudyMaterial {
