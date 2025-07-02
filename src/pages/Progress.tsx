@@ -67,29 +67,21 @@ const Progress = () => {
               title="Study Materials"
               value={stats?.materials_created || 0}
               icon={<Calendar className="h-4 w-4" />}
-              trend={"+12%"}
-              color="blue"
             />
             <ProgressStatCard
               title="Notes Created"
               value={stats?.notes_created || 0}
               icon={<Target className="h-4 w-4" />}
-              trend={"+8%"} 
-              color="green"
             />
             <ProgressStatCard
               title="Quizzes Taken"
               value={stats?.quizzes_taken || 0}
               icon={<Award className="h-4 w-4" />}
-              trend={"+15%"}
-              color="purple"
             />
             <ProgressStatCard
               title="Study Hours"
               value={Math.round((stats?.total_study_time || 0) / 60)}
               icon={<TrendingUp className="h-4 w-4" />}
-              trend={"+22%"}
-              color="orange"
             />
           </div>
 
@@ -108,17 +100,44 @@ const Progress = () => {
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-                <WeeklyStudyHoursChart />
-                <MonthlyProgressChart />
+                <WeeklyStudyHoursChart 
+                  data={[
+                    { day: 'Mon', hours: 2 },
+                    { day: 'Tue', hours: 3 },
+                    { day: 'Wed', hours: 1 },
+                    { day: 'Thu', hours: 4 },
+                    { day: 'Fri', hours: 2 },
+                    { day: 'Sat', hours: 5 },
+                    { day: 'Sun', hours: 3 }
+                  ]}
+                  isLoading={loading}
+                />
+                <MonthlyProgressChart 
+                  data={[
+                    { name: 'Week 1', hours: 10 },
+                    { name: 'Week 2', hours: 15 },
+                    { name: 'Week 3', hours: 12 },
+                    { name: 'Week 4', hours: 20 }
+                  ]}
+                  isLoading={loading}
+                />
               </div>
             </TabsContent>
 
             <TabsContent value="materials" className="space-y-6">
-              <MaterialProgressCard />
+              <MaterialProgressCard 
+                name="Current Study Materials"
+                progress={75}
+              />
             </TabsContent>
 
             <TabsContent value="insights" className="space-y-6">
-              <LearningInsightCard />
+              <LearningInsightCard 
+                icon={<Brain className="h-6 w-6" />}
+                title="Learning Progress"
+                value="85%"
+                description="You're making great progress!"
+              />
             </TabsContent>
           </Tabs>
         </div>

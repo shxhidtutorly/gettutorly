@@ -86,12 +86,7 @@ const AINotesGenerator = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DocumentUploader
-                    onNotesGenerated={handleNotesGenerated}
-                    onFileUploaded={handleFileUploaded}
-                    isGenerating={isGenerating}
-                    setIsGenerating={setIsGenerating}
-                  />
+                  <DocumentUploader />
                 </CardContent>
               </Card>
             </TabsContent>

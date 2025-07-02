@@ -57,7 +57,7 @@ interface Folder {
 const Library = () => {
   const [user] = useAuthState(auth);
   const { toast } = useToast();
-  const { uploadFile, uploading } = useFirebaseStorage();
+  const { uploadFile } = useFirebaseStorage();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -67,6 +67,7 @@ const Library = () => {
   const [newFolderDescription, setNewFolderDescription] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [uploading, setUploading] = useState(false);
 
   const { data: materials, loading: loadingMaterials, refetch: refetchMaterials } = useFeatureData<StudyMaterial>(
     user?.uid || null, 
@@ -77,8 +78,6 @@ const Library = () => {
     user?.uid || null, 
     'folders'
   );
-
-  const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
