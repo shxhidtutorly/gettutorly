@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { uploadAudioToUploadThing } from "@/lib/uploadthing-client"; // <-- import helper
+import { uploadAudioToUploadThing } from "@/lib/uploadthing-client";
 
 export interface AudioUploadResult {
   audioUrl: string;
@@ -29,7 +29,6 @@ export const useAudioUpload = () => {
     } else {
       throw new Error("Invalid audio input");
     }
-
     setProgress(30);
     const url = await uploadAudioToUploadThing(file);
     setProgress(60);
@@ -56,7 +55,6 @@ export const useAudioUpload = () => {
     const res = await fetch("/api/audio-to-notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // Optionally pass a flag { audioUrl, transcript, aiNotes: true }
       body: JSON.stringify({ audioUrl, transcript, aiNotes: true }),
     });
     if (!res.ok) throw new Error("AI Notes failed");
