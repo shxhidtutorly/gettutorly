@@ -1,6 +1,7 @@
 
 import { db } from './firebase'; // Adjust path if needed
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, setDoc, onSnapshot } from 'firebase/firestore';
+export { db };
 // Firestore CRUD operations
 export const createUserProfile = async (userId: string, profileData: any) => {
   const userRef = doc(db, 'users', userId);
