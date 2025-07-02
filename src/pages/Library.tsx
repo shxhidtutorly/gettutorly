@@ -71,7 +71,6 @@ const Library = () => {
 const {
     uploadFile,
     deleteFile,
-    uploading,
     progress,
   } = useFirebaseStorage();
   const { toast } = useToast();
