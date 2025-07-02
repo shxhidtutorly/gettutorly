@@ -1,145 +1,211 @@
-
-import React, { useState, useCallback, useMemo } from "react";
+import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
-import { useStudyTracking } from "@/hooks/useStudyTracking";
+import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import DocumentUploader from "@/components/features/DocumentUploader";
+import FileUploader from "@/components/features/FileUploader"; // Make sure this can extract PDF text!
 import NotesDisplay from "@/components/features/NotesDisplay";
-import NotesChat from "@/components/features/NotesChat";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Brain, Download } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { BookOpen, Loader2, Download, Sparkles, RefreshCcw } from "lucide-react";
+import { ExtractionResult } from "@/lib/fileExtractor";
+// Update this import if your AI notes function is elsewhere, e.g. a Firebase function!
+import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
+import { useStudyTracking } from "@/hooks/useStudyTracking";
+import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
+import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
+import { QuizFromNotesButton } from "@/components/features/QuizFromNotesButton";
 
 const AINotesGenerator = () => {
-  const [user] = useAuthState(auth); // Auth is guaranteed by ProtectedRoute
-  const { trackNoteCreated } = useStudyTracking();
-  
-  // All state hooks at the top level
-  const [generatedNotes, setGeneratedNotes] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [activeTab, setActiveTab] = useState("upload");
+  const [user] = useAuthState(auth); // You can use user.uid for tracking
+  const [extractedFile, setExtractedFile] = useState<ExtractionResult | null>(null);
+  const [note, setNote] = useState<AINote | null>(null);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const [notesProgress, setNotesProgress] = useState(0);
+  const { trackNotesCreation, endSession, startSession } = useStudyTracking();
+  const { toast } = useToast();
 
-  // All callbacks after state
-  const handleNotesGenerated = useCallback((notes: string) => {
-    console.log('Notes generated for user:', user?.uid);
-    setGeneratedNotes(notes);
-    setActiveTab("notes");
-    trackNoteCreated();
-  }, [user?.uid, trackNoteCreated]);
+  const handleFileProcessed = async (result: ExtractionResult) => {
+    setExtractedFile(result);
+    startSession();
+    await generateNotes(result);
+  };
 
-  const handleFileUploaded = useCallback((file: File) => {
-    console.log('File uploaded:', file.name);
-    setUploadedFile(file);
-  }, []);
+  const generateNotes = async (fileResult: ExtractionResult) => {
+    setIsGeneratingNotes(true);
+    setNotesProgress(10);
 
-  // Memoized values
-  const hasNotes = useMemo(() => generatedNotes.length > 0, [generatedNotes]);
-  const canChat = useMemo(() => hasNotes && generatedNotes, [hasNotes, generatedNotes]);
+    try {
+      setNotesProgress(30);
+      // Make sure generateNotesAI works with Firebase now!
+      const generatedNote = await generateNotesAI(fileResult.text, fileResult.filename, user?.uid || "");
+      setNotesProgress(80);
 
-  // Create a mock note object for NotesDisplay component
-  const noteForDisplay = useMemo(() => ({
-    id: `note-${Date.now()}`,
-    title: uploadedFile?.name || "Generated Notes",
-    content: generatedNotes,
-    filename: uploadedFile?.name || "document",
-    timestamp: new Date().toISOString()
-  }), [generatedNotes, uploadedFile]);
+      setNote(generatedNote);
+      setNotesProgress(100);
+
+      // Track notes creation in analytics
+      trackNotesCreation();
+      endSession("notes", generatedNote.title, true);
+
+      setTimeout(() => setNotesProgress(0), 1000);
+
+      toast({
+        title: "Notes generated successfully! 🎉",
+        description: "Your AI-powered study notes are ready.",
+      });
+    } catch (error) {
+      console.error("Error generating notes:", error);
+      setNotesProgress(0);
+      endSession("notes", fileResult.filename, false);
+      toast({
+        variant: "destructive",
+        title: "Error generating notes",
+        description: error instanceof Error ? error.message : "Please try again",
+      });
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  };
+
+  const handleFlashcardsGenerated = (flashcards: Flashcard[]) => {
+    // Optional: handle flashcards
+  };
+
+  const startOver = () => {
+    setExtractedFile(null);
+    setNote(null);
+    setNotesProgress(0);
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
+    <div
+      className="min-h-screen flex flex-col text-white relative"
+      style={{
+        background: "linear-gradient(135deg, #232946 0%, #18122B 100%)",
+        transition: "background 0.5s",
+      }}
+    >
       <Navbar />
-      
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
+
+      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-              <Brain className="h-8 w-8 text-purple-400" />
-              AI Notes Generator
-            </h1>
-            <p className="text-gray-400">Upload documents and generate intelligent study notes</p>
+          {/* Back button */}
+          <div className="mb-4 flex items-center">
+            <BackToDashboardButton />
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 bg-[#1A1A1A] border border-slate-700">
-              <TabsTrigger value="upload" className="data-[state=active]:bg-purple-600">
-                Upload
-              </TabsTrigger>
-              <TabsTrigger value="notes" disabled={!hasNotes} className="data-[state=active]:bg-purple-600">
-                Notes
-              </TabsTrigger>
-              <TabsTrigger value="chat" disabled={!canChat} className="data-[state=active]:bg-purple-600">
-                Chat
-              </TabsTrigger>
-            </TabsList>
+          <div className="text-center mb-6 md:mb-8 animate-fadeInDown transition-all duration-300">
+            <div className="flex items-center justify-center mb-4">
+              <span className="text-3xl md:text-4xl mr-2" role="img" aria-label="sparkles">✨</span>
+              <BookOpen className="h-8 w-8 md:h-10 md:w-10 mr-3 text-primary" />
+              <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-sm tracking-wide">
+                AI Notes Generator
+              </h1>
+              <span className="text-3xl md:text-4xl ml-2" role="img" aria-label="books">📚</span>
+            </div>
+            <p className="max-w-2xl mx-auto text-base md:text-lg font-medium text-white/80">
+              Turn any study file into detailed AI-powered notes, flashcards, and quizzes — all in one place.
+            </p>
+          </div>
 
-            <TabsContent value="upload" className="space-y-6">
-              <Card className="bg-[#121212] border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-400" />
-                    Document Upload
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DocumentUploader />
-                </CardContent>
-              </Card>
-            </TabsContent>
+          {!extractedFile && !note && (
+            <div
+              className="animate-fadeInUp"
+              style={{
+                boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.25)",
+                borderRadius: "1.25rem",
+                background: "rgba(255,255,255,0.01)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              <FileUploader
+                onFileProcessed={handleFileProcessed}
+                isProcessing={isGeneratingNotes}
+              />
+            </div>
+          )}
 
-            <TabsContent value="notes" className="space-y-6">
-              {hasNotes && (
-                <Card className="bg-[#121212] border-slate-700">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-green-400" />
-                      Generated Notes
-                    </CardTitle>
-                    <Button variant="outline" size="sm" className="border-slate-600">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <NotesDisplay 
-                      note={noteForDisplay}
-                      onFlashcardsGenerated={(flashcards) => {
-                        console.log('Flashcards generated:', flashcards);
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
+          {isGeneratingNotes && (
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="text-center mb-4">
+                <Loader2 className="w-8 h-8 md:w-12 md:h-12 animate-spin mx-auto mb-2 text-yellow-400" />
+                <h3 className="text-lg md:text-xl font-bold tracking-wide">
+                  Creating AI Notes... <span role="img" aria-label="robot">🤖</span>
+                </h3>
+                <p className="text-white/70 text-base md:text-lg">
+                  Our AI is analyzing your content and creating structured study notes
+                </p>
+              </div>
+              <Progress value={notesProgress} className="h-3 bg-gradient-to-r from-yellow-400 to-pink-500" />
+              <p className="text-base text-center text-white/70 mt-2">
+                {notesProgress < 30
+                  ? "Processing file... ⏳"
+                  : notesProgress < 80
+                  ? "Generating notes... 📝"
+                  : "Finalizing... 🚀"}
+              </p>
+            </div>
+          )}
 
-            <TabsContent value="chat" className="space-y-6">
-              {canChat && (
-                <Card className="bg-[#121212] border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      Chat with Notes
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <NotesChat 
-                      noteId={noteForDisplay.id}
-                      noteContent={generatedNotes}
-                      noteTitle={noteForDisplay.title}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          </Tabs>
+          {note && (
+            <div className="space-y-8 animate-fadeInUp">
+              <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                <DownloadNotesButton
+                  content={note.content}
+                  filename={note.title}
+                >
+                  <Download className="w-4 h-4" />
+                  Download Notes
+                </DownloadNotesButton>
+                <QuizFromNotesButton
+                  notesContent={note.content}
+                  notesTitle={note.title}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Generate AI Quiz
+                </QuizFromNotesButton>
+                <Button
+                  onClick={startOver}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  Upload Another File
+                </Button>
+              </div>
+
+              <NotesDisplay
+                note={note}
+                onFlashcardsGenerated={handleFlashcardsGenerated}
+              />
+            </div>
+          )}
         </div>
       </main>
 
       <Footer />
       <BottomNav />
+
+      {/* CSS Keyframes for fadeInDown/fadeInUp */}
+      <style>{`
+        @keyframes fadeInDown {
+          0% { opacity: 0; transform: translateY(-32px);}
+          100% { opacity: 1; transform: translateY(0);}
+        }
+        @keyframes fadeInUp {
+          0% { opacity: 0; transform: translateY(32px);}
+          100% { opacity: 1; transform: translateY(0);}
+        }
+        .animate-fadeInDown {
+          animation: fadeInDown 0.85s;
+        }
+        .animate-fadeInUp {
+          animation: fadeInUp 0.85s;
+        }
+      `}</style>
     </div>
   );
 };
