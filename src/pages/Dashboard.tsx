@@ -85,8 +85,7 @@ if (!user) {
 }
 
 // ✅ Move this here to avoid hook error
-const activityStats = useMemo(() => {
-  if (!stats) return [];
+const activityStats = [...]; // ✅ just plain array
 
   const {
     summaries_created = 0,
