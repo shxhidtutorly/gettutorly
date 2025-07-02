@@ -68,7 +68,12 @@ const Library = () => {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const { upload } = useStorage();
+const {
+    uploadFile,
+    deleteFile,
+    uploading,
+    progress,
+  } = useFirebaseStorage();
   const { toast } = useToast();
   const navigate = useNavigate();
 
