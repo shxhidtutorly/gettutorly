@@ -245,8 +245,9 @@ const totalStudyHours = total_study_time / 3600;
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-gray-400">Materials</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{materials_created} <span ... /></p>
-                    </div>
+<p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+  {materials_created} <span className="text-green-400">📚</span>
+</p>                    </div>
                     <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
                   </div>
                 </CardContent>
