@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -43,12 +42,6 @@ const Dashboard = () => {
   // The hook implementation should handle null/undefined safely
   const { stats, loading: statsLoading } = useUserStats(user?.uid ?? null);
 
-  useEffect(() => {
-    setShowConfetti(true);
-    const timer = setTimeout(() => setShowConfetti(false), 2300);
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);
@@ -59,19 +52,6 @@ const Dashboard = () => {
     return "User";
   }, [user]);
 
-  // Only show loading if stats are still loading
-  if (statsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Extract all data-dependent logic after loading checks
   const activityStats = useMemo(() => {
     if (!stats) return [];
 
@@ -180,11 +160,29 @@ const Dashboard = () => {
     }
   ], []);
 
+  useEffect(() => {
+    setShowConfetti(true);
+    const timer = setTimeout(() => setShowConfetti(false), 2300);
+    return () => clearTimeout(timer);
+  }, []);
+
   const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
   const materials_created = stats?.materials_created ?? 0;
   const summaries_created = stats?.summaries_created ?? 0;
   const notes_created = stats?.notes_created ?? 0;
   const flashcards_created = stats?.flashcards_created ?? 0;
+
+  // Only show loading if stats are still loading
+  if (statsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white relative overflow-x-hidden max-w-full">
