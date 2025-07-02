@@ -1,107 +1,127 @@
-import { useState } from "react";
+import React, { useRef, useState } from "react";
+import { useAudioUpload } from "@/hooks/useAudioUpload";
 import { useToast } from "@/hooks/use-toast";
-import { uploadAudioToUploadThing } from "@/lib/uploadthing-client";
 
-export interface AudioUploadResult {
-  audioUrl: string;
-  transcription: string;
-  summary?: string;
-  notes?: string;
-  metadata: any;
-}
+const AudioNotesUploader: React.FC = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<string>("");
+  const [aiNotes, setAiNotes] = useState<string | null>(null);
 
-export const useAudioUpload = () => {
+  const { uploadAndTranscribe, requestAINotes, isProcessing, progress } = useAudioUpload();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
 
-  // Step 1: Upload to UploadThing & get public URL
-  const uploadAudioFile = async (audioBlobOrUrl: Blob | string): Promise<string> => {
-    setProgress(10);
-    let file: File;
+  // --- Utility to upload file to your backend ---
+  async function uploadFileToUploadThing(file: File): Promise<string | null> {
+    const formData = new FormData();
+    formData.append("file", file);
 
-    if (typeof audioBlobOrUrl === "string" && audioBlobOrUrl.startsWith("blob:")) {
-      const response = await fetch(audioBlobOrUrl);
-      const blob = await response.blob();
-      file = new File([blob], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" });
-    } else if (audioBlobOrUrl instanceof Blob) {
-      file = new File([audioBlobOrUrl], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" });
+    const response = await fetch("/api/uploadthing-upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      toast({ title: "Upload failed", description: "Failed to upload file to UploadThing", variant: "destructive" });
+      return null;
+    }
+
+    const data = await response.json();
+    return data.url || null;
+  }
+
+  // --- Handler for file selection and upload ---
+  const handleUpload = async (e?: React.ChangeEvent<HTMLInputElement>) => {
+    let file: File | null = null;
+    if (e?.target?.files && e.target.files.length > 0) {
+      file = e.target.files[0];
+      setUploadingFile(file);
+    } else if (uploadingFile) {
+      file = uploadingFile;
     } else {
-      throw new Error("Invalid audio input");
+      return;
     }
-    setProgress(30);
-    const url = await uploadAudioToUploadThing(file);
-    setProgress(60);
-    return url;
-  };
 
-  // Step 2: Transcribe via your API
-  const getTranscription = async (audioUrl: string) => {
-    setProgress(70);
-    const res = await fetch("/api/audio-to-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audioUrl }),
-    });
-    if (!res.ok) throw new Error("Transcription failed");
-    const data = await res.json();
-    setProgress(90);
-    return data;
-  };
+    setTranscript("");
+    setAiNotes(null);
 
-  // Step 3: Get AI notes (when user asks)
-  const getAINotes = async (audioUrl: string, transcript: string) => {
-    setProgress(70);
-    const res = await fetch("/api/audio-to-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audioUrl, transcript, aiNotes: true }),
-    });
-    if (!res.ok) throw new Error("AI Notes failed");
-    const data = await res.json();
-    setProgress(100);
-    return data;
-  };
+    // 1. Upload file to backend (UploadThing)
+    const uploadThingUrl = await uploadFileToUploadThing(file);
+    if (!uploadThingUrl) {
+      toast({ title: "Upload failed", description: "Audio upload failed.", variant: "destructive" });
+      return;
+    }
 
-  // Main handler: upload → transcribe
-  const uploadAndTranscribe = async (audioBlobOrUrl: Blob | string) => {
-    setIsProcessing(true);
-    setProgress(0);
-    try {
-      const audioUrl = await uploadAudioFile(audioBlobOrUrl);
-      const data = await getTranscription(audioUrl);
-      setProgress(100);
-      return data; // { transcription, audioUrl, ... }
-    } catch (err: any) {
-      toast({ title: "Failed", description: err.message, variant: "destructive" });
-      return null;
-    } finally {
-      setIsProcessing(false);
-      setProgress(0);
+    // 2. Send file URL to audio-to-notes API for transcription
+    const result = await uploadAndTranscribe(uploadThingUrl);
+    if (result) {
+      setAudioUrl(result.audioUrl);
+      setTranscript(result.transcription);
+      setAiNotes(result.notes ?? null);
+    } else {
+      toast({ title: "Transcription failed", description: "Could not transcribe audio.", variant: "destructive" });
     }
   };
 
-  // Handler: get AI notes after transcript
-  const requestAINotes = async (audioUrl: string, transcript: string) => {
-    setIsProcessing(true);
-    setProgress(0);
-    try {
-      const data = await getAINotes(audioUrl, transcript);
-      setProgress(100);
-      return data;
-    } catch (err: any) {
-      toast({ title: "Failed", description: err.message, variant: "destructive" });
-      return null;
-    } finally {
-      setIsProcessing(false);
-      setProgress(0);
+  // --- Handler for requesting AI notes after transcript ---
+  const handleRequestAINotes = async () => {
+    if (!audioUrl || !transcript) return;
+    const result = await requestAINotes(audioUrl, transcript);
+    if (result) {
+      setAiNotes(result.notes ?? null);
+    } else {
+      toast({ title: "AI Notes failed", description: "Could not generate AI notes.", variant: "destructive" });
     }
   };
 
-  return {
-    uploadAndTranscribe, // use this for initial upload & transcription
-    requestAINotes,      // use this when user asks for AI-powered notes
-    isProcessing,
-    progress,
-  };
+  return (
+    <div className="audio-notes-uploader">
+      <h2>Upload Audio and Generate Notes</h2>
+      <input
+        type="file"
+        accept="audio/*"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleUpload}
+      />
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isProcessing}
+        className="upload-btn"
+      >
+        Select Audio File
+      </button>
+
+      {isProcessing && (
+        <div>
+          <p>Processing: {progress}%</p>
+          <progress value={progress} max={100} />
+        </div>
+      )}
+
+      {transcript && (
+        <div className="transcript-box">
+          <h3>Transcript</h3>
+          <p>{transcript}</p>
+        </div>
+      )}
+
+      {audioUrl && !isProcessing && (
+        <div>
+          <audio controls src={audioUrl} />
+          <button onClick={handleRequestAINotes}>Generate AI Notes</button>
+        </div>
+      )}
+
+      {aiNotes && (
+        <div className="ai-notes-box">
+          <h3>AI Notes</h3>
+          <p>{aiNotes}</p>
+        </div>
+      )}
+    </div>
+  );
 };
+
+export default AudioNotesUploader;
