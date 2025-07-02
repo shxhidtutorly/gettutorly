@@ -1,20 +1,22 @@
-import { generateUploadThingURL } from "uploadthing/client";
+// src/lib/uploadthing-client.ts
+import { UploadButton } from "@uploadthing/react";
+import type { OurFileRouter } from "@/uploadthing.config";
 
-export const uploadAudioToUploadThing = async (file: File): Promise<string> => {
-  // Replace with your UploadThing endpoint:
-  const endpoint = "https://uploadthing.com/api/uploadFiles"; // Or your custom endpoint if needed
-  const formData = new FormData();
-  formData.append("file", file);
-
-  // You may need to add headers for your app ID/secret if required
-  const res = await fetch(endpoint, {
-    method: "POST",
-    body: formData,
-    // headers: { ... } // if needed
-  });
-
-  if (!res.ok) throw new Error("UploadThing upload failed");
-  const data = await res.json();
-  if (!data?.[0]?.url) throw new Error("UploadThing did not return a URL");
-  return data[0].url;
+export const AudioUploadButton = ({ onUploadComplete }: { onUploadComplete: (url: string) => void }) => {
+  return (
+    <UploadButton<OurFileRouter>
+      endpoint="audioUploader"
+      onClientUploadComplete={(res) => {
+        if (res && res.length > 0) {
+          const fileUrl = res[0].url;
+          console.log("File uploaded to:", fileUrl);
+          onUploadComplete(fileUrl);
+        }
+      }}
+      onUploadError={(error: Error) => {
+        console.error("UploadThing Error:", error);
+        alert(`Upload failed: ${error.message}`);
+      }}
+    />
+  );
 };
