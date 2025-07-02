@@ -30,6 +30,7 @@ import UserProfileButton from "@/components/auth/UserProfileButton";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 import {
   Brain,
@@ -1000,13 +1001,21 @@ TestimonialCarousel.displayName = "TestimonialCarousel"
 interface TestimonialsSectionProps {
   title: string
   description: string
-  testimonials: Array<{
-    author: TestimonialAuthor
+    testimonials: Array<{
+    author: Testimonial
     text: string
     href?: string
   }>
   className?: string
 }
+const TestimonialCard = ({ author, text, href }: { author: Testimonial, text: string, href?: string }) => (
+  <div className="flex flex-col items-center p-6 m-2 rounded-xl bg-white dark:bg-zinc-900 shadow-lg min-w-[250px] max-w-xs">
+    <img src={author.avatar} alt={author.name} className="w-16 h-16 rounded-full mb-3 object-cover" />
+    <h4 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">{author.name}</h4>
+    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 text-center">{text}</p>
+    {href && <a href={href} className="text-blue-500 text-xs underline">View</a>}
+  </div>
+);
 
 export function TestimonialsSection({ 
   title,
@@ -1151,8 +1160,8 @@ const Navbar = () => {
   const [active, setActive] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  const transition = {
-    type: "spring",
+    const transition = {
+    type: "spring" as const,
     mass: 0.5,
     damping: 11.5,
     stiffness: 100,
