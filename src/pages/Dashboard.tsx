@@ -85,47 +85,49 @@ if (!user) {
 }
 
 // ✅ Move this here to avoid hook error
-const {
-  summaries_created = 0,
-  notes_created = 0,
-  quizzes_taken = 0,
-  flashcards_created = 0,
-  materials_created = 0,
-  total_study_time = 0
-} = stats || {};
+const activityStats = useMemo(() => {
+  if (!stats) return [];
+
+  const {
+    summaries_created = 0,
+    notes_created = 0,
+    quizzes_taken = 0,
+    flashcards_created = 0,
+  } = stats;
+
+  return [
+    {
+      label: "Summaries",
+      value: summaries_created,
+      color: "text-blue-500",
+      icon: "📝",
+      bg: "bg-gradient-to-br from-blue-500/60 to-blue-400/30",
+    },
+    {
+      label: "AI Notes",
+      value: notes_created,
+      color: "text-green-500",
+      icon: "✨",
+      bg: "bg-gradient-to-br from-green-400/60 to-green-300/30",
+    },
+    {
+      label: "Quizzes",
+      value: quizzes_taken,
+      color: "text-yellow-500",
+      icon: "❓",
+      bg: "bg-gradient-to-br from-yellow-400/60 to-yellow-300/30",
+    },
+    {
+      label: "Flashcards",
+      value: flashcards_created,
+      color: "text-purple-500",
+      icon: "⚡",
+      bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
+    },
+  ];
+}, [stats]);
 
 
-  // Memoize activity stats to prevent recalculation
-  const activityStats = useMemo(() => [
-  {
-    label: "Summaries",
-    value: summaries_created,
-    color: "text-blue-500",
-    icon: "📝",
-    bg: "bg-gradient-to-br from-blue-500/60 to-blue-400/30",
-  },
-  {
-    label: "AI Notes",
-    value: notes_created,
-    color: "text-green-500",
-    icon: "✨",
-    bg: "bg-gradient-to-br from-green-400/60 to-green-300/30",
-  },
-  {
-    label: "Quizzes",
-    value: quizzes_taken,
-    color: "text-yellow-500",
-    icon: "❓",
-    bg: "bg-gradient-to-br from-yellow-400/60 to-yellow-300/30",
-  },
-  {
-    label: "Flashcards",
-    value: flashcards_created,
-    color: "text-purple-500",
-    icon: "⚡",
-    bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
-  },
-], [summaries_created, notes_created, quizzes_taken, flashcards_created]);
 
   // Memoize study tools to prevent recreation
   const studyTools = useMemo(() => [
