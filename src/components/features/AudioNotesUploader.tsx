@@ -21,7 +21,7 @@ const Button = ({ onClick, disabled, children }: any) => (
   </button>
 );
 
-const AudioNotesUploader: React.FC = () => {
+export const AudioNotesUploader: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -36,7 +36,6 @@ const AudioNotesUploader: React.FC = () => {
   const [aiNotes, setAiNotes] = useState<string | null>(null);
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
 
-  // Handles file selection and upload
   const handleUpload = async (e?: React.ChangeEvent<HTMLInputElement>) => {
     let file: File | null = null;
     if (e?.target?.files && e.target.files.length > 0) {
@@ -55,11 +54,10 @@ const AudioNotesUploader: React.FC = () => {
     if (result) {
       setAudioUrl(result.audioUrl);
       setTranscript(result.transcription);
-      setAiNotes(null); // Reset AI notes
+      setAiNotes(null);
     }
   };
 
-  // Handles AI notes request
   const handleGetAINotes = async () => {
     if (!audioUrl || !transcript) return;
     const result = await requestAINotes(audioUrl, transcript);
@@ -155,5 +153,3 @@ const AudioNotesUploader: React.FC = () => {
     </div>
   );
 };
-
-export const AudioNotesUploader = () => { ... }
