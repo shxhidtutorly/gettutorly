@@ -1,95 +1,65 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Bot, User, ArrowLeft, FileText } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import BackToDashboardButton from "@/components/features/BackToDashboardButton";
+import BottomNav from "@/components/layout/BottomNav";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Send, ArrowLeft } from "lucide-react";
+import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ChatMessage {
+  id: string;
+  content: string;
+  created_at: string;
+  is_user: boolean;
+}
 
 const NotesChat = () => {
-  const { noteId } = useParams();
-  const { user, isLoaded } = useUser();
+  const { noteId } = useParams<{ noteId: string }>();
+  const navigate = useNavigate();
+  const { user } = useUser();
   const { toast } = useToast();
-  
-  const [messages, setMessages] = useState<any[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [note, setNote] = useState<any>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchNoteAndMessages = async () => {
-      if (!noteId || !user) return;
-      setIsLoading(true);
-      try {
-        // Fetch note details (replace with your actual data fetching logic)
-        const fetchedNote = { id: noteId, title: "Sample Note", content: "This is a sample note content." };
-        setNote(fetchedNote);
+    if (noteId && user) {
+      fetchMessages();
+    }
+  }, [noteId, user]);
 
-        // Fetch chat messages (replace with your actual data fetching logic)
-        const initialMessages = [
-          { id: '1', role: 'bot', content: "Hello! How can I help you with this note?", createdAt: new Date() },
-        ];
-        setMessages(initialMessages);
-      } catch (error) {
-        console.error("Error fetching data:", error);
+  const fetchMessages = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("note_chats")
+        .select("*")
+        .eq("note_id", noteId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching messages:", error);
         toast({
           title: "Error",
-          description: "Failed to load note and messages.",
+          description: "Failed to load messages. Please check console for details.",
           variant: "destructive",
         });
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
 
-    if (user) {
-      fetchNoteAndMessages();
-    }
-  }, [noteId, user, toast]);
-
-  useEffect(() => {
-    // Scroll to bottom on new messages
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !noteId || !user) return;
-
-    const newMessage = {
-      id: String(Date.now()),
-      role: "user",
-      content: inputMessage,
-      createdAt: new Date(),
-    };
-
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    setInputMessage("");
-    setIsLoading(true);
-
-    try {
-      // Simulate AI response (replace with your actual AI logic)
-      const aiResponse = {
-        id: String(Date.now() + 1),
-        role: "bot",
-        content: `AI response to: ${inputMessage}`,
-        createdAt: new Date(),
-      };
-
-      setMessages((prevMessages) => [...prevMessages, aiResponse]);
+      setMessages(data || []);
     } catch (error) {
-      console.error("AI response error:", error);
+      console.error("Error fetching messages:", error);
       toast({
         title: "Error",
-        description: "Failed to get AI response.",
+        description: "Failed to load messages. Please check console for details.",
         variant: "destructive",
       });
     } finally {
@@ -97,122 +67,114 @@ const NotesChat = () => {
     }
   };
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleSend = async () => {
+    if (!input.trim() || !noteId || !user) return;
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="text-center text-white">
-          <p className="text-lg">Please sign in to access notes chat.</p>
-        </div>
-      </div>
-    );
-  }
+    try {
+      const { data, error } = await supabase
+        .from("note_chats")
+        .insert([
+          {
+            note_id: noteId,
+            user_id: user.id,
+            content: input,
+            is_user: true,
+          },
+        ])
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Error sending message:", error);
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setMessages((prevMessages) => [...prevMessages, data]);
+      setInput("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white transition-colors">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8">
-        <BackToDashboardButton />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl mx-auto space-y-6"
-        >
-          {/* Note Header */}
-          <Card className="bg-white/5 backdrop-blur-lg border-white/10">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-purple-400" />
-                <CardTitle>{note?.title || "Loading..."}</CardTitle>
+      <main className="flex-1 py-8 px-4">
+        <div className="container max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between animate-fade-in">
+            <div>
+              <BackToDashboardButton onClick={() => navigate(-1)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Notes
+              </BackToDashboardButton>
+              <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow mt-2">
+                💬 Chat with Note
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Discuss and clarify content of the note
+              </p>
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="mb-6">
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p>Loading messages...</p>
               </div>
-              <Badge variant="secondary">
-                Note ID: {noteId}
-              </Badge>
-            </CardHeader>
-            <CardContent>
-              <p>{note?.content || "Loading note content..."}</p>
-            </CardContent>
-          </Card>
-
-          {/* Chat Interface */}
-          <Card className="bg-white/5 backdrop-blur-lg border-white/10">
-            <CardHeader>
-              <CardTitle>Chat with AI</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[400px] flex flex-col">
-              <ScrollArea className="flex-grow">
-                <div className="space-y-4 p-3">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex items-start gap-2 ${message.role === 'user' ? 'justify-end' : ''}`}
-                    >
-                      {message.role === 'bot' && (
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src="/bot.png" alt="AI Bot" />
-                          <AvatarFallback>AI</AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div className="flex flex-col text-sm">
-                        <div className={`px-3 py-2 rounded-lg ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-800'}`}>
-                          <p>{message.content}</p>
-                        </div>
-                        <time className="text-xs text-gray-500 mt-1">
-                          {new Date(message.createdAt).toLocaleTimeString()}
-                        </time>
-                      </div>
-                      {message.role === 'user' && (
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={user?.imageUrl || ""} alt={user?.fullName || "User"} />
-                          <AvatarFallback>{user?.fullName?.charAt(0) || "U"}</AvatarFallback>
-                        </Avatar>
-                      )}
+            ) : (
+              messages.map((message) => (
+                <Card
+                  key={message.id}
+                  className={`mb-3 ${
+                    message.is_user ? "bg-secondary text-secondary-foreground" : "bg-muted"
+                  }`}
+                >
+                  <CardContent className="py-2 px-3 text-sm">
+                    {message.content}
+                    <div className="text-xs text-gray-400 mt-1">
+                      {new Date(message.created_at).toLocaleTimeString()}
                     </div>
-                  ))}
-                  <div ref={messagesEndRef} /> {/* Scroll anchor */}
-                </div>
-              </ScrollArea>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
 
-              {/* Input Area */}
-              <div className="mt-4 flex items-center gap-2">
-                <Input
-                  type="text"
-                  placeholder="Type your message..."
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  className="flex-grow bg-white/10 border-white/20 text-white"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSendMessage();
-                    }
-                  }}
-                />
-                <Button onClick={handleSendMessage} disabled={isLoading}>
-                  {isLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+          {/* Chat Input */}
+          <div className="flex items-center animate-fade-in">
+            <Input
+              type="text"
+              placeholder="Type your message..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="bg-background border-input text-white"
+            />
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <Button onClick={handleSend} className="ml-2">
+                <Send className="h-4 w-4 mr-2" />
+                Send
+              </Button>
+            </motion.div>
+          </div>
+        </div>
       </main>
 
       <Footer />
+      <BottomNav />
     </div>
   );
 };

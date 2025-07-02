@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from "@/hooks/useUser";
@@ -10,7 +9,7 @@ import {
   updateNote as fbUpdateNote,
   deleteNote as fbDeleteNote,
   getUserNotes
-} from '@/lib/firebase-db';
+} from '@/lib/firebase-firestore';
 
 export const useRealtimeDB = () => {
   const [isLoading, setIsLoading] = useState(false);

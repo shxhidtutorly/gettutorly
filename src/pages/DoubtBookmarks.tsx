@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/useUser";
@@ -12,9 +13,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Doubt {
   id: string;
-  title: string;
-  content: string;
+  question: string;
+  answer: string;
+  subject: string;
+  difficulty: string;
   created_at: string;
+  is_bookmarked: boolean;
 }
 
 const DoubtBookmarks = () => {
@@ -43,47 +47,28 @@ const DoubtBookmarks = () => {
       }
 
       const { data, error } = await supabase
-        .from("doubt_bookmarks")
-        .select(
-          `
-          id,
-          doubts (
-            id,
-            title,
-            content,
-            created_at
-          )
-        `
-        )
+        .from("doubt_chain")
+        .select("*")
         .eq("user_id", user.id)
+        .eq("is_bookmarked", true)
         .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching bookmarked doubts:", error);
         toast({
           title: "Error",
-          description:
-            "Failed to load bookmarked doubts. Please check console for details.",
+          description: "Failed to load bookmarked doubts. Please check console for details.",
           variant: "destructive",
         });
         return;
       }
 
-      // Extract the doubt data from the nested structure
-      const formattedDoubts = data.map((item) => ({
-        id: item.doubts.id,
-        title: item.doubts.title,
-        content: item.doubts.content,
-        created_at: item.doubts.created_at,
-      }));
-
-      setDoubts(formattedDoubts);
+      setDoubts(data || []);
     } catch (error) {
       console.error("Error fetching doubts:", error);
       toast({
         title: "Error",
-        description:
-          "Failed to load doubts. Please check console for details.",
+        description: "Failed to load doubts. Please check console for details.",
         variant: "destructive",
       });
     } finally {
@@ -91,35 +76,36 @@ const DoubtBookmarks = () => {
     }
   };
 
-  const handleDeleteBookmark = async (bookmarkId: string) => {
+  const handleRemoveBookmark = async (doubtId: string) => {
     try {
       const { error } = await supabase
-        .from("doubt_bookmarks")
-        .delete()
-        .eq("id", bookmarkId);
+        .from("doubt_chain")
+        .update({ is_bookmarked: false })
+        .eq("id", doubtId)
+        .eq("user_id", user?.id);
 
       if (error) {
-        console.error("Error deleting bookmark:", error);
+        console.error("Error removing bookmark:", error);
         toast({
           title: "Error",
-          description: "Failed to delete bookmark. Please try again.",
+          description: "Failed to remove bookmark. Please try again.",
           variant: "destructive",
         });
         return;
       }
 
-      // Optimistically update the UI by removing the deleted bookmark
-      setDoubts((prevDoubts) => prevDoubts.filter((doubt) => doubt.id !== bookmarkId));
+      // Remove from UI
+      setDoubts((prevDoubts) => prevDoubts.filter((doubt) => doubt.id !== doubtId));
 
       toast({
         title: "Success",
-        description: "Bookmark deleted successfully.",
+        description: "Bookmark removed successfully.",
       });
     } catch (error) {
-      console.error("Error deleting bookmark:", error);
+      console.error("Error removing bookmark:", error);
       toast({
         title: "Error",
-        description: "Failed to delete bookmark. Please try again.",
+        description: "Failed to remove bookmark. Please try again.",
         variant: "destructive",
       });
     }
@@ -165,15 +151,27 @@ const DoubtBookmarks = () => {
                   className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none"
                 >
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg line-clamp-1">
-                      {doubt.title}
+                    <CardTitle className="text-lg line-clamp-2">
+                      {doubt.question}
                     </CardTitle>
+                    <div className="flex items-center gap-2">
+                      {doubt.subject && (
+                        <Badge variant="secondary" className="text-xs">
+                          {doubt.subject}
+                        </Badge>
+                      )}
+                      {doubt.difficulty && (
+                        <Badge variant="outline" className="text-xs">
+                          {doubt.difficulty}
+                        </Badge>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {doubt.content}
+                    <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
+                      {doubt.answer}
                     </p>
-                    <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
                         <Calendar className="mr-1 inline-block h-4 w-4" />
                         {new Date(doubt.created_at).toLocaleDateString()}
@@ -183,10 +181,10 @@ const DoubtBookmarks = () => {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDeleteBookmark(doubt.id)}
+                        onClick={() => handleRemoveBookmark(doubt.id)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        Remove
                       </Button>
                     </div>
                   </CardContent>
