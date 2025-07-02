@@ -38,8 +38,6 @@ import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
 
-import SubscriptionGuard from "./components/auth/SubscriptionGuard";
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -65,12 +63,10 @@ const App = () => {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/pricing" element={<PricingPage />} />
 
-            {/* Protected routes - all wrapped with ProtectedRoute and SubscriptionGuard */}
+            {/* Protected routes - all wrapped with ProtectedRoute */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Dashboard />
-                </SubscriptionGuard>
+                <Dashboard />
               </ProtectedRoute>
             } />
             
@@ -79,137 +75,103 @@ const App = () => {
 
             <Route path="/library" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Library />
-                </SubscriptionGuard>
+                <Library />
               </ProtectedRoute>
             } />
             
             <Route path="/ai-notes" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <AINotesGenerator />
-                </SubscriptionGuard>
+                <AINotesGenerator />
               </ProtectedRoute>
             } />
             
             <Route path="/audio-notes" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <AudioNotes />
-                </SubscriptionGuard>
+                <AudioNotes />
               </ProtectedRoute>
             } />
             
             <Route path="/math-chat" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <MathChat />
-                </SubscriptionGuard>
+                <MathChat />
               </ProtectedRoute>
             } />
             
             <Route path="/study-plans" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <StudyPlans />
-                </SubscriptionGuard>
+                <StudyPlans />
               </ProtectedRoute>
             } />
             
             <Route path="/progress" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Progress />
-                </SubscriptionGuard>
+                <Progress />
               </ProtectedRoute>
             } />
             
             <Route path="/profile" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Profile />
-                </SubscriptionGuard>
+                <Profile />
               </ProtectedRoute>
             } />
             
             <Route path="/chat" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Chat />
-                </SubscriptionGuard>
+                <Chat />
               </ProtectedRoute>
             } />
             
             <Route path="/ai-assistant" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <AIAssistant />
-                </SubscriptionGuard>
+                <AIAssistant />
               </ProtectedRoute>
             } />
             
             <Route path="/flashcards" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Flashcards />
-                </SubscriptionGuard>
+                <Flashcards />
               </ProtectedRoute>
             } />
             
             <Route path="/quiz" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Quiz />
-                </SubscriptionGuard>
+                <Quiz />
               </ProtectedRoute>
             } />
             
             <Route path="/summaries" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Summaries />
-                </SubscriptionGuard>
+                <Summaries />
               </ProtectedRoute>
             } />
             
             <Route path="/micro-lessons" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <MicroLessons />
-                </SubscriptionGuard>
+                <MicroLessons />
               </ProtectedRoute>
             } />
             
             <Route path="/study-techniques" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <StudyTechniques />
-                </SubscriptionGuard>
+                <StudyTechniques />
               </ProtectedRoute>
             } />
             
             <Route path="/doubt-chain" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <DoubtChain />
-                </SubscriptionGuard>
+                <DoubtChain />
               </ProtectedRoute>
             } />
             
             <Route path="/doubt-bookmarks" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <DoubtBookmarks />
-                </SubscriptionGuard>
+                <DoubtBookmarks />
               </ProtectedRoute>
             } />
             
             <Route path="/settings" element={
               <ProtectedRoute>
-                <SubscriptionGuard>
-                  <Settings />
-                </SubscriptionGuard>
+                <Settings />
               </ProtectedRoute>
             } />
             

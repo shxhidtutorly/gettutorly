@@ -1,106 +1,41 @@
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase-firestore";
-
-export interface UserStats {
-  materials_created: number;
-  notes_created: number;
-  flashcards_created: number;
-  quizzes_created: number;
-  quizzes_taken: number;
-  summaries_created: number;
-  doubts_asked: number;
-  audio_notes_created: number;
-  total_study_time: number;
-}
+import { useState, useEffect } from 'react';
+import { getUserStats, subscribeToUserStats } from '@/lib/firebase-db';
 
 export const useUserStats = (userId: string | null) => {
-  const [stats, setStats] = useState<UserStats>({
-    materials_created: 0,
-    notes_created: 0,
-    flashcards_created: 0,
-    quizzes_created: 0,
-    quizzes_taken: 0,
-    summaries_created: 0,
-    doubts_asked: 0,
-    audio_notes_created: 0,
-    total_study_time: 0,
-  });
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchStats = useCallback(async () => {
+  useEffect(() => {
     if (!userId) {
-      setIsLoading(false);
+      setStats(null);
+      setLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    setLoading(true);
+    setError(null);
 
-    try {
-      console.log('Loading stats for user:', userId);
+    // Initial fetch
+    getUserStats(userId)
+      .then((data) => {
+        setStats(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching user stats:', err);
+        setError('Failed to load stats');
+        setLoading(false);
+      });
 
-      // First try to get aggregated stats
-      const userStatsRef = doc(db, "user_stats", userId);
-      const userStatsDoc = await getDoc(userStatsRef);
+    // Real-time subscription
+    const unsubscribe = subscribeToUserStats(userId, (data) => {
+      setStats(data);
+    });
 
-      let aggregatedStats: Partial<UserStats> = {};
-      if (userStatsDoc.exists()) {
-        const data = userStatsDoc.data();
-        aggregatedStats = data || {};
-      }
-
-      // Then get collection counts as fallback
-      const [
-        materialsSnapshot,
-        notesSnapshot,
-        flashcardsSnapshot,
-        quizzesSnapshot,
-        summariesSnapshot,
-        doubtsSnapshot,
-        audioNotesSnapshot,
-      ] = await Promise.all([
-        getDocs(query(collection(db, "study_materials"), where("userId", "==", userId))),
-        getDocs(query(collection(db, "notes"), where("userId", "==", userId))),
-        getDocs(query(collection(db, "flashcards"), where("userId", "==", userId))),
-        getDocs(query(collection(db, "quizzes"), where("userId", "==", userId))),
-        getDocs(query(collection(db, "summaries"), where("userId", "==", userId))),
-        getDocs(query(collection(db, "doubt_chain"), where("userId", "==", userId))),
-        getDocs(query(collection(db, "audio_notes"), where("userId", "==", userId))),
-      ]);
-
-      const newStats: UserStats = {
-        materials_created: aggregatedStats.materials_created ?? materialsSnapshot.size,
-        notes_created: aggregatedStats.notes_created ?? notesSnapshot.size,
-        flashcards_created: aggregatedStats.flashcards_created ?? flashcardsSnapshot.size,
-        quizzes_created: aggregatedStats.quizzes_created ?? quizzesSnapshot.size,
-        quizzes_taken: aggregatedStats.quizzes_taken ?? 0,
-        summaries_created: aggregatedStats.summaries_created ?? summariesSnapshot.size,
-        doubts_asked: aggregatedStats.doubts_asked ?? doubtsSnapshot.size,
-        audio_notes_created: aggregatedStats.audio_notes_created ?? audioNotesSnapshot.size,
-        total_study_time: aggregatedStats.total_study_time ?? 0,
-      };
-
-      console.log('Loaded stats:', newStats);
-      setStats(newStats);
-    } catch (error) {
-      console.error("Error fetching user stats:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    return () => unsubscribe();
   }, [userId]);
 
-  // Memoize the effect dependencies to prevent unnecessary re-runs
-  const memoizedUserId = useMemo(() => userId, [userId]);
-
-  useEffect(() => {
-    if (memoizedUserId) {
-      fetchStats();
-    } else {
-      setIsLoading(false);
-    }
-  }, [memoizedUserId, fetchStats]);
-
-  return { stats, loading: isLoading };
+  return { stats, loading, error };
 };

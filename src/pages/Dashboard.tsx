@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -34,13 +35,12 @@ import { auth } from "@/lib/firebase";
 import { motion } from "framer-motion";
 
 const Dashboard = () => {
-  const [user, loading] = useAuthState(auth);
+  const [user] = useAuthState(auth); // Auth is guaranteed by ProtectedRoute
   const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Always call hooks at the top level, even if user is null
-  // The hook implementation should handle null/undefined safely
-  const { stats, loading: statsLoading } = useUserStats(user?.uid ?? null);
+  // Always call hooks at the top level
+  const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
 
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
@@ -166,11 +166,12 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
-  const materials_created = stats?.materials_created ?? 0;
-  const summaries_created = stats?.summaries_created ?? 0;
-  const notes_created = stats?.notes_created ?? 0;
-  const flashcards_created = stats?.flashcards_created ?? 0;
+  // Extract computed values after all hooks
+  const totalStudyHours = (stats?.total_study_time || 0) / 3600;
+  const materials_created = stats?.materials_created || 0;
+  const summaries_created = stats?.summaries_created || 0;
+  const notes_created = stats?.notes_created || 0;
+  const flashcards_created = stats?.flashcards_created || 0;
 
   // Only show loading if stats are still loading
   if (statsLoading) {
@@ -190,7 +191,6 @@ const Dashboard = () => {
 
       <main className="flex-1 py-4 md:py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
-
           {/* Welcome Section */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -254,7 +254,7 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-gray-400">Quizzes</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats?.quizzes_taken ?? 0} <span className="text-yellow-400">❓</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats?.quizzes_taken || 0} <span className="text-yellow-400">❓</span></p>
                     </div>
                     <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
                   </div>
