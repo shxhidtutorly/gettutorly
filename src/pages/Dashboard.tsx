@@ -40,14 +40,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
   const { stats, loading: statsLoading } = useUserStats();
-const {
-  summaries_created = 0,
-  notes_created = 0,
-  quizzes_taken = 0,
-  flashcards_created = 0,
-  materials_created = 0,
-  total_study_time = 0
-} = stats || {};
+
 
   useEffect(() => {
     setShowConfetti(true);
@@ -76,20 +69,31 @@ const {
   }, [user]);
 
   if (loading || statsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading your dashboard...</p>
-        </div>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-lg">Loading your dashboard...</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  if (!user) {
-    navigate('/signin');
-    return null;
-  }
+if (!user) {
+  navigate('/signin');
+  return null;
+}
+
+// ✅ Move this here to avoid hook error
+const {
+  summaries_created = 0,
+  notes_created = 0,
+  quizzes_taken = 0,
+  flashcards_created = 0,
+  materials_created = 0,
+  total_study_time = 0
+} = stats || {};
+
 
   // Memoize activity stats to prevent recalculation
   const activityStats = useMemo(() => [
