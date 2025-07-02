@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import AINotesGenerator from "@/pages/AINotesGenerator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,11 +35,10 @@ import { auth } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Dashboard = () => {
-  const [user, loading, error] = useAuthState(auth);
+  const [user, loading] = useAuthState(auth);
   const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
-const { stats, loading: statsLoading } = useUserStats(user?.uid ?? null);
-
+  const { stats, loading: statsLoading } = useUserStats(user?.uid ?? null);
 
   useEffect(() => {
     setShowConfetti(true);
@@ -48,17 +46,9 @@ const { stats, loading: statsLoading } = useUserStats(user?.uid ?? null);
     return () => clearTimeout(timer);
   }, []);
 
-  // Memoize navigation handler to prevent recreation on every render
+  // Simple navigation handler without WebGL cleanup (handled globally)
   const handleNavigation = useCallback((path: string) => {
-    // Clean up any WebGL contexts before navigation
-    const canvasElements = document.querySelectorAll('canvas');
-    canvasElements.forEach(canvas => {
-      const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
-      if (gl && gl.getExtension('WEBGL_lose_context')) {
-        gl.getExtension('WEBGL_lose_context').loseContext();
-      }
-    });
-    
+    console.log('Navigating to:', path);
     navigate(path);
   }, [navigate]);
 
@@ -68,68 +58,61 @@ const { stats, loading: statsLoading } = useUserStats(user?.uid ?? null);
     return "User";
   }, [user]);
 
-  if (loading || statsLoading) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-lg">Loading your dashboard...</p>
+  // Only show loading if stats are still loading (auth is handled by ProtectedRoute)
+  if (statsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading your dashboard...</p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-if (!user) {
-  navigate('/signin');
-  return null;
-}
+  // Extract all data-dependent logic after loading checks
+  const activityStats = useMemo(() => {
+    if (!stats) return [];
 
-// ✅ Move this here to avoid hook error
-const activityStats = useMemo(() => {
-  if (!stats) return [];
+    const {
+      summaries_created = 0,
+      notes_created = 0,
+      quizzes_taken = 0,
+      flashcards_created = 0,
+    } = stats;
 
-  const {
-    summaries_created = 0,
-    notes_created = 0,
-    quizzes_taken = 0,
-    flashcards_created = 0,
-  } = stats;
+    return [
+      {
+        label: "Summaries",
+        value: summaries_created,
+        color: "text-blue-500",
+        icon: "📝",
+        bg: "bg-gradient-to-br from-blue-500/60 to-blue-400/30",
+      },
+      {
+        label: "AI Notes",
+        value: notes_created,
+        color: "text-green-500",
+        icon: "✨",
+        bg: "bg-gradient-to-br from-green-400/60 to-green-300/30",
+      },
+      {
+        label: "Quizzes",
+        value: quizzes_taken,
+        color: "text-yellow-500",
+        icon: "❓",
+        bg: "bg-gradient-to-br from-yellow-400/60 to-yellow-300/30",
+      },
+      {
+        label: "Flashcards",
+        value: flashcards_created,
+        color: "text-purple-500",
+        icon: "⚡",
+        bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
+      },
+    ];
+  }, [stats]);
 
-  return [
-    {
-      label: "Summaries",
-      value: summaries_created,
-      color: "text-blue-500",
-      icon: "📝",
-      bg: "bg-gradient-to-br from-blue-500/60 to-blue-400/30",
-    },
-    {
-      label: "AI Notes",
-      value: notes_created,
-      color: "text-green-500",
-      icon: "✨",
-      bg: "bg-gradient-to-br from-green-400/60 to-green-300/30",
-    },
-    {
-      label: "Quizzes",
-      value: quizzes_taken,
-      color: "text-yellow-500",
-      icon: "❓",
-      bg: "bg-gradient-to-br from-yellow-400/60 to-yellow-300/30",
-    },
-    {
-      label: "Flashcards",
-      value: flashcards_created,
-      color: "text-purple-500",
-      icon: "⚡",
-      bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
-    },
-  ];
-}, [stats]);
-
-
-
-  // Memoize study tools to prevent recreation
   const studyTools = useMemo(() => [
     {
       title: "Math Chat",
@@ -196,7 +179,11 @@ const activityStats = useMemo(() => {
     }
   ], []);
 
-const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
+  const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
+  const materials_created = stats?.materials_created ?? 0;
+  const summaries_created = stats?.summaries_created ?? 0;
+  const notes_created = stats?.notes_created ?? 0;
+  const flashcards_created = stats?.flashcards_created ?? 0;
   
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white relative overflow-x-hidden max-w-full">
@@ -251,9 +238,10 @@ const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-gray-400">Materials</p>
-<p className="text-lg md:text-2xl font-bold flex items-center gap-1">
-  {materials_created} <span className="text-green-400">📚</span>
-</p>                    </div>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
+                        {materials_created} <span className="text-green-400">📚</span>
+                      </p>
+                    </div>
                     <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
                   </div>
                 </CardContent>
@@ -267,7 +255,7 @@ const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-gray-400">Quizzes</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.quizzes_taken} <span className="text-yellow-400">❓</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats?.quizzes_taken ?? 0} <span className="text-yellow-400">❓</span></p>
                     </div>
                     <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
                   </div>
@@ -283,8 +271,8 @@ const totalStudyHours = (stats?.total_study_time ?? 0) / 3600;
                     <div>
                       <p className="text-xs md:text-sm text-gray-400">Created</p>
                       <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
-                        {summaries_created + notes_created + flashcards_created} ...
-                            </p>
+                        {summaries_created + notes_created + flashcards_created} <span className="text-purple-400">🎯</span>
+                      </p>
                     </div>
                     <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-500" />
                   </div>

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase-firestore";
 
@@ -30,19 +31,27 @@ export const useUserStats = (userId: string | null) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
 
     try {
+      console.log('Loading stats for user:', userId);
+
+      // First try to get aggregated stats
       const userStatsRef = doc(db, "user_stats", userId);
       const userStatsDoc = await getDoc(userStatsRef);
 
       let aggregatedStats: Partial<UserStats> = {};
       if (userStatsDoc.exists()) {
-        aggregatedStats = userStatsDoc.data() as Partial<UserStats> || {};
+        const data = userStatsDoc.data();
+        aggregatedStats = data || {};
       }
 
+      // Then get collection counts as fallback
       const [
         materialsSnapshot,
         notesSnapshot,
@@ -73,6 +82,7 @@ export const useUserStats = (userId: string | null) => {
         total_study_time: aggregatedStats.total_study_time ?? 0,
       };
 
+      console.log('Loaded stats:', newStats);
       setStats(newStats);
     } catch (error) {
       console.error("Error fetching user stats:", error);
@@ -81,11 +91,16 @@ export const useUserStats = (userId: string | null) => {
     }
   }, [userId]);
 
+  // Memoize the effect dependencies to prevent unnecessary re-runs
+  const memoizedUserId = useMemo(() => userId, [userId]);
+
   useEffect(() => {
-    if (userId) {
+    if (memoizedUserId) {
       fetchStats();
+    } else {
+      setIsLoading(false);
     }
-  }, [userId, fetchStats]);
+  }, [memoizedUserId, fetchStats]);
 
   return { stats, loading: isLoading };
 };
