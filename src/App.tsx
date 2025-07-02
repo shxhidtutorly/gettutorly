@@ -26,7 +26,7 @@ import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
 import AudioNotes from "./pages/AudioNotes";
-import MathChat from "./pages/MathChat";
+import MathChat from "@/pages/math-chat"; 
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
 import PricingPage from "./pages/Pricing"; 
