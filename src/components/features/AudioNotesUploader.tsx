@@ -1,41 +1,37 @@
 import React, { useRef, useState } from "react";
 import { useAudioUpload } from "@/hooks/useAudioUpload";
+import { useToast } from "@/hooks/use-toast";
 
-// Replace with your favorite button/spinner if you have one
-const Button = ({ onClick, disabled, children }: any) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    style={{
-      background: "#0070f3",
-      color: "white",
-      border: "none",
-      borderRadius: 4,
-      padding: "0.5rem 1.5rem",
-      margin: "0.5rem 0",
-      cursor: disabled ? "not-allowed" : "pointer",
-      opacity: disabled ? 0.6 : 1,
-    }}
-  >
-    {children}
-  </button>
-);
-
-export const AudioNotesUploader: React.FC = () => {
+const AudioNotesUploader: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const {
-    uploadAndTranscribe,
-    requestAINotes,
-    isProcessing,
-    progress,
-  } = useAudioUpload();
-
-  const [audioUrl, setAudioUrl] = useState<string>("");
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string>("");
   const [aiNotes, setAiNotes] = useState<string | null>(null);
-  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
 
+  const { uploadAndTranscribe, requestAINotes, isProcessing, progress } = useAudioUpload();
+  const { toast } = useToast();
+
+  // --- Utility to upload file to your backend ---
+  async function uploadFileToUploadThing(file: File): Promise<string | null> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/uploadthing-upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      toast({ title: "Upload failed", description: "Failed to upload file to UploadThing", variant: "destructive" });
+      return null;
+    }
+
+    const data = await response.json();
+    return data.url || null;
+  }
+
+  // --- Handler for file selection and upload ---
   const handleUpload = async (e?: React.ChangeEvent<HTMLInputElement>) => {
     let file: File | null = null;
     if (e?.target?.files && e.target.files.length > 0) {
@@ -50,31 +46,38 @@ export const AudioNotesUploader: React.FC = () => {
     setTranscript("");
     setAiNotes(null);
 
-    const result = await uploadAndTranscribe(file);
+    // 1. Upload file to backend (UploadThing)
+    const uploadThingUrl = await uploadFileToUploadThing(file);
+    if (!uploadThingUrl) {
+      toast({ title: "Upload failed", description: "Audio upload failed.", variant: "destructive" });
+      return;
+    }
+
+    // 2. Send file URL to audio-to-notes API for transcription
+    const result = await uploadAndTranscribe(uploadThingUrl);
     if (result) {
       setAudioUrl(result.audioUrl);
       setTranscript(result.transcription);
-      setAiNotes(null);
+      setAiNotes(result.notes ?? null);
+    } else {
+      toast({ title: "Transcription failed", description: "Could not transcribe audio.", variant: "destructive" });
     }
   };
 
-  const handleGetAINotes = async () => {
+  // --- Handler for requesting AI notes after transcript ---
+  const handleRequestAINotes = async () => {
     if (!audioUrl || !transcript) return;
     const result = await requestAINotes(audioUrl, transcript);
-    if (result) setAiNotes(result.notes);
+    if (result) {
+      setAiNotes(result.notes ?? null);
+    } else {
+      toast({ title: "AI Notes failed", description: "Could not generate AI notes.", variant: "destructive" });
+    }
   };
 
   return (
-    <div style={{
-      border: "1px solid #eee",
-      borderRadius: 8,
-      padding: "2rem",
-      maxWidth: 500,
-      margin: "2rem auto",
-      background: "#fafbfc",
-    }}>
-      <h2>Upload Audio for Notes</h2>
-
+    <div className="audio-notes-uploader">
+      <h2>Upload Audio and Generate Notes</h2>
       <input
         type="file"
         accept="audio/*"
@@ -82,74 +85,43 @@ export const AudioNotesUploader: React.FC = () => {
         style={{ display: "none" }}
         onChange={handleUpload}
       />
-      <Button
+      <button
         onClick={() => fileInputRef.current?.click()}
         disabled={isProcessing}
+        className="upload-btn"
       >
-        {isProcessing ? "Processing..." : "Select Audio File"}
-      </Button>
+        Select Audio File
+      </button>
 
-      {progress > 0 && progress < 100 && (
-        <div style={{ margin: "1rem 0" }}>
-          <div style={{
-            background: "#eee",
-            height: 8,
-            borderRadius: 4,
-            overflow: "hidden",
-            marginBottom: 4
-          }}>
-            <div style={{
-              background: "#0070f3",
-              width: `${progress}%`,
-              height: "100%",
-              transition: "width 0.3s"
-            }} />
-          </div>
-          <div style={{ fontSize: 12 }}>
-            {progress < 100 ? `Processing... ${progress}%` : "Done!"}
-          </div>
+      {isProcessing && (
+        <div>
+          <p>Processing: {progress}%</p>
+          <progress value={progress} max={100} />
         </div>
       )}
 
-      {transcript && !aiNotes && (
-        <div style={{ marginTop: "2rem" }}>
+      {transcript && (
+        <div className="transcript-box">
           <h3>Transcript</h3>
-          <pre style={{
-            background: "#f3f3f3",
-            padding: "1rem",
-            borderRadius: 6,
-            fontSize: 14,
-            whiteSpace: "pre-wrap"
-          }}>
-            {transcript}
-          </pre>
-          <Button onClick={handleGetAINotes} disabled={isProcessing}>
-            {isProcessing ? "Generating AI Notes..." : "Get AI-powered Summary & Notes"}
-          </Button>
+          <p>{transcript}</p>
+        </div>
+      )}
+
+      {audioUrl && !isProcessing && (
+        <div>
+          <audio controls src={audioUrl} />
+          <button onClick={handleRequestAINotes}>Generate AI Notes</button>
         </div>
       )}
 
       {aiNotes && (
-        <div style={{ marginTop: "2rem" }}>
+        <div className="ai-notes-box">
           <h3>AI Notes</h3>
-          <div style={{
-            background: "#f6fafd",
-            border: "1px solid #e7eaf2",
-            borderRadius: 6,
-            padding: "1rem",
-            fontSize: 15,
-            whiteSpace: "pre-wrap"
-          }}>
-            {aiNotes}
-          </div>
-        </div>
-      )}
-
-      {audioUrl && (
-        <div style={{ marginTop: "1rem" }}>
-          <audio controls src={audioUrl} style={{ width: "100%" }} />
+          <p>{aiNotes}</p>
         </div>
       )}
     </div>
   );
 };
+
+export default AudioNotesUploader;
