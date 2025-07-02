@@ -5,7 +5,7 @@ import { useUser } from "@/hooks/useUser";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { AudioNotesUploader } from "@/components/features/AudioNotesUploader";
+import AudioNotesUploader from "@/components/features/AudioNotesUploader";
 import { ArrowLeft } from "lucide-react";
 
 // Optional: define fallback animations if not in your tailwind.config.js
