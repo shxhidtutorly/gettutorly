@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -46,11 +47,25 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const getUserDisplayName = () => {
+  // Memoize navigation handler to prevent recreation on every render
+  const handleNavigation = useCallback((path: string) => {
+    // Clean up any WebGL contexts before navigation
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+      const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+      if (gl && gl.getExtension('WEBGL_lose_context')) {
+        gl.getExtension('WEBGL_lose_context').loseContext();
+      }
+    });
+    
+    navigate(path);
+  }, [navigate]);
+
+  const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
     if (user?.email) return user.email.split('@')[0];
     return "User";
-  };
+  }, [user]);
 
   if (loading || statsLoading) {
     return (
@@ -68,10 +83,8 @@ const Dashboard = () => {
     return null;
   }
 
-  
-
-  // Activity stats with clean icons
-  const activityStats = [
+  // Memoize activity stats to prevent recalculation
+  const activityStats = useMemo(() => [
     {
       label: "Summaries",
       value: stats.summaries_created,
@@ -100,10 +113,10 @@ const Dashboard = () => {
       icon: "⚡",
       bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
     },
-  ];
+  ], [stats]);
 
-  // Study Tools including Summarize and Notes Chat
-  const studyTools = [
+  // Memoize study tools to prevent recreation
+  const studyTools = useMemo(() => [
     {
       title: "Math Chat",
       desc: "Solve math problems with AI",
@@ -112,9 +125,9 @@ const Dashboard = () => {
     },
     {
       title: "AI Notes",
-  desc: "Generate smart notes from files",
-  icon: <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
-  route: "/ai-notes"
+      desc: "Generate smart notes from files",
+      icon: <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      route: "/ai-notes"
     },
     {
       title: "Audio Recap",
@@ -140,9 +153,9 @@ const Dashboard = () => {
       icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/quiz"
     },
-  ];
+  ], []);
 
-  const quickActions = [
+  const quickActions = useMemo(() => [
     {
       title: "Doubt Chain",
       desc: "Break down complex concepts",
@@ -167,7 +180,7 @@ const Dashboard = () => {
       icon: <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
       route: "/progress"
     }
-  ];
+  ], []);
 
   const totalStudyHours = stats.total_study_time / 3600; // Convert seconds to hours
 
@@ -330,7 +343,7 @@ const Dashboard = () => {
                 >
                   <Card
                     className="bg-[#121212] border-slate-700 hover:border-slate-600 cursor-pointer transition-all hover:shadow-lg"
-                    onClick={() => navigate(tool.route)}
+                    onClick={() => handleNavigation(tool.route)}
                   >
                     <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
                       {tool.icon}
@@ -359,7 +372,7 @@ const Dashboard = () => {
                 >
                   <Card
                     className="bg-[#121212] border-slate-700 hover:border-slate-600 cursor-pointer shadow-md"
-                    onClick={() => navigate(action.route)}
+                    onClick={() => handleNavigation(action.route)}
                   >
                     <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
                       {action.icon}

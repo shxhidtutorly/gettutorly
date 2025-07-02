@@ -1,9 +1,11 @@
 
-import { useState, useEffect } from 'react';
-import { useUser } from '@/hooks/useUser';
-import { getUserStats, subscribeToUserStats } from '@/lib/firebase-firestore';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase-firestore";
 
-interface UserStats {
+export interface UserStats {
   materials_created: number;
   notes_created: number;
   flashcards_created: number;
@@ -15,20 +17,8 @@ interface UserStats {
   total_study_time: number;
 }
 
-interface UserStatsData {
-  materials_created?: { count: number };
-  notes_created?: { count: number };
-  flashcards_created?: { count: number };
-  quizzes_created?: { count: number };
-  quizzes_taken?: { count: number };
-  summaries_created?: { count: number };
-  doubts_asked?: { count: number };
-  audio_notes_created?: { count: number };
-  total_study_time?: { count: number };
-}
-
 export const useUserStats = () => {
-  const { user } = useUser();
+  const [user, loading] = useAuthState(auth);
   const [stats, setStats] = useState<UserStats>({
     materials_created: 0,
     notes_created: 0,
@@ -40,64 +30,74 @@ export const useUserStats = () => {
     audio_notes_created: 0,
     total_study_time: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchStats = useCallback(async (userId: string) => {
+    if (!userId) return;
+    
+    console.log('Loading stats for user:', userId);
+    setIsLoading(true);
+    
+    try {
+      // Get aggregated stats from user_stats collection first
+      const userStatsRef = doc(db, 'user_stats', userId);
+      const userStatsDoc = await getDoc(userStatsRef);
+      
+      let aggregatedStats = {};
+      if (userStatsDoc.exists()) {
+        aggregatedStats = userStatsDoc.data() || {};
+      }
+
+      // Fallback to counting individual collections if aggregated stats don't exist
+      const [
+        materialsSnapshot,
+        notesSnapshot,
+        flashcardsSnapshot,
+        quizzesSnapshot,
+        summariesSnapshot,
+        doubtsSnapshot,
+        audioNotesSnapshot
+      ] = await Promise.all([
+        getDocs(query(collection(db, 'study_materials'), where('userId', '==', userId))),
+        getDocs(query(collection(db, 'notes'), where('userId', '==', userId))),
+        getDocs(query(collection(db, 'flashcards'), where('userId', '==', userId))),
+        getDocs(query(collection(db, 'quizzes'), where('userId', '==', userId))),
+        getDocs(query(collection(db, 'summaries'), where('userId', '==', userId))),
+        getDocs(query(collection(db, 'doubt_chain'), where('userId', '==', userId))),
+        getDocs(query(collection(db, 'audio_notes'), where('userId', '==', userId)))
+      ]);
+
+      const newStats: UserStats = {
+        materials_created: aggregatedStats.materials_created ?? materialsSnapshot.size,
+        notes_created: aggregatedStats.notes_created ?? notesSnapshot.size,
+        flashcards_created: aggregatedStats.flashcards_created ?? flashcardsSnapshot.size,
+        quizzes_created: aggregatedStats.quizzes_created ?? quizzesSnapshot.size,
+        quizzes_taken: aggregatedStats.quizzes_taken ?? 0,
+        summaries_created: aggregatedStats.summaries_created ?? summariesSnapshot.size,
+        doubts_asked: aggregatedStats.doubts_asked ?? doubtsSnapshot.size,
+        audio_notes_created: aggregatedStats.audio_notes_created ?? audioNotesSnapshot.size,
+        total_study_time: aggregatedStats.total_study_time ?? 0,
+      };
+
+      setStats(newStats);
+      console.log('Loaded stats:', newStats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Memoize the effect dependencies to prevent unnecessary re-runs
+  const userId = useMemo(() => user?.uid, [user?.uid]);
 
   useEffect(() => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
+    if (!loading && userId) {
+      fetchStats(userId);
+    } else if (!loading && !userId) {
+      setIsLoading(false);
     }
+  }, [fetchStats, userId, loading]);
 
-    const loadStats = async () => {
-      try {
-        const userStats: UserStatsData = await getUserStats(user.id) || {};
-        
-        const formattedStats: UserStats = {
-          materials_created: userStats.materials_created?.count || 0,
-          notes_created: userStats.notes_created?.count || 0,
-          flashcards_created: userStats.flashcards_created?.count || 0,
-          quizzes_created: userStats.quizzes_created?.count || 0,
-          quizzes_taken: userStats.quizzes_taken?.count || 0,
-          summaries_created: userStats.summaries_created?.count || 0,
-          doubts_asked: userStats.doubts_asked?.count || 0,
-          audio_notes_created: userStats.audio_notes_created?.count || 0,
-          total_study_time: userStats.total_study_time?.count || 0,
-        };
-        
-        setStats(formattedStats);
-      } catch (error) {
-        console.error('Error loading user stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadStats();
-
-    // Set up real-time subscription
-    const unsubscribe = subscribeToUserStats(user.id, (updatedStats) => {
-      const statsData: UserStatsData = updatedStats || {};
-      const formattedStats: UserStats = {
-        materials_created: statsData.materials_created?.count || 0,
-        notes_created: statsData.notes_created?.count || 0,
-        flashcards_created: statsData.flashcards_created?.count || 0,
-        quizzes_created: statsData.quizzes_created?.count || 0,
-        quizzes_taken: statsData.quizzes_taken?.count || 0,
-        summaries_created: statsData.summaries_created?.count || 0,
-        doubts_asked: statsData.doubts_asked?.count || 0,
-        audio_notes_created: statsData.audio_notes_created?.count || 0,
-        total_study_time: statsData.total_study_time?.count || 0,
-      };
-      
-      setStats(formattedStats);
-    });
-
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-    };
-  }, [user?.id]);
-
-  return { stats, loading };
+  return { stats, loading: isLoading };
 };
