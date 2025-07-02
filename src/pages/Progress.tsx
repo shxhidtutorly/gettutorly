@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -20,11 +20,11 @@ import {
 import { useUserStats } from "@/hooks/useUserStats";
 import { useUser } from "@/hooks/useUser";
 import { motion } from "framer-motion";
-import { WeeklyStudyHoursChart } from "@/components/progress/WeeklyStudyHoursChart";
-import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
-import { ProgressStatCard } from "@/components/progress/ProgressStatCard";
-import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
-import { LearningInsightCard } from "@/components/progress/LearningInsightCard";
+import WeeklyStudyHoursChart from "@/components/progress/WeeklyStudyHoursChart";
+import MonthlyProgressChart from "@/components/progress/MonthlyProgressChart";
+import ProgressStatCard from "@/components/progress/ProgressStatCard";
+import MaterialProgressCard from "@/components/progress/MaterialProgressCard";
+import LearningInsightCard from "@/components/progress/LearningInsightCard";
 
 const Progress = () => {
   const { stats, loading: statsLoading } = useUserStats();
@@ -37,8 +37,23 @@ const Progress = () => {
     queryFn: async () => {
       // Mock implementation - replace with actual API call
       return {
-        weeklyHours: [2, 4, 3, 5, 6, 4, 7],
-        monthlyProgress: [65, 70, 75, 80, 78, 85],
+        weeklyHours: [
+          { day: 'Mon', hours: 2 },
+          { day: 'Tue', hours: 4 },
+          { day: 'Wed', hours: 3 },
+          { day: 'Thu', hours: 5 },
+          { day: 'Fri', hours: 6 },
+          { day: 'Sat', hours: 4 },
+          { day: 'Sun', hours: 7 }
+        ],
+        monthlyProgress: [
+          { name: 'Jan', hours: 65 },
+          { name: 'Feb', hours: 70 },
+          { name: 'Mar', hours: 75 },
+          { name: 'Apr', hours: 80 },
+          { name: 'May', hours: 78 },
+          { name: 'Jun', hours: 85 }
+        ],
         streakDays: 7,
         totalStudyTime: stats.total_study_time,
         completedGoals: 12,
@@ -63,8 +78,23 @@ const Progress = () => {
   const weeklyProgress = Math.min((weeklyHours / weeklyGoal) * 100, 100);
 
   const studyData = progressData || {
-    weeklyHours: [2, 4, 3, 5, 6, 4, 7],
-    monthlyProgress: [65, 70, 75, 80, 78, 85],
+    weeklyHours: [
+      { day: 'Mon', hours: 2 },
+      { day: 'Tue', hours: 4 },
+      { day: 'Wed', hours: 3 },
+      { day: 'Thu', hours: 5 },
+      { day: 'Fri', hours: 6 },
+      { day: 'Sat', hours: 4 },
+      { day: 'Sun', hours: 7 }
+    ],
+    monthlyProgress: [
+      { name: 'Jan', hours: 65 },
+      { name: 'Feb', hours: 70 },
+      { name: 'Mar', hours: 75 },
+      { name: 'Apr', hours: 80 },
+      { name: 'May', hours: 78 },
+      { name: 'Jun', hours: 85 }
+    ],
     streakDays: 7,
     totalStudyTime: stats.total_study_time,
     completedGoals: 12,
@@ -97,31 +127,28 @@ const Progress = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <ProgressStatCard
               title="Study Hours"
-              value={`${weeklyHours.toFixed(1)}h`}
-              change="+2.5h"
-              icon={Clock}
-              trend="up"
+              value={weeklyHours.toFixed(1)}
+              unit="h"
+              change={2.5}
+              icon={<Clock />}
             />
             <ProgressStatCard
               title="Materials Studied"
-              value={stats.materials_created.toString()}
-              change={"+3"}
-              icon={BookOpen}
-              trend="up"
+              value={stats.materials_created}
+              change={3}
+              icon={<BookOpen />}
             />
             <ProgressStatCard
               title="Quiz Score"
-              value="85%"
-              change="+5%"
-              icon={Target}
-              trend="up"
+              value="85"
+              unit="%"
+              change={5}
+              icon={<Target />}
             />
             <ProgressStatCard
               title="Study Streak"
               value={`${studyData.streakDays} days`}
-              change="New record!"
-              icon={Award}
-              trend="up"
+              icon={<Award />}
             />
           </div>
 
@@ -145,7 +172,7 @@ const Progress = () => {
                     <span>Progress</span>
                     <span>{weeklyHours.toFixed(1)}h / {weeklyGoal}h</span>
                   </div>
-                  <Progress value={weeklyProgress} className="h-3" />
+                  <ProgressBar value={weeklyProgress} className="h-3" />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Keep going! You're {weeklyProgress.toFixed(0)}% there</span>
                     <Badge variant={weeklyProgress >= 100 ? "default" : "secondary"}>
@@ -159,23 +186,19 @@ const Progress = () => {
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <WeeklyStudyHoursChart data={studyData.weeklyHours} />
-            <MonthlyProgressChart data={studyData.monthlyProgress} />
+            <WeeklyStudyHoursChart data={studyData.weeklyHours} isLoading={false} />
+            <MonthlyProgressChart data={studyData.monthlyProgress} isLoading={false} />
           </div>
 
           {/* Material Progress */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <MaterialProgressCard
-              title="Notes Created"
-              completed={stats.notes_created}
-              total={stats.notes_created + 5}
-              subject="Various Subjects"
+              name="Notes Created"
+              progress={(stats.notes_created / (stats.notes_created + 5)) * 100}
             />
             <MaterialProgressCard
-              title="Flashcards Mastered"
-              completed={stats.flashcards_created}
-              total={stats.flashcards_created + 10}
-              subject="Active Learning"
+              name="Flashcards Mastered"
+              progress={(stats.flashcards_created / (stats.flashcards_created + 10)) * 100}
             />
           </div>
 
@@ -186,11 +209,10 @@ const Progress = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <LearningInsightCard
-              insights={[
-                "You're most productive during evening study sessions",
-                "Quiz performance has improved by 15% this month",
-                "Flashcards are your most effective learning method",
-              ]}
+              icon={<Brain />}
+              title="Learning Insights"
+              value="3 Key Patterns"
+              description="Based on your study habits"
             />
           </motion.div>
         </div>

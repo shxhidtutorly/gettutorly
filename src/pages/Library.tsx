@@ -21,6 +21,7 @@ import {
   Eye,
   Sparkles,
   Folder,
+  MessageCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -68,7 +69,7 @@ const Library = () => {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-const {
+  const {
     uploadFile,
     deleteFile,
     progress,
@@ -95,7 +96,17 @@ const {
         return;
       }
 
-      setMaterials(study_materials || []);
+      // Transform the data to match our StudyMaterial interface
+      const transformedMaterials = (study_materials || []).map(material => ({
+        id: material.id,
+        title: material.title,
+        file_name: material.file_name || '',
+        file_url: material.file_url || '',
+        folder_id: null, // Since folders table doesn't exist, set to null
+        created_at: material.created_at || '',
+      }));
+
+      setMaterials(transformedMaterials);
     } catch (error) {
       console.error("Error fetching materials:", error);
       toast({
@@ -110,33 +121,10 @@ const {
 
   const fetchFolders = useCallback(async () => {
     if (!user) return;
-
-    try {
-      let { data: folders_data, error } = await supabase
-        .from("folders")
-        .select("*")
-        .eq("user_id", user.id);
-
-      if (error) {
-        console.error("Error fetching folders:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load folders. Please check console for details.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setFolders(folders_data || []);
-    } catch (error) {
-      console.error("Error fetching folders:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load folders. Please check console for details.",
-        variant: "destructive",
-      });
-    }
-  }, [user, toast]);
+    // Since folders table doesn't exist in the database, we'll skip this for now
+    // or create a mock implementation
+    setFolders([]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -157,7 +145,7 @@ const {
     setUploading(true);
     try {
       const filePath = `users/${user.id}/library/${selectedFile.name}`;
-      const fileUrl = await upload(filePath, selectedFile);
+      const fileUrl = await uploadFile(filePath, selectedFile);
 
       const { data, error } = await supabase.from("study_materials").insert([
         {
@@ -165,7 +153,6 @@ const {
           title: selectedFile.name,
           file_name: selectedFile.name,
           file_url: fileUrl,
-          folder_id: selectedFolder,
         },
       ]);
 
@@ -202,39 +189,13 @@ const {
   const handleCreateFolder = async () => {
     if (!newFolderName.trim() || !user) return;
 
-    try {
-      const { data, error } = await supabase.from("folders").insert([
-        {
-          user_id: user.id,
-          name: newFolderName.trim(),
-        },
-      ]);
-
-      if (error) {
-        console.error("Error creating folder:", error);
-        toast({
-          title: "Error",
-          description: "Failed to create folder. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      fetchFolders();
-      setShowCreateFolder(false);
-      setNewFolderName("");
-      toast({
-        title: "Success",
-        description: "Folder created successfully!",
-      });
-    } catch (error) {
-      console.error("Error creating folder:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create folder. Please try again.",
-        variant: "destructive",
-      });
-    }
+    // Since folders table doesn't exist, we'll show a message
+    toast({
+      title: "Info",
+      description: "Folder functionality not yet implemented.",
+    });
+    setShowCreateFolder(false);
+    setNewFolderName("");
   };
 
   const handleDeleteMaterial = async (materialId: string) => {

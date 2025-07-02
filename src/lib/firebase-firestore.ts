@@ -1,5 +1,6 @@
+
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, setDoc, onSnapshot } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -54,5 +55,35 @@ export const deleteNote = async (userId: string, noteId: string) => {
 export const getUserNotes = async (userId: string) => {
   const notesCollection = collection(db, 'users', userId, 'notes');
   const querySnapshot = await getDocs(notesCollection);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+// New functions needed by useRealTimeData
+export const getUserStudyMaterials = async (userId: string) => {
+  const materialsCollection = collection(db, 'users', userId, 'studyMaterials');
+  const querySnapshot = await getDocs(materialsCollection);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const subscribeToStudyMaterials = (userId: string, callback: (materials: any[]) => void) => {
+  const materialsCollection = collection(db, 'users', userId, 'studyMaterials');
+  return onSnapshot(materialsCollection, (snapshot) => {
+    const materials = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    callback(materials);
+  });
+};
+
+export const subscribeToUserStats = (userId: string, callback: (stats: any) => void) => {
+  const statsDoc = doc(db, 'users', userId, 'stats', 'summary');
+  return onSnapshot(statsDoc, (snapshot) => {
+    if (snapshot.exists()) {
+      callback(snapshot.data());
+    }
+  });
+};
+
+export const getUserStudySessions = async (userId: string) => {
+  const sessionsCollection = collection(db, 'users', userId, 'studySessions');
+  const querySnapshot = await getDocs(sessionsCollection);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
