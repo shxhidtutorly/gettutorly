@@ -1,172 +1,198 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useUser } from "@/hooks/useUser";
-import { useUserStats } from "@/hooks/useUserStats";
+
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Flame, BookOpen, MessageSquare, Headphones, GraduationCap } from "lucide-react";
+import {
+  TrendingUp,
+  BookOpen,
+  Target,
+  Calendar,
+  Award,
+  Activity,
+  Clock,
+  Brain,
+} from "lucide-react";
+import { useUserStats } from "@/hooks/useUserStats";
+import { useUser } from "@/hooks/useUser";
+import { motion } from "framer-motion";
+import { WeeklyStudyHoursChart } from "@/components/progress/WeeklyStudyHoursChart";
+import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
+import { ProgressStatCard } from "@/components/progress/ProgressStatCard";
+import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
+import { LearningInsightCard } from "@/components/progress/LearningInsightCard";
 
 const Progress = () => {
+  const { stats, loading: statsLoading } = useUserStats();
   const { user } = useUser();
-  const { stats, loading } = useUserStats();
+  const [weeklyGoal] = useState(10); // hours per week
 
-  // Mock function to fetch study sessions (replace with your actual data fetching)
-  const fetchStudySessions = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          { id: "1", title: "Math Session", duration: 60, date: "2024-01-20" },
-          { id: "2", title: "History Review", duration: 45, date: "2024-01-19" },
-        ]);
-      }, 500);
-    });
+  // Mock data for now - in a real app, this would come from your backend
+  const { data: progressData, isLoading } = useQuery({
+    queryKey: ['progress', user?.id],
+    queryFn: async () => {
+      // Mock implementation - replace with actual API call
+      return {
+        weeklyHours: [2, 4, 3, 5, 6, 4, 7],
+        monthlyProgress: [65, 70, 75, 80, 78, 85],
+        streakDays: 7,
+        totalStudyTime: stats.total_study_time,
+        completedGoals: 12,
+        totalGoals: 15,
+      };
+    },
+    enabled: !!user,
+  });
+
+  if (statsLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading your progress...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const weeklyHours = stats.total_study_time / 3600; // Convert seconds to hours
+  const weeklyProgress = Math.min((weeklyHours / weeklyGoal) * 100, 100);
+
+  const studyData = progressData || {
+    weeklyHours: [2, 4, 3, 5, 6, 4, 7],
+    monthlyProgress: [65, 70, 75, 80, 78, 85],
+    streakDays: 7,
+    totalStudyTime: stats.total_study_time,
+    completedGoals: 12,
+    totalGoals: 15,
   };
 
-  const { data: studySessions, isLoading: isSessionsLoading } = useQuery(
-    ['studySessions'],
-    fetchStudySessions
-  );
-
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white transition-colors">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
       <Navbar />
 
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8 animate-fade-in">
-            <h1 className="text-4xl font-bold tracking-tight text-white drop-shadow">
-              📈 Your Progress
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
+              <TrendingUp className="text-primary" />
+              Learning Progress
             </h1>
             <p className="text-muted-foreground text-lg">
-              Track your learning journey and see how far you've come
+              Track your study journey and achievements
             </p>
-          </div>
+          </motion.div>
 
           {/* Stats Overview */}
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 animate-fade-in-up">
-            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">
-                  Materials Created
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <ProgressStatCard
+              title="Study Hours"
+              value={`${weeklyHours.toFixed(1)}h`}
+              change="+2.5h"
+              icon={Clock}
+              trend="up"
+            />
+            <ProgressStatCard
+              title="Materials Studied"
+              value={stats.materials_created.toString()}
+              change={"+3"}
+              icon={BookOpen}
+              trend="up"
+            />
+            <ProgressStatCard
+              title="Quiz Score"
+              value="85%"
+              change="+5%"
+              icon={Target}
+              trend="up"
+            />
+            <ProgressStatCard
+              title="Study Streak"
+              value={`${studyData.streakDays} days`}
+              change="New record!"
+              icon={Award}
+              trend="up"
+            />
+          </div>
+
+          {/* Weekly Goal Progress */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mb-8"
+          >
+            <Card className="bg-card border-border shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-card-foreground flex items-center gap-2">
+                  <Target className="text-primary" />
+                  Weekly Study Goal
                 </CardTitle>
-                <Flame className="h-4 w-4 text-gray-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {loading ? "Loading..." : stats?.materials_created}
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span>Progress</span>
+                    <span>{weeklyHours.toFixed(1)}h / {weeklyGoal}h</span>
+                  </div>
+                  <Progress value={weeklyProgress} className="h-3" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Keep going! You're {weeklyProgress.toFixed(0)}% there</span>
+                    <Badge variant={weeklyProgress >= 100 ? "default" : "secondary"}>
+                      {weeklyProgress >= 100 ? "Goal Achieved!" : "In Progress"}
+                    </Badge>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Total study materials you've created
-                </p>
               </CardContent>
             </Card>
+          </motion.div>
 
-            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Notes Created</CardTitle>
-                <BookOpen className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {loading ? "Loading..." : stats?.notes_created}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Number of notes you've taken
-                </p>
-              </CardContent>
-            </Card>
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <WeeklyStudyHoursChart data={studyData.weeklyHours} />
+            <MonthlyProgressChart data={studyData.monthlyProgress} />
+          </div>
 
-            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">
-                  Doubts Asked
-                </CardTitle>
-                <MessageSquare className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {loading ? "Loading..." : stats?.doubts_asked}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Questions you've asked to clarify concepts
-                </p>
-              </CardContent>
-            </Card>
+          {/* Material Progress */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <MaterialProgressCard
+              title="Notes Created"
+              completed={stats.notes_created}
+              total={stats.notes_created + 5}
+              subject="Various Subjects"
+            />
+            <MaterialProgressCard
+              title="Flashcards Mastered"
+              completed={stats.flashcards_created}
+              total={stats.flashcards_created + 10}
+              subject="Active Learning"
+            />
+          </div>
 
-            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">
-                  Audio Notes Created
-                </CardTitle>
-                <Headphones className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {loading ? "Loading..." : stats?.audio_notes_created}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Number of audio notes you've created
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">
-                  Total Study Time
-                </CardTitle>
-                <GraduationCap className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {loading ? "Loading..." : stats?.total_study_time}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Total time you've spent studying
-                </p>
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Study Sessions */}
-          <section className="mb-8 animate-fade-in-up">
-            <h2 className="text-2xl font-bold tracking-tight text-white drop-shadow mb-4">
-              📚 Recent Study Sessions
-            </h2>
-            {isSessionsLoading ? (
-              <div className="text-center py-6">Loading study sessions...</div>
-            ) : studySessions && studySessions.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {studySessions.map((session: any) => (
-                  <Card
-                    key={session.id}
-                    className="dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none"
-                  >
-                    <CardHeader>
-                      <CardTitle className="text-lg font-semibold line-clamp-1">
-                        {session.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        <Calendar className="mr-1 inline-block h-4 w-4" />
-                        {new Date(session.date).toLocaleDateString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Duration: {session.duration} minutes
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">No study sessions recorded yet.</div>
-            )}
-          </section>
+          {/* Learning Insights */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <LearningInsightCard
+              insights={[
+                "You're most productive during evening study sessions",
+                "Quiz performance has improved by 15% this month",
+                "Flashcards are your most effective learning method",
+              ]}
+            />
+          </motion.div>
         </div>
       </main>
 

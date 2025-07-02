@@ -139,6 +139,33 @@ export const useStudyTracking = () => {
     updateUserStats('doubts_resolved');
   }, [updateUserStats]);
 
+  // Add aliases for backwards compatibility
+  const trackQuizCompletion = trackQuizCompleted;
+  const trackSummaryGeneration = trackSummaryCreated;
+  const trackNotesCreation = trackNoteCreated;
+  const trackActivity = useCallback((activityType: string, data?: any) => {
+    // Generic activity tracker
+    switch(activityType) {
+      case 'quiz_completed':
+        trackQuizCompleted();
+        break;
+      case 'summary_generated':
+        trackSummaryCreated();
+        break;
+      case 'note_created':
+        trackNoteCreated();
+        break;
+      case 'math_problem_solved':
+        trackMathProblemSolved();
+        break;
+      case 'doubt_resolved':
+        trackDoubtResolved();
+        break;
+      default:
+        console.log('Activity tracked:', activityType, data);
+    }
+  }, [trackQuizCompleted, trackSummaryCreated, trackNoteCreated, trackMathProblemSolved, trackDoubtResolved]);
+
   return {
     currentSession,
     isLoading,
@@ -149,5 +176,10 @@ export const useStudyTracking = () => {
     trackNoteCreated,
     trackMathProblemSolved,
     trackDoubtResolved,
+    // Aliases for backwards compatibility
+    trackQuizCompletion,
+    trackSummaryGeneration,
+    trackNotesCreation,
+    trackActivity,
   };
 };

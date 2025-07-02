@@ -43,9 +43,9 @@ export const useUserStats = () => {
       const userStatsRef = doc(db, 'user_stats', userId);
       const userStatsDoc = await getDoc(userStatsRef);
       
-      let aggregatedStats = {};
+      let aggregatedStats: Partial<UserStats> = {};
       if (userStatsDoc.exists()) {
-        aggregatedStats = userStatsDoc.data() || {};
+        aggregatedStats = userStatsDoc.data() as Partial<UserStats> || {};
       }
 
       // Fallback to counting individual collections if aggregated stats don't exist

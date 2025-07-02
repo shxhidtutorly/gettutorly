@@ -1,451 +1,561 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
-import { PlusCircle, File, Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Upload,
+  FolderPlus,
+  File,
+  MoreVertical,
+  Edit,
+  Trash,
+  Eye,
+  Sparkles,
+  Folder,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
-import { Copy, Download, Share2, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useStorage } from "@/hooks/useStorage";
+import { supabase } from "@/integrations/supabase/client";
 
-const formSchema = z.object({
-  title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
-  }),
-  description: z.string().optional(),
-  file: z.any(),
-});
+interface StudyMaterial {
+  id: string;
+  title: string;
+  file_name: string;
+  file_url: string;
+  folder_id: string | null;
+  created_at: string;
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  created_at: string;
+}
 
 const Library = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [showUploader, setShowUploader] = useState(false);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const { upload } = useStorage();
   const { toast } = useToast();
-  const [files, setFiles] = useState<any[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const {
-    uploadFile,
-    deleteFile,
-    getSignedUrl,
-    listFiles,
-    progress,
-    error,
-  } = useSupabaseStorage();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      file: null,
-    },
-  });
-
-  useEffect(() => {
-    if (user) {
-      fetchFiles();
-    }
-  }, [user]);
-
-  const fetchFiles = async () => {
+  const fetchMaterials = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
     try {
-      const fetchedFiles = await listFiles();
-      setFiles(fetchedFiles || []);
-    } catch (error) {
-      console.error("Error fetching files:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load files. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+      let { data: study_materials, error } = await supabase
+        .from("study_materials")
+        .select("*")
+        .eq("user_id", user.id);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsUploading(true);
-    try {
-      if (!values.file) {
-        throw new Error("Please select a file to upload.");
-      }
-
-      const uploadResult = await uploadFile(values.file);
-
-      if (uploadResult) {
-        toast({
-          title: "Success",
-          description: "File uploaded successfully.",
-        });
-        form.reset();
-        fetchFiles();
-      } else {
+      if (error) {
+        console.error("Error fetching materials:", error);
         toast({
           title: "Error",
-          description: "File upload failed. Please try again.",
+          description: "Failed to load materials. Please check console for details.",
           variant: "destructive",
         });
+        return;
       }
-    } catch (error: any) {
-      console.error("File upload error:", error);
+
+      setMaterials(study_materials || []);
+    } catch (error) {
+      console.error("Error fetching materials:", error);
       toast({
         title: "Error",
-        description: error.message || "File upload failed. Please try again.",
+        description: "Failed to load materials. Please check console for details.",
         variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
+      setLoading(false);
+    }
+  }, [user, toast]);
+
+  const fetchFolders = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      let { data: folders_data, error } = await supabase
+        .from("folders")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error fetching folders:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load folders. Please check console for details.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFolders(folders_data || []);
+    } catch (error) {
+      console.error("Error fetching folders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load folders. Please check console for details.",
+        variant: "destructive",
+      });
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMaterials();
+      fetchFolders();
+    }
+  }, [user, fetchMaterials, fetchFolders]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
     }
   };
 
-  const handleFileAction = async (
-    file: any,
-    action: "preview" | "download" | "copy" | "share" | "delete"
-  ) => {
-    try {
-      const filePath = file.name;
+  const handleUpload = async () => {
+    if (!selectedFile || !user) return;
 
-      switch (action) {
-        case "preview":
-          const signedUrl = await getSignedUrl(filePath);
-          if (signedUrl) {
-            setSelectedFileUrl(signedUrl);
-            window.open(signedUrl, "_blank");
-          } else {
-            toast({
-              title: "Error",
-              description: "Could not generate preview URL.",
-              variant: "destructive",
-            });
-          }
-          break;
-        case "download":
-          const downloadUrl = await getSignedUrl(filePath);
-          if (downloadUrl) {
-            const link = document.createElement("a");
-            link.href = downloadUrl;
-            link.download = file.name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          } else {
-            toast({
-              title: "Error",
-              description: "Could not generate download URL.",
-              variant: "destructive",
-            });
-          }
-          break;
-        case "copy":
-          const copyUrl = await getSignedUrl(filePath);
-          if (copyUrl) {
-            navigator.clipboard.writeText(copyUrl);
-            toast({
-              title: "Success",
-              description: "URL copied to clipboard!",
-            });
-          } else {
-            toast({
-              title: "Error",
-              description: "Could not generate URL to copy.",
-              variant: "destructive",
-            });
-          }
-          break;
-        case "share":
-          const shareUrl = await getSignedUrl(filePath);
-          if (shareUrl) {
-            navigator.share({
-              title: `Check out this file: ${file.name}`,
-              url: shareUrl,
-            });
-          } else {
-            toast({
-              title: "Error",
-              description: "Could not generate share URL.",
-              variant: "destructive",
-            });
-          }
-          break;
-        case "delete":
-          const confirmDelete = window.confirm(
-            "Are you sure you want to delete this file?"
-          );
-          if (confirmDelete) {
-            const success = await deleteFile(file.name);
-            if (success) {
-              toast({
-                title: "Success",
-                description: "File deleted successfully.",
-              });
-              fetchFiles();
-            } else {
-              toast({
-                title: "Error",
-                description: "Failed to delete file.",
-                variant: "destructive",
-              });
-            }
-          }
-          break;
+    setUploading(true);
+    try {
+      const filePath = `users/${user.id}/library/${selectedFile.name}`;
+      const fileUrl = await upload(filePath, selectedFile);
+
+      const { data, error } = await supabase.from("study_materials").insert([
+        {
+          user_id: user.id,
+          title: selectedFile.name,
+          file_name: selectedFile.name,
+          file_url: fileUrl,
+          folder_id: selectedFolder,
+        },
+      ]);
+
+      if (error) {
+        console.error("Error uploading material:", error);
+        toast({
+          title: "Error",
+          description: "Failed to upload material. Please try again.",
+          variant: "destructive",
+        });
+        return;
       }
-    } catch (error: any) {
-      console.error("File action error:", error);
+
+      fetchMaterials();
+      setShowUploader(false);
+      setSelectedFile(null);
+      setSelectedFolder(null);
+      toast({
+        title: "Success",
+        description: "Material uploaded successfully!",
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Error",
-        description: error.message || `Failed to perform action.`,
+        description: "Failed to upload material. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim() || !user) return;
+
+    try {
+      const { data, error } = await supabase.from("folders").insert([
+        {
+          user_id: user.id,
+          name: newFolderName.trim(),
+        },
+      ]);
+
+      if (error) {
+        console.error("Error creating folder:", error);
+        toast({
+          title: "Error",
+          description: "Failed to create folder. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      fetchFolders();
+      setShowCreateFolder(false);
+      setNewFolderName("");
+      toast({
+        title: "Success",
+        description: "Folder created successfully!",
+      });
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create folder. Please try again.",
         variant: "destructive",
       });
     }
   };
 
+  const handleDeleteMaterial = async (materialId: string) => {
+    try {
+      const { error } = await supabase
+        .from("study_materials")
+        .delete()
+        .eq("id", materialId);
+
+      if (error) {
+        console.error("Error deleting material:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete material. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      fetchMaterials();
+      toast({
+        title: "Success",
+        description: "Material deleted successfully!",
+      });
+    } catch (error) {
+      console.error("Error deleting material:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete material. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredMaterials = selectedFolder
+    ? materials.filter((material) => material.folder_id === selectedFolder)
+    : materials;
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading your library...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white transition-colors">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
       <Navbar />
 
       <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-4xl font-bold tracking-tight text-white drop-shadow">
-                  📚 Your Library
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                  Manage and access your uploaded study materials
-                </p>
-              </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="primary">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Upload New
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px] bg-gray-900 text-white border-gray-700">
-                  <DialogHeader>
-                    <DialogTitle>Upload Study Material</DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      Upload a new PDF file to your library.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Form {...form}>
-                    <form
-                      onSubmit={form.handleSubmit(onSubmit)}
-                      className="space-y-4"
-                    >
-                      <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Title</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="My Awesome Study Material"
-                                className="bg-gray-800 border-gray-600 text-white"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="A brief description of the material"
-                                className="bg-gray-800 border-gray-600 text-white"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="file"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>File</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="file"
-                                accept=".pdf"
-                                className="bg-gray-800 border-gray-600 text-white file:bg-gray-700 file:border-0 file:text-white file:py-2 file:px-4"
-                                onChange={(e) => {
-                                  const file = (e.target as HTMLInputElement)
-                                    .files?.[0];
-                                  field.onChange(file);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {isUploading && (
-                        <div className="w-full">
-                          <Progress value={progress} />
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Uploading... {progress}%
-                          </p>
-                        </div>
-                      )}
-                      <Button
-                        type="submit"
-                        disabled={isUploading}
-                        className="w-full bg-primary hover:bg-primary-foreground text-white"
-                      >
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Please wait
-                          </>
-                        ) : (
-                          "Upload"
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              📚 Your Library
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage and organize your study materials
+            </p>
+          </motion.div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={() => setShowUploader(true)}
+                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Material
+              </Button>
+            </motion.div>
+
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={() => setShowCreateFolder(true)}
+                variant="outline"
+                className="border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white"
+              >
+                <FolderPlus className="mr-2 h-4 w-4" />
+                New Folder
+              </Button>
+            </motion.div>
+
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={() => navigate('/ai-notes')}
+                variant="outline"
+                className="border-green-400 text-green-400 hover:bg-green-400 hover:text-white"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate AI Notes
+              </Button>
+            </motion.div>
           </div>
 
-          {/* File List */}
-          {files.length === 0 ? (
-            <div className="text-center py-12 animate-fade-in">
-              <File className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">
-                No files uploaded yet
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Start building your library by uploading your study materials
+          {/* Folder Selection */}
+          <div className="mb-6">
+            <Label htmlFor="folder" className="text-sm font-medium block mb-2">
+              Select Folder:
+            </Label>
+            <select
+              id="folder"
+              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
+              value={selectedFolder || ""}
+              onChange={(e) =>
+                setSelectedFolder(e.target.value === "" ? null : e.target.value)
+              }
+            >
+              <option value="">All Materials</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Materials List */}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Loading materials...</p>
+            </div>
+          ) : filteredMaterials.length === 0 ? (
+            <div className="text-center py-12">
+              <File className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <p className="text-lg text-muted-foreground">
+                No materials found in this folder.
               </p>
             </div>
           ) : (
-            <ScrollArea className="rounded-md border dark:bg-gradient-to-br dark:from-[#23294b] dark:via-[#191e32] dark:to-[#23294b] bg-card shadow-lg rounded-xl border-none">
-              <Table>
-                <TableCaption>
-                  A list of your uploaded study materials.
-                </TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[400px]">File Name</TableHead>
-                    <TableHead>Uploaded At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {files.map((file) => (
-                    <TableRow key={file.id}>
-                      <TableCell className="font-medium">{file.name}</TableCell>
-                      <TableCell>
-                        {new Date(file.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMaterials.map((material) => (
+                <motion.div
+                  key={material.id}
+                  className="bg-card border-border rounded-md shadow-sm overflow-hidden"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <File className="h-5 w-5 text-muted-foreground" />
+                          <p className="text-sm font-medium">{material.title}</p>
+                        </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
                               <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => handleFileAction(file, "preview")}
+                              onClick={() => window.open(material.file_url, "_blank")}
                             >
-                              <File className="mr-2 h-4 w-4" /> Preview
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleFileAction(file, "download")}
+                              onClick={() =>
+                                navigate(`/ai-notes?fileUrl=${material.file_url}`)
+                              }
                             >
-                              <Download className="mr-2 h-4 w-4" /> Download
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit with AI
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleFileAction(file, "copy")}
+                              onClick={() =>
+                                navigate(`/notes-chat/${material.id}`)
+                              }
                             >
-                              <Copy className="mr-2 h-4 w-4" /> Copy URL
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Chat with Note
                             </DropdownMenuItem>
-                            {navigator.share && (
-                              <DropdownMenuItem
-                                onClick={() => handleFileAction(file, "share")}
-                              >
-                                <Share2 className="mr-2 h-4 w-4" /> Share
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleFileAction(file, "delete")}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            <DropdownMenuItem>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" className="w-full justify-start">
+                                    <Trash className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-background border-border">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone. This will permanently delete
+                                      the material from our servers.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteMaterial(material.id)}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Uploaded on {new Date(material.created_at).toLocaleDateString()}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
           )}
         </div>
       </main>
 
       <Footer />
       <BottomNav />
+
+      {/* Upload Material Modal */}
+      {showUploader && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <motion.div
+            className="bg-background border-border rounded-lg p-8 max-w-md w-full"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+          >
+            <h2 className="text-2xl font-bold mb-4">Upload Material</h2>
+            <Label htmlFor="material" className="text-sm font-medium block mb-2">
+              Select File:
+            </Label>
+            <Input
+              type="file"
+              id="material"
+              onChange={handleFileSelect}
+              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
+            />
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Selected file: {selectedFile.name}
+              </p>
+            )}
+
+            <Label htmlFor="folder" className="text-sm font-medium block mt-4 mb-2">
+              Select Folder:
+            </Label>
+            <select
+              id="folder"
+              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
+              value={selectedFolder || ""}
+              onChange={(e) => setSelectedFolder(e.target.value)}
+            >
+              <option value="">No Folder</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex justify-end gap-4 mt-6">
+              <Button variant="secondary" onClick={() => setShowUploader(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
+                {uploading ? (
+                  <>
+                    Uploading...
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                  </>
+                ) : (
+                  "Upload"
+                )}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Create Folder Modal */}
+      {showCreateFolder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <motion.div
+            className="bg-background border-border rounded-lg p-8 max-w-md w-full"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+          >
+            <h2 className="text-2xl font-bold mb-4">Create New Folder</h2>
+            <Label htmlFor="folderName" className="text-sm font-medium block mb-2">
+              Folder Name:
+            </Label>
+            <Input
+              type="text"
+              id="folderName"
+              placeholder="Enter folder name"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
+            />
+            <div className="flex justify-end gap-4 mt-6">
+              <Button variant="secondary" onClick={() => setShowCreateFolder(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+                Create
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

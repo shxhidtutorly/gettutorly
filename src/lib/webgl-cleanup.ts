@@ -9,7 +9,9 @@ export const cleanupWebGLContexts = () => {
   
   canvasElements.forEach(canvas => {
     // Try to get WebGL context
-    const gl = canvas.getContext('webgl') || canvas.getContext('webgl2') || canvas.getContext('experimental-webgl');
+    const gl = canvas.getContext('webgl') as WebGLRenderingContext | null || 
+               canvas.getContext('webgl2') as WebGL2RenderingContext | null || 
+               canvas.getContext('experimental-webgl') as WebGLRenderingContext | null;
     
     if (gl) {
       // Lose the context gracefully

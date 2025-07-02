@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,9 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMessage {
   id: string;
-  content: string;
+  message: string;
   created_at: string;
-  is_user: boolean;
+  role: string;
 }
 
 const NotesChat = () => {
@@ -77,8 +78,8 @@ const NotesChat = () => {
           {
             note_id: noteId,
             user_id: user.id,
-            content: input,
-            is_user: true,
+            message: input,
+            role: "user",
           },
         ])
         .select("*")
@@ -115,7 +116,7 @@ const NotesChat = () => {
           {/* Header */}
           <div className="mb-8 flex items-center justify-between animate-fade-in">
             <div>
-              <BackToDashboardButton onClick={() => navigate(-1)}>
+              <BackToDashboardButton>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Notes
               </BackToDashboardButton>
@@ -140,11 +141,11 @@ const NotesChat = () => {
                 <Card
                   key={message.id}
                   className={`mb-3 ${
-                    message.is_user ? "bg-secondary text-secondary-foreground" : "bg-muted"
+                    message.role === 'user' ? "bg-secondary text-secondary-foreground" : "bg-muted"
                   }`}
                 >
                   <CardContent className="py-2 px-3 text-sm">
-                    {message.content}
+                    {message.message}
                     <div className="text-xs text-gray-400 mt-1">
                       {new Date(message.created_at).toLocaleTimeString()}
                     </div>
