@@ -1468,6 +1468,7 @@ const OptimizedLearningPlatform = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pricingToggle, setPricingToggle] = useState<"monthly" | "yearly">("monthly");
   const [titleNumber, setTitleNumber] = useState(0);
+  const navigate = useNavigate();
   const titles = useMemo(
     () => ["Smart", "Next-Gen", "AI-Powered", "Effortless", "Trusted", "Supercharged"],
     []
