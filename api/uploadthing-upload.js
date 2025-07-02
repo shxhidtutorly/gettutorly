@@ -1,6 +1,4 @@
 // api/uploadthing-upload.js
-// This endpoint uploads a file to UploadThing using your API key from Vercel env vars
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -12,34 +10,40 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Expecting a file URL in the body (adjust as needed for your frontend)
-    const { audioUrl } = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    if (!audioUrl) {
-      return res.status(400).json({ error: 'Audio URL is required' });
-    }
+    // Parse FormData (multipart)
+    const busboy = require('busboy');
+    const bb = busboy({ headers: req.headers });
+    let fileBuffer = Buffer.alloc(0);
+    let fileName = "";
 
-    // Download file from audioUrl
-    const fileResponse = await fetch(audioUrl);
-    if (!fileResponse.ok) throw new Error('Could not fetch the audio file.');
-    const fileBuffer = await fileResponse.arrayBuffer();
-
-    // Upload to UploadThing
-    const response = await fetch('https://uploadthing.com/api/uploadFiles', {
-      method: 'POST',
-      headers: {
-        'Authorization': uploadthingApiKey,
-        // Adjust Content-Type if UploadThing requires something specific
-        'Content-Type': 'application/octet-stream',
-      },
-      body: fileBuffer
+    bb.on('file', (fieldname, file, info) => {
+      fileName = info.filename;
+      file.on('data', (data) => {
+        fileBuffer = Buffer.concat([fileBuffer, data]);
+      });
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to upload to UploadThing');
-    }
+    bb.on('finish', async () => {
+      // Upload to UploadThing
+      const response = await fetch('https://uploadthing.com/api/uploadFiles', {
+        method: 'POST',
+        headers: {
+          'Authorization': uploadthingApiKey,
+          'Content-Type': 'application/octet-stream',
+        },
+        body: fileBuffer
+      });
 
-    const data = await response.json();
-    return res.status(200).json({ uploadthingResult: data });
+      if (!response.ok) {
+        throw new Error('Failed to upload to UploadThing');
+      }
+
+      const data = await response.json();
+      // Adjust this to fit your actual API's response
+      return res.status(200).json({ url: data.fileUrl || data.url });
+    });
+
+    req.pipe(bb);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
