@@ -139,52 +139,41 @@ const Library = () => {
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile || !user) return;
+ const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  setIsUploading(true);
+  try {
+    // Defensive: check that values.file is a File
+    if (!values.file || !(values.file instanceof File)) {
+      throw new Error("Please select a file to upload.");
+    }
 
-    setUploading(true);
-    try {
-      const filePath = `users/${user.id}/library/${selectedFile.name}`;
-      const fileUrl = await uploadFile(filePath, selectedFile);
+    const uploadResult = await uploadFile(values.file);
 
-      const { data, error } = await supabase.from("study_materials").insert([
-        {
-          user_id: user.id,
-          title: selectedFile.name,
-          file_name: selectedFile.name,
-          file_url: fileUrl,
-        },
-      ]);
-
-      if (error) {
-        console.error("Error uploading material:", error);
-        toast({
-          title: "Error",
-          description: "Failed to upload material. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      fetchMaterials();
-      setShowUploader(false);
-      setSelectedFile(null);
-      setSelectedFolder(null);
+    if (uploadResult) {
       toast({
         title: "Success",
-        description: "Material uploaded successfully!",
+        description: "File uploaded successfully.",
       });
-    } catch (error) {
-      console.error("Upload error:", error);
+      form.reset();
+      fetchFiles();
+    } else {
       toast({
         title: "Error",
-        description: "Failed to upload material. Please try again.",
+        description: "File upload failed. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setUploading(false);
     }
-  };
+  } catch (error: any) {
+    console.error("File upload error:", error);
+    toast({
+      title: "Error",
+      description: error.message || "File upload failed. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsUploading(false);
+  }
+};
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim() || !user) return;
