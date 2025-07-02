@@ -5,9 +5,12 @@ export const cleanupWebGLContexts = () => {
     const canvases = document.querySelectorAll('canvas');
     
     canvases.forEach((canvas) => {
-      const gl = canvas.getContext('webgl') || canvas.getContext('webgl2') || canvas.getContext('experimental-webgl');
-      if (gl && typeof gl.getExtension === 'function') {
-        const loseContext = gl.getExtension('WEBGL_lose_context');
+      const gl = canvas.getContext('webgl') as WebGLRenderingContext | null;
+      const gl2 = canvas.getContext('webgl2') as WebGL2RenderingContext | null;
+      const webglContext = gl || gl2;
+      
+      if (webglContext && typeof webglContext.getExtension === 'function') {
+        const loseContext = webglContext.getExtension('WEBGL_lose_context');
         if (loseContext) {
           loseContext.loseContext();
         }

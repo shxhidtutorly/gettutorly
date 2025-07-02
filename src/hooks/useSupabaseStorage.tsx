@@ -1,33 +1,28 @@
+
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@/hooks/useUser';
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
+import { useFirebaseStorage } from '@/hooks/useFirebaseStorage';
 
 export const useSupabaseStorage = () => {
-  const { user } = useUser();
+  const [user] = useAuthState(auth);
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const { uploadFile: firebaseUpload, deleteFile: firebaseDelete } = useFirebaseStorage();
 
   const uploadFile = async (userId: string, file: File) => {
     if (!file) throw new Error('No file provided');
     
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${userId}/${fileName}`;
+    const filePath = `study-materials/${userId}/${fileName}`;
 
-    const { data, error } = await supabase.storage
-      .from('study-materials')
-      .upload(filePath, file);
-
-    if (error) throw error;
-    return data;
+    const downloadURL = await firebaseUpload(file, filePath);
+    return { path: filePath, fullPath: downloadURL };
   };
 
   const deleteFile = async (filePath: string) => {
-    const { error } = await supabase.storage
-      .from('study-materials')
-      .remove([filePath]);
-
-    if (error) throw error;
+    await firebaseDelete(filePath);
     return true;
   };
 
@@ -51,7 +46,7 @@ export const useSupabaseStorage = () => {
 
       setProgress(25);
       
-      const result = await uploadFile(user.id, file);
+      const result = await uploadFile(user.uid, file);
       
       setProgress(100);
       return result;
@@ -76,19 +71,9 @@ export const useSupabaseStorage = () => {
   };
   
   const getSignedUrl = async (filePath: string, expiresIn: number = 3600) => {
-    try {
-      setError(null);
-      const { data, error } = await supabase.storage
-        .from('study-materials')
-        .createSignedUrl(filePath, expiresIn);
-
-      if (error) throw error;
-      return data.signedUrl;
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while creating signed URL');
-      console.error('Signed URL error:', err);
-      return null;
-    }
+    // For Firebase, we can return the public URL directly
+    // or implement signed URLs if needed
+    return filePath;
   };
   
   const listFiles = async (folderPath: string = '') => {
@@ -99,14 +84,9 @@ export const useSupabaseStorage = () => {
     
     try {
       setError(null);
-      const path = folderPath ? `${user.id}/${folderPath}` : `${user.id}`;
-      
-      const { data, error } = await supabase.storage
-        .from('study-materials')
-        .list(path);
-
-      if (error) throw error;
-      return data;
+      // This would need to be implemented with Firebase Storage listAll
+      // For now, return empty array
+      return [];
     } catch (err: any) {
       setError(err.message || 'An error occurred while listing files');
       console.error('List files error:', err);

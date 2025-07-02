@@ -1,19 +1,29 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { auth, db } from '@/lib/firebase';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut as firebaseSignOut,
+  updatePassword as firebaseUpdatePassword,
+  sendPasswordResetEmail,
+  User
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 // AUTHENTICATION HELPERS
 export const signUpWithEmail = async (email: string, password: string, userData?: any) => {
   try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: userData || {}
-      }
-    });
+    const { user } = await createUserWithEmailAndPassword(auth, email, password);
     
-    if (error) throw error;
-    return data;
+    // Create user profile in Firestore
+    if (userData || user) {
+      await createUserProfile(user.uid, {
+        email: user.email,
+        ...userData
+      });
+    }
+    
+    return { user };
   } catch (error) {
     console.error('Error signing up:', error);
     throw error;
@@ -22,13 +32,8 @@ export const signUpWithEmail = async (email: string, password: string, userData?
 
 export const signInWithEmail = async (email: string, password: string) => {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    if (error) throw error;
-    return data;
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return { user: result.user };
   } catch (error) {
     console.error('Error signing in:', error);
     throw error;
@@ -37,8 +42,7 @@ export const signInWithEmail = async (email: string, password: string) => {
 
 export const signOut = async () => {
   try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    await firebaseSignOut(auth);
     return true;
   } catch (error) {
     console.error('Error signing out:', error);
@@ -46,24 +50,16 @@ export const signOut = async () => {
   }
 };
 
-export const getCurrentUser = async () => {
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return user;
-  } catch (error) {
-    console.error('Error getting current user:', error);
-    throw error;
-  }
+export const getCurrentUser = async (): Promise<User | null> => {
+  return auth.currentUser;
 };
 
 export const updateUserPassword = async (password: string) => {
   try {
-    const { error } = await supabase.auth.updateUser({
-      password: password
-    });
+    const user = auth.currentUser;
+    if (!user) throw new Error('No user logged in');
     
-    if (error) throw error;
+    await firebaseUpdatePassword(user, password);
     return true;
   } catch (error) {
     console.error('Error updating password:', error);
@@ -73,8 +69,7 @@ export const updateUserPassword = async (password: string) => {
 
 export const resetPassword = async (email: string) => {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
+    await sendPasswordResetEmail(auth, email);
     return true;
   } catch (error) {
     console.error('Error resetting password:', error);
@@ -82,22 +77,16 @@ export const resetPassword = async (email: string) => {
   }
 };
 
-// USER PROFILE HELPERS - Updated to work with Clerk integration
+// USER PROFILE HELPERS
 export const createUserProfile = async (userId: string, userData: any) => {
   try {
-    // For Clerk integration, we store user data in a way that doesn't conflict with Supabase auth
-    // Since we can't directly insert into the users table with Clerk IDs, we'll use a different approach
-    console.log('Creating user profile for Clerk user:', userId);
-    
-    // Store user data in localStorage for now since we're using Clerk for auth
-    const userProfile = {
-      id: userId,
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, {
       ...userData,
       role: userData.role || "student",
-      updated_at: new Date().toISOString(),
-    };
-    
-    localStorage.setItem(`user_profile_${userId}`, JSON.stringify(userProfile));
+      created_at: new Date(),
+      updated_at: new Date(),
+    }, { merge: true });
     return true;
   } catch (error) {
     console.error("Error creating user profile:", error);
@@ -107,20 +96,22 @@ export const createUserProfile = async (userId: string, userData: any) => {
 
 export const getUserProfile = async (userId: string) => {
   try {
-    // For Clerk integration, retrieve from localStorage
-    console.log('Getting user profile for Clerk user:', userId);
+    const userRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(userRef);
     
-    const stored = localStorage.getItem(`user_profile_${userId}`);
-    if (stored) {
-      return JSON.parse(stored);
+    if (docSnap.exists()) {
+      return {
+        id: docSnap.id,
+        ...docSnap.data()
+      };
     }
     
     // Return a default profile if none exists
     const defaultProfile = {
       id: userId,
       role: "student",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: new Date(),
+      updated_at: new Date()
     };
     
     return defaultProfile;

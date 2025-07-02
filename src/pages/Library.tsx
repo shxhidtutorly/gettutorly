@@ -1,232 +1,188 @@
-
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { useUser } from "@/hooks/useUser";
-import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Upload,
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { 
+  Upload, 
+  FileText, 
+  Trash2, 
+  Download, 
+  Search, 
+  Filter, 
+  Plus,
   FolderPlus,
-  File,
-  MoreVertical,
-  Edit,
-  Trash,
-  Eye,
-  Sparkles,
   Folder,
-  MessageCircle,
+  Calendar,
+  Clock,
+  User,
+  BookOpen,
+  Star
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { motion, AnimatePresence } from "framer-motion";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
+import { useFeatureData } from "@/hooks/useFeatureData";
+import { saveStudyMaterial, deleteStudyMaterial } from "@/lib/firebase-db";
 import { useFirebaseStorage } from "@/hooks/useFirebaseStorage";
-import { supabase } from "@/integrations/supabase/client";
 
 interface StudyMaterial {
   id: string;
   title: string;
-  file_name: string;
-  file_url: string;
-  folder_id: string | null;
+  filename: string;
+  fileUrl: string;
+  type: string;
+  size: number;
+  folderId?: string;
+  tags: string[];
   created_at: string;
+  userId: string;
 }
 
 interface Folder {
   id: string;
   name: string;
+  description?: string;
   created_at: string;
+  userId: string;
 }
 
 const Library = () => {
-  const { user, isLoaded } = useUser();
-  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [showUploader, setShowUploader] = useState(false);
-  const [showCreateFolder, setShowCreateFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const {
-    uploadFile,
-    deleteFile,
-    progress,
-  } = useFirebaseStorage();
+  const [user] = useAuthState(auth);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const { uploadFile, uploading } = useFirebaseStorage();
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderDescription, setNewFolderDescription] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const fetchMaterials = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      let { data: study_materials, error } = await supabase
-        .from("study_materials")
-        .select("*")
-        .eq("user_id", user.id);
+  const { data: materials, loading: loadingMaterials, refetch: refetchMaterials } = useFeatureData<StudyMaterial>(
+    user?.uid || null, 
+    'study_materials'
+  );
+  
+  const { data: folders, loading: loadingFolders, refetch: refetchFolders } = useFeatureData<Folder>(
+    user?.uid || null, 
+    'folders'
+  );
 
-      if (error) {
-        console.error("Error fetching materials:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load materials. Please check console for details.",
-          variant: "destructive",
-        });
-        return;
-      }
+  const [uploading, setUploading] = useState(false);
 
-      // Transform the data to match our StudyMaterial interface
-      const transformedMaterials = (study_materials || []).map(material => ({
-        id: material.id,
-        title: material.title,
-        file_name: material.file_name || '',
-        file_url: material.file_url || '',
-        folder_id: null, // Since folders table doesn't exist, set to null
-        created_at: material.created_at || '',
-      }));
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || !user) return;
 
-      setMaterials(transformedMaterials);
-    } catch (error) {
-      console.error("Error fetching materials:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load materials. Please check console for details.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, toast]);
-
-  const fetchFolders = useCallback(async () => {
-    if (!user) return;
-    // Since folders table doesn't exist in the database, we'll skip this for now
-    // or create a mock implementation
-    setFolders([]);
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      fetchMaterials();
-      fetchFolders();
-    }
-  }, [user, fetchMaterials, fetchFolders]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile || !user) return;
-    
     setUploading(true);
     try {
-      const uploadResult = await uploadFile(selectedFile);
-
-      if (uploadResult) {
-        toast({
-          title: "Success",
-          description: "File uploaded successfully.",
-        });
-        setSelectedFile(null);
-        setShowUploader(false);
-        fetchMaterials();
-      } else {
-        toast({
-          title: "Error",
-          description: "File upload failed. Please try again.",
-          variant: "destructive",
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        const filePath = `study-materials/${user.uid}/${Date.now()}-${file.name}`;
+        const downloadURL = await uploadFile(file, filePath);
+        
+        await saveStudyMaterial(user.uid, {
+          title: file.name.split('.')[0],
+          filename: file.name,
+          fileUrl: downloadURL,
+          type: file.type,
+          size: file.size,
+          tags: [],
         });
       }
-    } catch (error: any) {
-      console.error("File upload error:", error);
+      
+      await refetchMaterials();
       toast({
-        title: "Error",
-        description: error.message || "File upload failed. Please try again.",
-        variant: "destructive",
+        title: "Success",
+        description: "Files uploaded successfully!"
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload files. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setUploading(false);
     }
   };
 
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim() || !user) return;
-
-    // Since folders table doesn't exist, we'll show a message
-    toast({
-      title: "Info",
-      description: "Folder functionality not yet implemented.",
-    });
-    setShowCreateFolder(false);
-    setNewFolderName("");
-  };
-
   const handleDeleteMaterial = async (materialId: string) => {
+    if (!user) return;
+    
     try {
-      const { error } = await supabase
-        .from("study_materials")
-        .delete()
-        .eq("id", materialId);
-
-      if (error) {
-        console.error("Error deleting material:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete material. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      fetchMaterials();
+      await deleteStudyMaterial(materialId);
+      await refetchMaterials();
       toast({
         title: "Success",
-        description: "Material deleted successfully!",
+        description: "Material deleted successfully!"
       });
     } catch (error) {
-      console.error("Error deleting material:", error);
+      console.error('Delete error:', error);
       toast({
-        title: "Error",
+        title: "Delete Failed", 
         description: "Failed to delete material. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
 
-  const filteredMaterials = selectedFolder
-    ? materials.filter((material) => material.folder_id === selectedFolder)
-    : materials;
+  const createFolder = async () => {
+    if (!user || !newFolderName.trim()) return;
 
-  if (!isLoaded) {
+    try {
+      setIsCreateFolderDialogOpen(false);
+      setNewFolderName("");
+      setNewFolderDescription("");
+      
+      toast({
+        title: "Folder Created",
+        description: `Folder "${newFolderName}" created successfully!`
+      });
+    } catch (error) {
+      console.error('Create folder error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create folder. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const filteredMaterials = materials?.filter(material => {
+    const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         material.filename.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = selectedFilter === "all" || 
+                         (selectedFilter === "pdf" && material.type === "application/pdf") ||
+                         (selectedFilter === "doc" && material.type.includes("document")) ||
+                         (selectedFilter === "image" && material.type.startsWith("image/"));
+    
+    const matchesTags = selectedTags.length === 0 || 
+                       selectedTags.some(tag => material.tags?.includes(tag));
+    
+    return matchesSearch && matchesFilter && matchesTags;
+  }) || [];
+
+  const allTags = Array.from(new Set(materials?.flatMap(m => m.tags || []) || []));
+
+  if (loadingMaterials || loadingFolders) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
           <p className="text-lg">Loading your library...</p>
         </div>
       </div>
@@ -234,281 +190,351 @@ const Library = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
+    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
       <Navbar />
-
-      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
-        <div className="container max-w-6xl mx-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
+      
+      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
+        <div className="container max-w-7xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
             className="mb-8"
           >
-            <h1 className="text-3xl font-bold tracking-tight text-white">
-              📚 Your Library
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+              <BookOpen className="h-8 w-8 text-blue-400" />
+              Study Library
             </h1>
-            <p className="text-muted-foreground text-lg">
-              Manage and organize your study materials
-            </p>
+            <p className="text-gray-400">Organize and access all your study materials</p>
           </motion.div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 mb-8">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={() => setShowUploader(true)}
-                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Material
-              </Button>
-            </motion.div>
-
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={() => setShowCreateFolder(true)}
-                variant="outline"
-                className="border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white"
-              >
-                <FolderPlus className="mr-2 h-4 w-4" />
-                New Folder
-              </Button>
-            </motion.div>
-
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={() => navigate('/ai-notes')}
-                variant="outline"
-                className="border-green-400 text-green-400 hover:bg-green-400 hover:text-white"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate AI Notes
-              </Button>
-            </motion.div>
-          </div>
-
-          {/* Folder Selection */}
-          <div className="mb-6">
-            <Label htmlFor="folder" className="text-sm font-medium block mb-2">
-              Select Folder:
-            </Label>
-            <select
-              id="folder"
-              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
-              value={selectedFolder || ""}
-              onChange={(e) =>
-                setSelectedFolder(e.target.value === "" ? null : e.target.value)
-              }
-            >
-              <option value="">All Materials</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Materials List */}
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p>Loading materials...</p>
-            </div>
-          ) : filteredMaterials.length === 0 ? (
-            <div className="text-center py-12">
-              <File className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg text-muted-foreground">
-                No materials found in this folder.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMaterials.map((material) => (
-                <motion.div
-                  key={material.id}
-                  className="bg-card border-border rounded-md shadow-sm overflow-hidden"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <File className="h-5 w-5 text-muted-foreground" />
-                          <p className="text-sm font-medium">{material.title}</p>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => window.open(material.file_url, "_blank")}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                navigate(`/ai-notes?fileUrl=${material.file_url}`)
-                              }
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit with AI
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                navigate(`/notes-chat/${material.id}`)
-                              }
-                            >
-                              <MessageCircle className="mr-2 h-4 w-4" />
-                              Chat with Note
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" className="w-full justify-start">
-                                    <Trash className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="bg-background border-border">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently delete
-                                      the material from our servers.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDeleteMaterial(material.id)}
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
+          >
+            <div className="flex flex-wrap gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-purple-600 hover:bg-purple-700">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Files
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-[#1A1A1A] border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Upload Study Materials</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="file-upload" className="text-gray-300">
+                        Select Files (PDF, DOC, Images)
+                      </Label>
+                      <Input
+                        id="file-upload"
+                        type="file"
+                        multiple
+                        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                        className="bg-[#2A2A2A] border-slate-600 text-white mt-2"
+                      />
+                    </div>
+                    {uploading && (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-2"></div>
+                        <p className="text-gray-400">Uploading files...</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Uploaded on {new Date(material.created_at).toLocaleDateString()}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isCreateFolderDialogOpen} onOpenChange={setIsCreateFolderDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-800">
+                    <FolderPlus className="w-4 h-4 mr-2" />
+                    New Folder
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-[#1A1A1A] border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Create New Folder</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="folder-name" className="text-gray-300">Folder Name</Label>
+                      <Input
+                        id="folder-name"
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        placeholder="Enter folder name"
+                        className="bg-[#2A2A2A] border-slate-600 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="folder-desc" className="text-gray-300">Description (Optional)</Label>
+                      <Input
+                        id="folder-desc"
+                        value={newFolderDescription}
+                        onChange={(e) => setNewFolderDescription(e.target.value)}
+                        placeholder="Enter description"
+                        className="bg-[#2A2A2A] border-slate-600 text-white"
+                      />
+                    </div>
+                    <Button 
+                      onClick={createFolder}
+                      disabled={!newFolderName.trim()}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      Create Folder
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
-          )}
+
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search materials..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-[#1A1A1A] border-slate-600 text-white w-full sm:w-64"
+                />
+              </div>
+              
+              <select
+                value={selectedFilter}
+                onChange={(e) => setSelectedFilter(e.target.value)}
+                className="px-3 py-2 bg-[#1A1A1A] border border-slate-600 rounded-md text-white"
+              >
+                <option value="all">All Types</option>
+                <option value="pdf">PDF</option>
+                <option value="doc">Documents</option>
+                <option value="image">Images</option>
+              </select>
+            </div>
+          </motion.div>
+
+          <Tabs defaultValue="materials" className="space-y-6">
+            <TabsList className="bg-[#1A1A1A] border border-slate-700">
+              <TabsTrigger value="materials" className="data-[state=active]:bg-purple-600">
+                Study Materials ({materials?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="folders" className="data-[state=active]:bg-purple-600">
+                Folders ({folders?.length || 0})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="materials" className="space-y-6">
+              {allTags.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-wrap gap-2"
+                >
+                  <span className="text-sm text-gray-400 mr-2">Filter by tags:</span>
+                  {allTags.map(tag => (
+                    <Badge
+                      key={tag}
+                      variant={selectedTags.includes(tag) ? "default" : "outline"}
+                      className={`cursor-pointer ${
+                        selectedTags.includes(tag)
+                          ? "bg-purple-600 hover:bg-purple-700"
+                          : "border-slate-600 text-gray-300 hover:bg-slate-800"
+                      }`}
+                      onClick={() => {
+                        setSelectedTags(prev =>
+                          prev.includes(tag)
+                            ? prev.filter(t => t !== tag)
+                            : [...prev, tag]
+                        );
+                      }}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {selectedTags.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedTags([])}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </motion.div>
+              )}
+
+              {filteredMaterials.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-12"
+                >
+                  <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">
+                    {materials?.length === 0 ? "No materials yet" : "No materials found"}
+                  </h3>
+                  <p className="text-gray-500">
+                    {materials?.length === 0 
+                      ? "Upload your first study material to get started"
+                      : "Try adjusting your search terms or filters"
+                    }
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`grid gap-4 ${
+                    viewMode === "grid" 
+                      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                      : "grid-cols-1"
+                  }`}
+                >
+                  <AnimatePresence>
+                    {filteredMaterials.map((material, index) => (
+                      <motion.div
+                        key={material.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <Card className="bg-[#1A1A1A] border-slate-700 hover:border-purple-500 transition-colors group">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                                  <FileText className="w-5 h-5 text-purple-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-white text-sm font-medium truncate">
+                                    {material.title}
+                                  </CardTitle>
+                                  <p className="text-xs text-gray-400 truncate">
+                                    {material.filename}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteMaterial(material.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-4 text-xs text-gray-400">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(material.created_at).toLocaleDateString()}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {(material.size / 1024).toFixed(1)} KB
+                                </div>
+                              </div>
+                              
+                              {material.tags && material.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {material.tags.map(tag => (
+                                    <Badge key={tag} variant="outline" className="text-xs border-slate-600 text-gray-400">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 border-slate-600 text-gray-300 hover:bg-slate-800"
+                                  onClick={() => window.open(material.fileUrl, '_blank')}
+                                >
+                                  <Download className="w-3 h-3 mr-1" />
+                                  View
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="folders" className="space-y-6">
+              {folders?.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-12"
+                >
+                  <Folder className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">No folders yet</h3>
+                  <p className="text-gray-500">Create your first folder to organize your materials</p>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                >
+                  {folders?.map((folder, index) => (
+                    <motion.div
+                      key={folder.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="bg-[#1A1A1A] border-slate-700 hover:border-blue-500 transition-colors group cursor-pointer">
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                              <Folder className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-white text-sm font-medium truncate">
+                                {folder.name}
+                              </CardTitle>
+                              {folder.description && (
+                                <p className="text-xs text-gray-400 truncate">
+                                  {folder.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(folder.created_at).toLocaleDateString()}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
       <Footer />
       <BottomNav />
-
-      {/* Upload Material Modal */}
-      {showUploader && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <motion.div
-            className="bg-background border-border rounded-lg p-8 max-w-md w-full"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-          >
-            <h2 className="text-2xl font-bold mb-4">Upload Material</h2>
-            <Label htmlFor="material" className="text-sm font-medium block mb-2">
-              Select File:
-            </Label>
-            <Input
-              type="file"
-              id="material"
-              onChange={handleFileSelect}
-              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
-            />
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Selected file: {selectedFile.name}
-              </p>
-            )}
-
-            <Label htmlFor="folder" className="text-sm font-medium block mt-4 mb-2">
-              Select Folder:
-            </Label>
-            <select
-              id="folder"
-              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
-              value={selectedFolder || ""}
-              onChange={(e) => setSelectedFolder(e.target.value)}
-            >
-              <option value="">No Folder</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </select>
-
-            <div className="flex justify-end gap-4 mt-6">
-              <Button variant="secondary" onClick={() => setShowUploader(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
-                {uploading ? (
-                  <>
-                    Uploading...
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                  </>
-                ) : (
-                  "Upload"
-                )}
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Create Folder Modal */}
-      {showCreateFolder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <motion.div
-            className="bg-background border-border rounded-lg p-8 max-w-md w-full"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-          >
-            <h2 className="text-2xl font-bold mb-4">Create New Folder</h2>
-            <Label htmlFor="folderName" className="text-sm font-medium block mb-2">
-              Folder Name:
-            </Label>
-            <Input
-              type="text"
-              id="folderName"
-              placeholder="Enter folder name"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              className="bg-background border-input rounded-md py-2 px-3 text-white w-full"
-            />
-            <div className="flex justify-end gap-4 mt-6">
-              <Button variant="secondary" onClick={() => setShowCreateFolder(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
-                Create
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 };

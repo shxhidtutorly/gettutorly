@@ -1,8 +1,9 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { useUser } from "@/hooks/useUser";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebaseStorage } from "@/hooks/useFirebaseStorage";
 
 export interface AudioUploadResult {
   audioUrl: string;
@@ -18,8 +19,9 @@ export interface AudioUploadResult {
 }
 
 export const useAudioUpload = () => {
-  const { user } = useUser();
+  const [user] = useAuthState(auth);
   const { toast } = useToast();
+  const { uploadFile } = useFirebaseStorage();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState("");
@@ -58,49 +60,19 @@ export const useAudioUpload = () => {
         throw new Error('Invalid audio input. Expected Blob or blob URL.');
       }
 
-      // Step 2: Upload to Supabase Storage
+      // Step 2: Upload to Firebase Storage
       setCurrentStep("Uploading to cloud storage...");
       setProgress(15);
       
-      const filePath = `user-audio/${Date.now()}-${audioFile.name}`;
-      console.log("🪪 Current user ID:", user.id);
-      console.log('📤 Uploading audio file to Supabase:', filePath);
+      const filePath = `audio-uploads/${user.uid}/${Date.now()}-${audioFile.name}`;
+      console.log("🪪 Current user ID:", user.uid);
+      console.log('📤 Uploading audio file to Firebase:', filePath);
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('audio-uploads')
-        .upload(filePath, audioFile, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: audioFile.type
-        });
-
-      if (uploadError) {
-        console.error('❌ Upload error:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
-      }
-
-      console.log('✅ Upload successful:', uploadData.path);
+      const audioUrl = await uploadFile(audioFile, filePath);
+      console.log('✅ Upload successful:', audioUrl);
       setProgress(25);
 
-      // Step 3: Generate signed URL for AssemblyAI
-      setCurrentStep("Generating secure access URL...");
-      setProgress(30);
-      
-      console.log('🔒 Generating signed URL for AssemblyAI...');
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from('audio-uploads')
-        .createSignedUrl(filePath, 3600); // 1 hour expiry
-
-      if (signedUrlError) {
-        console.error('❌ Signed URL error:', signedUrlError);
-        throw new Error(`Failed to generate signed URL: ${signedUrlError.message}`);
-      }
-
-      const audioUrl = signedUrlData.signedUrl;
-      console.log('✅ Signed URL generated for AssemblyAI');
-      setProgress(35);
-
-      // Step 4: Send to AssemblyAI for transcription
+      // Step 3: Send to AssemblyAI for transcription
       setCurrentStep("Transcribing with AI...");
       setProgress(40);
       
@@ -121,11 +93,11 @@ export const useAudioUpload = () => {
       console.log('✅ Transcription received:', transcriptText.length, 'characters');
       setProgress(70);
 
-      // Step 5: Generate AI notes using GROQ with qwen-qwq-32b
+      // Step 4: Generate AI notes
       setCurrentStep("Generating smart notes...");
       setProgress(75);
       
-      console.log('🤖 Generating AI notes with meta-llama/llama-4-scout-17b-16e-instruct...');
+      console.log('🤖 Generating AI notes...');
       const notesPrompt = `You are an expert note-taker and study assistant. Based on this lecture transcription, create comprehensive study notes and a concise summary.
 
 TRANSCRIPTION:
@@ -164,13 +136,8 @@ Format the notes with clear headings and bullet points for easy studying.`;
 
       console.log('🎉 Audio processing completed successfully');
 
-      // Get public URL for display purposes
-      const { data: publicUrlData } = supabase.storage
-        .from('audio-uploads')
-        .getPublicUrl(filePath);
-
       const result: AudioUploadResult = {
-        audioUrl: publicUrlData.publicUrl,
+        audioUrl,
         transcription: transcriptText,
         summary,
         notes,

@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

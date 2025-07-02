@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +6,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Bot, User, Sparkles, X, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useUser } from "@/hooks/useUser";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase";
 import { ChatMessage, getChatHistory, saveChatMessage, subscribeToChatHistory } from "@/lib/notesChat";
-import { supabase } from "@/integrations/supabase/client";
+import { doc, getDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NotesChatProps {
@@ -19,6 +19,7 @@ interface NotesChatProps {
 }
 
 const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initialNoteTitle }: NotesChatProps) => {
+  const [user] = useAuthState(auth);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -30,51 +31,47 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   const [contextActive, setContextActive] = useState<boolean>(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { user } = useUser();
   const { toast } = useToast();
 
-  // Fetch note content and title for context, based on noteId and user
+  // Fetch note content and title for context
   useEffect(() => {
     const fetchNote = async () => {
       if (!user || !noteId) return;
 
-      let { data, error } = await supabase
-        .from('study_materials')
-        .select('title,file_name,metadata')
-        .eq('user_id', user.id)
-        .eq('id', noteId)
-        .single();
-
-      if (data) {
-        setNoteTitle(data.title || data.file_name || "Untitled Note");
-        setFileName(data.file_name || "");
-        const meta = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, any> : {};
-        const contextText = meta && typeof meta["extractedText"] === "string" ? meta["extractedText"] : "";
-        setNoteContent(contextText);
-        setContextActive(!!contextText);
-        return;
-      }
-      // If not study_materials, try notes (AI-generated)
-      if (error && error.code === "PGRST116") {
-        let result = await supabase
-          .from('notes')
-          .select('title,content')
-          .eq('user_id', user.id)
-          .eq('id', noteId)
-          .single();
-        if (result.data) {
-          setNoteTitle(result.data.title || "Untitled Note");
-          setFileName("");
-          setNoteContent(result.data.content || "");
-          setContextActive(!!result.data.content);
+      try {
+        // Try study_materials first
+        const materialRef = doc(db, 'study_materials', noteId);
+        const materialSnap = await getDoc(materialRef);
+        
+        if (materialSnap.exists()) {
+          const data = materialSnap.data();
+          setNoteTitle(data.title || data.filename || "Untitled Note");
+          setFileName(data.filename || "");
+          setNoteContent(data.content || "");
+          setContextActive(!!data.content);
+          return;
         }
+
+        // Try notes collection
+        const noteRef = doc(db, 'notes', noteId);
+        const noteSnap = await getDoc(noteRef);
+        
+        if (noteSnap.exists()) {
+          const data = noteSnap.data();
+          setNoteTitle(data.title || "Untitled Note");
+          setFileName("");
+          setNoteContent(data.content || "");
+          setContextActive(!!data.content);
+        }
+      } catch (error) {
+        console.error('Error fetching note:', error);
       }
     };
 
     fetchNote();
   }, [user, noteId]);
 
-  // Load chat history from DB
+  // Load chat history
   useEffect(() => {
     if (user && noteId) {
       loadChatHistory();
@@ -91,7 +88,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
     if (!user) return;
     try {
       setIsLoadingHistory(true);
-      const history = await getChatHistory(user.id, noteId);
+      const history = await getChatHistory(user.uid, noteId);
       setMessages(history);
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -100,7 +97,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
     }
   };
 
-  // AI Chat call, always use note context as SYSTEM prompt
+  // AI Chat call
   const sendMessageToAI = async (userMessage: string, chatHistory: ChatMessage[]) => {
     const messages = [];
 
@@ -111,7 +108,7 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       });
     }
 
-    // Add chat history (always in order)
+    // Add chat history
     chatHistory.forEach(msg => {
       messages.push({
         role: msg.role === 'user' ? 'user' : 'assistant',
@@ -125,7 +122,6 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       content: userMessage
     });
 
-    // Use the same model as the notes generator
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -154,16 +150,16 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       // Add user message to state immediately
       const tempUserMessage: ChatMessage = {
         id: `temp-${Date.now()}`,
-        user_id: user.id,
-        note_id: noteId,
+        userId: user.uid,
+        noteId: noteId,
         role: 'user',
         message: userMessage,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, tempUserMessage]);
 
-      // Save to DB
-      await saveChatMessage(user.id, noteId, 'user', userMessage);
+      // Save to Firebase
+      await saveChatMessage(user.uid, noteId, 'user', userMessage);
 
       // AI response
       const aiResponse = await sendMessageToAI(userMessage, messages);
@@ -171,19 +167,21 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
       // Show AI message
       const aiMessage: ChatMessage = {
         id: `temp-ai-${Date.now()}`,
-        user_id: user.id,
-        note_id: noteId,
+        userId: user.uid,
+        noteId: noteId,
         role: 'assistant',
         message: aiResponse,
         created_at: new Date().toISOString(),
       };
+      
       setMessages(prev => [
         ...prev.filter(m => m.id !== tempUserMessage.id),
         { ...tempUserMessage, id: `saved-${Date.now()}` },
         aiMessage
       ]);
-      // Save AI to DB
-      await saveChatMessage(user.id, noteId, 'assistant', aiResponse);
+      
+      // Save AI to Firebase
+      await saveChatMessage(user.uid, noteId, 'assistant', aiResponse);
 
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -225,32 +223,18 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
   useEffect(() => {
     if (!user || !noteId) return;
 
-    // Load existing chat history first
-    let unsub = null;
-    let loaded = false;
+    const unsubscribe = subscribeToChatHistory(
+      user.uid,
+      noteId,
+      (newMsg) => {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+      }
+    );
 
-    (async () => {
-      const history = await getChatHistory(user.id, noteId);
-      setMessages(history || []);
-      loaded = true;
-
-      // Listen for new chat messages after the initial load
-      unsub = subscribeToChatHistory(
-        user.id,
-        noteId,
-        (newMsg) => {
-          // Only add if not present (avoid duplicates)
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-        }
-      );
-    })();
-
-    return () => {
-      if (typeof unsub === "function") unsub();
-    };
+    return () => unsubscribe();
   }, [user, noteId]);
 
   return (
@@ -303,17 +287,6 @@ const NotesChat = ({ noteId, noteContent: initialNoteContent, noteTitle: initial
                 <X className="w-3 h-3 mr-1" />
                 Clear Context
               </Button>
-            </motion.div>
-          )}
-          {!contextActive && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-orange-900/30 border border-orange-500/30 rounded-lg p-3 mt-3"
-            >
-              <p className="text-sm text-orange-400">
-                Context inactive. AI will not use your uploaded note for reference until you reload this page.
-              </p>
             </motion.div>
           )}
         </CardHeader>
