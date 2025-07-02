@@ -190,8 +190,8 @@ const {
     }
   ], []);
 
-  const totalStudyHours = stats.total_study_time / 3600; // Convert seconds to hours
-
+const totalStudyHours = total_study_time / 3600;
+  
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white relative overflow-x-hidden max-w-full">
       <Navbar />
@@ -245,7 +245,7 @@ const {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs md:text-sm text-gray-400">Materials</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats.materials_created} <span className="text-green-400">📚</span></p>
+                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{materials_created} <span ... /></p>
                     </div>
                     <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
                   </div>
@@ -276,8 +276,8 @@ const {
                     <div>
                       <p className="text-xs md:text-sm text-gray-400">Created</p>
                       <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
-                        {stats.summaries_created + stats.notes_created + stats.flashcards_created} <span className="text-purple-400">📝</span>
-                      </p>
+                        {summaries_created + notes_created + flashcards_created} ...
+                            </p>
                     </div>
                     <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-500" />
                   </div>
