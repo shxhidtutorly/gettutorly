@@ -14,7 +14,7 @@ export default function NotFoundPage() {
 
 // 1. Message Display Component
 function MessageDisplay() {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ function MessageDisplay() {
         </div>
         <div className="flex gap-6 mt-8">
           <button
-            // onClick={() => navigate(-1)}
+            onClick={() => navigate(-1)}
             className="text-black border-2 border-black hover:bg-black hover:text-white transition-all duration-300 ease-in-out px-6 py-2 h-auto text-base font-medium flex items-center gap-2 hover:scale-105"
           >
             <svg
@@ -64,7 +64,7 @@ function MessageDisplay() {
             Go Back
           </button>
           <button
-            // onClick={() => navigate("/")}
+            onClick={() => navigate("/")}
             className="bg-black text-white hover:bg-gray-900 transition-all duration-300 ease-in-out px-6 py-2 h-auto text-base font-medium flex items-center gap-2 hover:scale-105"
           >
             <svg
