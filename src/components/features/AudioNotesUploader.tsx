@@ -1,9 +1,7 @@
-// src/components/features/AudioNotesUploader.tsx
-
 "use client";
 
 import React, { useState } from "react";
-import { UploadButton } from "@/utils/uploadthing";
+import { UploadButton } from "@uploadthing/react";
 import type { OurFileRouter } from "@/uploadthing.config";
 import { useAudioUpload } from "@/hooks/useAudioUpload";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +16,11 @@ const AudioNotesUploader: React.FC = () => {
 
   const handleUploadComplete = async (res: { url: string }[]) => {
     if (!res || res.length === 0) {
-      toast({ title: "Upload failed", description: "No file URL received", variant: "destructive" });
+      toast({
+        title: "Upload failed",
+        description: "No file URL received",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -32,57 +34,75 @@ const AudioNotesUploader: React.FC = () => {
       setTranscript(result.transcription);
       setAiNotes(result.notes ?? null);
     } else {
-      toast({ title: "Transcription failed", description: "Could not transcribe audio.", variant: "destructive" });
+      toast({
+        title: "Transcription failed",
+        description: "Could not transcribe audio.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleRequestAINotes = async () => {
     if (!audioUrl || !transcript) return;
+
     const result = await requestAINotes(audioUrl, transcript);
     if (result) {
       setAiNotes(result.notes ?? null);
     } else {
-      toast({ title: "AI Notes failed", description: "Could not generate AI notes.", variant: "destructive" });
+      toast({
+        title: "AI Notes failed",
+        description: "Could not generate AI notes.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="audio-notes-uploader">
-      <h2>Upload Audio and Generate Notes</h2>
+    <div className="audio-notes-uploader space-y-4 p-4 rounded-xl bg-white shadow-md dark:bg-gray-900">
+      <h2 className="text-2xl font-semibold">Upload Audio and Generate Notes</h2>
 
       <UploadButton<OurFileRouter>
         endpoint="audioUploader"
         onClientUploadComplete={handleUploadComplete}
         onUploadError={(error: Error) =>
-          toast({ title: "UploadThing Error", description: error.message, variant: "destructive" })
+          toast({
+            title: "UploadThing Error",
+            description: error.message,
+            variant: "destructive",
+          })
         }
       />
 
       {isProcessing && (
-        <div>
+        <div className="space-y-1">
           <p>Processing: {progress}%</p>
-          <progress value={progress} max={100} />
+          <progress value={progress} max={100} className="w-full" />
         </div>
       )}
 
       {transcript && (
-        <div className="transcript-box">
-          <h3>Transcript</h3>
-          <p>{transcript}</p>
+        <div className="transcript-box border p-3 rounded-md bg-gray-100 dark:bg-gray-800">
+          <h3 className="text-lg font-medium mb-2">Transcript</h3>
+          <p className="whitespace-pre-wrap">{transcript}</p>
         </div>
       )}
 
       {audioUrl && !isProcessing && (
-        <div>
-          <audio controls src={audioUrl} />
-          <button onClick={handleRequestAINotes}>Generate AI Notes</button>
+        <div className="space-y-2">
+          <audio controls src={audioUrl} className="w-full" />
+          <button
+            onClick={handleRequestAINotes}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Generate AI Notes
+          </button>
         </div>
       )}
 
       {aiNotes && (
-        <div className="ai-notes-box">
-          <h3>AI Notes</h3>
-          <p>{aiNotes}</p>
+        <div className="ai-notes-box border p-3 rounded-md bg-green-100 dark:bg-green-900">
+          <h3 className="text-lg font-medium mb-2">AI Notes</h3>
+          <p className="whitespace-pre-wrap">{aiNotes}</p>
         </div>
       )}
     </div>
