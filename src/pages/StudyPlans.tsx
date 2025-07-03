@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Calendar, 
@@ -24,21 +26,18 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
-import { useFeatureData } from "@/hooks/useFeatureData";
-
-interface StudyPlan {
-  id: string;
-  title: string;
-  description: string;
-  subject: string;
-  targetDate: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'not_started' | 'in_progress' | 'completed';
-  tasks: StudyTask[];
-  created_at: string;
-  userId: string;
-}
+import { auth, db } from "@/lib/firebase";
+import { 
+  collection, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  getDocs, 
+  orderBy 
+} from "firebase/firestore";
 
 interface StudyTask {
   id: string;
@@ -49,12 +48,28 @@ interface StudyTask {
   estimatedHours: number;
 }
 
+interface StudyPlan {
+  id: string;
+  title: string;
+  description: string;
+  subject: string;
+  targetDate: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'not_started' | 'in_progress' | 'completed';
+  tasks: StudyTask[];
+  created_at: any;
+  userId: string;
+}
+
 const StudyPlans = () => {
   const [user] = useAuthState(auth);
   const { toast } = useToast();
   
+  const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<StudyPlan | null>(null);
+  
   const [newPlan, setNewPlan] = useState({
     title: "",
     description: "",
@@ -63,16 +78,58 @@ const StudyPlans = () => {
     priority: "medium" as const
   });
 
-  const { data: studyPlans, loading, refetch } = useFeatureData<StudyPlan>(
-    user?.uid || null, 
-    'study_plans'
-  );
+  // Load study plans
+  useEffect(() => {
+    const loadStudyPlans = async () => {
+      if (!user) return;
+
+      try {
+        const plansRef = collection(db, 'studyPlans');
+        const q = query(
+          plansRef, 
+          where("userId", "==", user.uid),
+          orderBy("created_at", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        
+        const plans: StudyPlan[] = [];
+        querySnapshot.forEach((doc) => {
+          plans.push({ id: doc.id, ...doc.data() } as StudyPlan);
+        });
+        
+        setStudyPlans(plans);
+      } catch (error) {
+        console.error('Error loading study plans:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load study plans",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStudyPlans();
+  }, [user, toast]);
 
   const createStudyPlan = async () => {
     if (!user || !newPlan.title.trim()) return;
 
     try {
-      // This would be implemented in firebase-db.ts
+      const plansRef = collection(db, 'studyPlans');
+      const planData = {
+        ...newPlan,
+        userId: user.uid,
+        status: 'not_started' as const,
+        tasks: [],
+        created_at: new Date()
+      };
+
+      const docRef = await addDoc(plansRef, planData);
+      const newStudyPlan = { id: docRef.id, ...planData };
+      
+      setStudyPlans(prev => [newStudyPlan, ...prev]);
       setIsCreateDialogOpen(false);
       setNewPlan({
         title: "",
@@ -82,7 +139,6 @@ const StudyPlans = () => {
         priority: "medium"
       });
       
-      await refetch();
       toast({
         title: "Study Plan Created",
         description: "Your new study plan has been created successfully!"
@@ -99,8 +155,9 @@ const StudyPlans = () => {
 
   const deleteStudyPlan = async (planId: string) => {
     try {
-      // This would be implemented in firebase-db.ts
-      await refetch();
+      await deleteDoc(doc(db, 'studyPlans', planId));
+      setStudyPlans(prev => prev.filter(plan => plan.id !== planId));
+      
       toast({
         title: "Study Plan Deleted",
         description: "The study plan has been deleted successfully."
@@ -115,17 +172,16 @@ const StudyPlans = () => {
     }
   };
 
-  const updateTaskStatus = async (planId: string, taskId: string, completed: boolean) => {
+  const updatePlanStatus = async (planId: string, status: StudyPlan['status']) => {
     try {
-      // This would be implemented in firebase-db.ts
-      await refetch();
+      await updateDoc(doc(db, 'studyPlans', planId), { status });
+      setStudyPlans(prev => 
+        prev.map(plan => 
+          plan.id === planId ? { ...plan, status } : plan
+        )
+      );
     } catch (error) {
-      console.error('Update task error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update task. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Update plan status error:', error);
     }
   };
 
@@ -137,10 +193,19 @@ const StudyPlans = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'border-red-500 text-red-400';
-      case 'medium': return 'border-yellow-500 text-yellow-400';
-      case 'low': return 'border-green-500 text-green-400';
-      default: return 'border-gray-500 text-gray-400';
+      case 'high': return 'border-red-500 text-red-400 bg-red-500/10';
+      case 'medium': return 'border-yellow-500 text-yellow-400 bg-yellow-500/10';
+      case 'low': return 'border-green-500 text-green-400 bg-green-500/10';
+      default: return 'border-gray-500 text-gray-400 bg-gray-500/10';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-600';
+      case 'in_progress': return 'bg-blue-600';
+      case 'not_started': return 'bg-gray-600';
+      default: return 'bg-gray-600';
     }
   };
 
@@ -179,13 +244,11 @@ const StudyPlans = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-6 flex justify-between items-center"
+            className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"
           >
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-semibold">
-                My Plans ({studyPlans?.length || 0})
-              </h2>
-            </div>
+            <h2 className="text-xl font-semibold">
+              My Plans ({studyPlans.length})
+            </h2>
             
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -271,7 +334,7 @@ const StudyPlans = () => {
           </motion.div>
 
           {/* Study Plans Grid */}
-          {studyPlans?.length === 0 ? (
+          {studyPlans.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -282,21 +345,18 @@ const StudyPlans = () => {
               <p className="text-gray-500">Create your first study plan to start organizing your learning goals</p>
             </motion.div>
           ) : (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
-            >
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
               <AnimatePresence>
-                {studyPlans?.map((plan, index) => (
+                {studyPlans.map((plan, index) => (
                   <motion.div
                     key={plan.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ delay: index * 0.05 }}
+                    whileHover={{ y: -5 }}
                   >
-                    <Card className="bg-[#1A1A1A] border-slate-700 hover:border-purple-500 transition-colors group h-full">
+                    <Card className="bg-[#1A1A1A] border-slate-700 hover:border-purple-500 transition-all duration-300 h-full group">
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -304,100 +364,88 @@ const StudyPlans = () => {
                               {plan.title}
                             </CardTitle>
                             <div className="flex items-center gap-2 mb-3">
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs ${getPriorityColor(plan.priority)}`}
-                              >
-                                {plan.priority}
+                              <Badge className={`text-xs ${getPriorityColor(plan.priority)} border`}>
+                                {plan.priority.toUpperCase()}
                               </Badge>
-                              <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">
-                                {plan.subject}
+                              <Badge className={`text-xs text-white ${getStatusColor(plan.status)}`}>
+                                {plan.status.replace('_', ' ').toUpperCase()}
                               </Badge>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteStudyPlan(plan.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-white"
+                              onClick={() => setSelectedPlan(plan)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-red-400"
+                              onClick={() => deleteStudyPlan(plan.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
-                      
                       <CardContent>
-                        <div className="space-y-4">
-                          <p className="text-gray-300 text-sm line-clamp-2">
-                            {plan.description}
-                          </p>
-                          
-                          {/* Progress Bar */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-xs text-gray-400">
-                              <span>Progress</span>
-                              <span>{getProgressPercentage(plan)}%</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${getProgressPercentage(plan)}%` }}
-                              />
-                            </div>
+                        <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                          {plan.description}
+                        </p>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm text-gray-300">
+                            <BookOpen className="h-4 w-4" />
+                            <span>{plan.subject}</span>
                           </div>
                           
-                          {/* Tasks Preview */}
-                          {plan.tasks && plan.tasks.length > 0 && (
-                            <div className="space-y-1">
-                              <h4 className="text-sm font-medium text-gray-300">Tasks ({plan.tasks.length})</h4>
-                              {plan.tasks.slice(0, 3).map(task => (
-                                <div key={task.id} className="flex items-center gap-2 text-xs">
-                                  <button
-                                    onClick={() => updateTaskStatus(plan.id, task.id, !task.completed)}
-                                    className="text-purple-400 hover:text-purple-300"
-                                  >
-                                    {task.completed ? <CheckCircle className="w-3 h-3" /> : <Circle className="w-3 h-3" />}
-                                  </button>
-                                  <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : 'text-gray-300'}`}>
-                                    {task.title}
-                                  </span>
-                                </div>
-                              ))}
-                              {plan.tasks.length > 3 && (
-                                <p className="text-xs text-gray-500">
-                                  +{plan.tasks.length - 3} more tasks
-                                </p>
-                              )}
+                          {plan.targetDate && (
+                            <div className="flex items-center gap-2 text-sm text-gray-300">
+                              <Calendar className="h-4 w-4" />
+                              <span>{new Date(plan.targetDate).toLocaleDateString()}</span>
                             </div>
                           )}
                           
-                          <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-slate-700">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {plan.targetDate ? new Date(plan.targetDate).toLocaleDateString() : 'No due date'}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3" />
-                              {plan.status.replace('_', ' ')}
-                            </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-300">
+                            <TrendingUp className="h-4 w-4" />
+                            <span>{getProgressPercentage(plan)}% Complete</span>
                           </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedPlan(plan)}
-                            className="w-full border-slate-600 text-gray-300 hover:bg-slate-800"
-                          >
-                            <BookOpen className="w-3 h-3 mr-1" />
-                            View Details
-                          </Button>
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                          {plan.status !== 'completed' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updatePlanStatus(plan.id, 'completed')}
+                              className="flex-1 border-green-600 text-green-400 hover:bg-green-600/10"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Complete
+                            </Button>
+                          )}
+                          {plan.status === 'not_started' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updatePlanStatus(plan.id, 'in_progress')}
+                              className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600/10"
+                            >
+                              <Circle className="h-4 w-4 mr-1" />
+                              Start
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
                   </motion.div>
                 ))}
               </AnimatePresence>
-            </motion.div>
+            </div>
           )}
         </div>
       </main>

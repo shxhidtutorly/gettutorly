@@ -5,42 +5,36 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen,
   Target,
   Calendar,
-  FileText,
-  Award,
   Brain,
   Zap,
-  BookMarked,
   HelpCircle,
-  Flame,
   TrendingUp,
-  Camera,
   Clock,
   CheckCircle,
   Calculator,
   Sparkles,
   StickyNote,
-  Crown,
   MessageCircle,
-  Users
+  Users,
+  Award
 } from "lucide-react";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 import { motion } from "framer-motion";
+import { useUserActivity } from "@/hooks/useUserActivity";
+import ProgressCard from "@/components/dashboard/ProgressCard";
 
 const Dashboard = () => {
-  const [user] = useAuthState(auth); // Auth is guaranteed by ProtectedRoute
+  const [user] = useAuthState(auth);
   const navigate = useNavigate();
-  const [showConfetti, setShowConfetti] = useState(false);
-
-  // Always call hooks at the top level
   const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
+  const { weeklyHours, isNewUser, loading: activityLoading } = useUserActivity(user?.uid || null);
 
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
@@ -52,46 +46,33 @@ const Dashboard = () => {
     return "User";
   }, [user]);
 
-  const activityStats = useMemo(() => {
-    if (!stats) return [];
+  const getWelcomeMessage = useCallback(() => {
+    const name = getUserDisplayName();
+    if (isNewUser) {
+      return `Welcome to Tutorly, ${name}! 🎉`;
+    }
+    return `Welcome back, ${name}! 👋`;
+  }, [getUserDisplayName, isNewUser]);
 
+  const formatStudyTime = (hours: number) => {
+    if (hours < 1) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes}min`;
+    }
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    return minutes > 0 ? `${wholeHours}h ${minutes}m` : `${wholeHours}h`;
+  };
+
+  const learningMilestones = useMemo(() => {
+    if (!stats) return 0;
     const {
       summaries_created = 0,
       notes_created = 0,
       quizzes_taken = 0,
       flashcards_created = 0,
     } = stats;
-
-    return [
-      {
-        label: "Summaries",
-        value: summaries_created,
-        color: "text-blue-500",
-        icon: "📝",
-        bg: "bg-gradient-to-br from-blue-500/60 to-blue-400/30",
-      },
-      {
-        label: "AI Notes",
-        value: notes_created,
-        color: "text-green-500",
-        icon: "✨",
-        bg: "bg-gradient-to-br from-green-400/60 to-green-300/30",
-      },
-      {
-        label: "Quizzes",
-        value: quizzes_taken,
-        color: "text-yellow-500",
-        icon: "❓",
-        bg: "bg-gradient-to-br from-yellow-400/60 to-yellow-300/30",
-      },
-      {
-        label: "Flashcards",
-        value: flashcards_created,
-        color: "text-purple-500",
-        icon: "⚡",
-        bg: "bg-gradient-to-br from-purple-400/60 to-purple-300/30",
-      },
-    ];
+    return summaries_created + notes_created + quizzes_taken + flashcards_created;
   }, [stats]);
 
   const studyTools = useMemo(() => [
@@ -104,7 +85,7 @@ const Dashboard = () => {
     {
       title: "AI Notes",
       desc: "Generate smart notes from files",
-      icon: <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      icon: <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-blue-400 mx-auto mb-2" />,
       route: "/ai-notes"
     },
     {
@@ -122,13 +103,13 @@ const Dashboard = () => {
     {
       title: "Flashcards",
       desc: "Create and review flashcards",
-      icon: <Zap className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      icon: <Zap className="h-6 w-6 md:h-8 md:w-8 text-yellow-400 mx-auto mb-2" />,
       route: "/flashcards"
     },
     {
       title: "Tests & Quiz",
       desc: "Test your knowledge",
-      icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-red-400 mx-auto mb-2" />,
       route: "/quiz"
     },
   ], []);
@@ -137,48 +118,34 @@ const Dashboard = () => {
     {
       title: "Doubt Chain",
       desc: "Break down complex concepts",
-      icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-cyan-400 mx-auto mb-2" />,
       route: "/doubt-chain"
     },
     {
       title: "Library",
       desc: "Browse your materials",
-      icon: <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      icon: <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-indigo-400 mx-auto mb-2" />,
       route: "/library"
     },
     {
       title: "AI Assistant",
       desc: "Get personalized help",
-      icon: <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      icon: <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-emerald-400 mx-auto mb-2" />,
       route: "/ai-assistant"
     },
     {
-      title: "Insights",
+      title: "Progress",
       desc: "Track your learning",
-      icon: <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
+      icon: <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-orange-400 mx-auto mb-2" />,
       route: "/progress"
     }
   ], []);
 
-  useEffect(() => {
-    setShowConfetti(true);
-    const timer = setTimeout(() => setShowConfetti(false), 2300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Extract computed values after all hooks
-  const totalStudyHours = (stats?.total_study_time || 0) / 3600;
-  const materials_created = stats?.materials_created || 0;
-  const summaries_created = stats?.summaries_created || 0;
-  const notes_created = stats?.notes_created || 0;
-  const flashcards_created = stats?.flashcards_created || 0;
-
-  // Only show loading if stats are still loading
-  if (statsLoading) {
+  if (statsLoading || activityLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
           <p className="text-lg">Loading your dashboard...</p>
         </div>
       </div>
@@ -186,170 +153,84 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white relative overflow-x-hidden max-w-full">
+    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
       <Navbar />
 
       <main className="flex-1 py-4 md:py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
         <div className="container max-w-6xl mx-auto">
           {/* Welcome Section */}
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className="mb-6 md:mb-8"
           >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
-                  Welcome back, {getUserDisplayName()}! <span className="animate-waving-hand text-2xl origin-bottom">👋</span>
-                </h1>
-                <p className="text-muted-foreground text-sm md:text-base">Here's your learning progress overview</p>
-              </div>
-            </div>
+            <h1 className="text-xl md:text-3xl font-bold mb-2">
+              {getWelcomeMessage()}
+            </h1>
+            <p className="text-gray-400 text-sm md:text-base">Here's your learning progress overview</p>
           </motion.div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-            {/* Study Hours */}
-            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #2563eb44' }} whileTap={{ scale: 0.97 }}>
-              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
-                <CardContent className="p-3 md:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-400">Study Hours</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
-                        {totalStudyHours < 1
-                          ? Math.round(totalStudyHours * 60)
-                          : Number(totalStudyHours).toFixed(1)}
-                        {totalStudyHours < 1 ? "min" : "h"} <span className="text-blue-400">⏰</span>
-                      </p>
-                    </div>
-                    <Clock className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 md:mb-8">
+            <ProgressCard
+              title="Study Hours"
+              value={formatStudyTime(weeklyHours)}
+              icon={<Clock className="h-6 w-6 text-blue-400" />}
+              color="blue"
+              trend="+2.5hrs this week"
+            />
+            
+            <ProgressCard
+              title="Learning Milestones"
+              value={learningMilestones}
+              icon={<Award className="h-6 w-6 text-green-400" />}
+              color="green"
+              trend="+12 this month"
+            />
 
-            {/* Materials */}
-            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #10b98144' }} whileTap={{ scale: 0.97 }}>
-              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
-                <CardContent className="p-3 md:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-400">Materials</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
-                        {materials_created} <span className="text-green-400">📚</span>
-                      </p>
-                    </div>
-                    <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <ProgressCard
+              title="Quizzes"
+              value={stats?.quizzes_taken || 0}
+              icon={<CheckCircle className="h-6 w-6 text-yellow-400" />}
+              color="yellow"
+              trend="85% avg score"
+            />
 
-            {/* Quizzes */}
-            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #facc1544' }} whileTap={{ scale: 0.97 }}>
-              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
-                <CardContent className="p-3 md:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-400">Quizzes</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">{stats?.quizzes_taken || 0} <span className="text-yellow-400">❓</span></p>
-                    </div>
-                    <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Total Created */}
-            <motion.div whileHover={{ scale: 1.05, boxShadow: '0 2px 32px #a78bfa44' }} whileTap={{ scale: 0.97 }}>
-              <Card className="bg-[#121212] border-slate-700 hover:border-slate-600 transition-all shadow-lg">
-                <CardContent className="p-3 md:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-400">Created</p>
-                      <p className="text-lg md:text-2xl font-bold flex items-center gap-1">
-                        {summaries_created + notes_created + flashcards_created} <span className="text-purple-400">🎯</span>
-                      </p>
-                    </div>
-                    <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-purple-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-
-          {/* Activity Summary */}
-          <div className="mb-6 md:mb-8 relative">
-            <Card className="bg-[#121212] border-slate-700 shadow-xl overflow-visible">
-              <CardHeader className="pb-3 flex flex-row items-center gap-2">
-                <Sparkles className="text-yellow-400 animate-pulse h-5 w-5 mr-1" />
-                <CardTitle className="text-base md:text-lg flex items-center gap-1">
-                  Today's Activity
-                  <span className="animate-bounce text-xl ml-1">🌟</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  {activityStats.map((stat, idx) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.08 * idx + 0.16, type: "spring", stiffness: 120 }}
-                    >
-                      <div className={`rounded-lg p-4 md:p-6 ${stat.bg} shadow-md flex flex-col items-center justify-center`}>
-                        <motion.span
-                          animate={{ scale: [1, 1.12, 1] }}
-                          transition={{ repeat: Infinity, duration: 1.7 + idx * 0.2, repeatType: "reverse" }}
-                          className="text-2xl md:text-3xl mb-1"
-                        >{stat.icon}</motion.span>
-                        <motion.p
-                          className={`text-xl md:text-2xl font-extrabold ${stat.color} mb-0`}
-                          animate={{ y: [0, -5, 0] }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 1.4 + idx * 0.2,
-                            repeatType: "reverse"
-                          }}
-                        >
-                          {stat.value}
-                        </motion.p>
-                        <p className="text-xs md:text-sm text-gray-400 font-semibold">{stat.label}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <ProgressCard
+              title="AI Notes"
+              value={stats?.notes_created || 0}
+              icon={<Sparkles className="h-6 w-6 text-purple-400" />}
+              color="purple"
+              trend="+5 this week"
+            />
           </div>
 
           {/* Study Tools Section */}
           <div className="mb-6 md:mb-8">
             <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="text-pink-400 animate-pulse h-5 w-5" />
+              <Sparkles className="text-pink-400 h-5 w-5" />
               Study Tools
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
               {studyTools.map((tool, idx) => (
                 <motion.div
                   key={tool.title}
-                  whileHover={{
-                    scale: 1.05,
-                    boxShadow: '0 4px 32px #38bdf8bb',
-                    rotate: [0, 1, -1, 0]
-                  }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 160 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Card
-                    className="bg-[#121212] border-slate-700 hover:border-slate-600 cursor-pointer transition-all hover:shadow-lg"
+                    className="bg-[#121212] border-slate-700 hover:border-slate-500 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 group"
                     onClick={() => handleNavigation(tool.route)}
                   >
-                    <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
-                      {tool.icon}
-                      <h3 className="font-medium text-sm md:text-base">{tool.title}</h3>
+                    <CardContent className="p-4 md:p-6 text-center">
+                      <div className="group-hover:scale-110 transition-transform duration-300">
+                        {tool.icon}
+                      </div>
+                      <h3 className="font-medium text-sm md:text-base text-white">{tool.title}</h3>
                       <p className="text-xs md:text-sm text-gray-400">{tool.desc}</p>
                     </CardContent>
                   </Card>
@@ -359,26 +240,28 @@ const Dashboard = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="mt-6 md:mt-8">
+          <div>
             <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="text-cyan-400 animate-pulse h-5 w-5" />
+              <TrendingUp className="text-cyan-400 h-5 w-5" />
               Quick Actions
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
               {quickActions.map((action, idx) => (
                 <motion.div
                   key={action.title}
-                  whileHover={{ scale: 1.02, boxShadow: '0 2px 28px #3b82f6aa' }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 160 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 + 0.3 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <Card
-                    className="bg-[#121212] border-slate-700 hover:border-slate-600 cursor-pointer shadow-md"
+                    className="bg-[#121212] border-slate-700 hover:border-slate-500 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20"
                     onClick={() => handleNavigation(action.route)}
                   >
-                    <CardContent className="p-4 md:p-6 text-center flex flex-col items-center">
+                    <CardContent className="p-4 md:p-6 text-center">
                       {action.icon}
-                      <h3 className="font-medium text-sm md:text-base">{action.title}</h3>
+                      <h3 className="font-medium text-sm md:text-base text-white">{action.title}</h3>
                       <p className="text-xs md:text-sm text-gray-400">{action.desc}</p>
                     </CardContent>
                   </Card>
@@ -391,25 +274,6 @@ const Dashboard = () => {
 
       <Footer />
       <BottomNav />
-
-      {/* Custom CSS for waving hand */}
-      <style>{`
-        @keyframes wave {
-          0% { transform: rotate(0.0deg);}
-          10% { transform: rotate(14deg);}
-          20% { transform: rotate(-8deg);}
-          30% { transform: rotate(14deg);}
-          40% { transform: rotate(-4deg);}
-          50% { transform: rotate(10.0deg);}
-          60% { transform: rotate(0.0deg);}
-          100% { transform: rotate(0.0deg);}
-        }
-        .animate-waving-hand {
-          display: inline-block;
-          animation: wave 2s infinite;
-          transform-origin: 70% 70%;
-        }
-      `}</style>
     </div>
   );
 };
