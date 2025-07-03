@@ -2,62 +2,66 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     // User profiles - only readable/writable by the user
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // User stats - only readable/writable by the user
-    match /user_stats/{userId} {
+    // User activity tracking
+    match /userActivity/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Study sessions - only accessible by the user
-    match /study_sessions/{sessionId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    // Study plans
+    match /studyPlans/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Study materials
-    match /study_materials/{materialId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    // Notifications
+    match /notifications/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Notes
-    match /notes/{noteId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    // History for all study sessions
+    match /history/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Flashcards
-    match /flashcards/{flashcardId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Quizzes
-    match /quizzes/{quizId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    match /flashcards/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Summaries
-    match /summaries/{summaryId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Doubt chain
-    match /doubt_chain/{doubtId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    match /summaries/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Audio notes
-    match /audio_notes/{audioId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    match /audioNotes/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Quiz data
+    match /quizzes/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // AI doubt chain
+    match /doubtChain/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Subscriptions - read only for users
+    match /subscriptions/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Only admin can write subscription data
+    }
+    
+    // User stats
+    match /userStats/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
     // All other collections - deny by default

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { firebaseSecure } from '@/lib/firebase-secure';
+import { orderBy } from 'firebase/firestore';
 
 interface Notification {
   id: string;
@@ -9,8 +9,8 @@ interface Notification {
   message: string;
   icon: string;
   read: boolean;
-  timestamp: string;
-  userId: string;
+  timestamp: any;
+  type: 'info' | 'success' | 'warning' | 'reminder';
 }
 
 export const useNotifications = (userId: string | null) => {
@@ -20,49 +20,54 @@ export const useNotifications = (userId: string | null) => {
 
   useEffect(() => {
     if (!userId) {
-      setNotifications([]);
-      setUnreadCount(0);
       setLoading(false);
       return;
     }
 
-    const notificationsRef = collection(db, 'notifications');
-    const q = query(
-      notificationsRef,
-      where('userId', '==', userId),
-      orderBy('timestamp', 'desc')
+    // Subscribe to real-time notifications
+    const unsubscribe = firebaseSecure.subscribeToUserData(
+      `notifications/${userId}/messages`,
+      (data) => {
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.read).length);
+        setLoading(false);
+      }
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notificationsList: Notification[] = [];
-      let unread = 0;
-
-      snapshot.forEach((doc) => {
-        const data = doc.data() as Omit<Notification, 'id'>;
-        const notification = { id: doc.id, ...data };
-        notificationsList.push(notification);
-        if (!notification.read) unread++;
-      });
-
-      setNotifications(notificationsList);
-      setUnreadCount(unread);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching notifications:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    return unsubscribe;
   }, [userId]);
 
   const markAsRead = async (notificationId: string) => {
+    if (!userId) return;
+
     try {
-      const notificationRef = doc(db, 'notifications', notificationId);
-      await updateDoc(notificationRef, { read: true });
+      await firebaseSecure.secureWrite(
+        `notifications/${userId}/messages/${notificationId}`,
+        { read: true }
+      );
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   };
 
-  return { notifications, unreadCount, markAsRead, loading };
+  const addNotification = async (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    if (!userId) return;
+
+    try {
+      await firebaseSecure.secureAdd(`notifications/${userId}/messages`, {
+        ...notification,
+        read: false
+      });
+    } catch (error) {
+      console.error('Error adding notification:', error);
+    }
+  };
+
+  return {
+    notifications,
+    unreadCount,
+    loading,
+    markAsRead,
+    addNotification
+  };
 };

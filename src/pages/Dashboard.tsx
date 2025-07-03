@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -23,18 +22,61 @@ import {
   Users,
   Award
 } from "lucide-react";
-import { useUserStats } from "@/hooks/useUserStats";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 import { motion } from "framer-motion";
 import { useUserActivity } from "@/hooks/useUserActivity";
+import { firebaseSecure } from "@/lib/firebase-secure";
 import ProgressCard from "@/components/dashboard/ProgressCard";
 
 const Dashboard = () => {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
-  const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
   const { weeklyHours, isNewUser, loading: activityLoading } = useUserActivity(user?.uid || null);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load user stats
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const loadStats = async () => {
+      try {
+        setLoading(true);
+        
+        // Get user stats from Firebase
+        const userStats = await firebaseSecure.secureRead(`userStats/${user.uid}`);
+        
+        // Get counts from various collections
+        const [notes, summaries, quizzes, flashcards] = await Promise.all([
+          firebaseSecure.secureQuery(`history/${user.uid}/entries`, []),
+          firebaseSecure.secureQuery(`summaries/${user.uid}/entries`, []),
+          firebaseSecure.secureQuery(`quizzes/${user.uid}/entries`, []),
+          firebaseSecure.secureQuery(`flashcards/${user.uid}/sets`, [])
+        ]);
+
+        setStats({
+          notes_created: notes.filter(n => n.type === 'ai-notes').length,
+          summaries_created: summaries.length,
+          quizzes_taken: quizzes.length,
+          flashcards_created: flashcards.length,
+          ...userStats
+        });
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        setStats({
+          notes_created: 0,
+          summaries_created: 0,
+          quizzes_taken: 0,
+          flashcards_created: 0
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+  }, [user?.uid]);
 
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
@@ -141,7 +183,7 @@ const Dashboard = () => {
     }
   ], []);
 
-  if (statsLoading || activityLoading) {
+  if (loading || activityLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">

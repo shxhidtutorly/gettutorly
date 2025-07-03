@@ -2,8 +2,15 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { firebaseSecure } from "@/lib/firebase-secure";
+import { 
+  updatePassword,
+  sendPasswordResetEmail,
+  updateProfile,
+  deleteUser,
+  updateEmail
+} from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -60,14 +67,9 @@ const Profile = () => {
       if (!user) return;
 
       try {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        let userProfile = await firebaseSecure.secureRead(`users/${user.uid}`);
         
-        let userProfile: UserProfile;
-        
-        if (userSnap.exists()) {
-          userProfile = userSnap.data() as UserProfile;
-        } else {
+        if (!userProfile) {
           // Create default profile
           userProfile = {
             name: user.displayName || user.email?.split('@')[0] || '',
@@ -76,15 +78,13 @@ const Profile = () => {
             role: 'student',
             created_at: new Date(),
           };
-          await setDoc(userRef, userProfile);
+          await firebaseSecure.secureWrite(`users/${user.uid}`, userProfile);
         }
 
         // Load subscription data
-        const subscriptionRef = doc(db, 'subscriptions', user.uid);
-        const subscriptionSnap = await getDoc(subscriptionRef);
-        
-        if (subscriptionSnap.exists()) {
-          userProfile.subscription = subscriptionSnap.data() as UserProfile['subscription'];
+        const subscription = await firebaseSecure.secureRead(`subscriptions/${user.uid}`);
+        if (subscription) {
+          userProfile.subscription = subscription;
         }
 
         setProfile(userProfile);
@@ -112,12 +112,19 @@ const Profile = () => {
 
     setUpdating(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      await firebaseSecure.secureWrite(`users/${user.uid}`, {
+        ...profile,
         name: formData.name,
         gender: formData.gender,
         updated_at: new Date(),
       });
+
+      // Update Firebase Auth profile
+      if (user && formData.name !== user.displayName) {
+        await updateProfile(user, {
+          displayName: formData.name
+        });
+      }
 
       setProfile({
         ...profile,
@@ -139,6 +146,24 @@ const Profile = () => {
       });
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      toast({
+        title: "Password Reset Sent",
+        description: "Check your email for password reset instructions"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   };
 
@@ -284,7 +309,7 @@ const Profile = () => {
                   <div className="space-y-2">
                     <Label className="text-gray-300">Member Since</Label>
                     <Input
-                      value={profile?.created_at ? new Date(profile.created_at.toDate()).toLocaleDateString() : 'N/A'}
+                      value={profile?.created_at ? new Date(profile.created_at.toDate ? profile.created_at.toDate() : profile.created_at).toLocaleDateString() : 'N/A'}
                       disabled
                       className="bg-[#1A1A1A] border-slate-600 text-gray-400"
                     />
@@ -347,17 +372,13 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start text-white border-slate-600 hover:bg-slate-800">
-                    <Mail className="mr-2 h-4 w-4" />
-                    Change Email
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-white border-slate-600 hover:bg-slate-800">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-white border-slate-600 hover:bg-slate-800"
+                    onClick={handlePasswordReset}
+                  >
                     <Shield className="mr-2 h-4 w-4" />
                     Reset Password
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-red-400 border-red-600 hover:bg-red-600/10">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Account
                   </Button>
                 </CardContent>
               </Card>
