@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,13 +28,15 @@ import Cancellation from "./pages/Cancellation";
 import Privacy from "./pages/Privacy";
 import AINotesGenerator from "./pages/AINotesGenerator";
 import AudioNotes from "./pages/AudioNotes";
-import MathChat from "@/pages/math-chat";
+import MathChat from "@/pages/math-chat"; 
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
-import PricingPage from "./pages/Pricing";
+import PricingPage from "./pages/Pricing"; 
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
+
+
 
 import "./css/animations.css";
 import "./css/darkMode.css";
@@ -50,18 +52,6 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Simulate app init (replace with auth/init logic if needed)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500); // simulate 1.5s loading
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) return <BookLoader />;
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -77,33 +67,122 @@ const App = () => {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/pricing" element={<PricingPage />} />
 
-            {/* Protected routes */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            {/* Protected routes - all wrapped with ProtectedRoute */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            
             <Route path="/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/landing" element={<Index />} />
-            <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
-            <Route path="/ai-notes" element={<ProtectedRoute><AINotesGenerator /></ProtectedRoute>} />
-            <Route path="/audio-notes" element={<ProtectedRoute><AudioNotes /></ProtectedRoute>} />
-            <Route path="/math-chat" element={<ProtectedRoute><MathChat /></ProtectedRoute>} />
-            <Route path="/study-plans" element={<ProtectedRoute><StudyPlans /></ProtectedRoute>} />
-            <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
-            <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
-            <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
-            <Route path="/summaries" element={<ProtectedRoute><Summaries /></ProtectedRoute>} />
-            <Route path="/micro-lessons" element={<ProtectedRoute><MicroLessons /></ProtectedRoute>} />
-            <Route path="/study-techniques" element={<ProtectedRoute><StudyTechniques /></ProtectedRoute>} />
-            <Route path="/doubt-chain" element={<ProtectedRoute><DoubtChain /></ProtectedRoute>} />
-            <Route path="/doubt-bookmarks" element={<ProtectedRoute><DoubtBookmarks /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+
+            <Route path="/library" element={
+              <ProtectedRoute>
+                <Library />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-notes" element={
+              <ProtectedRoute>
+                <AINotesGenerator />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/audio-notes" element={
+              <ProtectedRoute>
+                <AudioNotes />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/math-chat" element={
+              <ProtectedRoute>
+                <MathChat />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/study-plans" element={
+              <ProtectedRoute>
+                <StudyPlans />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/progress" element={
+              <ProtectedRoute>
+                <Progress />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <Chat />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-assistant" element={
+              <ProtectedRoute>
+                <AIAssistant />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/flashcards" element={
+              <ProtectedRoute>
+                <Flashcards />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/quiz" element={
+              <ProtectedRoute>
+                <Quiz />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/summaries" element={
+              <ProtectedRoute>
+                <Summaries />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/micro-lessons" element={
+              <ProtectedRoute>
+                <MicroLessons />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/study-techniques" element={
+              <ProtectedRoute>
+                <StudyTechniques />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/doubt-chain" element={
+              <ProtectedRoute>
+                <DoubtChain />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/doubt-bookmarks" element={
+              <ProtectedRoute>
+                <DoubtBookmarks />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
+            
             <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
-            {/* Catch-all 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-
           <Toaster />
           <Sonner />
         </TooltipProvider>
