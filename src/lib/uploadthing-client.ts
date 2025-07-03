@@ -1,8 +1,13 @@
+
 // src/lib/uploadthing-client.ts
 import { UploadButton } from "@uploadthing/react";
 import type { OurFileRouter } from "@/uploadthing.config";
 
-export const AudioUploadButton = ({ onUploadComplete }: { onUploadComplete: (url: string) => void }) => {
+interface AudioUploadButtonProps {
+  onUploadComplete: (url: string) => void;
+}
+
+export const AudioUploadButton = ({ onUploadComplete }: AudioUploadButtonProps) => {
   return (
     <UploadButton<OurFileRouter>
       endpoint="audioUploader"
