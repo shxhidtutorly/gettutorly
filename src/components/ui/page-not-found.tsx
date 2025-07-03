@@ -39,7 +39,8 @@ function MessageDisplay() {
           404
         </div>
         <div className="text-[15px] w-1/2 min-w-[40%] text-center text-black m-[1%]">
-          The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+        Well, this is awkward... The page you’re hunting for either vanished into thin air, never existed, or just decided to ghost you. Classic.
+
         </div>
         <div className="flex gap-6 mt-8">
           <button
