@@ -1,4 +1,6 @@
 import { createUploadthing, type FileRouter } from "uploadthing/server";
+import type { OurFileRouter } from "./app/api/uploadthing/route";
+
 
 const f = createUploadthing();
 
@@ -10,4 +12,4 @@ export const ourFileRouter = {
     }),
 } satisfies FileRouter;
 
-export type OurFileRouter = typeof ourFileRouter;
+export type { OurFileRouter };
