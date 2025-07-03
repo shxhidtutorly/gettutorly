@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   User,
@@ -7,7 +6,9 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -93,6 +94,28 @@ export const useFirebaseAuth = () => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      setLoading(true);
+      const result = await signInWithPopup(auth, provider);
+      toast({
+        title: "Success",
+        description: "Signed in with Google successfully!"
+      });
+      return { user: result.user, error: null };
+    } catch (error: any) {
+      toast({
+        title: "Google Sign In Failed",
+        description: error.message || "Something went wrong with Google sign-in",
+        variant: "destructive"
+      });
+      return { user: null, error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -132,6 +155,7 @@ export const useFirebaseAuth = () => {
     loading,
     signIn,
     signUp,
+    signInWithGoogle, // ✅ now exported
     signOut,
     resetPassword,
     isAuthenticated: !!user
