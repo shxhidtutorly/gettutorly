@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { useUser } from "@/hooks/useUser";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,15 +13,12 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { FcGoogle } from "react-icons/fc";
 
 const SignInPage = () => {
-  const { user, isLoaded } = useUser();
-  const { signIn } = useFirebaseAuth();
-
+  const { user, signIn, signInWithGoogle } = useFirebaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +27,7 @@ const SignInPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user && location.pathname === "/signin") {
+    if (user) {
       const state = location.state as any;
       const redirectTo = state?.returnTo || "/dashboard";
       navigate(redirectTo, { replace: true });
@@ -50,33 +45,23 @@ const SignInPage = () => {
       return;
     }
 
-    try {
-      const result = await signIn(email, password);
-      
-      if (result.error) {
-        setError(result.error.message || "Login failed");
-      } else {
-        const state = location.state as any;
-        const redirectTo = state?.returnTo || "/dashboard";
-        navigate(redirectTo, { replace: true });
-      }
-    } catch (err: any) {
-      setError(err.message || "Login failed");
-    } finally {
-      setIsSubmitting(false);
+    const result = await signIn(email, password);
+    if (result.error) {
+      setError(result.error.message || "Login failed");
     }
+
+    setIsSubmitting(false);
   };
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleGoogleLogin = async () => {
+    setError("");
+    setIsSubmitting(true);
+    const result = await signInWithGoogle();
+    if (result.error) {
+      setError(result.error.message || "Google login failed");
+    }
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white p-4">
@@ -108,7 +93,7 @@ const SignInPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+                  className="pl-10 bg-gray-800 border-gray-700 text-white"
                   required
                 />
               </div>
@@ -150,6 +135,22 @@ const SignInPage = () => {
               {isSubmitting ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-px w-full bg-gray-700" />
+            <span className="text-gray-500 text-sm">OR</span>
+            <div className="h-px w-full bg-gray-700" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-2 border-gray-700 hover:bg-gray-800 text-white"
+          >
+            <FcGoogle className="w-5 h-5" />
+            Continue with Google
+          </Button>
 
           <div className="mt-6 text-center">
             <p className="text-gray-400">
