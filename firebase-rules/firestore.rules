@@ -28,6 +28,31 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // AI Learning Assistant sessions
+    match /ai_sessions/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Note chats
+    match /note_chats/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Summary sessions
+    match /summary_sessions/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Math chat history
+    match /math_chat_history/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Notes history
+    match /notes_history/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Flashcards
     match /flashcards/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;

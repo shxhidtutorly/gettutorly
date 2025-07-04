@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -25,58 +26,25 @@ import {
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 import { motion } from "framer-motion";
-import { useUserActivity } from "@/hooks/useUserActivity";
-import { firebaseSecure } from "@/lib/firebase-secure";
+import { useUserStats } from "@/hooks/useUserStats";
 import ProgressCard from "@/components/dashboard/ProgressCard";
 
 const Dashboard = () => {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
-  const { weeklyHours, isNewUser, loading: activityLoading } = useUserActivity(user?.uid || null);
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { stats, loading } = useUserStats(user?.uid || null);
+  const [isNewUser, setIsNewUser] = useState(false);
 
-  // Load user stats
+  // Check if user is new (first time login)
   useEffect(() => {
-    if (!user?.uid) return;
-
-    const loadStats = async () => {
-      try {
-        setLoading(true);
-        
-        // Get user stats from Firebase
-        const userStats = await firebaseSecure.secureRead(`userStats/${user.uid}`);
-        
-        // Get counts from various collections
-        const [notes, summaries, quizzes, flashcards] = await Promise.all([
-          firebaseSecure.secureQuery(`history/${user.uid}/entries`, []),
-          firebaseSecure.secureQuery(`summaries/${user.uid}/entries`, []),
-          firebaseSecure.secureQuery(`quizzes/${user.uid}/entries`, []),
-          firebaseSecure.secureQuery(`flashcards/${user.uid}/sets`, [])
-        ]);
-
-        setStats({
-          notes_created: notes.filter(n => n.type === 'ai-notes').length,
-          summaries_created: summaries.length,
-          quizzes_taken: quizzes.length,
-          flashcards_created: flashcards.length,
-          ...userStats
-        });
-      } catch (error) {
-        console.error('Error loading stats:', error);
-        setStats({
-          notes_created: 0,
-          summaries_created: 0,
-          quizzes_taken: 0,
-          flashcards_created: 0
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadStats();
-  }, [user?.uid]);
+    if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
+      const creationTime = new Date(user.metadata.creationTime).getTime();
+      const lastSignInTime = new Date(user.metadata.lastSignInTime).getTime();
+      const timeDiff = Math.abs(lastSignInTime - creationTime);
+      // If less than 5 minutes difference, consider as new user
+      setIsNewUser(timeDiff < 5 * 60 * 1000);
+    }
+  }, [user]);
 
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
@@ -96,26 +64,14 @@ const Dashboard = () => {
     return `Welcome back, ${name}! 👋`;
   }, [getUserDisplayName, isNewUser]);
 
-  const formatStudyTime = (hours: number) => {
-    if (hours < 1) {
-      const minutes = Math.round(hours * 60);
+  const formatStudyTime = (minutes: number) => {
+    if (minutes < 60) {
       return `${minutes}min`;
     }
-    const wholeHours = Math.floor(hours);
-    const minutes = Math.round((hours - wholeHours) * 60);
-    return minutes > 0 ? `${wholeHours}h ${minutes}m` : `${wholeHours}h`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
-
-  const learningMilestones = useMemo(() => {
-    if (!stats) return 0;
-    const {
-      summaries_created = 0,
-      notes_created = 0,
-      quizzes_taken = 0,
-      flashcards_created = 0,
-    } = stats;
-    return summaries_created + notes_created + quizzes_taken + flashcards_created;
-  }, [stats]);
 
   const studyTools = useMemo(() => [
     {
@@ -183,7 +139,7 @@ const Dashboard = () => {
     }
   ], []);
 
-  if (loading || activityLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
@@ -216,19 +172,19 @@ const Dashboard = () => {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 md:mb-8">
             <ProgressCard
-              title="Study Hours"
-              value={formatStudyTime(weeklyHours)}
+              title="Study Time"
+              value={formatStudyTime(stats?.total_study_time || 0)}
               icon={<Clock className="h-6 w-6 text-blue-400" />}
               color="blue"
-              trend="+2.5hrs this week"
+              trend={`${stats?.sessions_this_month || 0} sessions this month`}
             />
             
             <ProgressCard
               title="Learning Milestones"
-              value={learningMilestones}
+              value={stats?.learning_milestones || 0}
               icon={<Award className="h-6 w-6 text-green-400" />}
               color="green"
-              trend="+12 this month"
+              trend="Total achievements"
             />
 
             <ProgressCard
@@ -236,7 +192,7 @@ const Dashboard = () => {
               value={stats?.quizzes_taken || 0}
               icon={<CheckCircle className="h-6 w-6 text-yellow-400" />}
               color="yellow"
-              trend="85% avg score"
+              trend={`${stats?.average_quiz_score || 0}% avg score`}
             />
 
             <ProgressCard
@@ -244,7 +200,7 @@ const Dashboard = () => {
               value={stats?.notes_created || 0}
               icon={<Sparkles className="h-6 w-6 text-purple-400" />}
               color="purple"
-              trend="+5 this week"
+              trend="Notes generated"
             />
           </div>
 

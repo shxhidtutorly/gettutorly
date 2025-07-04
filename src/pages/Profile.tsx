@@ -112,12 +112,14 @@ const Profile = () => {
 
     setUpdating(true);
     try {
-      await firebaseSecure.secureWrite(`users/${user.uid}`, {
+      const updatedProfile = {
         ...profile,
         name: formData.name,
         gender: formData.gender,
         updated_at: new Date(),
-      });
+      };
+
+      await firebaseSecure.secureWrite(`users/${user.uid}`, updatedProfile);
 
       // Update Firebase Auth profile
       if (user && formData.name !== user.displayName) {
@@ -126,12 +128,7 @@ const Profile = () => {
         });
       }
 
-      setProfile({
-        ...profile,
-        name: formData.name,
-        gender: formData.gender,
-      });
-
+      setProfile(updatedProfile);
       setIsEditing(false);
       toast({
         title: "Profile Updated",
@@ -167,14 +164,14 @@ const Profile = () => {
     }
   };
 
-  const getAvatarIcon = (gender: string) => {
+  const getProfileImage = (gender: string) => {
     switch (gender) {
       case 'male':
-        return '👨';
+        return '/assets/profile_male.png';
       case 'female':
-        return '👩';
+        return '/assets/profile_female.png';
       default:
-        return '📚';
+        return '/assets/profile_other.png';
     }
   };
 
@@ -202,31 +199,31 @@ const Profile = () => {
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
       <Navbar />
 
-      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
+      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
         <div className="container max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            className="mb-6 md:mb-8"
           >
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-              <User className="h-8 w-8 text-purple-400" />
+            <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+              <User className="h-6 md:h-8 w-6 md:w-8 text-purple-400" />
               Your Profile
             </h1>
-            <p className="text-gray-400">Manage your account details and preferences</p>
+            <p className="text-gray-400 text-sm md:text-base">Manage your account details and preferences</p>
           </motion.div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
             {/* Profile Card */}
             <div className="lg:col-span-2">
               <Card className="bg-[#121212] border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-white">Account Information</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-white text-lg">Account Information</CardTitle>
                   <Button
                     variant="ghost"
                     onClick={() => isEditing ? handleSave() : setIsEditing(true)}
                     disabled={updating}
-                    className="text-purple-400 hover:text-purple-300"
+                    className="text-purple-400 hover:text-purple-300 text-sm"
                   >
                     {updating ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400"></div>
@@ -243,20 +240,23 @@ const Profile = () => {
                     )}
                   </Button>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 md:space-y-6">
                   {/* Avatar */}
                   <div className="flex justify-center">
-                    <Avatar className="h-24 w-24 border-2 border-purple-500">
-                      <AvatarImage src={user?.photoURL || ""} />
-                      <AvatarFallback className="bg-purple-600 text-white text-2xl">
-                        {getAvatarIcon(profile?.gender || 'other')}
+                    <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-purple-500">
+                      <AvatarImage 
+                        src={getProfileImage(profile?.gender || 'other')} 
+                        alt="Profile"
+                      />
+                      <AvatarFallback className="bg-purple-600 text-white text-xl md:text-2xl">
+                        {profile?.name?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </div>
 
                   {/* Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-gray-300">Full Name</Label>
+                    <Label htmlFor="name" className="text-gray-300 text-sm">Full Name</Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -268,7 +268,7 @@ const Profile = () => {
 
                   {/* Email */}
                   <div className="space-y-2">
-                    <Label className="text-gray-300">Email Address</Label>
+                    <Label className="text-gray-300 text-sm">Email Address</Label>
                     <Input
                       value={profile?.email || ''}
                       disabled
@@ -278,7 +278,7 @@ const Profile = () => {
 
                   {/* Gender */}
                   <div className="space-y-2">
-                    <Label className="text-gray-300">Gender</Label>
+                    <Label className="text-gray-300 text-sm">Gender</Label>
                     <Select
                       value={formData.gender}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
@@ -297,9 +297,9 @@ const Profile = () => {
 
                   {/* Role */}
                   <div className="space-y-2">
-                    <Label className="text-gray-300">Role</Label>
+                    <Label className="text-gray-300 text-sm">Role</Label>
                     <Input
-                      value={profile?.role || 'Student'}
+                      value="Student"
                       disabled
                       className="bg-[#1A1A1A] border-slate-600 text-gray-400"
                     />
@@ -307,7 +307,7 @@ const Profile = () => {
 
                   {/* Created Date */}
                   <div className="space-y-2">
-                    <Label className="text-gray-300">Member Since</Label>
+                    <Label className="text-gray-300 text-sm">Member Since</Label>
                     <Input
                       value={profile?.created_at ? new Date(profile.created_at.toDate ? profile.created_at.toDate() : profile.created_at).toLocaleDateString() : 'N/A'}
                       disabled
@@ -319,11 +319,11 @@ const Profile = () => {
             </div>
 
             {/* Subscription & Actions */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Subscription Card */}
               <Card className="bg-[#121212] border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center gap-2 text-lg">
                     <Crown className="h-5 w-5 text-yellow-500" />
                     Subscription
                   </CardTitle>
@@ -332,29 +332,29 @@ const Profile = () => {
                   {profile?.subscription ? (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-300">Plan</span>
-                        <Badge className={`${getPlanBadge(profile.subscription.plan)} text-white`}>
+                        <span className="text-gray-300 text-sm">Plan</span>
+                        <Badge className={`${getPlanBadge(profile.subscription.plan)} text-white text-xs`}>
                           {profile.subscription.plan.toUpperCase()}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-300">Status</span>
-                        <Badge variant={profile.subscription.status === 'active' ? 'default' : 'secondary'}>
+                        <span className="text-gray-300 text-sm">Status</span>
+                        <Badge variant={profile.subscription.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                           {profile.subscription.status}
                         </Badge>
                       </div>
-                      <div className="text-sm text-gray-400">
+                      <div className="text-xs text-gray-400">
                         <p>Expires: {new Date(profile.subscription.endDate).toLocaleDateString()}</p>
                       </div>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-sm">
                         <CreditCard className="mr-2 h-4 w-4" />
                         Manage Subscription
                       </Button>
                     </>
                   ) : (
                     <div className="text-center">
-                      <p className="text-gray-400 mb-4">No active subscription</p>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      <p className="text-gray-400 mb-4 text-sm">No active subscription</p>
+                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-sm">
                         <Crown className="mr-2 h-4 w-4" />
                         Upgrade to Pro
                       </Button>
@@ -365,8 +365,8 @@ const Profile = () => {
 
               {/* Account Actions */}
               <Card className="bg-[#121212] border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center gap-2 text-lg">
                     <Settings className="h-5 w-5" />
                     Account Actions
                   </CardTitle>
@@ -374,7 +374,7 @@ const Profile = () => {
                 <CardContent className="space-y-3">
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start text-white border-slate-600 hover:bg-slate-800"
+                    className="w-full justify-start text-white border-slate-600 hover:bg-slate-800 text-sm"
                     onClick={handlePasswordReset}
                   >
                     <Shield className="mr-2 h-4 w-4" />
