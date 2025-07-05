@@ -1108,12 +1108,11 @@ useEffect(() => {
         </div>
       </div>
 
-      <ImageViewDialog imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
+           <ImageViewDialog imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
     </>
   );
 });
 PromptInputBox.displayName = "PromptInputBox";
-
 
 // Match the structure your PromptInputBox expects:
 type ChatMessage = {
