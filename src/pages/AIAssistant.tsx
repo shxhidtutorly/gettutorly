@@ -1096,16 +1096,104 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 });
 PromptInputBox.displayName = "PromptInputBox";
 
+
+// Message type matching PromptInputBox ChatMessage shape
+type ChatMessage = {
+  id: string;
+  text: string;
+  isUser: boolean;
+  files?: File[];
+  filePreviews?: { [key: string]: string };
+};
+
 const AIAssistant = () => {
-    const handleSendMessage = (message: string, files?: File[]) => {
-    console.log('Message:', message);
-    console.log('Files:', files);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: Date.now().toString(),
+      text: "Hello! I'm your AI Study Tutor. How can I help you understand your material better today?",
+      isUser: false,
+    }
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Keep a ref to avoid state closure issues in async
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
+  // This handler will be passed to PromptInputBox
+  const handleSendMessage = async (message: string, files?: File[]) => {
+    if (!message.trim() || isLoading) return;
+
+    // Add user message
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      text: message.trim(),
+      isUser: true,
+      files: files,
     };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      // If you want to send files, you may want to use FormData instead
+      // Here, we just send the text prompt (expand as needed for files)
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: message.trim(), model: 'gemini' })
+      });
+
+      if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      const data = await response.json();
+      const aiResponse = data.response || data.message || 'No response received from AI';
+
+      // Add assistant message
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          text: aiResponse,
+          isUser: false,
+        }
+      ]);
+    } catch (error) {
+      let errorMessage = "I'm having trouble connecting right now. ";
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage += "Please check your connection and try again.";
+        } else if (error.message.includes('429')) {
+          errorMessage += "I'm a bit busy right now. Please try again in a moment.";
+        } else if (error.message.includes('401')) {
+          errorMessage += "There's an authentication issue. Please contact support.";
+        } else {
+          errorMessage += "Please try again or contact support if this continues.";
+        }
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 2).toString(),
+          text: errorMessage,
+          isUser: false,
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // You may want to customize the background etc. as before
   return (
-    <div className="flex w-full h-screen justify-center items-center bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_25%,rgba(238,174,202,1)_40%,rgba(202,179,214,1)_65%,rgba(148,201,233,1)_100%)]">
-    <div className="p-4 w-[500px] h-full flex flex-col justify-end">
-    <PromptInputBox onSend={(message, files) => console.log(message, files)} />
-    </div>
+    <div className="flex w-full h-screen justify-center items-center bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
+      <div className="p-4 w-[500px] h-full flex flex-col justify-end">
+        {/* Pass messages and isLoading as props */}
+        <PromptInputBox
+          onSend={handleSendMessage}
+          isLoading={isLoading}
+          // @ts-ignore - extend PromptInputBox to accept messages as prop if needed
+          messages={messages}
+        />
+      </div>
     </div>
   );
 };
