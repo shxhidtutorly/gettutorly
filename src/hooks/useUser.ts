@@ -2,11 +2,9 @@
 import { useFirebaseAuth } from './useFirebaseAuth';
 
 export const useUser = () => {
-  const { user, loading, isAuthenticated } = useFirebaseAuth();
+  const { user } = useFirebaseAuth();
 
   return {
-    user,
-    isLoaded: !loading,
-    isSignedIn: isAuthenticated,
+    user, // may be null
   };
 };
