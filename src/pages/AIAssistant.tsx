@@ -999,63 +999,12 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
 
                   <button
                     type="button"
-                    onClick={() => handleToggleChange("canvas")}
-                    className={cn(
-                      "rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8",
-                      showCanvas
-                        ? "bg-[#F97316]/15 border-[#F97316] text-[#F97316]"
-                        : "bg-transparent border-transparent text-[#9CA3AF] hover:text-[#D1D5DB]"
-                    )}
-                  >
-                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                      <motion.div
-                        animate={{ rotate: showCanvas ? 360 : 0, scale: showCanvas ? 1.1 : 1 }}
-                        whileHover={{ rotate: showCanvas ? 360 : 15, scale: 1.1, transition: { type: "spring", stiffness: 300, damping: 10 } }}
-                        transition={{ type: "spring", stiffness: 260, damping: 25 }}
-                      >
-                        <FolderCode className={cn("w-4 h-4", showCanvas ? "text-[#F97316]" : "text-inherit")} />
-                      </motion.div>
-                    </div>
-                    <AnimatePresence>
-                      {showCanvas && (
-                        <motion.span
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: "auto", opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="text-xs overflow-hidden whitespace-nowrap text-[#F97316] flex-shrink-0"
-                        >
-                          Canvas
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </button>
-                </div>
-              </div>
-
-              <PromptInputAction
-                tooltip={
-                  isLoading
-                    ? "Stop generation"
-                    : isRecording
-                    ? "Stop recording"
-                    : hasContent
-                    ? "Send message"
-                    : "Voice message"
-                }
-              >
-                <Button
-                  variant="default"
-                  size="icon"
-                  className={cn(
-                    "h-8 w-8 rounded-full transition-all duration-200",
-                    isRecording
-                      ? "bg-transparent hover:bg-gray-600/30 text-red-500 hover:text-red-400"
-                      : hasContent
-                      ? "bg-white hover:bg-white/80 text-[#1F2023]"
-                      : "bg-transparent hover:bg-gray-600/30 text-[#9CA3AF] hover:text-[#D1D5DB]"
-                  )}
-                  onClick={() => {
+                   return (
+  <PromptInput>
+    <PromptInputActions>
+      <PromptInputAction>
+        <Button
+          onClick={() => {
             if (isRecording) setIsRecording(false);
             else if (hasContent) handleSubmit();
             else setIsRecording(true);
@@ -1081,8 +1030,16 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
         onClose={() => setSelectedImage(null)}
       />
     )}
-  </>
+  </PromptInput>
 );
+
+// 🧠 Move this OUTSIDE the component, below or above
+type ChatMessage = {
+  id: string;
+  text: string;
+  isUser: boolean;
+};
+
          
 PromptInputBox.displayName = "PromptInputBox";
 
