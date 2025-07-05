@@ -619,8 +619,8 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const promptBoxRef = React.useRef<HTMLDivElement>(null);
   const { messages = [], ...rest } = props as any;
-  const [isTypingHeading, setIsTypingHeading] = useState(true);
-
+const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
+ 
   const defaultPlaceholders = [
     "Ask Tutorly Anything...",
     "What is the capital of France?",
@@ -1107,32 +1107,23 @@ type ChatMessage = {
 };
 
 const AIAssistant = () => {
-  // Initial greeting (assistant message)
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: Date.now().toString(),
-      text: "Hello! I'm your AI Study Tutor. How can I help you understand your material better today?",
-      isUser: false,
-    }
-  ]);
+  // Start with no messages
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // This is called when user sends a message via PromptInputBox
+  // AI Reply fetch (old logic)
   const handleSendMessage = async (message: string, files?: File[]) => {
     if (!message.trim() || isLoading) return;
-
-    // Add user's message to chat
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: message.trim(),
       isUser: true,
       files,
     };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
-      // API call (same as your old code)
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1144,8 +1135,7 @@ const AIAssistant = () => {
 
       const data = await response.json();
       const aiResponse = data.response || data.message || "No response received from AI";
-      // Add AI reply
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
@@ -1166,7 +1156,7 @@ const AIAssistant = () => {
           errorMessage += "Please try again or contact support if this continues.";
         }
       }
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 2).toString(),
@@ -1179,9 +1169,25 @@ const AIAssistant = () => {
     }
   };
 
-  // Pass messages, isLoading, and onSend to PromptInputBox
+  // For Back to Dashboard button
+  const handleBackToDashboard = () => {
+    window.location.href = '/dashboard';
+  };
+
   return (
     <div className="flex w-full h-screen justify-center items-center bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
+      {/* Transparent Back to Dashboard button absolute top-left */}
+      <button
+        onClick={handleBackToDashboard}
+        className="absolute top-4 left-4 px-3 py-2 text-blue-400 hover:text-white border border-blue-700 rounded-lg shadow transition-all duration-200 hover:bg-blue-900 hover:scale-105 bg-transparent backdrop-blur-none"
+        style={{
+          fontWeight: 500,
+          background: "transparent",
+          opacity: 1,
+        }}
+      >
+        <span style={{ fontSize: '1.2em' }}>←</span> Back to Dashboard
+      </button>
       <div className="p-4 w-[500px] h-full flex flex-col justify-end">
         <PromptInputBox
           onSend={handleSendMessage}
