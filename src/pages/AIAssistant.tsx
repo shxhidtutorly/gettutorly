@@ -1096,7 +1096,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 });
 PromptInputBox.displayName = "PromptInputBox";
 
-const DemoOne = () => {
+const AIAssistant = () => {
     const handleSendMessage = (message: string, files?: File[]) => {
     console.log('Message:', message);
     console.log('Files:', files);
@@ -1110,4 +1110,4 @@ const DemoOne = () => {
   );
 };
 
-export default DemoOne;
+export default AIAssistant;
