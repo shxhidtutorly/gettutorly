@@ -764,7 +764,17 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
       <div className="flex flex-col items-center justify-center h-full w-full relative">
         {messages.length > 0 && (
           <div className="absolute top-4 left-4 z-20">
-          
+            <StarBorder
+              as="button"
+              className="px-4 py-2 text-sm rounded-full"
+              color="hsl(var(--primary))"
+              onClick={handleBackToDashboard}
+            >
+              <LayoutDashboard className="inline-block w-4 h-4 mr-2" />
+              Back to Dashboard
+            </StarBorder>
+          </div>
+        )}
 
         <motion.div
           initial={{ y: 0 }}
@@ -999,48 +1009,89 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
 
                   <button
                     type="button"
-                   return (
-  <PromptInput>
-    <PromptInputActions>
-      <PromptInputAction>
-        <Button
-          onClick={() => {
-            if (isRecording) setIsRecording(false);
-            else if (hasContent) handleSubmit();
-            else setIsRecording(true);
-          }}
-          disabled={isLoading && !hasContent}
-        >
-          {isLoading ? (
-            <Square className="h-4 w-4 fill-[#1F2023] animate-pulse" />
-          ) : isRecording ? (
-            <StopCircle className="h-5 w-5 text-red-500" />
-          ) : hasContent ? (
-            <ArrowUp className="h-4 w-4 text-[#1F2023]" />
-          ) : (
-            <Mic className="h-5 w-5 text-[#1F2023] transition-colors" />
-          )}
-        </Button>
-      </PromptInputAction>
-    </PromptInputActions>
+                    onClick={() => handleToggleChange("canvas")}
+                    className={cn(
+                      "rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8",
+                      showCanvas
+                        ? "bg-[#F97316]/15 border-[#F97316] text-[#F97316]"
+                        : "bg-transparent border-transparent text-[#9CA3AF] hover:text-[#D1D5DB]"
+                    )}
+                  >
+                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                      <motion.div
+                        animate={{ rotate: showCanvas ? 360 : 0, scale: showCanvas ? 1.1 : 1 }}
+                        whileHover={{ rotate: showCanvas ? 360 : 15, scale: 1.1, transition: { type: "spring", stiffness: 300, damping: 10 } }}
+                        transition={{ type: "spring", stiffness: 260, damping: 25 }}
+                      >
+                        <FolderCode className={cn("w-4 h-4", showCanvas ? "text-[#F97316]" : "text-inherit")} />
+                      </motion.div>
+                    </div>
+                    <AnimatePresence>
+                      {showCanvas && (
+                        <motion.span
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: "auto", opacity: 1 }}
+                          exit={{ width: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="text-xs overflow-hidden whitespace-nowrap text-[#F97316] flex-shrink-0"
+                        >
+                          Canvas
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                </div>
+              </div>
 
-    {selectedImage && (
-      <ImageViewDialog
-        imageUrl={selectedImage}
-        onClose={() => setSelectedImage(null)}
-      />
-    )}
-  </PromptInput>
-);
+              <PromptInputAction
+                tooltip={
+                  isLoading
+                    ? "Stop generation"
+                    : isRecording
+                    ? "Stop recording"
+                    : hasContent
+                    ? "Send message"
+                    : "Voice message"
+                }
+              >
+                <Button
+                  variant="default"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full transition-all duration-200",
+                    isRecording
+                      ? "bg-transparent hover:bg-gray-600/30 text-red-500 hover:text-red-400"
+                      : hasContent
+                      ? "bg-white hover:bg-white/80 text-[#1F2023]"
+                      : "bg-transparent hover:bg-gray-600/30 text-[#9CA3AF] hover:text-[#D1D5DB]"
+                  )}
+                  onClick={() => {
+                    if (isRecording) setIsRecording(false);
+                    else if (hasContent) handleSubmit();
+                    else setIsRecording(true);
+                  }}
+                  disabled={isLoading && !hasContent}
+                >
+                  {isLoading ? (
+                    <Square className="h-4 w-4 fill-[#1F2023] animate-pulse" />
+                  ) : isRecording ? (
+                    <StopCircle className="h-5 w-5 text-red-500" />
+                  ) : hasContent ? (
+                    <ArrowUp className="h-4 w-4 text-[#1F2023]" />
+                  ) : (
+                    <Mic className="h-5 w-5 text-[#1F2023] transition-colors" />
+                  )}
+                </Button>
+              </PromptInputAction>
+            </PromptInputActions>
+          </PromptInput>
+        </div>
+      </div>
 
-// 🧠 Move this OUTSIDE the component, below or above
-type ChatMessage = {
-  id: string;
-  text: string;
-  isUser: boolean;
-};
-
-         
+      <ImageViewDialog imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
+    </>
+  );
+});
 PromptInputBox.displayName = "PromptInputBox";
 
 
