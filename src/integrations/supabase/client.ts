@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import type { Database } from './types';
 
 // ✅ Your actual Supabase backend URL
