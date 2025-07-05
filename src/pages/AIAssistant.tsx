@@ -1055,39 +1055,35 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
                       ? "bg-white hover:bg-white/80 text-[#1F2023]"
                       : "bg-transparent hover:bg-gray-600/30 text-[#9CA3AF] hover:text-[#D1D5DB]"
                   )}
-                 onClick={() => {
-  if (isRecording) setIsRecording(false);
-  else if (hasContent) handleSubmit();
-  else setIsRecording(true);
-}}
-disabled={isLoading && !hasContent}
->
-  {isLoading ? (
-    <Square className="h-4 w-4 fill-[#1F2023] animate-pulse" />
-  ) : isRecording ? (
-    <StopCircle className="h-5 w-5 text-red-500" />
-  ) : hasContent ? (
-    <ArrowUp className="h-4 w-4 text-[#1F2023]" />
-  ) : (
-    <Mic className="h-5 w-5 text-[#1F2023] transition-colors" />
-  )}
-</Button>
-</PromptInputAction>
-</PromptInputActions>
-</PromptInput>
-</div>
-</div>
+                  onClick={() => {
+            if (isRecording) setIsRecording(false);
+            else if (hasContent) handleSubmit();
+            else setIsRecording(true);
+          }}
+          disabled={isLoading && !hasContent}
+        >
+          {isLoading ? (
+            <Square className="h-4 w-4 fill-[#1F2023] animate-pulse" />
+          ) : isRecording ? (
+            <StopCircle className="h-5 w-5 text-red-500" />
+          ) : hasContent ? (
+            <ArrowUp className="h-4 w-4 text-[#1F2023]" />
+          ) : (
+            <Mic className="h-5 w-5 text-[#1F2023] transition-colors" />
+          )}
+        </Button>
+      </PromptInputAction>
+    </PromptInputActions>
 
-{selectedImage && (
-  <ImageViewDialog
-    imageUrl={selectedImage}
-    onClose={() => setSelectedImage(null)}
-  />
-)}
-</>
+    {selectedImage && (
+      <ImageViewDialog
+        imageUrl={selectedImage}
+        onClose={() => setSelectedImage(null)}
+      />
+    )}
+  </>
 );
-});
-
+         
 PromptInputBox.displayName = "PromptInputBox";
 
 
