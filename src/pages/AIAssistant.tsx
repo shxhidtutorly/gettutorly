@@ -1118,7 +1118,7 @@ const AIAssistant = () => {
       isUser: true,
       files,
     };
-    //setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
