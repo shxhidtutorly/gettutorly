@@ -1106,7 +1106,6 @@ useEffect(() => {
             </PromptInputActions>
           </PromptInput>
         </div>
-      </div>
 
            <ImageViewDialog imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
     </>
