@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
