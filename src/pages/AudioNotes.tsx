@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useUser } from "@/hooks/useUser";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -14,29 +13,11 @@ const fadeInUp =
   "transition-all duration-700 ease-in-out translate-y-4 opacity-0 animate-fade-in-up";
 
 const AudioNotes = () => {
-  const { user } = useUser();
+  const { user } = useUser(); // Optional, no redirect or blocking
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!user) {
-      navigate("/signin");
-    }
-  }, [user, navigate]);
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white">
-        <div className="bg-[#202741] rounded-xl p-6 shadow-lg text-center animate-fade-in">
-          <span className="text-3xl">🔒</span>
-          <p className="text-lg mt-4">Please sign in to access audio notes.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#15192b] via-[#161c29] to-[#1b2236] text-white transition-colors">
-
       {/* Top bar with back button */}
       <div className="w-full max-w-6xl mx-auto flex justify-between items-center mt-4 md:mt-6 mb-2 px-2 md:px-4 animate-fade-in">
         <button
