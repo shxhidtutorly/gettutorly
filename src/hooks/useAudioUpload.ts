@@ -1,133 +1,211 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export interface AudioUploadResult {
   audioUrl: string;
   transcription: string;
-  summary?: string;
-  notes?: string;
-  metadata?: any;
+  summary: string;
+  notes: string;
+  metadata: {
+    provider: string;
+    model: string;
+    timestamp: string;
+    duration?: number;
+  };
 }
 
 export const useAudioUpload = () => {
+  const { user } = useUser();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState("");
 
-  // Upload file to backend, which uploads to UploadThing
-  async function uploadFileToUploadThing(file: File): Promise<string | null> {
-    setProgress(20);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/uploadthing-upload", {
-        method: "POST",
-        body: formData,
+  const uploadAndProcess = async (audioBlobOrUrl: Blob | string): Promise<AudioUploadResult | null> => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upload audio files.",
+        variant: "destructive",
       });
-      if (!response.ok) {
-        toast({ title: "Upload failed", description: "Failed to upload file to UploadThing.", variant: "destructive" });
-        return null;
+      return null;
+    }
+
+    setIsProcessing(true);
+    setProgress(0);
+    setCurrentStep("Starting...");
+
+    try {
+      // Step 1: Convert blob URL to File object
+      setCurrentStep("Preparing audio file...");
+      setProgress(5);
+      
+      let audioFile: File;
+      
+      if (typeof audioBlobOrUrl === 'string' && audioBlobOrUrl.startsWith('blob:')) {
+        console.log('🔄 Converting blob URL to File object:', audioBlobOrUrl);
+        const response = await fetch(audioBlobOrUrl);
+        const blob = await response.blob();
+        audioFile = new File([blob], `lecture-${Date.now()}.mp3`, { type: 'audio/mpeg' });
+        console.log('✅ Converted to File:', audioFile.name, audioFile.type, audioFile.size);
+      } else if (audioBlobOrUrl instanceof Blob) {
+        audioFile = new File([audioBlobOrUrl], `lecture-${Date.now()}.mp3`, { type: 'audio/mpeg' });
+        console.log('✅ Using provided Blob as File:', audioFile.name, audioFile.type, audioFile.size);
+      } else {
+        throw new Error('Invalid audio input. Expected Blob or blob URL.');
       }
-      const data = await response.json();
-      setProgress(50);
-      return data.url || null;
-    } catch (err: any) {
-      toast({ title: "Upload error", description: err.message, variant: "destructive" });
-      return null;
-    }
-  }
 
-  // Step 1: Convert blob or blob-URL to File, then upload to backend/UploadThing
-  const uploadAudioFile = async (audioBlobOrUrl: Blob | string): Promise<string> => {
-    setProgress(10);
-    let file: File;
+      // Step 2: Upload to Supabase Storage
+      setCurrentStep("Uploading to cloud storage...");
+      setProgress(15);
+      
+      const filePath = `user-audio/${Date.now()}-${audioFile.name}`;
+      console.log("🪪 Current user ID:", user.id);
+      console.log('📤 Uploading audio file to Supabase:', filePath);
 
-    if (typeof audioBlobOrUrl === "string" && audioBlobOrUrl.startsWith("blob:")) {
-      const response = await fetch(audioBlobOrUrl);
-      const blob = await response.blob();
-      file = new File([blob], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" });
-    } else if (audioBlobOrUrl instanceof Blob) {
-      file = new File([audioBlobOrUrl], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" });
-    } else {
-      throw new Error("Invalid audio input");
-    }
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('audio-uploads')
+        .upload(filePath, audioFile, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: audioFile.type
+        });
 
-    setProgress(25);
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
 
-    const url = await uploadFileToUploadThing(file);
-    if (!url) throw new Error("UploadThing upload failed.");
-    setProgress(60);
-    return url;
-  };
+      console.log('✅ Upload successful:', uploadData.path);
+      setProgress(25);
 
-  // Step 2: Transcribe via your API (using UploadThing URL)
-  const getTranscription = async (audioUrl: string) => {
-    setProgress(70);
-    const res = await fetch("/api/audio-to-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audioUrl }),
-    });
-    if (!res.ok) throw new Error("Transcription failed");
-    const data = await res.json();
-    setProgress(90);
-    return data;
-  };
+      // Step 3: Generate signed URL for AssemblyAI
+      setCurrentStep("Generating secure access URL...");
+      setProgress(30);
+      
+      console.log('🔒 Generating signed URL for AssemblyAI...');
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('audio-uploads')
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
 
-  // Step 3: Get AI notes (when user asks)
-  const getAINotes = async (audioUrl: string, transcript: string) => {
-    setProgress(70);
-    const res = await fetch("/api/audio-to-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audioUrl, transcript, aiNotes: true }),
-    });
-    if (!res.ok) throw new Error("AI Notes failed");
-    const data = await res.json();
-    setProgress(100);
-    return data;
-  };
+      if (signedUrlError) {
+        console.error('❌ Signed URL error:', signedUrlError);
+        throw new Error(`Failed to generate signed URL: ${signedUrlError.message}`);
+      }
 
-  // Main handler: upload → transcribe
-  const uploadAndTranscribe = async (audioBlobOrUrl: Blob | string): Promise<AudioUploadResult | null> => {
-    setIsProcessing(true);
-    setProgress(0);
-    try {
-      const audioUrl = await uploadAudioFile(audioBlobOrUrl);
-      const data = await getTranscription(audioUrl);
+      const audioUrl = signedUrlData.signedUrl;
+      console.log('✅ Signed URL generated for AssemblyAI');
+      setProgress(35);
+
+      // Step 4: Send to AssemblyAI for transcription
+      setCurrentStep("Transcribing with AI...");
+      setProgress(40);
+      
+      console.log('🎯 Sending to AssemblyAI for transcription...');
+      const transcribeResponse = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio_url: audioUrl }),
+      });
+
+      if (!transcribeResponse.ok) {
+        const errorData = await transcribeResponse.json();
+        console.error('❌ AssemblyAI transcription failed:', errorData);
+        throw new Error(errorData.error || 'Transcription failed');
+      }
+
+      const { text: transcriptText, duration } = await transcribeResponse.json();
+      console.log('✅ Transcription received:', transcriptText.length, 'characters');
+      setProgress(70);
+
+      // Step 5: Generate AI notes using GROQ with qwen-qwq-32b
+      setCurrentStep("Generating smart notes...");
+      setProgress(75);
+      
+      console.log('🤖 Generating AI notes with meta-llama/llama-4-scout-17b-16e-instruct...');
+      const notesPrompt = `You are an expert note-taker and study assistant. Based on this lecture transcription, create comprehensive study notes and a concise summary.
+
+TRANSCRIPTION:
+${transcriptText}
+
+Please provide:
+1. A concise summary (2-3 paragraphs) highlighting the main points
+2. Detailed structured notes with key concepts, definitions, and important details
+
+Format the notes with clear headings and bullet points for easy studying.`;
+
+      const aiResponse = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: notesPrompt,
+          model: 'groq'
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        console.error('❌ AI notes generation failed');
+        throw new Error('Failed to generate AI notes');
+      }
+
+      const aiData = await aiResponse.json();
+      const aiContent = aiData.response || aiData.message || '';
+
+      // Parse summary and notes from AI response
+      const sections = aiContent.split(/(?:^|\n)(?:##?\s*(?:Summary|Notes|Detailed))/i);
+      const summary = sections[1]?.trim() || aiContent.substring(0, 500) + '...';
+      const notes = sections[2]?.trim() || aiContent;
+
+      setCurrentStep("Finalizing...");
       setProgress(100);
-      return data; // { transcription, audioUrl, ... }
-    } catch (err: any) {
-      toast({ title: "Failed", description: err.message, variant: "destructive" });
+
+      console.log('🎉 Audio processing completed successfully');
+
+      // Get public URL for display purposes
+      const { data: publicUrlData } = supabase.storage
+        .from('audio-uploads')
+        .getPublicUrl(filePath);
+
+      const result: AudioUploadResult = {
+        audioUrl: publicUrlData.publicUrl,
+        transcription: transcriptText,
+        summary,
+        notes,
+        metadata: {
+          provider: 'AssemblyAI + GROQ',
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          timestamp: new Date().toISOString(),
+          duration
+        }
+      };
+
+      toast({
+        title: "✅ Notes generated from your lecture!",
+        description: "Your audio has been transcribed and smart notes created.",
+      });
+
+      return result;
+
+    } catch (error: any) {
+      console.error('❌ Audio processing error:', error);
+      toast({
+        title: "Processing failed",
+        description: error.message || "Failed to process audio. Please try again.",
+        variant: "destructive",
+      });
       return null;
     } finally {
       setIsProcessing(false);
       setProgress(0);
-    }
-  };
-
-  // Handler: get AI notes after transcript
-  const requestAINotes = async (audioUrl: string, transcript: string) => {
-    setIsProcessing(true);
-    setProgress(0);
-    try {
-      const data = await getAINotes(audioUrl, transcript);
-      setProgress(100);
-      return data;
-    } catch (err: any) {
-      toast({ title: "Failed", description: err.message, variant: "destructive" });
-      return null;
-    } finally {
-      setIsProcessing(false);
-      setProgress(0);
+      setCurrentStep("");
     }
   };
 
   return {
-    uploadAndTranscribe, // use this for initial upload & transcription
-    requestAINotes,      // use this when user asks for AI-powered notes
+    uploadAndProcess,
     isProcessing,
     progress,
+    currentStep
   };
 };
