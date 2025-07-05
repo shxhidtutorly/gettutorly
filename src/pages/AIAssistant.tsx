@@ -723,7 +723,7 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
         files: files,
         filePreviews: filePreviews,
       };
-      setMessages((prev) => [...prev, newMessage]);
+      //setMessages((prev) => [...prev, newMessage]);
       onSend(formattedInput, files);
       setInput("");
       setFiles([]);
@@ -745,14 +745,12 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
       text: `[Voice message - ${duration} seconds]`,
       isUser: true,
     };
-    setMessages((prev) => [...prev, voiceMessage]);
     onSend(`[Voice message - ${duration} seconds]`, []);
     setIsTypingHeading(false); // Stop typing effect on send
   };
 
   const handleBackToDashboard = () => {
     console.log("Back to Dashboard clicked!");
-    setMessages([]); // Clear messages for a clean chat box
     setInput("");
     setFiles([]);
     setFilePreviews({});
@@ -1120,7 +1118,7 @@ const AIAssistant = () => {
       isUser: true,
       files,
     };
-    setMessages((prev) => [...prev, userMessage]);
+    //setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
@@ -1135,7 +1133,7 @@ const AIAssistant = () => {
 
       const data = await response.json();
       const aiResponse = data.response || data.message || "No response received from AI";
-      setMessages((prev) => [
+     setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
