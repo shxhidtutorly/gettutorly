@@ -764,17 +764,7 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
       <div className="flex flex-col items-center justify-center h-full w-full relative">
         {messages.length > 0 && (
           <div className="absolute top-4 left-4 z-20">
-            <StarBorder
-              as="button"
-              className="px-4 py-2 text-sm rounded-full"
-              color="hsl(var(--primary))"
-              onClick={handleBackToDashboard}
-            >
-              <LayoutDashboard className="inline-block w-4 h-4 mr-2" />
-              Back to Dashboard
-            </StarBorder>
-          </div>
-        )}
+          
 
         <motion.div
           initial={{ y: 0 }}
