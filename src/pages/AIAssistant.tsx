@@ -621,6 +621,35 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const { messages = [], ...rest } = props as any;
 const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
  
+ const [headingState, setHeadingState] = useState<"ask" | "typingTutorly" | "tutorly">("ask");
+
+useEffect(() => {
+  if (messages.length === 0) {
+    setHeadingState("ask");
+  } else if (headingState === "ask") {
+    setHeadingState("typingTutorly");
+  }
+}, [messages.length]);
+
+// Animation for "Tutorly" (simple typewriter effect for one time)
+const [tutorlyText, setTutorlyText] = useState("");
+useEffect(() => {
+  if (headingState === "typingTutorly") {
+    let i = 0;
+    setTutorlyText("");
+    const text = "Tutorly";
+    const interval = setInterval(() => {
+      setTutorlyText((prev) => prev + text[i]);
+      i++;
+      if (i === text.length) {
+        clearInterval(interval);
+        setTimeout(() => setHeadingState("tutorly"), 500); // After typing, switch to plain Tutorly
+      }
+    }, 80);
+    return () => clearInterval(interval);
+  }
+}, [headingState]);
+ 
   const defaultPlaceholders = [
     "Ask Tutorly Anything...",
     "What is the capital of France?",
@@ -761,36 +790,27 @@ const [isTypingHeading, setIsTypingHeading] = useState(messages.length === 0);
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center h-full w-full relative">
-        {messages.length > 0 && (
-          <div className="absolute top-4 left-4 z-20">
-            <StarBorder
-              as="button"
-              className="px-4 py-2 text-sm rounded-full"
-              color="hsl(var(--primary))"
-              onClick={handleBackToDashboard}
-            >
-              <LayoutDashboard className="inline-block w-4 h-4 mr-2" />
-              Back to Dashboard
-            </StarBorder>
-          </div>
-        )}
-
-        <motion.div
-          initial={{ y: 0 }}
-          animate={{ y: messages.length > 0 ? -100 : 0, opacity: messages.length > 0 ? 0 : 1 }} // Adjust based on desired final position
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
-          className="mb-8"
-        >
-          <TypingAnimation
-            text="Ask Tutorly Anything"
-            className="text-4xl font-bold text-white"
-            stopTyping={!isTypingHeading || messages.length > 0} // Stop typing if messages exist
-            onComplete={() => {
-              if (messages.length > 0) setIsTypingHeading(false);
-            }}
-          />
-        </motion.div>
+      <div className="mb-8 min-h-[56px] flex items-center justify-center">
+  {headingState === "ask" && (
+    <TypingAnimation
+      text="Ask Tutorly Anything"
+      className="text-4xl font-bold text-white"
+      stopTyping={messages.length > 0}
+      // No onComplete needed here
+    />
+  )}
+  {headingState === "typingTutorly" && (
+    <h1 className="font-display text-center text-4xl font-bold leading-[5rem] tracking-[-0.02em] drop-shadow-sm text-white animate-pulse">
+      {tutorlyText}
+      <span className="text-primary animate-blink" style={{marginLeft:2}}>|</span>
+    </h1>
+  )}
+  {headingState === "tutorly" && (
+    <h1 className="font-display text-center text-4xl font-bold leading-[5rem] tracking-[-0.02em] drop-shadow-sm text-white">
+      Tutorly
+    </h1>
+  )}
+</div>
 
         <div className="flex flex-col w-full max-w-[500px] flex-grow justify-end">
           <div className="flex flex-col gap-2 mb-4 overflow-y-auto max-h-[calc(100vh-200px)] no-scrollbar">
