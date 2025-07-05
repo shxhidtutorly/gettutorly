@@ -618,7 +618,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const [showCanvas, setShowCanvas] = React.useState(false);
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const promptBoxRef = React.useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { messages = [], ...rest } = props as any;
   const [isTypingHeading, setIsTypingHeading] = useState(true);
 
   const defaultPlaceholders = [
@@ -1097,7 +1097,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 PromptInputBox.displayName = "PromptInputBox";
 
 
-// Message type matching PromptInputBox ChatMessage shape
+// Match the structure your PromptInputBox expects:
 type ChatMessage = {
   id: string;
   text: string;
@@ -1107,6 +1107,7 @@ type ChatMessage = {
 };
 
 const AIAssistant = () => {
+  // Initial greeting (assistant message)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: Date.now().toString(),
@@ -1116,45 +1117,41 @@ const AIAssistant = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Keep a ref to avoid state closure issues in async
-  const messagesRef = useRef(messages);
-  messagesRef.current = messages;
-
-  // This handler will be passed to PromptInputBox
+  // This is called when user sends a message via PromptInputBox
   const handleSendMessage = async (message: string, files?: File[]) => {
     if (!message.trim() || isLoading) return;
 
-    // Add user message
+    // Add user's message to chat
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: message.trim(),
       isUser: true,
-      files: files,
+      files,
     };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
-      // If you want to send files, you may want to use FormData instead
-      // Here, we just send the text prompt (expand as needed for files)
+      // API call (same as your old code)
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: message.trim(), model: 'gemini' })
+        body: JSON.stringify({ prompt: message.trim(), model: 'gemini' }),
       });
 
-      if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      const data = await response.json();
-      const aiResponse = data.response || data.message || 'No response received from AI';
+      if (!response.ok)
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
 
-      // Add assistant message
-      setMessages((prev) => [
+      const data = await response.json();
+      const aiResponse = data.response || data.message || "No response received from AI";
+      // Add AI reply
+      setMessages(prev => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           text: aiResponse,
           isUser: false,
-        }
+        },
       ]);
     } catch (error) {
       let errorMessage = "I'm having trouble connecting right now. ";
@@ -1169,7 +1166,7 @@ const AIAssistant = () => {
           errorMessage += "Please try again or contact support if this continues.";
         }
       }
-      setMessages((prev) => [
+      setMessages(prev => [
         ...prev,
         {
           id: (Date.now() + 2).toString(),
@@ -1182,15 +1179,14 @@ const AIAssistant = () => {
     }
   };
 
-  // You may want to customize the background etc. as before
+  // Pass messages, isLoading, and onSend to PromptInputBox
   return (
     <div className="flex w-full h-screen justify-center items-center bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
       <div className="p-4 w-[500px] h-full flex flex-col justify-end">
-        {/* Pass messages and isLoading as props */}
         <PromptInputBox
           onSend={handleSendMessage}
           isLoading={isLoading}
-          // @ts-ignore - extend PromptInputBox to accept messages as prop if needed
+          // @ts-ignore: PromptInputBox doesn't officially document a `messages` prop, but pass it!
           messages={messages}
         />
       </div>
