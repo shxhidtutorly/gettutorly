@@ -1147,55 +1147,56 @@ const AIAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // AI Reply fetch (old logic)
- const handleSendMessage = async (message: string, files?: File[]) => {
+const handleSendMessage = async (message: string, files?: File[]) => {
   if (!message.trim() || isLoading) return;
 
- const processFile = (file: File) => {
-  if (file.size > 15 * 1024 * 1024) {
-    console.log("File too large (max 15MB)");
-    return;
-  }
-  setFiles([file]);
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const base64 = e.target?.result as string;
-    setFilePreviews({ [file.name]: base64 });
-  };
-
-  reader.readAsDataURL(file);
-};
-
-
-  const userMessage: ChatMessage = {
-    id: Date.now().toString(),
-    text: message.trim(),
-    isUser: true,
-    files,
-    filePreviews,
-  };
-
-  setMessages((prev) => [...prev, userMessage]);
   setIsLoading(true);
 
   try {
+    // Prepare base64 versions of files
+    const fileData = await Promise.all(
+      (files || []).map(async (file) => {
+        const base64 = await convertFileToBase64(file);
+        return {
+          name: file.name,
+          type: file.type,
+          base64: base64.split(',')[1], // remove base64 prefix
+          preview: base64, // full base64 string for preview
+        };
+      })
+    );
+
+    // Prepare previews
+    const filePreviews: { [key: string]: string } = {};
+    fileData.forEach((f) => {
+      filePreviews[f.name] = f.preview;
+    });
+
+    // Add user message to chat
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      text: message.trim(),
+      isUser: true,
+      files,
+      filePreviews,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Send to API
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt: {
           text: message.trim(),
-          files: base64Files,
+          files: fileData.map(({ preview, ...rest }) => rest), // remove preview for API
         },
         model: 'gemini',
       }),
     });
 
-    if (!response.ok)
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-
     const data = await response.json();
-    const aiResponse = data.response || data.message || "No response received from AI";
+    const aiResponse = data.response || data.message || 'No response from AI';
 
     setMessages((prev) => [
       ...prev,
@@ -1206,30 +1207,22 @@ const AIAssistant = () => {
       },
     ]);
   } catch (error) {
-    let errorMessage = "I'm having trouble connecting right now. ";
-    if (error instanceof Error) {
-      if (error.message.includes('fetch')) {
-        errorMessage += "Please check your connection and try again.";
-      } else if (error.message.includes('429')) {
-        errorMessage += "I'm a bit busy right now. Please try again in a moment.";
-      } else if (error.message.includes('401')) {
-        errorMessage += "There's an authentication issue. Please contact support.";
-      } else {
-        errorMessage += "Please try again or contact support if this continues.";
-      }
-    }
+    let errorMessage = 'Something went wrong.';
+    if (error instanceof Error) errorMessage += ' ' + error.message;
+
     setMessages((prev) => [
       ...prev,
       {
         id: (Date.now() + 2).toString(),
         text: errorMessage,
         isUser: false,
-      }
+      },
     ]);
   } finally {
     setIsLoading(false);
   }
 };
+
 const convertFileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1238,6 +1231,7 @@ const convertFileToBase64 = (file: File): Promise<string> => {
     reader.readAsDataURL(file);
   });
 };
+
 
   // For Back to Dashboard button
   const handleBackToDashboard = () => {
