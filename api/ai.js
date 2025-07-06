@@ -14,7 +14,6 @@ export default async function handler(req, res) {
   try {
     const { prompt, model = 'gemini' } = req.body;
 
-    // Validate prompt (string or object with text)
     const isValidPrompt =
       typeof prompt === 'string' ||
       (typeof prompt === 'object' && typeof prompt.text === 'string');
@@ -34,9 +33,11 @@ export default async function handler(req, res) {
       });
     }
 
+    const text = typeof prompt === 'string' ? prompt : prompt.text;
+    const files = typeof prompt === 'object' && Array.isArray(prompt.files) ? prompt.files : [];
+
     const aiManager = new AIProviderManager();
-const text = typeof prompt === 'string' ? prompt : prompt.text;
-const aiResponse = await aiManager.getAIResponse(text, model);
+    const aiResponse = await aiManager.getAIResponse({ text, files }, model); // ✅ pass both text and files
 
     return res.status(200).json({
       response: aiResponse.message,
@@ -44,6 +45,8 @@ const aiResponse = await aiManager.getAIResponse(text, model);
       model: aiResponse.model,
     });
   } catch (error) {
+    console.error("❌ AI route error:", error);
+
     if (error instanceof Error) {
       if (error.message.includes('rate limit')) {
         return res.status(429).json({ error: 'Rate limit exceeded.', details: error.message });
@@ -55,7 +58,7 @@ const aiResponse = await aiManager.getAIResponse(text, model);
 
     return res.status(500).json({
       error: 'Internal server error.',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      details: error instanceof Error ? error.message : String(error),
     });
   }
 }
