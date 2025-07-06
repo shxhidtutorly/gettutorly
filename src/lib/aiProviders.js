@@ -185,13 +185,28 @@ class AIProviderManager {
       })
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
-    }
-
-    return data.content?.[0]?.text || 'No response from Claude';
+    // --- ADDED LOGGING HERE ---
+  if (!response.ok || data.error) {
+    console.error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`, data); // Log full error data
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
   }
+
+  const geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!geminiTextResponse) {
+    console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
+    // Check for specific reasons from Gemini, e.g., safety ratings
+    if (data.promptFeedback?.blockReason) {
+      console.warn(`Gemini blocked response due to: ${data.promptFeedback.blockReason}`);
+    }
+    if (data.candidates?.[0]?.finishReason) {
+      console.warn(`Gemini finished with reason: ${data.candidates[0].finishReason}`);
+    }
+    return 'No response from Gemini (see server logs for details).'; // Add hint for debugging
+  }
+
+  return geminiTextResponse;
+}
 
   async callOpenRouter(prompt, apiKey, model) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
