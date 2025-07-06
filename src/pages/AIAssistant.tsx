@@ -1234,7 +1234,6 @@ async function convertFileToBase64(file: File): Promise<string> {
     window.location.href = '/dashboard';
   };
 
-  return (
     <div className="flex w-full h-screen justify-center items-center bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
       {/* Transparent Back to Dashboard button absolute top-left */}
       <button
