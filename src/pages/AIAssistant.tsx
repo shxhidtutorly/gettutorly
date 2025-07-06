@@ -1132,7 +1132,6 @@ const AIAssistant = () => {
 
     const filePreviews: { [key: string]: string } = {};
 
-    // Convert files to base64 preview (used for frontend and backend)
     const fileData = await Promise.all(
       (files || []).map(async (file) => {
         const base64 = await convertFileToBase64(file);
@@ -1140,7 +1139,7 @@ const AIAssistant = () => {
         return {
           name: file.name,
           type: file.type,
-          base64: base64.split(',')[1], // Remove "data:*/*;base64," prefix
+          base64: base64.split(',')[1], // remove data:*/*;base64, prefix
         };
       })
     );
@@ -1163,18 +1162,14 @@ const AIAssistant = () => {
         body: JSON.stringify({
           prompt: {
             text: message.trim(),
-            files: fileData, // Send to Gemini backend
+            files: fileData,
           },
           model: 'gemini',
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
       const data = await response.json();
-      const aiResponse = data.response || data.message || "No response received from AI";
+      const aiResponse = data.response || data.message || 'No response from AI';
 
       setMessages((prev) => [
         ...prev,
@@ -1185,18 +1180,8 @@ const AIAssistant = () => {
         },
       ]);
     } catch (error) {
-      let errorMessage = "I'm having trouble connecting right now. ";
-      if (error instanceof Error) {
-        if (error.message.includes('fetch')) {
-          errorMessage += "Please check your connection and try again.";
-        } else if (error.message.includes('429')) {
-          errorMessage += "I'm a bit busy right now. Please try again in a moment.";
-        } else if (error.message.includes('401')) {
-          errorMessage += "There's an authentication issue. Please contact support.";
-        } else {
-          errorMessage += "Please try again or contact support if this continues.";
-        }
-      }
+      let errorMessage = 'Something went wrong.';
+      if (error instanceof Error) errorMessage += ' ' + error.message;
 
       setMessages((prev) => [
         ...prev,
@@ -1212,15 +1197,52 @@ const AIAssistant = () => {
   };
 
   return (
-    <div className="ai-chat-box">
-      {/* your UI rendering logic here, eg. ChatBubble, PromptInputBox */}
+    <div className="flex flex-col h-full p-4 space-y-4 overflow-y-auto">
+      {messages.map((msg) => (
+        <div
+          key={msg.id}
+          className={`p-3 rounded-lg max-w-xl ${
+            msg.isUser ? 'self-end bg-blue-600 text-white' : 'self-start bg-zinc-800 text-white'
+          }`}
+        >
+          <p>{msg.text}</p>
+          {msg.filePreviews &&
+            Object.entries(msg.filePreviews).map(([fileName, preview]) => (
+              <div key={fileName} className="mt-2">
+                {preview.startsWith('data:image') && (
+                  <img src={preview} alt={fileName} className="rounded max-h-48" />
+                )}
+                {preview.startsWith('data:audio') && (
+                  <audio controls src={preview} className="mt-2 w-full" />
+                )}
+                {preview.startsWith('data:application/pdf') && (
+                  <a
+                    href={preview}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 underline"
+                  >
+                    Open PDF: {fileName}
+                  </a>
+                )}
+              </div>
+            ))}
+        </div>
+      ))}
+
+      <div className="pt-4">
+        <PromptInputBox
+          onSend={handleSendMessage}
+          isLoading={isLoading}
+          // @ts-ignore
+          messages={messages}
+        />
+      </div>
     </div>
   );
 };
 
-
-
-// Utility to convert File to base64 string
+// Utility function
 async function convertFileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1229,6 +1251,7 @@ async function convertFileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
   // For Back to Dashboard button
   const handleBackToDashboard = () => {
     window.location.href = '/dashboard';
