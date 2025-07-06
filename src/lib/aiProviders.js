@@ -140,11 +140,29 @@ class AIProviderManager {
     const data = await response.json();
 
     if (!response.ok || data.error) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
-    }
-
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
+    console.error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`, data);
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
   }
+
+  const geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!geminiTextResponse) {
+    console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
+    // Check for specific reasons from Gemini's response structure
+    if (data.promptFeedback?.blockReason) {
+      console.warn(`Gemini blocked response due to: ${data.promptFeedback.blockReason}`);
+      // Possible block reasons: "SAFETY", "OTHER"
+    }
+    if (data.candidates?.[0]?.finishReason) {
+      console.warn(`Gemini finished with reason: ${data.candidates[0].finishReason}`);
+      // Possible finish reasons: "STOP", "MAX_TOKENS", "SAFETY", "RECITATION", "OTHER"
+    }
+    // Return a more informative message if you want to display it on the frontend
+    return 'No response from Gemini (check server logs for details).';
+  }
+
+  return geminiTextResponse;
+}
 
   async callGroq(prompt, apiKey) {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
