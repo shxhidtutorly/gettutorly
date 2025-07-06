@@ -153,6 +153,8 @@ class AIProviderManager {
   // FIXED: Corrected the fetch call syntax (options object was malformed)
   // Also updated prompt to expect an object { text, files }
   async callGemini(prompt, apiKey) {
+  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
+
     const parts = [];
 
     if (prompt.text) parts.push({ text: prompt.text });
@@ -209,6 +211,7 @@ class AIProviderManager {
   }
 
   async callGroq(prompt, apiKey) {
+  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -263,6 +266,7 @@ class AIProviderManager {
   }
 
   async callOpenRouter(prompt, apiKey, model) {
+  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -318,6 +322,7 @@ class AIProviderManager {
   }
 
   async callTogether(prompt, apiKey) {
+  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
     const response = await fetch('https://api.together.xyz/v1/chat/completions', { // Changed to /v1/chat/completions for consistency with other chat models
       method: 'POST',
       headers: {
