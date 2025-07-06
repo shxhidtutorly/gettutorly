@@ -277,40 +277,37 @@ class AIProviderManager {
     return Array.isArray(data) ? data[0]?.generated_text || 'No response from Hugging Face' : data.generated_text || 'No response from Hugging Face';
   }
 
-  async callTogether(prompt, apiKey) {
-    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        // Consider making this model dynamic based on the 'model' parameter passed in,
-        // or ensure it's a model you intend to use with Together.ai.
-        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 4096,
-        temperature: 0.3
-      })
-    });
+async function callTogether(prompt, apiKey) {
+  const response = await fetch('https://api.together.xyz/v1/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+      prompt: prompt, // ✅ Must be a plain string
+      max_tokens: 4096,
+      temperature: 0.3
+    })
+  });
 
-    const data = await response.json();
+  const data = await response.json();
 
-    console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
-    const message = data.choices?.[0]?.message?.content;
-    const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
-    console.log(`📌 Together finish reason: ${finishReason}`);
+  console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
+  const message = data.choices?.[0]?.text || 'No response';
+  const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
+  console.log(`📌 Together finish reason: ${finishReason}`);
 
-    if (!message || message.length < 20) {
-      console.warn('⚠️ Short or missing response from Together:', message);
-    }
-
-    if (!response.ok) {
-      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
-    }
-
-    return message || 'No response from Together.ai';
+  if (!message || message.length < 20) {
+    console.warn('⚠️ Short or missing response from Together:', message);
   }
+
+  if (!response.ok) {
+    throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
+  }
+
+  return message;
 }
 
 export { AIProviderManager };
