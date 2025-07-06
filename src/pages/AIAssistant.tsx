@@ -1240,125 +1240,30 @@ const convertFileToBase64 = (file: File): Promise<string> => {
  
 
 
-  <div className="flex flex-col h-screen w-full bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
-
-  {/* Transparent Back to Dashboard button absolute top-left */}
-  <button
-    onClick={handleBackToDashboard}
-    className="absolute top-4 left-4 px-3 py-2 text-blue-400 hover:text-white border border-blue-700 rounded-lg shadow transition-all duration-200 hover:bg-blue-900 hover:scale-105 bg-transparent backdrop-blur-none z-50"
-    style={{
-      fontWeight: 500,
-      background: "transparent",
-      opacity: 0.9,
-    }}
-  >
-    <LayoutDashboard className="inline-block mr-2" size={18} /> Back to Dashboard
-  </button>
-
-  {/* Header */}
-  <header className="w-full bg-black bg-opacity-70 text-white p-4 flex justify-center items-center relative z-10">
-    <h1 className="text-3xl font-bold text-orange-400">Tutorly</h1>
-  </header>
-
-  {/* Main Chat Area - This will be scrollable */}
-  <main className="flex-1 overflow-y-auto p-4 flex flex-col items-center">
-    <div className="w-full max-w-3xl flex-grow flex flex-col justify-end">
-      {/* Your existing chat message rendering logic goes here.
-          For example, if you have a map function for messages, put it here:
-      */}
-      {/* <div className="space-y-4">
-        {messages.map((message, index) => (
-          <div key={index} className="...">
-            {message.text}
-          </div>
-        ))}
-      </div> */}
-      <div className="flex-grow"></div> {/* This pushes content to the bottom initially */}
-       {/* Chat Messages Area */}
-       {/* Ensure your chat messages are inside this div and that this div is scrollable */}
-       {/* Example: */}
-        <div className="w-full px-4 pt-4 overflow-y-auto no-scrollbar" ref={messagesEndRef}>
-          {/* Your chat messages will be rendered here. Make sure each message has appropriate styling. */}
-          {/* For example: */}
-          {messages.map((msg, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className={cn(
-                "flex items-end mb-4",
-                msg.isUser ? "justify-end" : "justify-start"
-              )}
-            >
-              {!msg.isUser && (
-                <div className="flex-shrink-0 mr-2">
-                  <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold">T</div>
-                </div>
-              )}
-              <div
-                className={cn(
-                  "max-w-[70%] p-3 rounded-lg shadow-md",
-                  msg.isUser
-                    ? "bg-blue-600 text-white rounded-br-none"
-                    : "bg-gray-700 text-white rounded-bl-none"
-                )}
-              >
-                {msg.type === "text" && <p className="text-sm leading-relaxed">{msg.content}</p>}
-                {/* Add other message types here if you have them */}
-              </div>
-              {msg.isUser && (
-                <div className="flex-shrink-0 ml-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">U</div>
-                </div>
-              )}
-            </motion.div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start mb-4">
-              <div className="bg-gray-700 text-white p-3 rounded-lg rounded-bl-none shadow-md">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-           {/* Auto-scroll to bottom */}
-           <div ref={messagesEndRef} />
-        </div>
-    </div>
-  </main>
-
-  {/* Input Area - Fixed at the bottom */}
-  <div className="w-full flex justify-center p-4 bg-black bg-opacity-70 border-t border-gray-700 z-10">
-    {/* Your existing input field and buttons will go here.
-        Make sure the `max-w-3xl` is applied to your input container to match the chat width.
-    */}
-    {/* For example: */}
-    <div className="w-full max-w-3xl flex items-center bg-gray-800 rounded-xl p-2 shadow-lg">
-      <textarea
-        ref={textareaRef}
-        value={input}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        placeholder="Message Tutorly..."
-        rows={1}
-        className="flex-1 bg-transparent text-white placeholder-gray-400 px-3 py-2 resize-none outline-none focus:ring-0 text-sm no-scrollbar"
-        style={{ maxHeight: '150px' }} // Limit textarea height
-      />
+  return (
+    <div className="flex w-full h-screen justify-center items-center bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
+      {/* Transparent Back to Dashboard button absolute top-left */}
       <button
-        onClick={handleSendMessage}
-        className="ml-2 p-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white transition-colors duration-200"
-        aria-label="Send message"
+        onClick={handleBackToDashboard}
+        className="absolute top-4 left-4 px-3 py-2 text-blue-400 hover:text-white border border-blue-700 rounded-lg shadow transition-all duration-200 hover:bg-blue-900 hover:scale-105 bg-transparent backdrop-blur-none"
+        style={{
+          fontWeight: 500,
+          background: "transparent",
+          opacity: 1,
+        }}
       >
-        <ArrowUp size={20} />
+        <span style={{ fontSize: '1.2em' }}>←</span> Back to Dashboard
       </button>
+      <div className="p-4 w-[500px] h-full flex flex-col justify-end">
+        <PromptInputBox
+          onSend={handleSendMessage}
+          isLoading={isLoading}
+          // @ts-ignore: PromptInputBox doesn't officially document a `messages` prop, but pass it!
+          messages={messages}
+        />
+      </div>
     </div>
-  </div>
-</div>
+  );
 };
 
 export default AIAssistant;
