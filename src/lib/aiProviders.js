@@ -27,41 +27,27 @@ class AIProviderManager {
     return keys.split(',').map(key => key.trim()).filter(Boolean);
   }
 
-  async getAIResponse(provider, prompt, apiKey, model) => {
-    const requestedProvider = this.getProviderForModel(model);
-    const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
+ async getAIResponse(prompt, model) {
+  const requestedProvider = this.getProviderForModel(model);
+  const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
-    for (const provider of fallbackProviders) {
-      const keys = this.apiKeys[provider];
-      if (!keys || keys.length === 0) {
-        console.log(`⚠️ No keys for provider: ${provider}, skipping...`);
-        continue;
+  for (const provider of fallbackProviders) {
+    const keys = this.apiKeys[provider];
+    if (!keys || keys.length === 0) continue;
+
+    for (let i = 0; i < keys.length; i++) {
+      try {
+        const response = await this.callProvider(provider, prompt, keys[i], model);
+        return { message: response, provider, model };
+      } catch (error) {
+        console.log(`❌ Failed with ${provider} key ${i + 1}:`, error.message);
       }
-
-      let lastError = null;
-
-      for (let i = 0; i < keys.length; i++) {
-        try {
-          console.log(`🔄 Attempting ${provider} with key ${i + 1}/${keys.length}`);
-          const response = await this.callProvider(provider, prompt, keys[i], model);
-          console.log(`✅ Success with ${provider} key ${i + 1}`);
-          return {
-            message: response,
-            provider,
-            model
-          };
-        } catch (error) {
-          console.log(`❌ Failed with ${provider} key ${i + 1}:`, error instanceof Error ? error.message : error);
-          lastError = error instanceof Error ? error : new Error(String(error));
-          continue;
-        }
-      }
-
-      console.log(`⚠️ All keys failed for provider: ${provider}, trying next provider...`);
     }
-
-    throw new Error(`All API keys failed for all providers.`);
   }
+
+  throw new Error(`All API keys failed for all providers.`);
+}
+
 
   getProviderForModel(model) {
     const modelProviderMap = {
@@ -75,52 +61,60 @@ class AIProviderManager {
     return modelProviderMap[model] || model;
   }
 
-  async callGemini(prompt, apiKey) {
-  const isMultimodal = typeof prompt !== 'string' || prompt.includesMedia;
-
-  const modelsToTry = isMultimodal
-    ? ['gemini-1.5-pro-latest']
-    : ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest'];
-
-  const buildParts = (input) => {
-    if (typeof input === 'string') return [{ text: input }];
-    const parts = [];
-    if (input.text) parts.push({ text: input.text });
-    if (input.image) parts.push({ inlineData: { mimeType: input.image.mimeType, data: input.image.base64 } });
-    if (input.audio) parts.push({ inlineData: { mimeType: input.audio.mimeType, data: input.audio.base64 } });
-    if (input.document) parts.push({ inlineData: { mimeType: input.document.mimeType, data: input.document.base64 } });
-    return parts;
-  };
-
-  for (const model of modelsToTry) {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: buildParts(prompt) }],
-          generationConfig: {
-            temperature: 0.3,
-            topK: 20,
-            topP: 0.8,
-            maxOutputTokens: 1000
-          }
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok || data.error) {
-        console.warn(`⚠️ Gemini ${model} error:`, data.error?.message || response.statusText);
-        continue;
-      }
-
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
-    } catch (err) {
-      console.error(`❌ Exception using Gemini model ${model}:`, err);
+  async callProvider(provider, prompt, apiKey, model) {
+    switch (provider) {
+      case 'gemini':
+        return await this.callGemini(prompt, apiKey);
+      case 'groq':
+        return await this.callGroq(prompt, apiKey);
+      case 'claude':
+        return await this.callClaude(prompt, apiKey);
+      case 'openrouter':
+        return await this.callOpenRouter(prompt, apiKey, model);
+      case 'huggingface':
+        return await this.callHuggingFace(prompt, apiKey);
+      case 'together':
+        return await this.callTogether(prompt, apiKey);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
-  throw new Error('All Gemini model attempts failed.');
+callGemini = async ({ text, files }, apiKey) => {
+  const parts = [];
+
+  if (text) parts.push({ text });
+
+  for (const file of files) {
+    parts.push({
+      inlineData: {
+        mimeType: file.type,
+        data: file.base64
+      }
+    });
+  }
+
+const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`);
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: {
+        temperature: 0.3,
+        topK: 20,
+        topP: 0.8,
+        maxOutputTokens: 900
+      }
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || data.error) {
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
+  }
+
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
 }
 
   async callGroq(prompt, apiKey) {
