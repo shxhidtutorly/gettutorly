@@ -1230,13 +1230,7 @@ const AIAssistant = () => {
     setIsLoading(false);
   }
 };
-
-  // For Back to Dashboard button
-  const handleBackToDashboard = () => {
-    window.location.href = '/dashboard';
-  };
- 
- const convertFileToBase64 = (file: File): Promise<string> => {
+const convertFileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
@@ -1244,6 +1238,12 @@ const AIAssistant = () => {
     reader.readAsDataURL(file);
   });
 };
+
+  // For Back to Dashboard button
+  const handleBackToDashboard = () => {
+    window.location.href = '/dashboard';
+  };
+ 
 
 
   return (
