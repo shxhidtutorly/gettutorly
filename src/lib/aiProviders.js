@@ -27,26 +27,27 @@ class AIProviderManager {
     return keys.split(',').map(key => key.trim()).filter(Boolean);
   }
 
- async getAIResponse(prompt, model) 
-  const requestedProvider = this.getProviderForModel(model);
-  const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
+  // FIXED: Added missing curly braces for the method body
+  async getAIResponse(prompt, model) {
+    const requestedProvider = this.getProviderForModel(model);
+    const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
-  for (const provider of fallbackProviders) {
-    const keys = this.apiKeys[provider];
-    if (!keys || keys.length === 0) continue;
+    for (const provider of fallbackProviders) {
+      const keys = this.apiKeys[provider];
+      if (!keys || keys.length === 0) continue;
 
-    for (let i = 0; i < keys.length; i++) {
-      try {
-        const response = await this.callProvider(provider, prompt, keys[i], model);
-        return { message: response, provider, model };
-      } catch (error) {
-        console.log(`❌ Failed with ${provider} key ${i + 1}:`, error.message);
+      for (let i = 0; i < keys.length; i++) {
+        try {
+          const response = await this.callProvider(provider, prompt, keys[i], model);
+          return { message: response, provider, model };
+        } catch (error) {
+          console.log(`❌ Failed with ${provider} key ${i + 1}:`, error.message);
+        }
       }
     }
-  }
 
-  throw new Error(`All API keys failed for all providers.`);
-}
+    throw new Error(`All API keys failed for all providers.`);
+  }
 
 
   getProviderForModel(model) {
@@ -64,58 +65,86 @@ class AIProviderManager {
   async callProvider(provider, prompt, apiKey, model) {
     switch (provider) {
       case 'gemini':
+        // If prompt is a string, convert it to the expected object format for Gemini
+        if (typeof prompt === 'string') {
+          return await this.callGemini({ text: prompt }, apiKey);
+        }
         return await this.callGemini(prompt, apiKey);
       case 'groq':
+        // Ensure prompt is a string for Groq
+        if (typeof prompt !== 'string') {
+          throw new Error('Groq API expects a string prompt.');
+        }
         return await this.callGroq(prompt, apiKey);
       case 'claude':
+        // Ensure prompt is a string for Claude
+        if (typeof prompt !== 'string') {
+          throw new Error('Claude API expects a string prompt.');
+        }
         return await this.callClaude(prompt, apiKey);
       case 'openrouter':
+        // Ensure prompt is a string for OpenRouter
+        if (typeof prompt !== 'string') {
+          throw new Error('OpenRouter API expects a string prompt.');
+        }
         return await this.callOpenRouter(prompt, apiKey, model);
       case 'huggingface':
+        // Ensure prompt is a string for HuggingFace
+        if (typeof prompt !== 'string') {
+          throw new Error('Hugging Face API expects a string prompt.');
+        }
         return await this.callHuggingFace(prompt, apiKey);
       case 'together':
+        // Ensure prompt is a string for Together
+        if (typeof prompt !== 'string') {
+          throw new Error('Together API expects a string prompt.');
+        }
         return await this.callTogether(prompt, apiKey);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
-callGemini = async ({ text, files }, apiKey) => {
-  const parts = [];
+  // FIXED: Corrected the fetch call syntax (options object was malformed)
+  // Also updated prompt to expect an object { text, files }
+  async callGemini(prompt, apiKey) {
+    const parts = [];
 
-  if (text) parts.push({ text });
+    if (prompt.text) parts.push({ text: prompt.text });
 
-  for (const file of files) {
-    parts.push({
-      inlineData: {
-        mimeType: file.type,
-        data: file.base64
+    if (prompt.files) {
+      for (const file of prompt.files) {
+        parts.push({
+          inlineData: {
+            mimeType: file.type,
+            data: file.base64
+          }
+        });
       }
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 20,
+          topP: 0.8,
+          maxOutputTokens: 900
+        }
+      })
     });
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
+    }
+
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
   }
-
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`);
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: {
-        temperature: 0.3,
-        topK: 20,
-        topP: 0.8,
-        maxOutputTokens: 900
-      }
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok || data.error) {
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
-  }
-
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
-}
 
   async callGroq(prompt, apiKey) {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -174,6 +203,8 @@ const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/m
         'X-Title': 'AI Provider Manager'
       },
       body: JSON.stringify({
+        // Consider making this model dynamic based on the 'model' parameter passed in,
+        // or ensure it's a model you intend to use with OpenRouter.
         model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2000,
@@ -221,6 +252,8 @@ const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/m
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        // Consider making this model dynamic based on the 'model' parameter passed in,
+        // or ensure it's a model you intend to use with Together.ai.
         model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 4096,
