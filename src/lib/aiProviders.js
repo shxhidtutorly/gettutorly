@@ -75,47 +75,53 @@ class AIProviderManager {
     return modelProviderMap[model] || model;
   }
 
-  async callProvider(provider, prompt, apiKey, model) {
-    switch (provider) {
-      case 'gemini':
-        return await this.callGemini(prompt, apiKey);
-      case 'groq':
-        return await this.callGroq(prompt, apiKey);
-      case 'claude':
-        return await this.callClaude(prompt, apiKey);
-      case 'openrouter':
-        return await this.callOpenRouter(prompt, apiKey, model);
-      case 'huggingface':
-        return await this.callHuggingFace(prompt, apiKey);
-      case 'together':
-        return await this.callTogether(prompt, apiKey);
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
-  }
-
   async callGemini(prompt, apiKey) {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 20,
-          topP: 0.8,
-          maxOutputTokens: 900
-        }
-      })
-    });
+  const isMultimodal = typeof prompt !== 'string' || prompt.includesMedia;
 
-    const data = await response.json();
-    if (!response.ok || data.error) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
+  const modelsToTry = isMultimodal
+    ? ['gemini-1.5-pro-latest']
+    : ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest'];
+
+  const buildParts = (input) => {
+    if (typeof input === 'string') return [{ text: input }];
+    const parts = [];
+    if (input.text) parts.push({ text: input.text });
+    if (input.image) parts.push({ inlineData: { mimeType: input.image.mimeType, data: input.image.base64 } });
+    if (input.audio) parts.push({ inlineData: { mimeType: input.audio.mimeType, data: input.audio.base64 } });
+    if (input.document) parts.push({ inlineData: { mimeType: input.document.mimeType, data: input.document.base64 } });
+    return parts;
+  };
+
+  for (const model of modelsToTry) {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: buildParts(prompt) }],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 20,
+            topP: 0.8,
+            maxOutputTokens: 1000
+          }
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        console.warn(`⚠️ Gemini ${model} error:`, data.error?.message || response.statusText);
+        continue;
+      }
+
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
+    } catch (err) {
+      console.error(`❌ Exception using Gemini model ${model}:`, err);
     }
-
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini';
   }
+
+  throw new Error('All Gemini model attempts failed.');
+}
 
   async callGroq(prompt, apiKey) {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
