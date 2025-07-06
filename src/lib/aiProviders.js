@@ -132,7 +132,7 @@ class AIProviderManager {
           temperature: 0.3,
           topK: 20,
           topP: 0.8,
-          maxOutputTokens: 900
+          maxOutputTokens: 1800
         }
       })
     });
