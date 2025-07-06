@@ -133,7 +133,7 @@ const AINotesGenerator = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt: `Based on these notes: "${note.content}"\n\nUser question: ${currentInput}`,
-          model: 'gemini'
+          model: 'groq'
         })
       });
 
