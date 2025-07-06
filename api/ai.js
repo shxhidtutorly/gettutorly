@@ -35,7 +35,8 @@ export default async function handler(req, res) {
     }
 
     const aiManager = new AIProviderManager();
-    const aiResponse = await aiManager.getAIResponse(prompt, model);
+const text = typeof prompt === 'string' ? prompt : prompt.text;
+const aiResponse = await aiManager.getAIResponse(text, model);
 
     return res.status(200).json({
       response: aiResponse.message,
