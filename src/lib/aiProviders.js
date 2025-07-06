@@ -27,6 +27,51 @@ class AIProviderManager {
     return keys.split(',').map(key => key.trim()).filter(Boolean);
   }
 
+  // --- START: ADD removeMarkdownFormatting METHOD HERE ---
+  removeMarkdownFormatting(text) {
+    // Ensure text is a string before processing
+    if (typeof text !== 'string') {
+        return String(text); // Convert to string if it's not already
+    }
+
+    // Remove bold (**text** or __text__)
+    text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '$1$2');
+
+    // Remove italics (*text* or _text_)
+    text = text.replace(/\*(.*?)\*|_(.*?)_/g, '$1$2');
+
+    // Remove headings (# Heading)
+    text = text.replace(/^#+\s*(.*)$/gm, '$1');
+
+    // Remove code blocks (```code```)
+    text = text.replace(/```[\s\S]*?```/g, '');
+
+    // Remove inline code (`code`)
+    text = text.replace(/`(.*?)`/g, '$1');
+
+    // Remove bullet points/list markers (* item, - item, + item) - keep the text
+    text = text.replace(/^[\*\-\+]\s*(.*)$/gm, '$1');
+
+    // Remove numbered lists (1. item, 2. item) - keep the text
+    text = text.replace(/^\d+\.\s*(.*)$/gm, '$1');
+
+    // Remove blockquotes (> quote) - keep the text
+    text = text.replace(/^>\s*(.*)$/gm, '$1');
+
+    // Remove horizontal rules (---, ***, ___)
+    text = text.replace(/^[-\*\_]{3,}\s*$/gm, '');
+
+    // Trim leading/trailing whitespace from each line
+    text = text.split('\n').map(line => line.trim()).join('\n');
+
+    // Replace multiple consecutive newlines with a maximum of two newlines
+    text = text.replace(/\n{3,}/g, '\n\n');
+
+    return text;
+  }
+  // --- END: ADD removeMarkdownFormatting METHOD HERE ---
+
+
   // FIXED: Added missing curly braces for the method body
   async getAIResponse(prompt, model) {
     const requestedProvider = this.getProviderForModel(model);
@@ -132,7 +177,7 @@ class AIProviderManager {
           temperature: 0.3,
           topK: 20,
           topP: 0.8,
-          maxOutputTokens: 1800
+          maxOutputTokens: 1800 // Make sure this is the updated value (e.g., 2048 or 4096)
         }
       })
     });
@@ -140,29 +185,28 @@ class AIProviderManager {
     const data = await response.json();
 
     if (!response.ok || data.error) {
-    console.error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`, data);
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
-  }
-
-  const geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!geminiTextResponse) {
-    console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
-    // Check for specific reasons from Gemini's response structure
-    if (data.promptFeedback?.blockReason) {
-      console.warn(`Gemini blocked response due to: ${data.promptFeedback.blockReason}`);
-      // Possible block reasons: "SAFETY", "OTHER"
+      console.error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`, data);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
-    if (data.candidates?.[0]?.finishReason) {
-      console.warn(`Gemini finished with reason: ${data.candidates[0].finishReason}`);
-      // Possible finish reasons: "STOP", "MAX_TOKENS", "SAFETY", "RECITATION", "OTHER"
-    }
-    // Return a more informative message if you want to display it on the frontend
-    return 'No response from Gemini (check server logs for details).';
-  }
 
-  return geminiTextResponse;
-}
+    let geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text; // Use 'let' to allow reassigning
+
+    if (!geminiTextResponse) {
+      console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
+      if (data.promptFeedback?.blockReason) {
+        console.warn(`Gemini blocked response due to: ${data.promptFeedback.blockReason}`);
+      }
+      if (data.candidates?.[0]?.finishReason) {
+        console.warn(`Gemini finished with reason: ${data.candidates[0].finishReason}`);
+      }
+      return 'No response from Gemini (see server logs for details).';
+    }
+
+    // --- APPLY MARKDOWN REMOVAL HERE FOR GEMINI ---
+    geminiTextResponse = this.removeMarkdownFormatting(geminiTextResponse);
+
+    return geminiTextResponse;
+  }
 
   async callGroq(prompt, apiKey) {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -184,7 +228,10 @@ class AIProviderManager {
       throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    return data.choices?.[0]?.message?.content || 'No response from Groq';
+    let groqResponse = data.choices?.[0]?.message?.content || 'No response from Groq';
+    // --- APPLY MARKDOWN REMOVAL HERE FOR GROQ ---
+    groqResponse = this.removeMarkdownFormatting(groqResponse);
+    return groqResponse;
   }
 
   async callClaude(prompt, apiKey) {
@@ -203,28 +250,17 @@ class AIProviderManager {
       })
     });
 
-    // --- ADDED LOGGING HERE ---
-  if (!response.ok || data.error) {
-    console.error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`, data); // Log full error data
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
-  }
-
-  const geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!geminiTextResponse) {
-    console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
-    // Check for specific reasons from Gemini, e.g., safety ratings
-    if (data.promptFeedback?.blockReason) {
-      console.warn(`Gemini blocked response due to: ${data.promptFeedback.blockReason}`);
+    const data = await response.json(); // You were missing this line
+    // --- This block was incorrectly copied from Gemini, replacing with correct Claude error handling ---
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
-    if (data.candidates?.[0]?.finishReason) {
-      console.warn(`Gemini finished with reason: ${data.candidates[0].finishReason}`);
-    }
-    return 'No response from Gemini (see server logs for details).'; // Add hint for debugging
-  }
 
-  return geminiTextResponse;
-}
+    let claudeResponse = data.content?.[0]?.text || 'No response from Claude';
+    // --- APPLY MARKDOWN REMOVAL HERE FOR CLAUDE ---
+    claudeResponse = this.removeMarkdownFormatting(claudeResponse);
+    return claudeResponse;
+  }
 
   async callOpenRouter(prompt, apiKey, model) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -236,8 +272,6 @@ class AIProviderManager {
         'X-Title': 'AI Provider Manager'
       },
       body: JSON.stringify({
-        // Consider making this model dynamic based on the 'model' parameter passed in,
-        // or ensure it's a model you intend to use with OpenRouter.
         model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2000,
@@ -250,7 +284,10 @@ class AIProviderManager {
       throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    return data.choices?.[0]?.message?.content || 'No response from OpenRouter';
+    let openRouterResponse = data.choices?.[0]?.message?.content || 'No response from OpenRouter';
+    // --- APPLY MARKDOWN REMOVAL HERE FOR OPENROUTER ---
+    openRouterResponse = this.removeMarkdownFormatting(openRouterResponse);
+    return openRouterResponse;
   }
 
   async callHuggingFace(prompt, apiKey) {
@@ -274,40 +311,47 @@ class AIProviderManager {
       throw new Error(`Hugging Face API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    return Array.isArray(data) ? data[0]?.generated_text || 'No response from Hugging Face' : data.generated_text || 'No response from Hugging Face';
+    let huggingFaceResponse = Array.isArray(data) ? data[0]?.generated_text || 'No response from Hugging Face' : data.generated_text || 'No response from Hugging Face';
+    // --- APPLY MARKDOWN REMOVAL HERE FOR HUGGINGFACE ---
+    huggingFaceResponse = this.removeMarkdownFormatting(huggingFaceResponse);
+    return huggingFaceResponse;
   }
 
-async function callTogether(prompt, apiKey) {
-  const response = await fetch('https://api.together.xyz/v1/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
-      prompt: prompt, // ✅ Must be a plain string
-      max_tokens: 4096,
-      temperature: 0.3
-    })
-  });
+  async callTogether(prompt, apiKey) {
+    const response = await fetch('https://api.together.xyz/v1/chat/completions', { // Changed to /v1/chat/completions for consistency with other chat models
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        // model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', // Use a chat-optimized model if possible
+        model: 'meta-llama/Llama-3-8b-chat-hf', // Common chat model on Together.ai
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 4096,
+        temperature: 0.3
+      })
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
-  const message = data.choices?.[0]?.text || 'No response';
-  const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
-  console.log(`📌 Together finish reason: ${finishReason}`);
+    console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
+    let message = data.choices?.[0]?.message?.content; // For chat completions, content is in message.content
+    const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
+    console.log(`📌 Together finish reason: ${finishReason}`);
 
-  if (!message || message.length < 20) {
-    console.warn('⚠️ Short or missing response from Together:', message);
+    if (!message || message.length < 20) {
+      console.warn('⚠️ Short or missing response from Together:', message);
+    }
+
+    if (!response.ok) {
+      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
+    }
+
+    // --- APPLY MARKDOWN REMOVAL HERE FOR TOGETHER ---
+    message = this.removeMarkdownFormatting(message || ''); // Ensure it's a string, even if null/undefined
+    return message;
   }
-
-  if (!response.ok) {
-    throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
-  }
-
-  return message;
 }
 
 export { AIProviderManager };
