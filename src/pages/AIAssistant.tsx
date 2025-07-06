@@ -1258,6 +1258,5 @@ async function convertFileToBase64(file: File): Promise<string> {
       </div>
     </div>
   );
-};
 
 export default AIAssistant;
