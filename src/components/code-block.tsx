@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef } from "react"
-import { Highlight, type Language } from "prism-react-renderer"
+import Highlight, { defaultProps, type Language } from "prism-react-renderer";
 import Editor from "@monaco-editor/react"
 import { Copy, Maximize2, Minimize2, Download, Check } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
