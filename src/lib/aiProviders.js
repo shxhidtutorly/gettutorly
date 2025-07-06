@@ -27,7 +27,7 @@ class AIProviderManager {
     return keys.split(',').map(key => key.trim()).filter(Boolean);
   }
 
- async getAIResponse(prompt, model) {
+ async getAIResponse(prompt, model) 
   const requestedProvider = this.getProviderForModel(model);
   const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
