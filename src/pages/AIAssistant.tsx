@@ -1113,7 +1113,8 @@ useEffect(() => {
 });
 PromptInputBox.displayName = "PromptInputBox";
 
-// Match the structure your PromptInputBox expects:
+//chatbot logic 
+
 type ChatMessage = {
   id: string;
   text: string;
@@ -1123,19 +1124,35 @@ type ChatMessage = {
 };
 
 const AIAssistant = () => {
-  // Start with no messages
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // AI Reply fetch (old logic)
   const handleSendMessage = async (message: string, files?: File[]) => {
     if (!message.trim() || isLoading) return;
+
+    const filePreviews: { [key: string]: string } = {};
+
+    // Convert files to base64 preview (used for frontend and backend)
+    const fileData = await Promise.all(
+      (files || []).map(async (file) => {
+        const base64 = await convertFileToBase64(file);
+        filePreviews[file.name] = base64;
+        return {
+          name: file.name,
+          type: file.type,
+          base64: base64.split(',')[1], // Remove "data:*/*;base64," prefix
+        };
+      })
+    );
+
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: message.trim(),
       isUser: true,
       files,
+      filePreviews,
     };
+
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
@@ -1143,15 +1160,23 @@ const AIAssistant = () => {
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: message.trim(), model: 'gemini' }),
+        body: JSON.stringify({
+          prompt: {
+            text: message.trim(),
+            files: fileData, // Send to Gemini backend
+          },
+          model: 'gemini',
+        }),
       });
 
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
 
       const data = await response.json();
       const aiResponse = data.response || data.message || "No response received from AI";
-     setMessages((prev) => [
+
+      setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
@@ -1172,19 +1197,38 @@ const AIAssistant = () => {
           errorMessage += "Please try again or contact support if this continues.";
         }
       }
+
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 2).toString(),
           text: errorMessage,
           isUser: false,
-        }
+        },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  return (
+    <div className="ai-chat-box">
+      {/* your UI rendering logic here, eg. ChatBubble, PromptInputBox */}
+    </div>
+  );
+};
+
+export default AIAssistant;
+
+// Utility to convert File to base64 string
+async function convertFileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
   // For Back to Dashboard button
   const handleBackToDashboard = () => {
     window.location.href = '/dashboard';
