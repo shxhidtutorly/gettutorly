@@ -8,6 +8,8 @@ console.log('✅ AI API import successful');
 export default async function handler(req, res) {
   console.log('=== AI API ROUTE START ===');
   console.log('Method:', req.method);
+  console.log('User-Agent:', req.headers['user-agent']); // This can tell you if it's a browser, bot, or Vercel
+  console.log('Referer:', req.headers['referer']);     
   
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,6 +24,8 @@ export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     console.log('❌ Method not allowed:', req.method);
+   console.log('User-Agent of disallowed GET:', req.headers['user-agent']);
+    console.log('Referer of disallowed GET:', req.headers['referer']);
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
