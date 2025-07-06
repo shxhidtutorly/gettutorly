@@ -834,14 +834,33 @@ useEffect(() => {
                     <div className="flex flex-wrap gap-2 mt-2">
                       {msg.files.map((file, idx) => (
                         <div key={idx} className="relative">
-                          {file.type.startsWith("image/") && msg.filePreviews?.[file.name] && (
-                            <img
-                              src={msg.filePreviews[file.name]}
-                              alt={file.name}
-                              className="w-20 h-20 object-cover rounded-md cursor-pointer"
-                              onClick={() => openImageModal(msg.filePreviews![file.name])}
-                            />
-                          )}
+                         {file.type.startsWith("image/") && msg.filePreviews?.[file.name] && (
+  <img
+    src={msg.filePreviews[file.name]}
+    alt={file.name}
+    className="w-20 h-20 object-cover rounded-md cursor-pointer"
+    onClick={() => openImageModal(msg.filePreviews![file.name])}
+  />
+)}
+
+{file.type.startsWith("audio/") && msg.filePreviews?.[file.name] && (
+  <audio controls className="w-48">
+    <source src={msg.filePreviews[file.name]} type={file.type} />
+    Your browser does not support the audio element.
+  </audio>
+)}
+
+{file.type === "application/pdf" && msg.filePreviews?.[file.name] && (
+  <a
+    href={msg.filePreviews[file.name]}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-blue-400 underline"
+  >
+    {file.name}
+  </a>
+)}
+
                         </div>
                       ))}
                     </div>
@@ -949,7 +968,7 @@ useEffect(() => {
                         if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
                         if (e.target) e.target.value = "";
                       }}
-                      accept="image/*"
+                      accept="image/*,audio/*,application/pdf"
                     />
                   </button>
                 </PromptInputAction>
@@ -1113,8 +1132,7 @@ useEffect(() => {
 });
 PromptInputBox.displayName = "PromptInputBox";
 
-//chatbot logic 
-
+// Match the structure your PromptInputBox expects:
 type ChatMessage = {
   id: string;
   text: string;
@@ -1124,139 +1142,110 @@ type ChatMessage = {
 };
 
 const AIAssistant = () => {
+  // Start with no messages
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = async (message: string, files?: File[]) => {
-    if (!message.trim() || isLoading) return;
+  // AI Reply fetch (old logic)
+ const handleSendMessage = async (message: string, files?: File[]) => {
+  if (!message.trim() || isLoading) return;
 
-    const filePreviews: { [key: string]: string } = {};
+ const processFile = (file: File) => {
+  if (file.size > 15 * 1024 * 1024) {
+    console.log("File too large (max 15MB)");
+    return;
+  }
+  setFiles([file]);
 
-    const fileData = await Promise.all(
-      (files || []).map(async (file) => {
-        const base64 = await convertFileToBase64(file);
-        filePreviews[file.name] = base64;
-        return {
-          name: file.name,
-          type: file.type,
-          base64: base64.split(',')[1], // remove data:*/*;base64, prefix
-        };
-      })
-    );
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      text: message.trim(),
-      isUser: true,
-      files,
-      filePreviews,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: {
-            text: message.trim(),
-            files: fileData,
-          },
-          model: 'gemini',
-        }),
-      });
-
-      const data = await response.json();
-      const aiResponse = data.response || data.message || 'No response from AI';
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          text: aiResponse,
-          isUser: false,
-        },
-      ]);
-    } catch (error) {
-      let errorMessage = 'Something went wrong.';
-      if (error instanceof Error) errorMessage += ' ' + error.message;
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 2).toString(),
-          text: errorMessage,
-          isUser: false,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target?.result as string;
+    setFilePreviews({ [file.name]: base64 });
   };
 
-  return (
-    <div className="flex flex-col h-full p-4 space-y-4 overflow-y-auto">
-      {messages.map((msg) => (
-        <div
-          key={msg.id}
-          className={`p-3 rounded-lg max-w-xl ${
-            msg.isUser ? 'self-end bg-blue-600 text-white' : 'self-start bg-zinc-800 text-white'
-          }`}
-        >
-          <p>{msg.text}</p>
-          {msg.filePreviews &&
-            Object.entries(msg.filePreviews).map(([fileName, preview]) => (
-              <div key={fileName} className="mt-2">
-                {preview.startsWith('data:image') && (
-                  <img src={preview} alt={fileName} className="rounded max-h-48" />
-                )}
-                {preview.startsWith('data:audio') && (
-                  <audio controls src={preview} className="mt-2 w-full" />
-                )}
-                {preview.startsWith('data:application/pdf') && (
-                  <a
-                    href={preview}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 underline"
-                  >
-                    Open PDF: {fileName}
-                  </a>
-                )}
-              </div>
-            ))}
-        </div>
-      ))}
-
-      <div className="pt-4">
-        <PromptInputBox
-          onSend={handleSendMessage}
-          isLoading={isLoading}
-          // @ts-ignore
-          messages={messages}
-        />
-      </div>
-    </div>
-  );
+  reader.readAsDataURL(file);
 };
 
-// Utility function
-async function convertFileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+
+  const userMessage: ChatMessage = {
+    id: Date.now().toString(),
+    text: message.trim(),
+    isUser: true,
+    files,
+    filePreviews,
+  };
+
+  setMessages((prev) => [...prev, userMessage]);
+  setIsLoading(true);
+
+  try {
+    const response = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: {
+          text: message.trim(),
+          files: base64Files,
+        },
+        model: 'gemini',
+      }),
+    });
+
+    if (!response.ok)
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+
+    const data = await response.json();
+    const aiResponse = data.response || data.message || "No response received from AI";
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: (Date.now() + 1).toString(),
+        text: aiResponse,
+        isUser: false,
+      },
+    ]);
+  } catch (error) {
+    let errorMessage = "I'm having trouble connecting right now. ";
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        errorMessage += "Please check your connection and try again.";
+      } else if (error.message.includes('429')) {
+        errorMessage += "I'm a bit busy right now. Please try again in a moment.";
+      } else if (error.message.includes('401')) {
+        errorMessage += "There's an authentication issue. Please contact support.";
+      } else {
+        errorMessage += "Please try again or contact support if this continues.";
+      }
+    }
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: (Date.now() + 2).toString(),
+        text: errorMessage,
+        isUser: false,
+      }
+    ]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // For Back to Dashboard button
   const handleBackToDashboard = () => {
     window.location.href = '/dashboard';
   };
+ 
+ const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(',')[1]); // remove data:*/*
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
+  return (
     <div className="flex w-full h-screen justify-center items-center bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
       {/* Transparent Back to Dashboard button absolute top-left */}
       <button
@@ -1279,5 +1268,7 @@ async function convertFileToBase64(file: File): Promise<string> {
         />
       </div>
     </div>
+  );
+};
 
 export default AIAssistant;
