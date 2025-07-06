@@ -1218,7 +1218,7 @@ const AIAssistant = () => {
   );
 };
 
-export default AIAssistant;
+
 
 // Utility to convert File to base64 string
 async function convertFileToBase64(file: File): Promise<string> {
