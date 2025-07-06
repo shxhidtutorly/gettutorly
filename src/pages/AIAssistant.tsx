@@ -1359,7 +1359,6 @@ const convertFileToBase64 = (file: File): Promise<string> => {
     </div>
   </div>
 </div>
-  );
 };
 
 export default AIAssistant;
