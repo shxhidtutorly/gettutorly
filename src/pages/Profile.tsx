@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
-import { firebaseSecure } from "@/lib/firebase-secure";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserDoc, safeSetDoc } from "@/lib/firebase-helpers";
+import { getDoc, Timestamp } from "firebase/firestore";
 import { 
   updatePassword,
   sendPasswordResetEmail,
@@ -50,7 +49,7 @@ interface UserProfile {
 }
 
 const Profile = () => {
-  const [user] = useAuthState(auth);
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -63,34 +62,49 @@ const Profile = () => {
   });
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      return;
+    }
+
     const loadProfile = async () => {
       if (!user) return;
 
       try {
-        let userProfile = await firebaseSecure.secureRead(`users/${user.uid}`);
+        setLoading(true);
+        const userDocRef = getUserDoc(user.uid, 'profile');
+        const userDocSnap = await getDoc(userDocRef);
         
-        if (!userProfile) {
+        let userProfile: UserProfile;
+        
+        if (userDocSnap.exists()) {
+          userProfile = userDocSnap.data() as UserProfile;
+        } else {
           // Create default profile
           userProfile = {
             name: user.displayName || user.email?.split('@')[0] || '',
             email: user.email || '',
             gender: 'other',
             role: 'student',
-            created_at: new Date(),
+            created_at: Timestamp.now(),
           };
-          await firebaseSecure.secureWrite(`users/${user.uid}`, userProfile);
+          await safeSetDoc(userDocRef, userProfile);
         }
 
         // Load subscription data
-        const subscription = await firebaseSecure.secureRead(`subscriptions/${user.uid}`);
-        if (subscription) {
-          userProfile.subscription = subscription;
+        try {
+          const subscriptionDocRef = getUserDoc(user.uid, 'subscription');
+          const subscriptionSnap = await getDoc(subscriptionDocRef);
+          if (subscriptionSnap.exists()) {
+            userProfile.subscription = subscriptionSnap.data() as UserProfile['subscription'];
+          }
+        } catch (error) {
+          console.log('No subscription data found');
         }
 
         setProfile(userProfile);
         setFormData({
-          name: userProfile.name,
-          gender: userProfile.gender,
+          name: userProfile.name || '',
+          gender: userProfile.gender || 'other',
         });
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -104,8 +118,10 @@ const Profile = () => {
       }
     };
 
-    loadProfile();
-  }, [user, toast]);
+    if (user) {
+      loadProfile();
+    }
+  }, [user, authLoading, toast]);
 
   const handleSave = async () => {
     if (!user || !profile) return;
@@ -114,17 +130,18 @@ const Profile = () => {
     try {
       const updatedProfile = {
         ...profile,
-        name: formData.name,
+        name: formData.name.trim(),
         gender: formData.gender,
-        updated_at: new Date(),
+        updated_at: Timestamp.now(),
       };
 
-      await firebaseSecure.secureWrite(`users/${user.uid}`, updatedProfile);
+      const userDocRef = getUserDoc(user.uid, 'profile');
+      await safeSetDoc(userDocRef, updatedProfile);
 
       // Update Firebase Auth profile
-      if (user && formData.name !== user.displayName) {
+      if (user && formData.name.trim() !== user.displayName) {
         await updateProfile(user, {
-          displayName: formData.name
+          displayName: formData.name.trim()
         });
       }
 
@@ -184,7 +201,7 @@ const Profile = () => {
     return colors[plan as keyof typeof colors] || colors.free;
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
@@ -193,6 +210,10 @@ const Profile = () => {
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (

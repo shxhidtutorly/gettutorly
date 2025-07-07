@@ -1,3 +1,4 @@
+
 // api/summarize.js - Used by Tutorly AI to generate smart study summaries ✨📚
 export default async function handler(req, res) {
   console.log(`📘 Tutorly Summarizer called: ${req.method} ${req.url}`);
@@ -27,12 +28,12 @@ export default async function handler(req, res) {
 
     const apiProviders = [
       {
-  name: 'Together',
-  key: process.env.TOGETHER_API_KEY,
-  url: 'https://api.together.xyz/v1/chat/completions',
-  model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
-  format: 'openai'
-},
+        name: 'Together',
+        key: process.env.TOGETHER_API_KEY,
+        url: 'https://api.together.xyz/v1/chat/completions',
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+        format: 'openai'
+      },
       {
         name: 'OpenRouter',
         key: process.env.OPENROUTER_KEY,
@@ -48,12 +49,12 @@ export default async function handler(req, res) {
         format: 'anthropic'
       },
       {
-    name: 'Groq',
-    key: process.env.GROQ_API_KEY,
-    url: 'https://api.groq.com/openai/v1/chat/completions',
-    model: 'gemma2-9b-it',
-    format: 'openai'
-  },
+        name: 'Groq',
+        key: process.env.GROQ_API_KEY,
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        model: 'gemma2-9b-it',
+        format: 'openai'
+      },
       {
         name: 'HuggingFace',
         key: process.env.HUGGINGFACE_API_KEY,
@@ -148,7 +149,6 @@ export default async function handler(req, res) {
 
       switch (provider.format) {
         case 'openai':
-        case 'together':
           summary = data.choices?.[0]?.message?.content;
           break;
         case 'anthropic':
@@ -199,5 +199,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 }
-
-

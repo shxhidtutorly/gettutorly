@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +6,8 @@ import NotFoundPage from "@/components/ui/page-not-found";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -36,8 +37,6 @@ import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
 
-
-
 import "./css/animations.css";
 import "./css/darkMode.css";
 import "./css/mobile.css";
@@ -54,139 +53,143 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/signin" element={<SignInPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/cancellation" element={<Cancellation />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/pricing" element={<PricingPage />} />
+      <AuthProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <ErrorBoundary>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/signin" element={<SignInPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/cancellation" element={<Cancellation />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/pricing" element={<PricingPage />} />
 
-            {/* Protected routes - all wrapped with ProtectedRoute */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/landing" element={<Index />} />
+                {/* Protected routes - all wrapped with ProtectedRoute */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/landing" element={<Index />} />
 
-            <Route path="/library" element={
-              <ProtectedRoute>
-                <Library />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/ai-notes" element={
-              <ProtectedRoute>
-                <AINotesGenerator />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/audio-notes" element={
-              <ProtectedRoute>
-                <AudioNotes />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/math-chat" element={
-              <ProtectedRoute>
-                <MathChat />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/study-plans" element={
-              <ProtectedRoute>
-                <StudyPlans />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/progress" element={
-              <ProtectedRoute>
-                <Progress />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/chat" element={
-              <ProtectedRoute>
-                <Chat />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/ai-assistant" element={
-              <ProtectedRoute>
-                <AIAssistant />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/flashcards" element={
-              <ProtectedRoute>
-                <Flashcards />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/quiz" element={
-              <ProtectedRoute>
-                <Quiz />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/summaries" element={
-              <ProtectedRoute>
-                <Summaries />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/micro-lessons" element={
-              <ProtectedRoute>
-                <MicroLessons />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/study-techniques" element={
-              <ProtectedRoute>
-                <StudyTechniques />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/doubt-chain" element={
-              <ProtectedRoute>
-                <DoubtChain />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/doubt-bookmarks" element={
-              <ProtectedRoute>
-                <DoubtBookmarks />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
+                <Route path="/library" element={
+                  <ProtectedRoute>
+                    <Library />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/ai-notes" element={
+                  <ProtectedRoute>
+                    <AINotesGenerator />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/audio-notes" element={
+                  <ProtectedRoute>
+                    <AudioNotes />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/math-chat" element={
+                  <ProtectedRoute>
+                    <MathChat />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/study-plans" element={
+                  <ProtectedRoute>
+                    <StudyPlans />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/progress" element={
+                  <ProtectedRoute>
+                    <Progress />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/chat" element={
+                  <ProtectedRoute>
+                    <Chat />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/ai-assistant" element={
+                  <ProtectedRoute>
+                    <AIAssistant />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/flashcards" element={
+                  <ProtectedRoute>
+                    <Flashcards />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/quiz" element={
+                  <ProtectedRoute>
+                    <Quiz />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/summaries" element={
+                  <ProtectedRoute>
+                    <Summaries />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/micro-lessons" element={
+                  <ProtectedRoute>
+                    <MicroLessons />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/study-techniques" element={
+                  <ProtectedRoute>
+                    <StudyTechniques />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/doubt-chain" element={
+                  <ProtectedRoute>
+                    <DoubtChain />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/doubt-bookmarks" element={
+                  <ProtectedRoute>
+                    <DoubtBookmarks />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </ThemeProvider>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

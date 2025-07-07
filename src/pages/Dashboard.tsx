@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -23,17 +22,24 @@ import {
   Users,
   Award
 } from "lucide-react";
-import { useAuthState } from "react-firebase-hooks/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
 import { motion } from "framer-motion";
 import { useUserStats } from "@/hooks/useUserStats";
 import ProgressCard from "@/components/dashboard/ProgressCard";
 
 const Dashboard = () => {
-  const [user] = useAuthState(auth);
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { stats, loading } = useUserStats(user?.uid || null);
+  const { stats, loading } = useUserStats();
   const [isNewUser, setIsNewUser] = useState(false);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/signin');
+    }
+  }, [user, authLoading, navigate]);
 
   // Check if user is new (first time login)
   useEffect(() => {
@@ -139,7 +145,7 @@ const Dashboard = () => {
     }
   ], []);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
@@ -148,6 +154,10 @@ const Dashboard = () => {
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // Will redirect via useEffect
   }
 
   return (
