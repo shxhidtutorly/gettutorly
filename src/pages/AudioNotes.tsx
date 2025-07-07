@@ -5,7 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { AudioNotesUploader } from "@/components/features/AudioNotesUploader";
-import { ArrowLeft, Upload, Mic, MicOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 const AudioNotes = () => {
   const { user } = useUser();
@@ -15,10 +15,6 @@ const AudioNotes = () => {
   const [currentTypeIndex, setCurrentTypeIndex] = useState(0);
   const [currentText, setCurrentText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showNotes, setShowNotes] = useState(false);
   
   const typingTexts = [
     "Ready to record?",
@@ -28,12 +24,23 @@ const AudioNotes = () => {
   ];
   
   useEffect(() => {
-    if (!isTyping || isProcessing) return;
+    if (!isTyping) return;
     
     const currentFullText = typingTexts[currentTypeIndex];
     
     if (currentText.length < currentFullText.length) {
       const timeout = setTimeout(() => {
+        setCurrentText(currentFullText.slice(0, currentText.length + 1));
+      }, 100);
+      return () => clearTimeout(timeout);
+    } else {
+      const timeout = setTimeout(() => {
+        setCurrentText("");
+        setCurrentTypeIndex((prev) => (prev + 1) % typingTexts.length);
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentText, currentTypeIndex, isTyping]);const timeout = setTimeout(() => {
         setCurrentText(currentFullText.slice(0, currentText.length + 1));
       }, 100);
       return () => clearTimeout(timeout);
@@ -140,109 +147,9 @@ const AudioNotes = () => {
               </p>
             </div>
             
-            {/* Progress bar */}
-            {isProcessing && (
-              <div className="mb-8">
-                <div className="w-full bg-[#21253a]/50 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#ffd600] to-[#4a90e2] transition-all duration-300 ease-out"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
+            {/* All upload controls and functionality are now handled by AudioNotesUploader */}
             
-            {/* Upload Controls */}
-            <div className="space-y-6 md:space-y-8 mb-8">
-              {/* Drag and drop zone */}
-              <div className="relative">
-                <div className="border-2 border-dashed border-[#ffd600]/30 hover:border-[#ffd600]/60 rounded-2xl p-8 md:p-12 text-center transition-all duration-300 hover:bg-[#ffd600]/5 group">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-[#ffd600]/20 flex items-center justify-center group-hover:bg-[#ffd600]/30 transition-colors">
-                      <Upload className="w-8 h-8 text-[#ffd600]" />
-                    </div>
-                    <div>
-                      <p className="text-gray-300 text-lg font-medium">
-                        Drag and drop your audio file here
-                      </p>
-                      <p className="text-gray-400 text-sm mt-1">
-                        or click the button below
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Upload and Record buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <button
-                  onClick={handleUpload}
-                  className="px-8 py-4 bg-gradient-to-r from-[#ffd600] to-[#4a90e2] text-black font-semibold rounded-xl hover:shadow-2xl hover:transform hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-[#ffd600]/50 min-w-[200px]"
-                  aria-label="Upload audio file"
-                >
-                  <span className="flex items-center gap-2 justify-center">
-                    <Upload className="w-5 h-5" />
-                    Upload Audio File
-                  </span>
-                </button>
-                
-                <div className="flex items-center gap-2 text-gray-400">
-                  <div className="w-8 h-0.5 bg-gray-600"></div>
-                  <span className="text-sm">or</span>
-                  <div className="w-8 h-0.5 bg-gray-600"></div>
-                </div>
-                
-                <button
-                  onClick={handleRecord}
-                  className={`px-8 py-4 font-semibold rounded-xl transition-all duration-300 border-2 min-w-[200px] ${
-                    isRecording 
-                      ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
-                      : 'bg-[#21253a]/80 border-[#4a90e2]/50 text-[#4a90e2] hover:bg-[#4a90e2]/10 hover:border-[#4a90e2]/70'
-                  } hover:shadow-xl hover:transform hover:-translate-y-1`}
-                  aria-label={isRecording ? "Stop recording" : "Start recording lecture"}
-                >
-                  <span className="flex items-center gap-2 justify-center">
-                    {isRecording ? (
-                      <>
-                        <div className="flex items-center gap-1">
-                          <div className="w-1 h-4 bg-red-400 rounded animate-pulse"></div>
-                          <div className="w-1 h-6 bg-red-400 rounded animate-pulse delay-100"></div>
-                          <div className="w-1 h-3 bg-red-400 rounded animate-pulse delay-200"></div>
-                          <div className="w-1 h-5 bg-red-400 rounded animate-pulse delay-300"></div>
-                        </div>
-                        Stop Recording
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="w-5 h-5" />
-                        Record Lecture
-                      </>
-                    )}
-                  </span>
-                </button>
-              </div>
-            </div>
-            
-            {/* Notes output area */}
-            <div className="bg-[#151a2e]/50 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/5 min-h-[200px] overflow-y-auto max-h-[400px] shadow-inner">
-              {showNotes ? (
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-[#ffd600] mb-4">Generated Notes</h3>
-                  <div className="text-gray-300 space-y-2">
-                    <p>• Key concepts from your lecture will appear here</p>
-                    <p>• Important definitions and explanations</p>
-                    <p>• Summary of main topics discussed</p>
-                    <p>• Action items and follow-up questions</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500 italic">
-                  <p>Your notes will appear here…</p>
-                </div>
-              )}
-            </div>
-            
-            {/* AudioNotesUploader component */}
+            {/* AudioNotesUploader component - integrated seamlessly */}
             <div className="mt-8">
               <AudioNotesUploader />
             </div>
