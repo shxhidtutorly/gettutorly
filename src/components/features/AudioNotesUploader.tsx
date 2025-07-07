@@ -1,12 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAudioUpload } from "@/hooks/useAudioUpload";
-import { Mic, MicOff, Upload, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import { Mic, MicOff, Upload, CheckCircle, Loader2, RefreshCw, FileAudio } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const STEP_INDICATORS = [
@@ -22,6 +21,7 @@ export const AudioNotesUploader = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [result, setResult] = useState<any>(null);
+  const [dragActive, setDragActive] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +98,41 @@ export const AudioNotesUploader = () => {
     }
   };
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      const validTypes = ['audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mpeg'];
+      if (validTypes.includes(file.type)) {
+        setUploadFile(file);
+        setAudioBlob(null);
+        toast({
+          title: "File selected",
+          description: `${file.name} ready for upload`
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: "Please upload MP3, WAV, or M4A files only"
+        });
+      }
+    }
+  };
+
   const handleUpload = async () => {
     let fileToUpload: File | null = null;
 
@@ -150,274 +185,267 @@ export const AudioNotesUploader = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-bl from-[#0A0A0A] via-[#1a1a2e] to-[#16213e] text-white p-2 sm:p-4">
-      <style>
-        {`
-          .progress-bar {
-            background: linear-gradient(90deg, #6366f1, #8b5cf6);
-            height: 4px;
-            border-radius: 2px;
-            transition: width 0.3s ease;
-          }
-        `}
-      </style>
-
-      <div className="container max-w-2xl md:max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-4 sm:mb-8"
-        >
-          <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2 flex items-center justify-center gap-2 sm:gap-3">
-            🧠 AI Notes
-          </h1>
-          <p className="text-gray-400 text-base sm:text-lg italic">
-            👉 Record your lectures or upload your class audio with the click of a button.
-          </p>
-        </motion.div>
-
-        {/* Progress Bar */}
-        <AnimatePresence>
-          {isProcessing && (
-            <motion.div
-              initial={{ opacity: 0, scaleX: 0 }}
-              animate={{ opacity: 1, scaleX: 1 }}
-              exit={{ opacity: 0, scaleX: 0 }}
-              className="w-full bg-gray-800 rounded-full h-1 mb-4 sm:mb-6"
-            >
-              <div 
-                className="progress-bar" 
-                style={{ width: `${progress || 0}%` }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Step Indicators */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex justify-center mb-4 sm:mb-8"
-        >
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 w-full">
-            {STEP_INDICATORS.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = currentStep >= item.step;
-              const isCurrent = currentStep === item.step;
-
-              return (
-                <motion.div
-                  key={item.step}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg transition-all 
-                    ${isActive ? 'bg-purple-600/30 text-purple-200' : 'bg-gray-800/50 text-gray-500'} 
-                    ${isCurrent ? 'ring-2 ring-purple-400' : ''} text-xs sm:text-sm`}
-                >
-                  <Icon className={`w-4 h-4 ${isCurrent && isProcessing ? 'animate-spin' : ''}`} />
-                  <span className="font-medium">{item.label}</span>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
-
-        {/* Upload Section */}
-        {!result && (
+    <div className="space-y-6">
+      {/* Progress Bar */}
+      <AnimatePresence>
+        {isProcessing && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            initial={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            exit={{ opacity: 0, scaleX: 0 }}
+            className="w-full bg-[#21253a]/50 rounded-full h-2 overflow-hidden"
           >
-            <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm mx-1 sm:mx-0">
-              <CardHeader>
-                <CardTitle className="text-white text-lg sm:text-xl">Upload Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5 sm:space-y-6">
-                {/* Recording Section */}
-                <div className="space-y-2">
-                  <Label className="text-gray-300 text-base sm:text-lg">Record Live Audio</Label>
-                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4">
-                    <Button
-                      onClick={isRecording ? stopRecording : startRecording}
-                      className={`flex items-center gap-2 ${
-                        isRecording 
-                          ? 'bg-red-600 hover:bg-red-700' 
-                          : 'bg-purple-600 hover:bg-purple-700'
-                      } text-base`}
-                      aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                    >
-                      {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      {isRecording ? 'Stop Recording' : 'Start Recording'}
-                    </Button>
-                    {audioBlob && (
-                      <span className="text-green-400 text-sm flex items-center gap-1 pt-1">
-                        <CheckCircle className="w-4 h-4" />
-                        Audio recorded
-                      </span>
-                    )}
-                  </div>
-                </div>
+            <div 
+              className="h-full bg-gradient-to-r from-[#ffd600] to-[#4a90e2] transition-all duration-300 ease-out"
+              style={{ width: `${progress || 0}%` }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                    <span className="w-full border-t border-gray-600" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-gray-900 px-2 text-gray-400">Or</span>
-                  </div>
-                </div>
+      {/* Step Indicators */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="flex justify-center"
+      >
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+          {STEP_INDICATORS.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = currentStep >= item.step;
+            const isCurrent = currentStep === item.step;
 
-                {/* File Upload Section */}
-                <div className="space-y-2">
-                  <Label className="text-gray-300 text-base sm:text-lg">Upload Audio File</Label>
-                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4">
-                    <Button
-                      onClick={() => fileInputRef.current?.click()}
-                      variant="outline"
-                      className="flex items-center gap-2 border-gray-600 text-white hover:bg-gray-800 text-base"
-                      aria-label="Choose audio file"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Choose File
-                    </Button>
-                    {uploadFile && (
-                      <span className="text-green-400 text-sm flex items-center gap-1 pt-1">
-                        <CheckCircle className="w-4 h-4" />
-                        {uploadFile.name}
-                      </span>
-                    )}
-                  </div>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    aria-label="Upload audio file"
-                  />
-                </div>
+            return (
+              <motion.div
+                key={item.step}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: index * 0.1 }}
+                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg transition-all text-xs sm:text-sm
+                  ${isActive ? 'bg-[#ffd600]/20 text-[#ffd600] border border-[#ffd600]/30' : 'bg-[#21253a]/50 text-gray-400 border border-gray-600/30'} 
+                  ${isCurrent ? 'ring-2 ring-[#ffd600]/50' : ''}`}
+              >
+                <Icon className={`w-4 h-4 ${isCurrent && isProcessing ? 'animate-spin' : ''}`} />
+                <span className="font-medium">{item.label}</span>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
 
-                {/* Upload Button */}
+      {/* Upload Section */}
+      {!result && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="space-y-6"
+        >
+          {/* Enhanced Drag and Drop Zone */}
+          <div
+            className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+              dragActive
+                ? 'border-[#ffd600] bg-[#ffd600]/10 scale-105'
+                : 'border-[#ffd600]/30 hover:border-[#ffd600]/60 hover:bg-[#ffd600]/5'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+                dragActive ? 'bg-[#ffd600]/30 scale-110' : 'bg-[#ffd600]/20 hover:bg-[#ffd600]/30'
+              }`}>
+                <FileAudio className="w-8 h-8 text-[#ffd600]" />
+              </div>
+              <div>
+                <p className="text-gray-300 text-lg font-medium">
+                  {dragActive ? 'Drop your audio file here' : 'Drag and drop your audio file here'}
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Supports MP3, WAV, M4A formats
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* File Selection and Recording */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* File Upload */}
+            <div className="space-y-3">
+              <Label className="text-gray-300 text-base font-medium">Upload Audio File</Label>
+              <div className="space-y-2">
                 <Button
-                  onClick={handleUpload}
-                  disabled={!audioBlob && !uploadFile || isProcessing}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 text-base"
-                  aria-label="Generate notes"
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  className="w-full flex items-center gap-2 bg-[#21253a]/50 border-[#4a90e2]/50 text-[#4a90e2] hover:bg-[#4a90e2]/10 hover:border-[#4a90e2]/70 transition-all duration-300"
+                  aria-label="Choose audio file"
                 >
-                  {isProcessing ? (
+                  <Upload className="w-4 h-4" />
+                  Choose File
+                </Button>
+                {uploadFile && (
+                  <div className="flex items-center gap-2 text-green-400 text-sm bg-green-400/10 p-2 rounded-lg">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="truncate">{uploadFile.name}</span>
+                  </div>
+                )}
+              </div>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                aria-label="Upload audio file"
+              />
+            </div>
+
+            {/* Recording */}
+            <div className="space-y-3">
+              <Label className="text-gray-300 text-base font-medium">Record Live Audio</Label>
+              <div className="space-y-2">
+                <Button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`w-full flex items-center gap-2 transition-all duration-300 ${
+                    isRecording 
+                      ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30 border-2' 
+                      : 'bg-[#21253a]/50 border-[#4a90e2]/50 text-[#4a90e2] hover:bg-[#4a90e2]/10 hover:border-[#4a90e2]/70 border-2'
+                  }`}
+                  aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                >
+                  {isRecording ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
+                      <MicOff className="w-4 h-4" />
+                      Stop Recording
                     </>
                   ) : (
                     <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Generate Notes
+                      <Mic className="w-4 h-4" />
+                      Start Recording
                     </>
                   )}
                 </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Results Section */}
-        <AnimatePresence>
-          {result && (
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -40 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-4 sm:space-y-6"
-            >
-              {/* Success Header */}
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="text-center"
-              >
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-2">
-                  <CheckCircle className="w-8 h-8 text-green-400" />
-                  <h2 className="text-xl sm:text-2xl font-bold text-green-400">Notes Generated Successfully!</h2>
-                </div>
-              </motion.div>
-
-              {/* Results Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {/* Summary Section */}
-                {result.summary && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm h-full">
-                      <CardHeader className="sticky top-0 bg-gray-900/90 backdrop-blur-sm border-b border-gray-700">
-                        <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
-                          📌 Summary
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="max-h-96 overflow-y-auto p-4 sm:p-6">
-                        <div className="prose prose-invert max-w-none">
-                          <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
-                            {result.summary}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                )}
-
-                {/* Detailed Notes Section */}
-                {result.notes && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm h-full">
-                      <CardHeader className="sticky top-0 bg-gray-900/90 backdrop-blur-sm border-b border-gray-700">
-                        <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
-                          📖 Detailed Notes
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="max-h-96 overflow-y-auto p-4 sm:p-6">
-                        <div className="prose prose-invert max-w-none">
-                          <div className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
-                            {result.notes}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                {audioBlob && (
+                  <div className="flex items-center gap-2 text-green-400 text-sm bg-green-400/10 p-2 rounded-lg">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Audio recorded successfully</span>
+                  </div>
                 )}
               </div>
+            </div>
+          </div>
 
-              {/* Action Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="flex justify-center gap-2 sm:gap-4"
-              >
-                <Button
-                  onClick={resetForm}
-                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-base"
-                  aria-label="Upload another"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Upload Another
-                </Button>
-              </motion.div>
+          {/* Process Button */}
+          <Button
+            onClick={handleUpload}
+            disabled={!audioBlob && !uploadFile || isProcessing}
+            className="w-full bg-gradient-to-r from-[#ffd600] to-[#4a90e2] text-black font-semibold py-4 text-lg hover:shadow-2xl hover:transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            aria-label="Generate notes"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5 mr-2" />
+                Generate Notes
+              </>
+            )}
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Results Section */}
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6"
+          >
+            {/* Success Header */}
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="text-center"
+            >
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <CheckCircle className="w-8 h-8 text-green-400" />
+                <h3 className="text-xl md:text-2xl font-bold text-green-400">Notes Generated Successfully!</h3>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+
+            {/* Results Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Summary Section */}
+              {result.summary && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-[#151a2e]/50 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden"
+                >
+                  <div className="bg-[#ffd600]/10 px-6 py-4 border-b border-[#ffd600]/20">
+                    <h4 className="text-[#ffd600] font-semibold flex items-center gap-2">
+                      📌 Summary
+                    </h4>
+                  </div>
+                  <div className="p-6 max-h-80 overflow-y-auto">
+                    <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {result.summary}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Detailed Notes Section */}
+              {result.notes && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="bg-[#151a2e]/50 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden"
+                >
+                  <div className="bg-[#4a90e2]/10 px-6 py-4 border-b border-[#4a90e2]/20">
+                    <h4 className="text-[#4a90e2] font-semibold flex items-center gap-2">
+                      📖 Detailed Notes
+                    </h4>
+                  </div>
+                  <div className="p-6 max-h-80 overflow-y-auto">
+                    <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {result.notes}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex justify-center"
+            >
+              <Button
+                onClick={resetForm}
+                className="flex items-center gap-2 bg-gradient-to-r from-[#ffd600] to-[#4a90e2] text-black font-semibold px-8 py-3 hover:shadow-xl hover:transform hover:-translate-y-1 transition-all duration-300"
+                aria-label="Upload another audio file"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Upload Another
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
