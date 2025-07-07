@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -30,9 +31,9 @@ export const useUserStats = (userId: string | null) => {
       setLoading(true);
       try {
         // --- IMPROVEMENT: Check for cached stats first ---
-        const cachedStatsDoc = await firebaseSecure.secureGet(`userStats/${userId}`);
-        if (cachedStatsDoc.exists()) {
-          const cachedData = cachedStatsDoc.data();
+        const cachedStatsDoc = await firebaseSecure.secureRead(`userStats/${userId}`);
+        if (cachedStatsDoc) {
+          const cachedData = cachedStatsDoc;
           const lastUpdated = cachedData.lastUpdated?.toDate ? cachedData.lastUpdated.toDate() : new Date(0);
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
