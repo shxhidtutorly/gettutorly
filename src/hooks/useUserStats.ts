@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -21,20 +20,37 @@ export const useUserStats = (userId: string | null) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.uid || !userId) {
+    // Exit if there is no user ID to fetch stats for.
+    if (!userId) {
       setLoading(false);
       return;
     }
 
     const loadStats = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
+        // --- IMPROVEMENT: Check for cached stats first ---
+        const cachedStatsDoc = await firebaseSecure.secureGet(`userStats/${userId}`);
+        if (cachedStatsDoc.exists()) {
+          const cachedData = cachedStatsDoc.data();
+          const lastUpdated = cachedData.lastUpdated?.toDate ? cachedData.lastUpdated.toDate() : new Date(0);
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+          // If cache is less than an hour old, use it.
+          if (lastUpdated > oneHourAgo) {
+            setStats(cachedData as UserStats);
+            setLoading(false);
+            return; // Stop execution and use the fresh cache
+          }
+        }
+
+        // --- If no fresh cache, proceed with calculation ---
         
         // Get current month start
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         
-        // Fetch all user data collections
+        // --- FIX: Use the `userId` prop for all queries ---
         const [
           userActivity,
           notesHistory,
@@ -44,13 +60,13 @@ export const useUserStats = (userId: string | null) => {
           quizzes,
           aiSessions
         ] = await Promise.all([
-          firebaseSecure.secureQuery(`userActivity/${user.uid}/sessions`),
-          firebaseSecure.secureQuery(`notes_history/${user.uid}/entries`),
-          firebaseSecure.secureQuery(`math_chat_history/${user.uid}/entries`),
-          firebaseSecure.secureQuery(`summary_sessions/${user.uid}/entries`),
-          firebaseSecure.secureQuery(`flashcards/${user.uid}/sets`),
-          firebaseSecure.secureQuery(`quizzes/${user.uid}/attempts`),
-          firebaseSecure.secureQuery(`ai_sessions/${user.uid}/chats`)
+          firebaseSecure.secureQuery(`userActivity/${userId}/sessions`),
+          firebaseSecure.secureQuery(`notes_history/${userId}/entries`),
+          firebaseSecure.secureQuery(`math_chat_history/${userId}/entries`),
+          firebaseSecure.secureQuery(`summary_sessions/${userId}/entries`),
+          firebaseSecure.secureQuery(`flashcards/${userId}/sets`),
+          firebaseSecure.secureQuery(`quizzes/${userId}/attempts`),
+          firebaseSecure.secureQuery(`ai_sessions/${userId}/chats`)
         ]);
 
         // Calculate total study time (in minutes)
@@ -64,9 +80,9 @@ export const useUserStats = (userId: string | null) => {
           return sessionDate >= monthStart;
         }).length;
 
-        // Calculate quiz average
-        const quizScores = quizzes.map((q: any) => q.score || 0).filter((score: number) => score > 0);
-        const averageQuizScore = quizScores.length > 0 
+        // --- FIX: Include scores of 0 in the average calculation ---
+        const quizScores = quizzes.map((q: any) => q.score).filter((score: any) => typeof score === 'number');
+        const averageQuizScore = quizScores.length > 0
           ? Math.round(quizScores.reduce((a: number, b: number) => a + b, 0) / quizScores.length)
           : 0;
 
@@ -87,14 +103,15 @@ export const useUserStats = (userId: string | null) => {
 
         setStats(calculatedStats);
 
-        // Save stats to Firebase for caching
-        await firebaseSecure.secureWrite(`userStats/${user.uid}`, {
+        // --- FIX: Save stats to Firebase cache under the correct userId ---
+        await firebaseSecure.secureWrite(`userStats/${userId}`, {
           ...calculatedStats,
           lastUpdated: new Date()
         });
 
       } catch (error) {
         console.error('Error loading user stats:', error);
+        // Set stats to 0 on error to prevent crashes
         setStats({
           total_study_time: 0,
           materials_created: 0,
@@ -111,7 +128,7 @@ export const useUserStats = (userId: string | null) => {
     };
 
     loadStats();
-  }, [user?.uid, userId]);
+  }, [userId]); // --- FIX: Dependency array now only depends on userId ---
 
   return { stats, loading };
 };
