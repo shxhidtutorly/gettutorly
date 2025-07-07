@@ -1,11 +1,21 @@
 import React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Globe, BrainCog, FolderIcon as FolderCode } from "lucide-react"
+import {
+  ArrowUp,
+  Paperclip,
+  Square,
+  X,
+  StopCircle,
+  Mic,
+  BrainCog,
+  FolderIcon as FolderCode,
+  FileText,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, type ElementType, type ComponentPropsWithoutRef } from "react"
 import { CodeBlock, parseCodeBlocks } from "../components/code-block"
-import { ThinkingBubble, CenteredThinkingOverlay } from "../components/thinking-indicator"
+import { CenteredThinkingOverlay } from "../components/thinking-indicator"
 
 // Utility function for className merging
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ")
@@ -619,7 +629,6 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const [filePreviews, setFilePreviews] = React.useState<{ [key: string]: string }>({})
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
   const [isRecording, setIsRecording] = React.useState(false)
-  const [showSearch, setShowSearch] = React.useState(false)
   const [showThink, setShowThink] = React.useState(false)
   const [showCanvas, setShowCanvas] = React.useState(false)
   const uploadInputRef = React.useRef<HTMLInputElement>(null)
@@ -635,36 +644,47 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   ]
 
   const handleToggleChange = (value: string) => {
-    if (value === "search") {
-      setShowSearch((prev) => !prev)
-      setShowThink(false)
-      setShowCanvas(false)
-    } else if (value === "think") {
+    if (value === "think") {
       setShowThink((prev) => !prev)
-      setShowSearch(false)
       setShowCanvas(false)
     } else if (value === "canvas") {
       setShowCanvas((prev) => !prev)
-      setShowSearch(false)
       setShowThink(false)
     }
   }
 
-  const isImageFile = (file: File) => file.type.startsWith("image/")
+  const isValidFile = (file: File) => {
+    const validTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+      "text/plain",
+      "text/csv",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]
+    return validTypes.includes(file.type)
+  }
 
   const processFile = (file: File) => {
-    if (!isImageFile(file)) {
-      console.log("Only image files are allowed")
+    if (!isValidFile(file)) {
+      console.log("File type not supported. Please upload images, PDFs, or text documents.")
       return
     }
     if (file.size > 10 * 1024 * 1024) {
       console.log("File too large (max 10MB)")
       return
     }
-    setFiles([file])
-    const reader = new FileReader()
-    reader.onload = (e) => setFilePreviews({ [file.name]: e.target?.result as string })
-    reader.readAsDataURL(file)
+
+    setFiles((prev) => [...prev, file])
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader()
+      reader.onload = (e) => setFilePreviews((prev) => ({ ...prev, [file.name]: e.target?.result as string }))
+      reader.readAsDataURL(file)
+    }
   }
 
   const handleDragOver = React.useCallback((e: React.DragEvent) => {
@@ -681,14 +701,19 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
     e.preventDefault()
     e.stopPropagation()
     const droppedFiles = Array.from(e.dataTransfer.files)
-    const imageFiles = droppedFiles.filter((file) => isImageFile(file))
-    if (imageFiles.length > 0) processFile(imageFiles[0])
+    droppedFiles.forEach((file) => processFile(file))
   }, [])
 
   const handleRemoveFile = (index: number) => {
     const fileToRemove = files[index]
-    if (fileToRemove && filePreviews[fileToRemove.name]) setFilePreviews({})
-    setFiles([])
+    if (fileToRemove && filePreviews[fileToRemove.name]) {
+      setFilePreviews((prev) => {
+        const newPreviews = { ...prev }
+        delete newPreviews[fileToRemove.name]
+        return newPreviews
+      })
+    }
+    setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const openImageModal = (imageUrl: string) => setSelectedImage(imageUrl)
@@ -718,8 +743,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
       let messagePrefix = ""
       let isCanvasMode = false
 
-      if (showSearch) messagePrefix = "[Search: "
-      else if (showThink) {
+      if (showThink) {
         messagePrefix = "[Think: "
         setIsThinking(true)
       } else if (showCanvas) {
@@ -733,7 +757,6 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
       setInput("")
       setFiles([])
       setFilePreviews({})
-      setShowSearch(false)
       setShowThink(false)
       setShowCanvas(false)
     }
@@ -776,7 +799,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
           <div className="flex flex-wrap gap-2 p-0 pb-1 transition-all duration-300">
             {files.map((file, index) => (
               <div key={index} className="relative group">
-                {file.type.startsWith("image/") && filePreviews[file.name] && (
+                {file.type.startsWith("image/") && filePreviews[file.name] ? (
                   <div
                     className="w-16 h-16 rounded-xl overflow-hidden cursor-pointer transition-all duration-300"
                     onClick={() => openImageModal(filePreviews[file.name])}
@@ -796,6 +819,17 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                       <X className="h-3 w-3 text-white" />
                     </button>
                   </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-gray-700/50 rounded-lg px-3 py-2 text-sm text-white">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate max-w-[100px]">{file.name}</span>
+                    <button
+                      onClick={() => handleRemoveFile(index)}
+                      className="rounded-full bg-black/70 p-0.5 hover:bg-black/90 transition-colors"
+                    >
+                      <X className="h-3 w-3 text-white" />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -809,13 +843,11 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
             placeholders={
               messages.length > 0
                 ? ["Type your next message..."]
-                : showSearch
-                  ? ["Search the web..."]
-                  : showThink
-                    ? ["Think deeply about this..."]
-                    : showCanvas
-                      ? ["Create code on canvas..."]
-                      : defaultPlaceholders
+                : showThink
+                  ? ["Think deeply about this..."]
+                  : showCanvas
+                    ? ["Create code on canvas..."]
+                    : defaultPlaceholders
             }
             className="text-base"
           />
@@ -836,7 +868,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
               isRecording ? "opacity-0 invisible h-0" : "opacity-100 visible",
             )}
           >
-            <PromptInputAction tooltip="Upload image">
+            <PromptInputAction tooltip="Upload files (Images, PDFs, Documents)">
               <button
                 onClick={() => uploadInputRef.current?.click()}
                 className="flex h-8 w-8 text-[#9CA3AF] cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-gray-600/30 hover:text-[#D1D5DB]"
@@ -848,55 +880,18 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                   type="file"
                   className="hidden"
                   onChange={(e) => {
-                    if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0])
+                    if (e.target.files) {
+                      Array.from(e.target.files).forEach((file) => processFile(file))
+                    }
                     if (e.target) e.target.value = ""
                   }}
-                  accept="image/*,audio/*,application/pdf"
+                  accept="image/*,application/pdf,text/*,.doc,.docx"
+                  multiple
                 />
               </button>
             </PromptInputAction>
 
             <div className="flex items-center">
-              <button
-                type="button"
-                onClick={() => handleToggleChange("search")}
-                className={cn(
-                  "rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8",
-                  showSearch
-                    ? "bg-[#1EAEDB]/15 border-[#1EAEDB] text-[#1EAEDB]"
-                    : "bg-transparent border-transparent text-[#9CA3AF] hover:text-[#D1D5DB]",
-                )}
-              >
-                <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                  <motion.div
-                    animate={{ rotate: showSearch ? 360 : 0, scale: showSearch ? 1.1 : 1 }}
-                    whileHover={{
-                      rotate: showSearch ? 360 : 15,
-                      scale: 1.1,
-                      transition: { type: "spring", stiffness: 300, damping: 10 },
-                    }}
-                    transition={{ type: "spring", stiffness: 260, damping: 25 }}
-                  >
-                    <Globe className={cn("w-4 h-4", showSearch ? "text-[#1EAEDB]" : "text-inherit")} />
-                  </motion.div>
-                </div>
-                <AnimatePresence>
-                  {showSearch && (
-                    <motion.span
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: "auto", opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-xs overflow-hidden whitespace-nowrap text-[#1EAEDB] flex-shrink-0"
-                    >
-                      Search
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </button>
-
-              <CustomDivider />
-
               <button
                 type="button"
                 onClick={() => handleToggleChange("think")}
@@ -1055,19 +1050,30 @@ const AIAssistant = () => {
     try {
       const fileData = await Promise.all(
         (files || []).map(async (file) => {
-          const base64 = await convertFileToBase64(file)
-          return {
-            name: file.name,
-            type: file.type,
-            base64: base64.split(",")[1],
-            preview: base64,
+          if (file.type.startsWith("image/")) {
+            const base64 = await convertFileToBase64(file)
+            return {
+              name: file.name,
+              type: file.type,
+              base64: base64.split(",")[1],
+              preview: base64,
+            }
+          } else {
+            // For non-image files, just include metadata
+            return {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+            }
           }
         }),
       )
 
       const filePreviews: { [key: string]: string } = {}
       fileData.forEach((f) => {
-        filePreviews[f.name] = f.preview
+        if (f.preview) {
+          filePreviews[f.name] = f.preview
+        }
       })
 
       const userMessage: any = {
@@ -1088,7 +1094,7 @@ const AIAssistant = () => {
         body: JSON.stringify({
           prompt: {
             text: message.trim(),
-            files: fileData.map(({ preview, ...rest }) => rest),
+            files: fileData,
           },
           model: "gemini",
           isCanvas: options?.isCanvas,
@@ -1098,11 +1104,178 @@ const AIAssistant = () => {
       const data = await response.json()
       let aiResponse = data.response || data.message || "I understand your request. Let me help you with that."
 
-      // Remove the hardcoded demo code - let the AI response be natural
-      // Only add code examples if specifically requested or if canvas mode
-      if (options?.isCanvas && !aiResponse.includes("```")) {
-        aiResponse +=
-          '\n\nHere\'s a sample React component:\n\n```jsx\nimport React, { useState } from \'react\';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div className="p-4 border rounded">\n      <h2>Counter: {count}</h2>\n      <button \n        onClick={() => setCount(count + 1)}\n        className="bg-blue-500 text-white px-4 py-2 rounded mr-2"\n      >\n        Increment\n      </button>\n      <button \n        onClick={() => setCount(count - 1)}\n        className="bg-red-500 text-white px-4 py-2 rounded"\n      >\n        Decrement\n      </button>\n    </div>\n  );\n}\n\nexport default Counter;\n```'
+      // Generate real code based on the request for canvas mode
+      if (options?.isCanvas) {
+        if (message.toLowerCase().includes("html") || message.toLowerCase().includes("canvas")) {
+          aiResponse = `Here's a simple HTML canvas example that draws shapes and text:
+
+\`\`\`html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Drawing Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid #333;
+            border-radius: 8px;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>HTML5 Canvas Drawing</h1>
+    <canvas id="myCanvas" width="400" height="300"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Draw a rectangle
+        ctx.fillStyle = '#FF6B6B';
+        ctx.fillRect(50, 50, 100, 80);
+        
+        // Draw a circle
+        ctx.beginPath();
+        ctx.arc(250, 90, 40, 0, 2 * Math.PI);
+        ctx.fillStyle = '#4ECDC4';
+        ctx.fill();
+        
+        // Draw text
+        ctx.font = '20px Arial';
+        ctx.fillStyle = '#45B7D1';
+        ctx.fillText('Hello Canvas!', 120, 200);
+        
+        // Draw a line
+        ctx.beginPath();
+        ctx.moveTo(50, 250);
+        ctx.lineTo(350, 250);
+        ctx.strokeStyle = '#96CEB4';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    </script>
+</body>
+</html>
+\`\`\``
+        } else if (message.toLowerCase().includes("react")) {
+          aiResponse = `Here's a React component with interactive functionality:
+
+\`\`\`jsx
+import React, { useState, useEffect } from 'react';
+
+function InteractiveCounter() {
+  const [count, setCount] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [history, setHistory] = useState([]);
+
+  const handleIncrement = () => {
+    setIsAnimating(true);
+    setCount(prev => prev + 1);
+    setHistory(prev => [...prev, 'increment']);
+    setTimeout(() => setIsAnimating(false), 200);
+  };
+
+  const handleDecrement = () => {
+    setIsAnimating(true);
+    setCount(prev => prev - 1);
+    setHistory(prev => [...prev, 'decrement']);
+    setTimeout(() => setIsAnimating(false), 200);
+  };
+
+  const handleReset = () => {
+    setCount(0);
+    setHistory([]);
+  };
+
+  return (
+    <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold text-center mb-4">Interactive Counter</h2>
+      
+      <div className={\`text-6xl font-bold text-center mb-6 transition-transform duration-200 \${isAnimating ? 'scale-110' : 'scale-100'}\`}>
+        {count}
+      </div>
+      
+      <div className="flex gap-3 justify-center mb-4">
+        <button 
+          onClick={handleDecrement}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          Decrement
+        </button>
+        <button 
+          onClick={handleReset}
+          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          Reset
+        </button>
+        <button 
+          onClick={handleIncrement}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          Increment
+        </button>
+      </div>
+      
+      {history.length > 0 && (
+        <div className="text-sm text-gray-600">
+          <p>Last actions: {history.slice(-3).join(', ')}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default InteractiveCounter;
+\`\`\``
+        } else {
+          // Default code example for canvas mode
+          aiResponse = `Here's a versatile code example based on your request:
+
+\`\`\`javascript
+// Dynamic content generator
+class ContentGenerator {
+  constructor() {
+    this.templates = {
+      greeting: ['Hello', 'Hi', 'Welcome', 'Greetings'],
+      actions: ['create', 'build', 'generate', 'develop'],
+      subjects: ['app', 'website', 'component', 'feature']
+    };
+  }
+  
+  generate(type = 'greeting') {
+    const options = this.templates[type] || this.templates.greeting;
+    return options[Math.floor(Math.random() * options.length)];
+  }
+  
+  createMessage() {
+    return \`\${this.generate('greeting')}! Let's \${this.generate('actions')} an amazing \${this.generate('subjects')}.\`;
+  }
+}
+
+// Usage example
+const generator = new ContentGenerator();
+console.log(generator.createMessage());
+
+// Interactive demo
+document.addEventListener('DOMContentLoaded', () => {
+  const button = document.createElement('button');
+  button.textContent = 'Generate Message';
+  button.onclick = () => alert(generator.createMessage());
+  document.body.appendChild(button);
+});
+\`\`\``
+        }
       }
 
       setMessages((prev) => [
@@ -1180,20 +1353,20 @@ const AIAssistant = () => {
       <CenteredThinkingOverlay isVisible={isThinking} />
 
       {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/30 to-transparent backdrop-blur-sm">
-        <div className="flex items-center justify-between p-4">
+      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/20 to-transparent backdrop-blur-sm">
+        <div className="flex items-center justify-between p-3 md:p-4">
           <button
             onClick={handleBackToDashboard}
-            className="px-3 py-2 text-blue-400/60 hover:text-white border border-blue-700/30 rounded-lg shadow transition-all duration-200 hover:bg-blue-900/20 hover:scale-105 bg-transparent/10 backdrop-blur-sm"
+            className="px-2 py-1.5 md:px-3 md:py-2 text-white/40 hover:text-white/80 border border-white/20 rounded-lg shadow transition-all duration-200 hover:bg-white/10 hover:scale-105 bg-white/5 backdrop-blur-sm text-sm md:text-base"
             style={{
               fontWeight: 500,
-              background: "rgba(0, 0, 0, 0.05)",
-              opacity: 0.7,
+              background: "rgba(255, 255, 255, 0.05)",
+              opacity: 0.6,
             }}
           >
             <span style={{ fontSize: "1.2em" }}>←</span> Back to Dashboard
           </button>
-          <div className="flex-1 flex justify-center">
+          <div className="flex-1 flex justify-center px-2">
             <AnimatePresence mode="wait">
               {headingState === "ask" ? (
                 <motion.div
@@ -1204,7 +1377,7 @@ const AIAssistant = () => {
                 >
                   <TypingAnimation
                     text="Ask Tutorly Anything"
-                    className="text-2xl md:text-3xl font-bold text-white"
+                    className="text-xl md:text-2xl lg:text-3xl font-bold text-white"
                     stopTyping={messages.length > 0}
                     duration={100}
                   />
@@ -1216,28 +1389,30 @@ const AIAssistant = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
                 >
-                  <h1 className="font-display text-center text-2xl md:text-3xl font-bold text-white">Tutorly</h1>
+                  <h1 className="font-display text-center text-xl md:text-2xl lg:text-3xl font-bold text-white">
+                    Tutorly
+                  </h1>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-          <div className="w-[140px]"></div>
+          <div className="w-[100px] md:w-[140px]"></div>
         </div>
       </div>
 
       {/* Main Chat Container */}
-      <div className="flex flex-col w-full max-w-4xl mx-auto pt-20 pb-4 px-4">
+      <div className="flex flex-col w-full max-w-4xl mx-auto pt-16 md:pt-20 pb-4 px-2 md:px-4">
         {/* Chat Messages Area */}
-        <div className="flex-1 overflow-y-auto chat-scrollbar mb-4 px-2">
+        <div className="flex-1 overflow-y-auto chat-scrollbar mb-4 px-1 md:px-2">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center text-white/60">
-                <p className="text-lg mb-2">Welcome to Tutorly!</p>
+              <div className="text-center text-white/60 px-4">
+                <p className="text-base md:text-lg mb-2">Welcome to Tutorly!</p>
                 <p className="text-sm">Ask me anything to get started.</p>
               </div>
             </div>
           ) : (
-            <div className="space-y-4 max-w-3xl mx-auto">
+            <div className="space-y-3 md:space-y-4 max-w-3xl mx-auto">
               <AnimatePresence>
                 {messages.map((msg) => (
                   <motion.div
@@ -1250,65 +1425,64 @@ const AIAssistant = () => {
                   >
                     <div
                       className={cn(
-                        "max-w-[85%] p-4 rounded-2xl break-words",
+                        "max-w-[90%] md:max-w-[85%] p-3 md:p-4 rounded-2xl break-words text-sm md:text-base",
                         msg.isUser
                           ? "bg-blue-600 text-white rounded-br-md"
                           : "bg-gray-800/80 text-white rounded-bl-md backdrop-blur-sm",
                       )}
                     >
                       {renderMessageContent(msg)}
-                      {msg.files && msg.files.length > 0 && msg.filePreviews && (
+                      {msg.files && msg.files.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
-                          {msg.files.map((file, idx) => (
-                            <div key={idx} className="relative">
-                              {file.type.startsWith("image/") && msg.filePreviews?.[file.name] && (
+                          {msg.files.map((file: File, idx: number) => {
+                            const preview = msg.filePreviews?.[file.name]
+
+                            // Image preview
+                            if (file.type.startsWith("image/") && preview) {
+                              return (
                                 <img
-                                  src={msg.filePreviews[file.name] || "/placeholder.svg"}
+                                  key={idx}
+                                  src={preview || "/placeholder.svg"}
                                   alt={file.name}
-                                  className="w-32 h-32 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                  className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                                 />
-                              )}
-                              {file.type.startsWith("audio/") && msg.filePreviews?.[file.name] && (
-                                <audio controls className="w-64">
-                                  <source src={msg.filePreviews[file.name]} type={file.type} />
-                                  Your browser does not support the audio element.
-                                </audio>
-                              )}
-                              {file.type === "application/pdf" && msg.filePreviews?.[file.name] && (
-                                <a
-                                  href={msg.filePreviews[file.name]}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 underline hover:text-blue-300"
-                                >
-                                  {file.name}
-                                </a>
-                              )}
-                            </div>
-                          ))}
+                              )
+                            }
+
+                            // Generic link preview (PDF, DOCX, etc.)
+                            return (
+                              <a
+                                key={idx}
+                                href={preview ?? "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-gray-700/50 rounded-lg px-3 py-2 text-sm text-white hover:bg-gray-700/70 transition-colors"
+                              >
+                                <FileText className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate max-w-[120px]">{file.name}</span>
+                              </a>
+                            )
+                          })}
                         </div>
                       )}
                     </div>
                   </motion.div>
                 ))}
-                {!isThinking && isLoading && <ThinkingBubble />}
               </AnimatePresence>
               <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
-        {/* Input Area */}
-        <div className="max-w-3xl mx-auto w-full">
-          <PromptInputBox
-            onSend={handleSendMessage}
-            isLoading={isLoading}
-            setMessages={setMessages}
-            messages={messages}
-            isThinking={isThinking}
-            setIsThinking={setIsThinking}
-          />
-        </div>
+        {/* Prompt Input Area */}
+        <PromptInputBox
+          onSend={handleSendMessage}
+          isLoading={isLoading}
+          messages={messages}
+          setMessages={setMessages}
+          isThinking={isThinking}
+          setIsThinking={setIsThinking}
+        />
       </div>
     </div>
   )
