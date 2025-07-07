@@ -5,7 +5,7 @@ import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Globe, BrainCog, Folder
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, type ElementType, type ComponentPropsWithoutRef } from "react"
 import { CodeBlock, parseCodeBlocks } from "../components/code-block"
-import { ThinkingIndicator, ThinkingBubble } from "../components/thinking-indicator"
+import { ThinkingBubble, CenteredThinkingOverlay } from "../components/thinking-indicator"
 
 // Utility function for className merging
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ")
@@ -1080,7 +1080,7 @@ const AIAssistant = () => {
       setMessages((prev) => [...prev, userMessage])
 
       // Simulate API delay for thinking effect
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1500))
 
       const response = await fetch("/api/ai", {
         method: "POST",
@@ -1096,10 +1096,11 @@ const AIAssistant = () => {
       })
 
       const data = await response.json()
-      let aiResponse = data.response || data.message || "No response from AI"
+      let aiResponse = data.response || data.message || "I understand your request. Let me help you with that."
 
-      // Add sample code if canvas mode is requested
-      if (options?.isCanvas) {
+      // Remove the hardcoded demo code - let the AI response be natural
+      // Only add code examples if specifically requested or if canvas mode
+      if (options?.isCanvas && !aiResponse.includes("```")) {
         aiResponse +=
           '\n\nHere\'s a sample React component:\n\n```jsx\nimport React, { useState } from \'react\';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div className="p-4 border rounded">\n      <h2>Counter: {count}</h2>\n      <button \n        onClick={() => setCount(count + 1)}\n        className="bg-blue-500 text-white px-4 py-2 rounded mr-2"\n      >\n        Increment\n      </button>\n      <button \n        onClick={() => setCount(count - 1)}\n        className="bg-red-500 text-white px-4 py-2 rounded"\n      >\n        Decrement\n      </button>\n    </div>\n  );\n}\n\nexport default Counter;\n```'
       }
@@ -1175,16 +1176,19 @@ const AIAssistant = () => {
 
   return (
     <div className="flex w-full h-screen bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_30%,rgba(0,0,0,0.9)_100%)]">
+      {/* ChatGPT-style centered thinking overlay */}
+      <CenteredThinkingOverlay isVisible={isThinking} />
+
       {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/30 to-transparent backdrop-blur-sm">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={handleBackToDashboard}
-            className="px-3 py-2 text-blue-400/80 hover:text-white border border-blue-700/50 rounded-lg shadow transition-all duration-200 hover:bg-blue-900/30 hover:scale-105 bg-transparent/20 backdrop-blur-sm"
+            className="px-3 py-2 text-blue-400/60 hover:text-white border border-blue-700/30 rounded-lg shadow transition-all duration-200 hover:bg-blue-900/20 hover:scale-105 bg-transparent/10 backdrop-blur-sm"
             style={{
               fontWeight: 500,
-              background: "rgba(0, 0, 0, 0.1)",
-              opacity: 0.8,
+              background: "rgba(0, 0, 0, 0.05)",
+              opacity: 0.7,
             }}
           >
             <span style={{ fontSize: "1.2em" }}>←</span> Back to Dashboard
@@ -1217,9 +1221,7 @@ const AIAssistant = () => {
               )}
             </AnimatePresence>
           </div>
-          <div className="w-[140px] flex justify-end">
-            {isLoading && <ThinkingIndicator size="sm" text="Thinking" className="text-white/60" />}
-          </div>
+          <div className="w-[140px]"></div>
         </div>
       </div>
 
@@ -1289,7 +1291,7 @@ const AIAssistant = () => {
                     </div>
                   </motion.div>
                 ))}
-                {isThinking && <ThinkingBubble />}
+                {!isThinking && isLoading && <ThinkingBubble />}
               </AnimatePresence>
               <div ref={messagesEndRef} />
             </div>
