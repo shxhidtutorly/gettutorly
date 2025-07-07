@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ")
 
@@ -65,5 +65,50 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({ className }) => 
         <ThinkingIndicator size="sm" />
       </div>
     </motion.div>
+  )
+}
+
+// ChatGPT-style centered thinking overlay
+interface CenteredThinkingOverlayProps {
+  isVisible: boolean
+}
+
+export const CenteredThinkingOverlay: React.FC<CenteredThinkingOverlayProps> = ({ isVisible }) => {
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="bg-black/20 backdrop-blur-sm rounded-2xl px-8 py-6 border border-white/10"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full"
+              />
+              <motion.div
+                initial={{ opacity: 0.7 }}
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="text-white text-lg font-medium"
+              >
+                Thinking
+              </motion.div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
