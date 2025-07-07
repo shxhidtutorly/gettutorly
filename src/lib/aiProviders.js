@@ -27,11 +27,16 @@ class AIProviderManager {
     return keys.split(',').map(key => key.trim()).filter(Boolean);
   }
 
-  // --- START: ADD removeMarkdownFormatting METHOD HERE ---
+  /**
+   * Removes common Markdown formatting from a given text string.
+   * Ensures the input is treated as a string.
+   * @param {string} text - The input text, potentially with Markdown.
+   * @returns {string} The text with Markdown formatting removed.
+   */
   removeMarkdownFormatting(text) {
     // Ensure text is a string before processing
     if (typeof text !== 'string') {
-        return String(text); // Convert to string if it's not already
+      return String(text); // Convert to string if it's not already
     }
 
     // Remove bold (**text** or __text__)
@@ -69,92 +74,130 @@ class AIProviderManager {
 
     return text;
   }
-  // --- END: ADD removeMarkdownFormatting METHOD HERE ---
 
-
-  // FIXED: Added missing curly braces for the method body
+  /**
+   * Fetches an AI response from the specified model, with fallback logic
+   * to other providers and keys if the initial attempt fails.
+   * @param {string|object} prompt - The input prompt. Can be a string or an object
+   * like { text: "...", files: [...] } for multimodal models.
+   * @param {string} model - The preferred model to use (e.g., 'gemini', 'llama-3.1-8b-instant').
+   * @returns {Promise<object>} An object containing the message, provider, and model used.
+   * @throws {Error} If all API keys fail for all available providers.
+   */
   async getAIResponse(prompt, model) {
     const requestedProvider = this.getProviderForModel(model);
+    // Create a fallback order: requested provider first, then others.
     const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
     for (const provider of fallbackProviders) {
       const keys = this.apiKeys[provider];
-      if (!keys || keys.length === 0) continue;
+      if (!keys || keys.length === 0) {
+        console.log(`ℹ️ Skipping ${provider}: No API keys available.`);
+        continue;
+      }
 
       for (let i = 0; i < keys.length; i++) {
         try {
+          console.log(`Attempting to call ${provider} with key ${i + 1}...`);
           const response = await this.callProvider(provider, prompt, keys[i], model);
+          console.log(`✅ Successfully received response from ${provider}.`);
           return { message: response, provider, model };
         } catch (error) {
-          console.log(`❌ Failed with ${provider} key ${i + 1}:`, error.message);
+          console.log(`❌ Failed with ${provider} key ${i + 1}: ${error.message}`);
         }
       }
     }
 
-    throw new Error(`All API keys failed for all providers.`);
+    throw new Error(`All API keys failed for all providers. Please check your API keys and network connection.`);
   }
 
-
+  /**
+   * Determines the primary provider for a given model.
+   * @param {string} model - The model name.
+   * @returns {string} The provider name associated with the model.
+   */
   getProviderForModel(model) {
     const modelProviderMap = {
-      gemini: 'gemini',
-      groq: 'groq',
-      claude: 'claude',
-      openrouter: 'openrouter',
-      huggingface: 'huggingface',
-      together: 'together'
+      // Direct mapping for common models to their primary providers
+      'gemini': 'gemini',
+      'gemini-2.5-flash': 'gemini',
+      'llama-3.1-8b-instant': 'groq',
+      'llama-3-8b-chat-hf': 'together',
+      'claude-3-5-sonnet-20241022': 'claude',
+      'deepseek/deepseek-r1-0528-qwen3-8b:free': 'openrouter',
+      'microsoft/DialoGPT-medium': 'huggingface',
+      // Add more specific model-to-provider mappings as needed
     };
+    // If a specific model is mapped, return its provider. Otherwise, assume the model name is the provider name.
     return modelProviderMap[model] || model;
   }
 
+  /**
+   * Calls the appropriate AI provider based on the provider name.
+   * Handles prompt formatting for different APIs.
+   * @param {string} provider - The name of the AI provider.
+   * @param {string|object} prompt - The input prompt. Can be a string or an object { text: "...", files: [...] }.
+   * @param {string} apiKey - The API key for the provider.
+   * @param {string} model - The specific model to use (relevant for OpenRouter).
+   * @returns {Promise<string>} The AI's response text.
+   * @throws {Error} If the provider is unsupported or API call fails.
+   */
   async callProvider(provider, prompt, apiKey, model) {
+    let finalPromptForAPI = prompt; // Default to original prompt
+
+    // Process prompt based on provider expectations
+    if (typeof prompt === 'object' && prompt !== null) {
+      if (provider !== 'gemini') {
+        // For non-Gemini models, if prompt is an object, extract its 'text' property.
+        if (prompt.text !== undefined) {
+          finalPromptForAPI = prompt.text;
+        } else {
+          // If it's an object but doesn't have a 'text' property, log a warning
+          // and attempt to stringify the object. This might not always yield
+          // a meaningful prompt for the LLM, but prevents a type error.
+          console.warn(`⚠️ Unexpected object prompt format for ${provider}. Attempting to convert to string.`);
+          finalPromptForAPI = JSON.stringify(prompt);
+        }
+      }
+      // If provider is 'gemini', finalPromptForAPI remains the original object (with text/files).
+    } else if (typeof prompt !== 'string') {
+      // If it's not a string and not an object, convert to string.
+      console.warn(`⚠️ Non-string/non-object prompt (${typeof prompt}) provided to ${provider}. Attempting to convert.`);
+      finalPromptForAPI = String(prompt);
+    }
+    // If prompt is already a string, finalPromptForAPI remains the original string.
+
     switch (provider) {
       case 'gemini':
-        // If prompt is a string, convert it to the expected object format for Gemini
-        if (typeof prompt === 'string') {
-          return await this.callGemini({ text: prompt }, apiKey);
+        // Gemini's callGemini expects an object { text, files } or just { text }.
+        // If finalPromptForAPI is a string, convert it to the expected object format.
+        if (typeof finalPromptForAPI === 'string') {
+          return await this.callGemini({ text: finalPromptForAPI }, apiKey);
         }
-        return await this.callGemini(prompt, apiKey);
+        return await this.callGemini(finalPromptForAPI, apiKey);
       case 'groq':
-        // Ensure prompt is a string for Groq
-        if (typeof prompt !== 'string') {
-          throw new Error('Groq API expects a string prompt.');
-        }
-        return await this.callGroq(prompt, apiKey);
+        return await this.callGroq(finalPromptForAPI, apiKey);
       case 'claude':
-        // Ensure prompt is a string for Claude
-        if (typeof prompt !== 'string') {
-          throw new Error('Claude API expects a string prompt.');
-        }
-        return await this.callClaude(prompt, apiKey);
+        return await this.callClaude(finalPromptForAPI, apiKey);
       case 'openrouter':
-        // Ensure prompt is a string for OpenRouter
-        if (typeof prompt !== 'string') {
-          throw new Error('OpenRouter API expects a string prompt.');
-        }
-        return await this.callOpenRouter(prompt, apiKey, model);
+        return await this.callOpenRouter(finalPromptForAPI, apiKey, model);
       case 'huggingface':
-        // Ensure prompt is a string for HuggingFace
-        if (typeof prompt !== 'string') {
-          throw new Error('Hugging Face API expects a string prompt.');
-        }
-        return await this.callHuggingFace(prompt, apiKey);
+        return await this.callHuggingFace(finalPromptForAPI, apiKey);
       case 'together':
-        // Ensure prompt is a string for Together
-        if (typeof prompt !== 'string') {
-          throw new Error('Together API expects a string prompt.');
-        }
-        return await this.callTogether(prompt, apiKey);
+        return await this.callTogether(finalPromptForAPI, apiKey);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
-  // FIXED: Corrected the fetch call syntax (options object was malformed)
-  // Also updated prompt to expect an object { text, files }
+  /**
+   * Calls the Gemini API to generate content.
+   * @param {object} prompt - An object containing text and optionally files ({ text: string, files?: Array<object> }).
+   * @param {string} apiKey - The Gemini API key.
+   * @returns {Promise<string>} The generated text response.
+   * @throws {Error} If the API call fails or returns an error.
+   */
   async callGemini(prompt, apiKey) {
-  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
-
     const parts = [];
 
     if (prompt.text) parts.push({ text: prompt.text });
@@ -179,7 +222,7 @@ class AIProviderManager {
           temperature: 0.3,
           topK: 20,
           topP: 0.8,
-          maxOutputTokens: 1800 // Make sure this is the updated value (e.g., 2048 or 4096)
+          maxOutputTokens: 1800
         }
       })
     });
@@ -191,7 +234,7 @@ class AIProviderManager {
       throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    let geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text; // Use 'let' to allow reassigning
+    let geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!geminiTextResponse) {
       console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
@@ -204,14 +247,20 @@ class AIProviderManager {
       return 'No response from Gemini (see server logs for details).';
     }
 
-    // --- APPLY MARKDOWN REMOVAL HERE FOR GEMINI ---
+    // Apply markdown removal for Gemini's response
     geminiTextResponse = this.removeMarkdownFormatting(geminiTextResponse);
 
     return geminiTextResponse;
   }
 
+  /**
+   * Calls the Groq API to generate chat completions.
+   * @param {string} prompt - The input prompt string.
+   * @param {string} apiKey - The Groq API key.
+   * @returns {Promise<string>} The generated text response.
+   * @throws {Error} If the API call fails or returns an error.
+   */
   async callGroq(prompt, apiKey) {
-  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -232,11 +281,18 @@ class AIProviderManager {
     }
 
     let groqResponse = data.choices?.[0]?.message?.content || 'No response from Groq';
-    // --- APPLY MARKDOWN REMOVAL HERE FOR GROQ ---
+    // Apply markdown removal for Groq's response
     groqResponse = this.removeMarkdownFormatting(groqResponse);
     return groqResponse;
   }
 
+  /**
+   * Calls the Claude API to generate messages.
+   * @param {string} prompt - The input prompt string.
+   * @param {string} apiKey - The Claude API key.
+   * @returns {Promise<string>} The generated text response.
+   * @throws {Error} If the API call fails or returns an error.
+   */
   async callClaude(prompt, apiKey) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -253,30 +309,36 @@ class AIProviderManager {
       })
     });
 
-    const data = await response.json(); // You were missing this line
-    // --- This block was incorrectly copied from Gemini, replacing with correct Claude error handling ---
+    const data = await response.json();
     if (!response.ok) {
       throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
     let claudeResponse = data.content?.[0]?.text || 'No response from Claude';
-    // --- APPLY MARKDOWN REMOVAL HERE FOR CLAUDE ---
+    // Apply markdown removal for Claude's response
     claudeResponse = this.removeMarkdownFormatting(claudeResponse);
     return claudeResponse;
   }
 
+  /**
+   * Calls the OpenRouter API to generate chat completions.
+   * @param {string} prompt - The input prompt string.
+   * @param {string} apiKey - The OpenRouter API key.
+   * @param {string} model - The specific model to use on OpenRouter.
+   * @returns {Promise<string>} The generated text response.
+   * @throws {Error} If the API call fails or returns an error.
+   */
   async callOpenRouter(prompt, apiKey, model) {
-  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://your-app.vercel.app',
+        'HTTP-Referer': 'https://gettutorly.com', 
         'X-Title': 'AI Provider Manager'
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
+        model: 'deepseek/deepseek-r1-0528-qwen3-8b:free', // Using the model specified in your original code
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2000,
         temperature: 0.3
@@ -289,11 +351,20 @@ class AIProviderManager {
     }
 
     let openRouterResponse = data.choices?.[0]?.message?.content || 'No response from OpenRouter';
-    // --- APPLY MARKDOWN REMOVAL HERE FOR OPENROUTER ---
+    // Apply markdown removal for OpenRouter's response
     openRouterResponse = this.removeMarkdownFormatting(openRouterResponse);
     return openRouterResponse;
   }
 
+  /**
+   * Calls the Hugging Face Inference API.
+   * Note: Hugging Face models can vary greatly in their input/output formats.
+   * This implementation assumes a simple text-to-text model like DialoGPT.
+   * @param {string} prompt - The input prompt string.
+   * @param {string} apiKey - The Hugging Face API key.
+   * @returns {Promise<string>} The generated text response.
+   * @throws {Error} If the API call fails or returns an error.
+   */
   async callHuggingFace(prompt, apiKey) {
     const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
       method: 'POST',
@@ -316,22 +387,27 @@ class AIProviderManager {
     }
 
     let huggingFaceResponse = Array.isArray(data) ? data[0]?.generated_text || 'No response from Hugging Face' : data.generated_text || 'No response from Hugging Face';
-    // --- APPLY MARKDOWN REMOVAL HERE FOR HUGGINGFACE ---
+    // Apply markdown removal for Hugging Face's response
     huggingFaceResponse = this.removeMarkdownFormatting(huggingFaceResponse);
     return huggingFaceResponse;
   }
 
+  /**
+   * Calls the Together.ai API to generate chat completions.
+   * @param {string} prompt - The input prompt string.
+   * @param {string} apiKey - The Together.ai API key.
+   * @returns {Promise<string>} The generated text response.
+   * @throws {Error} If the API call fails or returns an error.
+   */
   async callTogether(prompt, apiKey) {
-  const systemInstruction = "Your response should be clear, concise, and structured. Use short paragraphs. If listing items, use bullet points, with a blank line between each point. Avoid any markdown formatting like bolding, italics, or headings.";
-    const response = await fetch('https://api.together.xyz/v1/chat/completions', { // Changed to /v1/chat/completions for consistency with other chat models
+    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        // model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', // Use a chat-optimized model if possible
-        model: 'meta-llama/Llama-3-8b-chat-hf', // Common chat model on Together.ai
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', // Using the model specified in your original code
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 4096,
         temperature: 0.3
@@ -341,7 +417,7 @@ class AIProviderManager {
     const data = await response.json();
 
     console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
-    let message = data.choices?.[0]?.message?.content; // For chat completions, content is in message.content
+    let message = data.choices?.[0]?.message?.content;
     const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
     console.log(`📌 Together finish reason: ${finishReason}`);
 
@@ -353,7 +429,7 @@ class AIProviderManager {
       throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || ''}`);
     }
 
-    // --- APPLY MARKDOWN REMOVAL HERE FOR TOGETHER ---
+    // Apply markdown removal for Together's response
     message = this.removeMarkdownFormatting(message || ''); // Ensure it's a string, even if null/undefined
     return message;
   }
