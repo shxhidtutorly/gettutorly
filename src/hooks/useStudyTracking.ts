@@ -90,62 +90,11 @@ export const useStudyTracking = () => {
     }
   };
 
-  const trackActivity = async (type: string, data: any) => {
-    try {
-      await firebaseSecure.secureWrite(
-        `userActivity/${firebaseSecure.getCurrentUser()?.uid}`,
-        {
-          type,
-          data,
-          timestamp: Timestamp.now()
-        }
-      );
-    } catch (error) {
-      console.error('Error tracking activity:', error);
-    }
-  };
-
-  const trackNotesCreation = async () => {
-    await trackNoteCreated();
-  };
-
-  const trackQuizCompletion = async () => {
-    try {
-      await firebaseSecure.secureWrite(
-        `userStats/${firebaseSecure.getCurrentUser()?.uid}`,
-        {
-          quizzesCompleted: 1,
-          lastQuizActivity: Timestamp.now()
-        }
-      );
-    } catch (error) {
-      console.error('Error tracking quiz completion:', error);
-    }
-  };
-
-  const trackSummaryGeneration = async () => {
-    try {
-      await firebaseSecure.secureWrite(
-        `userStats/${firebaseSecure.getCurrentUser()?.uid}`,
-        {
-          summariesGenerated: 1,
-          lastSummaryActivity: Timestamp.now()
-        }
-      );
-    } catch (error) {
-      console.error('Error tracking summary generation:', error);
-    }
-  };
-
   return {
     startSession,
     endSession,
     trackMathProblemSolved,
     trackNoteCreated,
-    trackActivity,
-    trackNotesCreation,
-    trackQuizCompletion,
-    trackSummaryGeneration,
     isSessionActive: !!currentSession
   };
 };

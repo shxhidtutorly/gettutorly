@@ -13,7 +13,7 @@ export interface HistoryEntry {
   metadata?: Record<string, any>;
 }
 
-export const useHistory = (type: HistoryEntry['type']) => {
+export const useHistory = (type: string) => {
   const [user] = useAuthState(auth);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,11 +53,7 @@ export const useHistory = (type: HistoryEntry['type']) => {
       const docId = await firebaseSecure.secureAdd(`${type}_history/${user.uid}/entries`, entry);
       
       if (docId) {
-        const newEntry: HistoryEntry = { 
-          ...entry, 
-          id: docId,
-          type: type
-        };
+        const newEntry = { ...entry, id: docId };
         setHistory(prev => [newEntry, ...prev]);
       }
     } catch (error) {

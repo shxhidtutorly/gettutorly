@@ -1,215 +1,201 @@
-// lib/firebaseSecure.js (or wherever you define this service)
-import { auth, db } from '@/lib/firebase'; // Ensure this path is correct
-import {
-  doc,
-  setDoc,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  Timestamp,
-  onSnapshot
-} from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
 
-class FirebaseSecureService {
-  private currentUser: any = null;
-
-  constructor() {
-    // Universal auth listener
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        this.currentUser = user;
-        console.log("User authenticated:", user.uid);
-      } else {
-        this.currentUser = null;
-        console.warn("User not authenticated");
-      }
-    });
-  }
-
-  private validateAuth(): boolean {
-    if (!this.currentUser || !this.currentUser.uid) {
-      console.error("Unauthenticated operation blocked: User not logged in.");
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Securely writes data to a specific document path.
-   * Automatically adds userId and timestamp.
-   * @param path The document path (e.g., 'users/userId/profile').
-   * @param data The data to set.
-   * @returns Promise<boolean> True if successful, false otherwise.
-   */
-  async secureWrite(path: string, data: any): Promise<boolean> {
-    if (!this.validateAuth()) return false;
-
-    try {
-      await setDoc(doc(db, path), {
-        ...data,
-        userId: this.currentUser.uid,
-        timestamp: Timestamp.now()
-      });
-      console.log(`Document written to: ${path}`);
-      return true;
-    } catch (error: any) {
-      console.error("Firestore Write Error:", error.message);
-      throw error; // Re-throw to allow calling code to handle it
-    }
-  }
-
-  /**
-   * Securely reads a single document from a specific path.
-   * @param path The document path (e.g., 'users/userId/profile').
-   * @returns Promise<any | null> The document data with its ID, or null if not found/unauthenticated.
-   */
-  async secureRead(path: string): Promise<any | null> {
-    if (!this.validateAuth()) return null;
-
-    try {
-      const docSnap = await getDoc(doc(db, path));
-      if (docSnap.exists()) {
-        console.log(`Document read from: ${path}`);
-        return { id: docSnap.id, ...docSnap.data() };
-      }
-      console.log(`Document not found at: ${path}`);
-      return null;
-    } catch (error: any) {
-      console.error("Firestore Read Error:", error.message);
-      throw error; // Re-throw to allow calling code to handle it
-    }
-  }
-
-  /**
-   * Securely adds a new document to a collection.
-   * Automatically adds userId and timestamp.
-   * @param collectionPath The collection path (e.g., 'notes').
-   * @param data The data for the new document.
-   * @returns Promise<string | null> The ID of the new document, or null if unauthenticated.
-   */
-  async secureAdd(collectionPath: string, data: any): Promise<string | null> {
-    if (!this.validateAuth()) return null;
-
-    try {
-      const docRef = await addDoc(collection(db, collectionPath), {
-        ...data,
-        userId: this.currentUser.uid,
-        timestamp: Timestamp.now()
-      });
-      console.log(`Document added to collection ${collectionPath} with ID: ${docRef.id}`);
-      return docRef.id;
-    } catch (error: any) {
-      console.error("Firestore Add Error:", error.message);
-      throw error; // Re-throw to allow calling code to handle it
-    }
-  }
-
-  /**
-   * Securely queries a collection for documents belonging to the current user.
-   * @param collectionPath The collection path.
-   * @param conditions Optional array of query conditions (e.g., where(), orderBy()).
-   * @returns Promise<any[]> An array of documents (with IDs), or an empty array if unauthenticated/error.
-   */
-  async secureQuery(collectionPath: string, conditions: any[] = []): Promise<any[]> {
-    if (!this.validateAuth()) return [];
-
-    try {
-      const q = query(
-        collection(db, collectionPath),
-        where("userId", "==", this.currentUser.uid),
-        ...conditions
-      );
-
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      console.log(`Query successful for ${collectionPath}. Found ${data.length} documents.`);
-      return data;
-    } catch (error: any) {
-      console.error("Firestore Query Error:", error.message);
-      return []; // Return empty array on error for queries
-    }
-  }
-
-  /**
-   * Subscribes to real-time updates for user-specific data in a collection.
-   * @param collectionPath The collection path.
-   * @param callback A function to be called with the updated data.
-   * @returns A function to unsubscribe from the listener.
-   */
-  subscribeToUserData(collectionPath: string, callback: (data: any[]) => void): () => void {
-    if (!this.validateAuth()) {
-      console.warn("Unauthenticated: Cannot subscribe to user data.");
-      return () => {}; // Return a no-op unsubscribe function
-    }
-
-    const q = query(
-      collection(db, collectionPath),
-      where("userId", "==", this.currentUser.uid),
-      orderBy("timestamp", "desc")
-    );
-
-    console.log(`Subscribing to real-time updates for ${collectionPath}.`);
-    return onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      callback(data);
-    }, (error) => {
-      console.error("Firestore Subscription Error:", error.message);
-    });
-  }
-
-  /**
-   * Returns the current authenticated user object.
-   * @returns The Firebase User object, or null if not authenticated.
-   */
-  getCurrentUser(): any | null {
-    return this.currentUser;
-  }
-}
-
-export const firebaseSecure = new FirebaseSecureService();
-
-// Fix the pn function issue by ensuring proper imports
-const { generateSummary } = require('./ai-unified');
-
-// Main handler function
+// api/summarize.js - Used by Tutorly AI to generate smart study summaries ✨📚
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  console.log(`📘 Tutorly Summarizer called: ${req.method} ${req.url}`);
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { content, prompt } = req.body;
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { text } = body;
 
-    if (!content) {
-      return res.status(400).json({ error: 'Content is required' });
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return res.status(400).json({ error: 'Text must be a non-empty string' });
     }
 
-    // Use the proper generateSummary function instead of the undefined pn function
-    const summary = await generateSummary(content, prompt || 'Summarize this content in a clear and concise manner.');
+    console.log(`📚 Text received for summarization: ${text.length} characters`);
+    const maxChars = 12000;
+    const truncatedText = text.slice(0, maxChars);
 
-    return res.status(200).json({ 
-      summary: summary,
-      success: true 
-    });
+    const systemPrompt = 'You are Tutorly, an AI study assistant that provides clear and concise summaries to help students understand key concepts quickly.';
+    const userPrompt = `Summarize the following study material:\n\n${truncatedText}`;
 
-  } catch (error) {
-    console.error('Summary generation error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to generate summary',
-      details: error.message 
-    });
+    const apiProviders = [
+      {
+        name: 'Together',
+        key: process.env.TOGETHER_API_KEY,
+        url: 'https://api.together.xyz/v1/chat/completions',
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+        format: 'openai'
+      },
+      {
+        name: 'OpenRouter',
+        key: process.env.OPENROUTER_KEY,
+        url: 'https://openrouter.ai/api/v1/chat/completions',
+        model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
+        format: 'openai'
+      },
+      {
+        name: 'Claude',
+        key: process.env.CLAUDE_API_KEY,
+        url: 'https://api.anthropic.com/v1/messages',
+        model: 'claude-3-haiku-20240307',
+        format: 'anthropic'
+      },
+      {
+        name: 'Groq',
+        key: process.env.GROQ_API_KEY,
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        model: 'gemma2-9b-it',
+        format: 'openai'
+      },
+      {
+        name: 'HuggingFace',
+        key: process.env.HUGGINGFACE_API_KEY,
+        url: 'https://api-inference.huggingface.co/models/google/flan-t5-large',
+        format: 'hf'
+      },
+      {
+        name: 'Gemini',
+        key: process.env.GEMINI_API_KEY,
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        format: 'gemini'
+      }
+    ];
+
+    const availableProviders = apiProviders.filter(p => p.key && p.key.length > 10);
+    if (availableProviders.length === 0) {
+      return res.status(500).json({ error: 'No valid API keys configured for Tutorly summarization' });
+    }
+
+    async function callProvider(provider) {
+      console.log(`📡 Calling ${provider.name}...`);
+
+      let headers = {};
+      let body = {};
+      switch (provider.format) {
+        case 'openai':
+          headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${provider.key}`
+          };
+          body = {
+            model: provider.model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 1000
+          };
+          break;
+
+        case 'anthropic':
+          headers = {
+            'Content-Type': 'application/json',
+            'x-api-key': provider.key,
+            'anthropic-version': '2023-06-01'
+          };
+          body = {
+            model: provider.model,
+            messages: [{ role: 'user', content: `${systemPrompt}\n\n${userPrompt}` }],
+            temperature: 0.3,
+            max_tokens: 1000
+          };
+          break;
+
+        case 'hf':
+          headers = {
+            'Authorization': `Bearer ${provider.key}`,
+            'Content-Type': 'application/json'
+          };
+          body = { inputs: userPrompt };
+          break;
+
+        case 'gemini':
+          headers = {
+            'Content-Type': 'application/json'
+          };
+          body = {
+            contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 1000
+            }
+          };
+          provider.url += `?key=${provider.key}`;
+          break;
+      }
+
+      const response = await fetch(provider.url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(`API Error: ${response.status} - ${err?.error?.message || err.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      let summary = '';
+
+      switch (provider.format) {
+        case 'openai':
+          summary = data.choices?.[0]?.message?.content;
+          break;
+        case 'anthropic':
+          summary = data.content?.[0]?.text || data?.content;
+          break;
+        case 'hf':
+          summary = Array.isArray(data) ? data[0]?.generated_text : data?.generated_text;
+          break;
+        case 'gemini':
+          summary = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          break;
+      }
+
+      if (!summary) {
+        throw new Error(`No summary returned from ${provider.name}`);
+      }
+
+      return {
+        summary: summary.trim(),
+        provider: provider.name,
+        model: provider.model || 'N/A'
+      };
+    }
+
+    for (const provider of availableProviders) {
+      try {
+        const result = await callProvider(provider);
+        console.log(`✅ Summary from ${result.provider}`);
+        return res.status(200).json({
+          summary: result.summary,
+          metadata: {
+            provider: result.provider,
+            model: result.model,
+            inputLength: text.length,
+            outputLength: result.summary.length,
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (err) {
+        console.warn(`⚠️ ${provider.name} failed:`, err.message);
+      }
+    }
+
+    return res.status(503).json({ error: 'All providers failed to generate summary' });
+
+  } catch (err) {
+    console.error('🔥 Unexpected error in Tutorly Summarizer:', err);
+    return res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 }

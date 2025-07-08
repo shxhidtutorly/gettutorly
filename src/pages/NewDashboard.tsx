@@ -10,7 +10,7 @@ import BottomNav from "@/components/layout/BottomNav";
 
 const NewDashboard = () => {
   const [user] = useAuthState(auth);
-  const { stats, loading } = useUserStats();
+  const { stats, loading } = useUserStats(user?.uid || null);
 
   if (loading) {
     return (
@@ -41,7 +41,7 @@ const NewDashboard = () => {
                 <FileText className="h-4 w-4 text-blue-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.notes_created || 0}</div>
+                <div className="text-2xl font-bold">{stats?.materials_created || 0}</div>
               </CardContent>
             </Card>
 

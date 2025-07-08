@@ -1,18 +1,16 @@
-
 "use client"
 
 import type React from "react"
 import { useState, useRef } from "react"
-import Highlight, { defaultProps, type Language, type PrismTheme } from "prism-react-renderer"
-import { Prism as ReactPrism } from "prism-react-renderer"
+import Highlight, { defaultProps, type Language } from "prism-react-renderer"
 import Editor from "@monaco-editor/react"
 import { Copy, Maximize2, Minimize2, Download, Check } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ")
 
-// lightweight dark theme – fixed type compatibility
-const prismTheme: PrismTheme = {
+// lightweight dark theme – avoids external sub-path import
+const prismTheme = {
   plain: {
     color: "#d4d4d4",
     backgroundColor: "transparent",
@@ -26,7 +24,7 @@ const prismTheme: PrismTheme = {
     { types: ["number", "boolean"], style: { color: "#B5CEA8" } },
     { types: ["operator"], style: { color: "#D4D4D4" } },
   ],
-}
+} as const
 
 interface CodeBlockProps {
   code: string
@@ -163,12 +161,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, filename, 
             transition={{ duration: 0.2 }}
             className="overflow-x-auto"
           >
-            <Highlight 
-              Prism={ReactPrism}
-              code={code} 
-              language={language as Language} 
-              theme={prismTheme}
-            >
+            <Highlight code={code} language={language as Language} theme={prismTheme}>
               {({ className: cls, style, tokens, getLineProps, getTokenProps }) => (
                 <pre className={`${cls} p-4 text-sm leading-relaxed`} style={{ ...style, background: "transparent" }}>
                   {tokens.map((line, i) => (

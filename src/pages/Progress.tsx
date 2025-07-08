@@ -1,150 +1,156 @@
 
-import React from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
 import { useUserStats } from "@/hooks/useUserStats";
-import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingUp, Calendar, Target, Award, Brain } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProgressStatCard from "@/components/progress/ProgressStatCard";
 import WeeklyStudyHoursChart from "@/components/progress/WeeklyStudyHoursChart";
 import MonthlyProgressChart from "@/components/progress/MonthlyProgressChart";
 import LearningInsightCard from "@/components/progress/LearningInsightCard";
 import MaterialProgressCard from "@/components/progress/MaterialProgressCard";
-import { 
-  Clock, 
-  FileText, 
-  BarChart3, 
-  Target, 
-  TrendingUp, 
-  Calendar, 
-  Trophy,
-  BookOpen
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { useProgressData } from "@/hooks/useProgressData";
 
 const Progress = () => {
-  const { user, loading: authLoading } = useAuth();
-  const { stats, loading: statsLoading } = useUserStats();
+  const [user] = useAuthState(auth);
+  const { stats, loading } = useUserStats(user?.uid || null);
+  const { weeklyData, monthlyData, progressData, loading: dataLoading } = useProgressData(user?.uid || null);
+  const [selectedPeriod, setSelectedPeriod] = useState<"week" | "month" | "year">("month");
 
-  if (authLoading || statsLoading) {
+  const totalCreated = (stats?.summaries_created || 0) + 
+                      (stats?.notes_created || 0) + 
+                      (stats?.quizzes_taken || 0) + 
+                      (stats?.flashcards_created || 0);
+
+  if (loading || dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-lg">Loading progress data...</p>
+          <p className="text-lg">Loading your progress...</p>
         </div>
       </div>
     );
   }
 
-  // Mock data for charts
-  const weeklyData = [
-    { day: 'Mon', hours: 2 },
-    { day: 'Tue', hours: 3 },
-    { day: 'Wed', hours: 1 },
-    { day: 'Thu', hours: 4 },
-    { day: 'Fri', hours: 2 },
-    { day: 'Sat', hours: 3 },
-    { day: 'Sun', hours: 1 },
-  ];
-
-  const monthlyData = [
-    { name: 'Week 1', hours: 12 },
-    { name: 'Week 2', hours: 19 },
-    { name: 'Week 3', hours: 3 },
-    { name: 'Week 4', hours: 5 },
-  ];
-
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
       <Navbar />
-
-      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
+      
+      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
         <div className="container max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 md:mb-8"
+            className="mb-8"
           >
-            <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
-              <BarChart3 className="h-6 md:h-8 w-6 md:w-8 text-purple-400" />
-              Your Progress
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+              <TrendingUp className="h-8 w-8 text-green-400" />
+              Learning Progress
             </h1>
-            <p className="text-gray-400 text-sm md:text-base">Track your learning journey and achievements</p>
+            <p className="text-gray-400">Track your learning journey and achievements</p>
           </motion.div>
 
-          {/* Progress Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+          {/* Period Selector */}
+          <div className="mb-6 flex gap-2">
+            {(['week', 'month', 'year'] as const).map((period) => (
+              <Button
+                key={period}
+                variant={selectedPeriod === period ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedPeriod(period)}
+                className={selectedPeriod === period ? "bg-purple-600 hover:bg-purple-700" : "border-slate-600 hover:bg-slate-800"}
+              >
+                {period.charAt(0).toUpperCase() + period.slice(1)}
+              </Button>
+            ))}
+          </div>
+
+          {/* Stats Overview */}
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-8">
             <ProgressStatCard
-              title="Study Time"
-              value={stats?.total_study_time || 0}
-              icon={<Clock className="h-5 w-5" />}
+              title="Total Created"
+              value={totalCreated}
+              icon={<Calendar className="h-4 w-4" />}
+              color="blue"
             />
             <ProgressStatCard
               title="Notes Created"
               value={stats?.notes_created || 0}
-              icon={<FileText className="h-5 w-5" />}
+              icon={<Target className="h-4 w-4" />}
+              color="green"
             />
             <ProgressStatCard
               title="Quizzes Taken"
               value={stats?.quizzes_taken || 0}
-              icon={<Target className="h-5 w-5" />}
+              icon={<Award className="h-4 w-4" />}
+              color="yellow"
             />
             <ProgressStatCard
-              title="Quiz Score"
-              value={stats?.average_quiz_score || 0}
-              icon={<Trophy className="h-5 w-5" />}
+              title="Study Hours"
+              value={Math.round((stats?.total_study_time || 0) / 60)}
+              icon={<TrendingUp className="h-4 w-4" />}
+              color="purple"
             />
           </div>
 
-          {/* Charts and Insights */}
-          <div className="grid gap-6 md:gap-8 lg:grid-cols-2 mb-6 md:mb-8">
-            <WeeklyStudyHoursChart data={weeklyData} isLoading={false} />
-            <MonthlyProgressChart data={monthlyData} isLoading={false} />
-          </div>
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="bg-[#1A1A1A] border border-slate-700">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600">
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="materials" className="data-[state=active]:bg-purple-600">
+                Materials
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="data-[state=active]:bg-purple-600">
+                Insights
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Additional Progress Cards */}
-          <div className="grid gap-6 md:gap-8 lg:grid-cols-3">
-            <LearningInsightCard 
-              title="This Month"
-              value={stats?.sessions_this_month?.toString() || "0"}
-              description="Your learning activities this month"
-              icon={<Calendar className="h-6 w-6 text-blue-400" />}
-            />
-            
-            <LearningInsightCard 
-              title="Learning Milestones"
-              value={stats?.learning_milestones?.toString() || "0"}
-              description="Total achievements unlocked"
-              icon={<TrendingUp className="h-6 w-6 text-green-400" />}
-            />
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                <WeeklyStudyHoursChart 
+                  data={weeklyData}
+                  isLoading={dataLoading}
+                />
+                <MonthlyProgressChart 
+                  data={monthlyData}
+                  isLoading={dataLoading}
+                />
+              </div>
+            </TabsContent>
 
-            <Card className="bg-[#121212] border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-white flex items-center gap-2 text-lg">
-                  <BookOpen className="h-5 w-5 text-purple-400" />
-                  Recent Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-300">Last study session</span>
-                    <span className="text-purple-400">Today</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-300">Notes this week</span>
-                    <span className="text-blue-400">{Math.min(stats?.notes_created || 0, 15)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-300">Average score</span>
-                    <span className="text-green-400">{stats?.average_quiz_score || 0}%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            <TabsContent value="materials" className="space-y-6">
+              <MaterialProgressCard 
+                name="Study Materials Progress"
+                progress={progressData.materialsProgress}
+              />
+            </TabsContent>
+
+            <TabsContent value="insights" className="space-y-6">
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                <LearningInsightCard 
+                  icon={<Brain className="h-6 w-6" />}
+                  title="Learning Streak"
+                  value={`${progressData.streak} days`}
+                  description="Keep up the great work!"
+                />
+                <LearningInsightCard 
+                  icon={<Award className="h-6 w-6" />}
+                  title="Weekly Goal"
+                  value={`${progressData.weeklyProgress}%`}
+                  description="You're on track to meet your goals"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
