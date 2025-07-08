@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserDoc, getUserDocs, safeSetDoc } from '@/lib/firebase-helpers';
-import { getDoc, Timestamp } from 'firebase/firestore';
+import { getUserDoc, getUserDocs, safeSetDoc, getUserCollection } from '@/lib/firebase-helpers';
+import { getDoc, Timestamp, doc } from 'firebase/firestore';
 
 export interface UserStats {
   total_study_time: number;
@@ -17,14 +17,15 @@ export interface UserStats {
 }
 
 export const useUserStats = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { userId, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
     
-    if (!user) {
+    if (!userId) {
+      setStats(null);
       setLoading(false);
       return;
     }
@@ -32,10 +33,11 @@ export const useUserStats = () => {
     const loadStats = async () => {
       setLoading(true);
       try {
-        const uid = user.uid;
+        // Use correct path for stats document within the stats subcollection
+        const statsDocRef = doc(getUserCollection(userId, 'stats'), 'summary');
         
         // Check for cached stats first
-        const cachedStatsDoc = await getDoc(getUserDoc(uid, 'stats'));
+        const cachedStatsDoc = await getDoc(statsDocRef);
         if (cachedStatsDoc.exists()) {
           const cachedData = cachedStatsDoc.data() as UserStats;
           const lastUpdated = cachedData.lastUpdated?.toDate ? cachedData.lastUpdated.toDate() : new Date(0);
@@ -62,13 +64,13 @@ export const useUserStats = () => {
           quizzes,
           aiSessions
         ] = await Promise.all([
-          getUserDocs(uid, 'userActivity'),
-          getUserDocs(uid, 'notes_history'),
-          getUserDocs(uid, 'math_chat_history'),
-          getUserDocs(uid, 'summary_sessions'),
-          getUserDocs(uid, 'flashcards'),
-          getUserDocs(uid, 'quizzes'),
-          getUserDocs(uid, 'ai_sessions')
+          getUserDocs(userId, 'userActivity'),
+          getUserDocs(userId, 'notes_history'),
+          getUserDocs(userId, 'math_chat_history'),
+          getUserDocs(userId, 'summary_sessions'),
+          getUserDocs(userId, 'flashcards'),
+          getUserDocs(userId, 'quizzes'),
+          getUserDocs(userId, 'ai_sessions')
         ]);
 
         // Calculate total study time (in minutes)
@@ -118,8 +120,8 @@ export const useUserStats = () => {
         setStats(calculatedStats);
         console.log("Calculated and set new user stats:", calculatedStats);
 
-        // Save stats to cache
-        await safeSetDoc(getUserDoc(uid, 'stats'), {
+        // Save stats to cache using the correct document reference
+        await safeSetDoc(statsDocRef, {
           ...calculatedStats,
           lastUpdated: Timestamp.now()
         });
@@ -143,7 +145,7 @@ export const useUserStats = () => {
     };
 
     loadStats();
-  }, [user, authLoading]);
+  }, [userId, authLoading]);
 
   return { stats, loading: loading || authLoading };
 };

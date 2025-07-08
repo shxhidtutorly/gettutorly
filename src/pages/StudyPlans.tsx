@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,7 +61,7 @@ interface StudyPlan {
 }
 
 const StudyPlans = () => {
-  const [user] = useAuthState(auth);
+  const { userId, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
   const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
@@ -81,23 +80,17 @@ const StudyPlans = () => {
   // Load study plans
   useEffect(() => {
     const loadStudyPlans = async () => {
-      if (!user) return;
+      if (authLoading || !userId) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        const plansRef = collection(db, 'studyPlans');
-        const q = query(
-          plansRef, 
-          where("userId", "==", user.uid),
+        const plans = await getAppDocs('studyPlans', userId, [
           orderBy("created_at", "desc")
-        );
-        const querySnapshot = await getDocs(q);
+        ]);
         
-        const plans: StudyPlan[] = [];
-        querySnapshot.forEach((doc) => {
-          plans.push({ id: doc.id, ...doc.data() } as StudyPlan);
-        });
-        
-        setStudyPlans(plans);
+        setStudyPlans(plans as StudyPlan[]);
       } catch (error) {
         console.error('Error loading study plans:', error);
         toast({
@@ -111,23 +104,23 @@ const StudyPlans = () => {
     };
 
     loadStudyPlans();
-  }, [user, toast]);
+  }, [userId, authLoading, toast]);
 
   const createStudyPlan = async () => {
-    if (!user || !newPlan.title.trim()) return;
+    if (!userId || !newPlan.title.trim()) return;
 
     try {
-      const plansRef = collection(db, 'studyPlans');
+      const plansRef = getAppCollection('studyPlans');
       const planData = {
         ...newPlan,
-        userId: user.uid,
+        userId: userId,
         status: 'not_started' as const,
         tasks: [],
-        created_at: new Date()
+        created_at: Timestamp.now()
       };
 
-      const docRef = await addDoc(plansRef, planData);
-      const newStudyPlan = { id: docRef.id, ...planData };
+      const docId = await safeAddDoc(plansRef, planData);
+      const newStudyPlan = { id: docId, ...planData };
       
       setStudyPlans(prev => [newStudyPlan, ...prev]);
       setIsCreateDialogOpen(false);
@@ -154,8 +147,11 @@ const StudyPlans = () => {
   };
 
   const deleteStudyPlan = async (planId: string) => {
+    if (!userId) return;
+    
     try {
-      await deleteDoc(doc(db, 'studyPlans', planId));
+      const planRef = doc(getAppCollection('studyPlans'), planId);
+      await deleteDoc(planRef);
       setStudyPlans(prev => prev.filter(plan => plan.id !== planId));
       
       toast({
@@ -173,8 +169,11 @@ const StudyPlans = () => {
   };
 
   const updatePlanStatus = async (planId: string, status: StudyPlan['status']) => {
+    if (!userId) return;
+    
     try {
-      await updateDoc(doc(db, 'studyPlans', planId), { status });
+      const planRef = doc(getAppCollection('studyPlans'), planId);
+      await safeUpdateDoc(planRef, { status });
       setStudyPlans(prev => 
         prev.map(plan => 
           plan.id === planId ? { ...plan, status } : plan
@@ -209,12 +208,22 @@ const StudyPlans = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
           <p className="text-lg">Loading your study plans...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
+        <div className="text-center">
+          <p className="text-lg">Please sign in to view your study plans.</p>
         </div>
       </div>
     );
