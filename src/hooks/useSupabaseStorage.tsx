@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -54,7 +55,7 @@ export const useSupabaseStorage = () => {
 
       setProgress(25);
       
-      const result = await uploadFile(user.id, file);
+      const result = await uploadFile(user.uid, file);
       
       setProgress(100);
       return result;
@@ -102,7 +103,7 @@ export const useSupabaseStorage = () => {
     
     try {
       setError(null);
-      const path = folderPath ? `${user.id}/${folderPath}` : `${user.id}`;
+      const path = folderPath ? `${user.uid}/${folderPath}` : `${user.uid}`;
       
       const { data, error } = await supabase.storage
         .from('study-materials')

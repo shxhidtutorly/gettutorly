@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useHistory } from "@/hooks/useHistory";
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   HelpCircle,
   ArrowRight,
@@ -53,17 +55,13 @@ import {
   File,
   Link,
   Code,
-  Math as MathIcon
+  Calculator
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
-import { MathInput } from "@/components/features/MathInput";
-import { MathDisplay } from "@/components/features/MathDisplay";
-import { History } from "@/components/features/History";
-import { ChatMessage } from "@/components/features/ChatMessage";
-import { PromptInputBox } from "@/components/features/PromptInputBox";
+import MathChatHistory from "@/components/features/MathChatHistory";
 
 interface ChatMessageData {
   id: string;
@@ -73,112 +71,121 @@ interface ChatMessageData {
   isCanvas?: boolean;
 }
 
+// Simple History component
+const History = ({ history }: { history: any[] }) => (
+  <Card className="bg-[#121212] border-slate-700">
+    <CardHeader>
+      <CardTitle className="text-white text-lg">History</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-2">
+        {history.length === 0 ? (
+          <p className="text-gray-400 text-sm">No history yet</p>
+        ) : (
+          history.slice(0, 5).map((entry, index) => (
+            <div key={index} className="p-2 bg-[#1a1a1a] rounded text-sm">
+              <div className="text-gray-300 truncate">{entry.input}</div>
+              <div className="text-gray-500 text-xs mt-1">{entry.timestamp}</div>
+            </div>
+          ))
+        )}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Simple ChatMessage component
+const ChatMessage = ({ message }: { message: ChatMessageData }) => (
+  <div className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+    <div className={`max-w-[80%] p-3 rounded-lg ${
+      message.isUser 
+        ? 'bg-purple-600 text-white' 
+        : 'bg-[#1a1a1a] text-gray-300'
+    }`}>
+      <div className="text-sm">{message.text}</div>
+      <div className="text-xs opacity-60 mt-1">{message.timestamp}</div>
+    </div>
+  </div>
+);
+
+// Simple PromptInputBox component
+const PromptInputBox = ({ 
+  onSend, 
+  isLoading 
+}: { 
+  onSend: (message: string) => void;
+  isLoading: boolean;
+}) => {
+  const [input, setInput] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim() && !isLoading) {
+      onSend(input.trim());
+      setInput("");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <Input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Ask a math question..."
+        className="flex-1 bg-[#1a1a1a] border-slate-700 text-white"
+        disabled={isLoading}
+      />
+      <Button 
+        type="submit" 
+        disabled={!input.trim() || isLoading}
+        className="bg-purple-600 hover:bg-purple-700"
+      >
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+      </Button>
+    </form>
+  );
+};
+
 const MathChat = () => {
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
-  const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showCanvas, setShowCanvas] = useState(false);
-  const [canvasCode, setCanvasCode] = useState("");
-  const [isCanvasThinking, setIsCanvasThinking] = useState(false);
-  const [mathInput, setMathInput] = useState("");
-  const [mathOutput, setMathOutput] = useState("");
-  const [showMath, setShowMath] = useState(false);
-  const [showCode, setShowCode] = useState(false);
-  const [codeOutput, setCodeOutput] = useState("");
-  const [codeLanguage, setCodeLanguage] = useState("javascript");
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [terminalOutput, setTerminalOutput] = useState("");
-  const [showImage, setShowImage] = useState(false);
-  const [imageOutput, setImageOutput] = useState("");
-  const [showVideo, setShowVideo] = useState(false);
-  const [videoOutput, setVideoOutput] = useState("");
-  const [showFile, setShowFile] = useState(false);
-  const [fileOutput, setFileOutput] = useState("");
-  const [showLink, setShowLink] = useState(false);
-  const [linkOutput, setLinkOutput] = useState("");
-  const [showMathInput, setShowMathInput] = useState(false);
-  const [showCodeInput, setShowCodeInput] = useState(false);
-  const [showTerminalInput, setShowTerminalInput] = useState(false);
-  const [showImageInput, setShowImageInput] = useState(false);
-  const [showVideoInput, setShowVideoInput] = useState(false);
-  const [showFileInput, setShowFileInput] = useState(false);
-  const [showLinkInput, setShowLinkInput] = useState(false);
-  const [showMathOutput, setShowMathOutput] = useState(false);
-  const [showCodeOutput, setShowCodeOutput] = useState(false);
-  const [showTerminalOutput, setShowTerminalOutput] = useState(false);
-  const [showImageOutput, setShowImageOutput] = useState(false);
-  const [showVideoOutput, setShowVideoOutput] = useState(false);
-  const [showFileOutput, setShowFileOutput] = useState(false);
-  const [showLinkOutput, setShowLinkOutput] = useState(false);
-  const [showMathHistory, setShowMathHistory] = useState(false);
-  const [showCodeHistory, setShowCodeHistory] = useState(false);
-  const [showTerminalHistory, setShowTerminalHistory] = useState(false);
-  const [showImageHistory, setShowImageHistory] = useState(false);
-  const [showVideoHistory, setShowVideoHistory] = useState(false);
-  const [showFileHistory, setShowFileHistory] = useState(false);
-  const [showLinkHistory, setShowLinkHistory] = useState(false);
-  const [showMathSettings, setShowMathSettings] = useState(false);
-  const [showCodeSettings, setShowCodeSettings] = useState(false);
-  const [showTerminalSettings, setShowTerminalSettings] = useState(false);
-  const [showImageSettings, setShowImageSettings] = useState(false);
-  const [showVideoSettings, setShowVideoSettings] = useState(false);
-  const [showFileSettings, setShowFileSettings] = useState(false);
-  const [showLinkSettings, setShowLinkSettings] = useState(false);
-  const [mathSettings, setMathSettings] = useState({});
-  const [codeSettings, setCodeSettings] = useState({});
-  const [terminalSettings, setTerminalSettings] = useState({});
-  const [imageSettings, setImageSettings] = useState({});
-  const [videoSettings, setVideoSettings] = useState({});
-  const [fileSettings, setFileSettings] = useState({});
-  const [linkSettings, setLinkSettings] = useState({});
-  const [mathHistory, setMathHistory] = useState([]);
-  const [codeHistory, setCodeHistory] = useState([]);
-  const [terminalHistory, setTerminalHistory] = useState([]);
-  const [imageHistory, setImageHistory] = useState([]);
-  const [videoHistory, setVideoHistory] = useState([]);
-  const [fileHistory, setFileHistory] = useState([]);
-  const [linkHistory, setLinkHistory] = useState([]);
   const { history, addHistoryEntry } = useHistory('math');
   const { trackMathProblemSolved } = useStudyTracking();
 
-  const sendMessage = async (message: string, files?: File[], options?: { isCanvas?: boolean; isThinking?: boolean; }) => {
-    if (!message.trim() && !files?.length) return;
+  const sendMessage = async (message: string) => {
+    if (!message.trim()) return;
 
     const userMessage: ChatMessageData = {
       id: Date.now().toString(),
       text: message,
       isUser: true,
       timestamp: new Date().toLocaleTimeString(),
-      isCanvas: options?.isCanvas || false
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setPrompt("");
     setError(null);
-    setIsThinking(true);
+    setIsLoading(true);
 
     try {
       // Simulate AI response (replace with actual API call)
       setTimeout(() => {
         const aiResponse: ChatMessageData = {
-          id: Date.now().toString(),
-          text: `AI response to: ${message}`,
+          id: (Date.now() + 1).toString(),
+          text: `Here's the solution to your math problem: ${message}`,
           isUser: false,
           timestamp: new Date().toLocaleTimeString()
         };
 
         setMessages(prev => [...prev, aiResponse]);
-        setIsThinking(false);
+        setIsLoading(false);
         trackMathProblemSolved();
         addHistoryEntry(message, aiResponse.text);
       }, 2000);
     } catch (err: any) {
       setError(err.message || "Failed to get response");
-      setIsThinking(false);
+      setIsLoading(false);
     }
   };
 
@@ -190,8 +197,11 @@ const MathChat = () => {
         <div className="container max-w-6xl mx-auto">
           <div className="mb-6 md:mb-8">
             <BackToDashboardButton variant="outline" />
-            <h1 className="text-3xl font-bold mb-2">Math Chat</h1>
-            <p className="text-gray-400">Interact with AI for math help</p>
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+              <Calculator className="h-8 w-8 text-purple-400" />
+              Math Chat
+            </h1>
+            <p className="text-gray-400">Get help with your math problems</p>
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
@@ -209,14 +219,6 @@ const MathChat = () => {
                       <MessageSquare className="mr-2 h-4 w-4" />
                       History
                     </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowSettings(!showSettings)}
-                      className="text-purple-400 hover:text-purple-300 text-sm"
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="h-[400px] flex flex-col">
@@ -224,22 +226,24 @@ const MathChat = () => {
                     {messages.map((msg) => (
                       <ChatMessage key={msg.id} message={msg} />
                     ))}
-                    {isThinking && (
-                      <div className="animate-pulse text-gray-400">
-                        Thinking...
+                    {isLoading && (
+                      <div className="flex justify-start mb-4">
+                        <div className="bg-[#1a1a1a] p-3 rounded-lg">
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Thinking...
+                          </div>
+                        </div>
                       </div>
                     )}
-                    {error && <div className="text-red-500">{error}</div>}
+                    {error && (
+                      <div className="text-red-500 text-sm p-2 bg-red-500/10 rounded">
+                        {error}
+                      </div>
+                    )}
                   </ScrollArea>
 
-                  <PromptInputBox
-                    onSend={sendMessage}
-                    isLoading={isLoading}
-                    messages={messages}
-                    setMessages={setMessages}
-                    isThinking={isThinking}
-                    setIsThinking={setIsThinking}
-                  />
+                  <PromptInputBox onSend={sendMessage} isLoading={isLoading} />
                 </CardContent>
               </Card>
             </div>
@@ -258,6 +262,8 @@ const MathChat = () => {
               )}
             </AnimatePresence>
           </div>
+
+          <MathChatHistory />
         </div>
       </main>
 
