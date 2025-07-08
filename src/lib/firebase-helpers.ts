@@ -60,7 +60,7 @@ export async function safeSetDoc<T = DocumentData>(
   options?: { merge?: boolean }
 ) {
   const cleanData = removeUndefined(data);
-  return setDoc(ref as DocumentReference<DocumentData>, cleanData as DocumentData, options);
+  return setDoc(ref as any, cleanData as any, options);
 }
 
 // Safe addDoc that removes undefined fields
@@ -69,7 +69,7 @@ export async function safeAddDoc<T = DocumentData>(
   data: T
 ) {
   const cleanData = removeUndefined(data as Record<string, any>);
-  return addDoc(ref as CollectionReference<DocumentData>, cleanData as DocumentData);
+  return addDoc(ref as any, cleanData as any);
 }
 
 // Safe updateDoc that removes undefined fields
@@ -78,7 +78,7 @@ export async function safeUpdateDoc<T = DocumentData>(
   data: Partial<T>
 ) {
   const cleanData = removeUndefined(data);
-  return updateDoc(ref as DocumentReference<DocumentData>, cleanData);
+  return updateDoc(ref as any, cleanData);
 }
 
 // Export Timestamp for convenience
