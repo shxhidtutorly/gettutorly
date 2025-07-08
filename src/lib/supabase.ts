@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 // Safely load from environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
@@ -9,10 +9,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Create a single Supabase client instance
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
-    persistSession: true, // <-- This is set to true
+    persistSession: true,
     detectSessionInUrl: false, 
   },
   realtime: {
@@ -21,8 +21,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
 });
-
-export { supabase };
 
 // Storage configuration
 const STORAGE_CONFIG = {

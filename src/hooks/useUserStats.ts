@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { getUserDoc, getUserCollection } from '@/lib/firebase-helpers';
+import { getUserDoc } from '@/lib/firebase-helpers';
 import { getDoc, onSnapshot } from 'firebase/firestore';
 
 export interface UserStats {
@@ -12,6 +12,7 @@ export interface UserStats {
   average_quiz_score: number;
   sessions_this_month: number;
   learning_milestones: number;
+  materials_created?: number;
 }
 
 export const useUserStats = () => {
@@ -46,7 +47,8 @@ export const useUserStats = () => {
             quizzes_taken: 0,
             average_quiz_score: 0,
             sessions_this_month: 0,
-            learning_milestones: 0
+            learning_milestones: 0,
+            materials_created: 0
           });
         }
         setLoading(false);
