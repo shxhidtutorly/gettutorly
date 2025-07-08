@@ -2,15 +2,15 @@
 
 import type React from "react"
 import { useState, useRef } from "react"
-import Highlight, { defaultProps, type Language } from "prism-react-renderer"
+import Highlight, { defaultProps, type Language, type PrismTheme } from "prism-react-renderer"
 import Editor from "@monaco-editor/react"
 import { Copy, Maximize2, Minimize2, Download, Check } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ")
 
-// lightweight dark theme – avoids external sub-path import
-const prismTheme = {
+// lightweight dark theme – fixed type compatibility
+const prismTheme: PrismTheme = {
   plain: {
     color: "#d4d4d4",
     backgroundColor: "transparent",
@@ -24,7 +24,7 @@ const prismTheme = {
     { types: ["number", "boolean"], style: { color: "#B5CEA8" } },
     { types: ["operator"], style: { color: "#D4D4D4" } },
   ],
-} as const
+}
 
 interface CodeBlockProps {
   code: string

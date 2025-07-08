@@ -56,7 +56,7 @@ export const useHistory = (type: HistoryEntry['type']) => {
         const newEntry: HistoryEntry = { 
           ...entry, 
           id: docId,
-          type: type as HistoryEntry['type']
+          type: type
         };
         setHistory(prev => [newEntry, ...prev]);
       }

@@ -7,11 +7,11 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProgressStatCard } from "@/components/progress/ProgressStatCard";
-import { WeeklyStudyHoursChart } from "@/components/progress/WeeklyStudyHoursChart";
-import { MonthlyProgressChart } from "@/components/progress/MonthlyProgressChart";
-import { LearningInsightCard } from "@/components/progress/LearningInsightCard";
-import { MaterialProgressCard } from "@/components/progress/MaterialProgressCard";
+import ProgressStatCard from "@/components/progress/ProgressStatCard";
+import WeeklyStudyHoursChart from "@/components/progress/WeeklyStudyHoursChart";
+import MonthlyProgressChart from "@/components/progress/MonthlyProgressChart";
+import LearningInsightCard from "@/components/progress/LearningInsightCard";
+import MaterialProgressCard from "@/components/progress/MaterialProgressCard";
 import { 
   Clock, 
   FileText, 
@@ -37,6 +37,24 @@ const Progress = () => {
       </div>
     );
   }
+
+  // Mock data for charts
+  const weeklyData = [
+    { day: 'Mon', hours: 2 },
+    { day: 'Tue', hours: 3 },
+    { day: 'Wed', hours: 1 },
+    { day: 'Thu', hours: 4 },
+    { day: 'Fri', hours: 2 },
+    { day: 'Sat', hours: 3 },
+    { day: 'Sun', hours: 1 },
+  ];
+
+  const monthlyData = [
+    { name: 'Week 1', hours: 12 },
+    { name: 'Week 2', hours: 19 },
+    { name: 'Week 3', hours: 3 },
+    { name: 'Week 4', hours: 5 },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
@@ -82,26 +100,22 @@ const Progress = () => {
 
           {/* Charts and Insights */}
           <div className="grid gap-6 md:gap-8 lg:grid-cols-2 mb-6 md:mb-8">
-            <WeeklyStudyHoursChart />
-            <MonthlyProgressChart />
+            <WeeklyStudyHoursChart data={weeklyData} isLoading={false} />
+            <MonthlyProgressChart data={monthlyData} isLoading={false} />
           </div>
 
           {/* Additional Progress Cards */}
           <div className="grid gap-6 md:gap-8 lg:grid-cols-3">
             <LearningInsightCard 
               title="This Month"
+              value={stats?.sessions_this_month?.toString() || "0"}
               description="Your learning activities this month"
-              stats={[
-                { label: "Sessions", value: stats?.sessions_this_month || 0 },
-                { label: "Materials", value: stats?.materials_created || 0 },
-                { label: "Flashcards", value: stats?.flashcards_created || 0 },
-              ]}
               icon={<Calendar className="h-6 w-6 text-blue-400" />}
             />
             
-            <MaterialProgressCard 
+            <LearningInsightCard 
               title="Learning Milestones"
-              value={stats?.learning_milestones || 0}
+              value={stats?.learning_milestones?.toString() || "0"}
               description="Total achievements unlocked"
               icon={<TrendingUp className="h-6 w-6 text-green-400" />}
             />

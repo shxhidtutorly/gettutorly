@@ -1,9 +1,12 @@
-
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useSupabaseStorage = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
