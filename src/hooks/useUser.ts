@@ -1,10 +1,22 @@
-// src/hooks/useUser.ts
-import { useFirebaseAuth } from './useFirebaseAuth';
+
+import { useFirebaseAuth, AuthUser } from './useFirebaseAuth';
 
 export const useUser = () => {
-  const { user } = useFirebaseAuth();
+  const { user, loading, isLoaded } = useFirebaseAuth();
 
   return {
-    user, // may be null
+    user,
+    isLoaded,
+    isSignedIn: !!user,
+    loading
+  };
+};
+
+// For backward compatibility
+export const useClerk = () => {
+  const { signOut } = useFirebaseAuth();
+  
+  return {
+    signOut
   };
 };

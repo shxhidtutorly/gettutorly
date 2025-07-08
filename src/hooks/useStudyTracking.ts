@@ -90,11 +90,32 @@ export const useStudyTracking = () => {
     }
   };
 
+  const trackActivity = async (type: string, data: any) => {
+    try {
+      await firebaseSecure.secureWrite(
+        `userActivity/${firebaseSecure.getCurrentUser()?.uid}`,
+        {
+          type,
+          data,
+          timestamp: Timestamp.now()
+        }
+      );
+    } catch (error) {
+      console.error('Error tracking activity:', error);
+    }
+  };
+
+  const trackNotesCreation = async () => {
+    await trackNoteCreated();
+  };
+
   return {
     startSession,
     endSession,
     trackMathProblemSolved,
     trackNoteCreated,
+    trackActivity,
+    trackNotesCreation,
     isSessionActive: !!currentSession
   };
 };

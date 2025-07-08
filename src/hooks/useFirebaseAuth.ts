@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   User,
@@ -15,9 +16,12 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface AuthUser {
   uid: string;
+  id: string; // Added for compatibility
   email: string | null;
   displayName: string | null;
+  fullName: string | null; // Added for compatibility
   photoURL: string | null;
+  imageUrl: string | null; // Added for compatibility
   emailVerified: boolean;
 }
 
@@ -31,9 +35,12 @@ export const useFirebaseAuth = () => {
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
+          id: firebaseUser.uid, // Added for compatibility
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
+          fullName: firebaseUser.displayName, // Added for compatibility
           photoURL: firebaseUser.photoURL,
+          imageUrl: firebaseUser.photoURL, // Added for compatibility
           emailVerified: firebaseUser.emailVerified
         });
       } else {
@@ -153,9 +160,10 @@ export const useFirebaseAuth = () => {
   return {
     user,
     loading,
+    isLoaded: !loading, // Added for compatibility
     signIn,
     signUp,
-    signInWithGoogle, // ✅ now exported
+    signInWithGoogle,
     signOut,
     resetPassword,
     isAuthenticated: !!user
