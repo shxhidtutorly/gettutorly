@@ -5,6 +5,7 @@ declare namespace THREE {
     setSize(width: number, height: number): void;
     render(scene: Scene, camera: Camera): void;
     dispose(): void;
+    getContext(): WebGLRenderingContext;
   }
 
   interface Scene {
