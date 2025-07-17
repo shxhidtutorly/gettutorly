@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserDoc, getUserDocs, safeSetDoc } from '@/lib/firebase-helpers';
@@ -35,6 +34,7 @@ export const useUserStats = () => {
         const uid = user.uid;
         
         // Check for cached stats first
+        // FIX: Use segment arguments for getUserDoc to ensure even segments
         const cachedStatsDoc = await getDoc(getUserDoc(uid, 'stats'));
         if (cachedStatsDoc.exists()) {
           const cachedData = cachedStatsDoc.data() as UserStats;
@@ -119,6 +119,7 @@ export const useUserStats = () => {
         console.log("Calculated and set new user stats:", calculatedStats);
 
         // Save stats to cache
+        // FIX: Use segment arguments for getUserDoc to ensure even segments
         await safeSetDoc(getUserDoc(uid, 'stats'), {
           ...calculatedStats,
           lastUpdated: Timestamp.now()
