@@ -1,4 +1,3 @@
-
 import { 
   doc, 
   getDoc, 
@@ -24,8 +23,9 @@ export function removeUndefined<T extends Record<string, any>>(obj: T): T {
 }
 
 // Get a reference to a user's document
-export function getUserDoc<T = any>(uid: string, path: string): DocumentReference<T> {
-  return doc(db, `users/${uid}/${path}`) as DocumentReference<T>;
+// FIX: Accept path segments to ensure even segments for Firestore doc references
+export function getUserDoc<T = any>(uid: string, ...pathSegments: string[]): DocumentReference<T> {
+  return doc(db, 'users', uid, ...pathSegments) as DocumentReference<T>;
 }
 
 // Get a reference to a user's collection
