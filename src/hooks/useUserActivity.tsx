@@ -19,7 +19,8 @@ export const useUserActivity = (userId: string | null) => {
         setLoading(true);
 
         // Check if user is new (created within last 24 hours)
-        const userProfile = await firebaseSecure.secureRead(`users/${userId}`);
+        // FIX: Use segment array for secureRead to ensure even segments
+        const userProfile = await firebaseSecure.secureRead(['users', userId].join('/'));
         if (userProfile?.created_at) {
           const createdTime = userProfile.created_at.toMillis ? userProfile.created_at.toMillis() : userProfile.created_at;
           const dayAgo = Date.now() - (24 * 60 * 60 * 1000);
@@ -29,13 +30,8 @@ export const useUserActivity = (userId: string | null) => {
         // Calculate weekly hours from last 7 days
         const weekAgo = Timestamp.fromMillis(Date.now() - (7 * 24 * 60 * 60 * 1000));
         
-        const sessions = await firebaseSecure.secureQuery(
-          `userActivity/${userId}/sessions`,
-          [
-            where("startTime", ">=", weekAgo),
-            orderBy("startTime", "desc")
-          ]
-        );
+        // FIX: Use segment array for secureQuery to ensure even segments
+        const sessions = await firebaseSecure.secureQuery(['userActivity', userId, 'sessions'].join('/'));
 
         const totalMinutes = sessions.reduce((total, session) => {
           return total + (session.duration || 0);
