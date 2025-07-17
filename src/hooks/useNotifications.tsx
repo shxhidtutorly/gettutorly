@@ -41,10 +41,10 @@ export const useNotifications = (userId: string | null) => {
     if (!userId) return;
 
     try {
-      await firebaseSecure.secureWrite(
-        `notifications/${userId}/messages/${notificationId}`,
-        { read: true }
-      );
+      // FIX: Use segment array for secureWrite to ensure even segments
+      await firebaseSecure.secureWrite(['notifications', userId, 'messages'].join('/'), {
+        read: true
+      });
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -54,7 +54,8 @@ export const useNotifications = (userId: string | null) => {
     if (!userId) return;
 
     try {
-      await firebaseSecure.secureAdd(`notifications/${userId}/messages`, {
+      // FIX: Use segment array for secureAdd to ensure even segments
+      await firebaseSecure.secureAdd(['notifications', userId, 'messages'].join('/'), {
         ...notification,
         read: false
       });
