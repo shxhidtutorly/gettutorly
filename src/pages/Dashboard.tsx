@@ -31,7 +31,8 @@ import ProgressCard from "@/components/dashboard/ProgressCard";
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { stats, loading } = useUserStats();
+  // FIX: Pass user?.uid to useUserStats so stats load for the logged-in user
+  const { stats, loading } = useUserStats(user?.uid || null);
   const [isNewUser, setIsNewUser] = useState(false);
 
   // Redirect if not authenticated
