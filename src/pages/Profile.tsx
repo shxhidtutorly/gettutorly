@@ -71,6 +71,7 @@ const Profile = () => {
 
       try {
         setLoading(true);
+        // FIX: Use segment arguments for getUserDoc to ensure even segments
         const userDocRef = getUserDoc(user.uid, 'profile');
         const userDocSnap = await getDoc(userDocRef);
         
@@ -92,6 +93,7 @@ const Profile = () => {
 
         // Load subscription data
         try {
+          // FIX: Use segment arguments for getUserDoc to ensure even segments
           const subscriptionDocRef = getUserDoc(user.uid, 'subscription');
           const subscriptionSnap = await getDoc(subscriptionDocRef);
           if (subscriptionSnap.exists()) {
@@ -135,6 +137,7 @@ const Profile = () => {
         updated_at: Timestamp.now(),
       };
 
+      // FIX: Use segment arguments for getUserDoc to ensure even segments
       const userDocRef = getUserDoc(user.uid, 'profile');
       await safeSetDoc(userDocRef, updatedProfile);
 
