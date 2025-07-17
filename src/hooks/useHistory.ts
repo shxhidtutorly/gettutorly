@@ -24,7 +24,8 @@ export const useHistory = (type: string) => {
     const loadHistory = async () => {
       setLoading(true);
       try {
-        const entries = await firebaseSecure.secureQuery(`${type}_history/${user.uid}/entries`);
+        // FIX: Use segment array for secureQuery to ensure even segments
+        const entries = await firebaseSecure.secureQuery([`${type}_history`, user.uid, 'entries'].join('/'));
         setHistory(entries || []);
       } catch (error) {
         console.error(`Error loading ${type} history:`, error);
@@ -50,7 +51,8 @@ export const useHistory = (type: string) => {
         userId: user.uid
       };
 
-      const docId = await firebaseSecure.secureAdd(`${type}_history/${user.uid}/entries`, entry);
+      // FIX: Use segment array for secureAdd to ensure even segments
+      const docId = await firebaseSecure.secureAdd([`${type}_history`, user.uid, 'entries'].join('/'), entry);
       
       if (docId) {
         const newEntry = { ...entry, id: docId };
