@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { firebaseSecure } from '@/lib/firebase-secure';
 import { historyService } from '@/lib/historyService';
