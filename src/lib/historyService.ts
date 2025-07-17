@@ -1,4 +1,3 @@
-
 import { firebaseSecure } from './firebase-secure';
 import { orderBy } from 'firebase/firestore';
 
@@ -17,27 +16,24 @@ class HistoryService {
     const user = firebaseSecure.getCurrentUser();
     if (!user) return null;
 
-    return await firebaseSecure.secureAdd(`history/${user.uid}/entries`, entry);
+    // FIX: Use segment array for secureAdd to ensure even segments
+    return await firebaseSecure.secureAdd(['history', user.uid, 'entries'].join('/'), entry);
   }
 
   async getHistoryByType(type: HistoryEntry['type']) {
     const user = firebaseSecure.getCurrentUser();
     if (!user) return [];
 
-    return await firebaseSecure.secureQuery(
-      `history/${user.uid}/entries`,
-      [orderBy("timestamp", "desc")]
-    );
+    // FIX: Use segment array for secureQuery to ensure even segments
+    return await firebaseSecure.secureQuery(['history', user.uid, 'entries'].join('/'));
   }
 
   async getAllHistory() {
     const user = firebaseSecure.getCurrentUser();
     if (!user) return [];
 
-    return await firebaseSecure.secureQuery(
-      `history/${user.uid}/entries`,
-      [orderBy("timestamp", "desc")]
-    );
+    // FIX: Use segment array for secureQuery to ensure even segments
+    return await firebaseSecure.secureQuery(['history', user.uid, 'entries'].join('/'));
   }
 
   async clearHistoryByType(type: HistoryEntry['type']) {
