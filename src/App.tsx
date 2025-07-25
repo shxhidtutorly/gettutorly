@@ -36,7 +36,7 @@ import PricingPage from "./pages/Pricing";
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
-import MathChat from "./features/math-chat;
+import MathChat from "./features/math-chat";
 
 import "./css/animations.css";
 import "./css/darkMode.css";
