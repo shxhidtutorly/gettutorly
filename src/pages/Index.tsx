@@ -553,10 +553,7 @@ export default function TutorlyLanding() {
                 className={`${plan.bg} p-8 brutal-border relative pricing-flash hover-scale hover-lift h-full flex flex-col scroll-scale-in`}
                 style={{ animationDelay: `${index * 0.2}s` }}
               >
-                {plan.popular && (
-                  // FIX: Popular tag alignment
-                  
-                )}
+                
                 {/* Added pt-8 to push content down for popular tag, creating space */}
                 <div className="text-center mb-6 pt-8">
                   <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
