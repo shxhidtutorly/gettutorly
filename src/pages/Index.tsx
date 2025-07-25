@@ -555,9 +555,9 @@ export default function TutorlyLanding() {
                   <Button
                     className={`w-full font-black py-4 brutal-button mt-auto ${
                       plan.popular
-                        ? "bg-white text-black hover:bg-gray-100" // PRO plan button
+                        ? "bg-blue text-white hover:bg-gray-100" // PRO plan button
                         : plan.name === "TEAM"
-                        ? "bg-white text-black hover:bg-gray-100" // TEAM plan button
+                        ? "bg-green text-white hover:bg-gray-100" // TEAM plan button
                         : "bg-purple-500 text-white hover:bg-purple-600" // BASIC plan button
                     }`}
                   >
