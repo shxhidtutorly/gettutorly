@@ -150,7 +150,7 @@ export default function TutorlyLanding() {
               <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm">
                 HOME
               </a>
-              <Link href="/features" className="text-4xl md:text-6xl font-black mb-6 text-black">
+              <Link href="/features" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FEATURES
               </Link>
               <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm">
@@ -242,7 +242,7 @@ export default function TutorlyLanding() {
       <section className="bg-gray-50 py-20 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="font-black hover:text-purple-500 transition-colors text-sm">Everything You Need to Excel</h2>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Everything You Need to Excel</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-6"></div>
             <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
               Powerful AI tools designed for modern learners
@@ -369,7 +369,7 @@ export default function TutorlyLanding() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="font-black hover:text-purple-500 transition-colors text-sm">Trusted by Students Worldwide</h2>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Trusted by Students Worldwide</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
