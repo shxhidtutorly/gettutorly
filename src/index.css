@@ -294,3 +294,6 @@ html {
     gap: 1rem;
   }
 }
+body {
+  background: #fff !important;
+}
