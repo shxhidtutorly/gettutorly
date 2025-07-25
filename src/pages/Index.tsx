@@ -534,7 +534,8 @@ export default function TutorlyLanding() {
                   "Math Solver",
                 ],
                 notIncluded: [],
-                bg: "bg-white text-black",
+                // FIX 1: Corrected background and text color for PRO plan card to match image
+                bg: "bg-purple-500 text-white",
                 popular: true,
                 cta: "TRY FREE",
               },
@@ -544,7 +545,8 @@ export default function TutorlyLanding() {
                 price: "$49",
                 features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
                 notIncluded: [],
-                bg: "bg-white text-black",
+                // FIX 1: Corrected background and text color for TEAM plan card to match image
+                bg: "bg-blue-600 text-white",
                 cta: "TRY FREE",
               },
             ].map((plan, index) => (
@@ -554,14 +556,14 @@ export default function TutorlyLanding() {
                 style={{ animationDelay: `${index * 0.2}s` }}
               >
                 {plan.popular && (
-                  // FIX 5: Popular tag alignment - Adjusted top positioning
+                  // FIX 3: Popular tag alignment - Adjusted top positioning and added padding to card content
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
                     <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
                       🔥 POPULAR
                     </Badge>
                   </div>
                 )}
-                {/* Added pt-8 to push content down for popular tag */}
+                {/* Added pt-8 to push content down for popular tag, creating space */}
                 <div className="text-center mb-6 pt-8">
                   <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
                   <p className="font-bold mb-4 text-base">{plan.desc}</p>
@@ -583,14 +585,12 @@ export default function TutorlyLanding() {
                   ))}
                 </div>
                 <Link href="/signup" className="block"> {/* Added block to Link for full width */}
-                  {/* FIX 5: Pricing Plan "TRY FREE" button visibility */}
+                  {/* FIX 2: Pricing Plan "TRY FREE" button visibility */}
                   <Button
                     className={`w-full font-black py-4 brutal-button mt-auto ${
-                      plan.popular
-                        ? "bg-blue text-white hover:bg-gray-100" // PRO plan button
-                        : plan.name === "TEAM"
-                        ? "bg-green text-white hover:bg-gray-100" // TEAM plan button
-                        : "bg-purple-500 text-white hover:bg-purple-600" // BASIC plan button
+                      plan.popular || plan.name === "TEAM"
+                        ? "bg-white text-black hover:bg-gray-100" // PRO and TEAM buttons - white background, black text
+                        : "bg-purple-500 text-white hover:bg-purple-600" // BASIC button - purple background, white text
                     }`}
                   >
                     {plan.cta}
