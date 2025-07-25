@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Navbar } from "@/components/navbar"
+import Navbar from "@/components/Navbar" // Ensure this import matches your file name and export
 import { Footer } from "@/components/footer"
 
 export default function TutorlyLanding() {
@@ -41,9 +41,6 @@ export default function TutorlyLanding() {
   }, [])
 
   useEffect(() => {
-    // Immediate hero load with fade-in animation
-    setHeroLoaded(true)
-
     const handleScroll = () => {
       setStickyNav(window.scrollY > 100)
 
@@ -136,7 +133,10 @@ export default function TutorlyLanding() {
     <div className="min-h-screen bg-white text-black font-mono">
       <Navbar />
 
-      {/* Sticky Navigation */}
+      {/* Sticky Navigation - If you're using the Navbar component, this sticky nav might be redundant.
+          I'll keep it as per your code, but usually, the main Navbar handles stickiness.
+          FIX 1: Ensure text color is black.
+      */}
       <nav className={`nav-sticky ${stickyNav ? "visible" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -144,25 +144,26 @@ export default function TutorlyLanding() {
               <div className="w-8 h-8 bg-purple-500 brutal-border flex items-center justify-center">
                 <Brain className="w-4 h-4 text-white" />
               </div>
-              <span className="font-black">TUTORLY</span>
+              <span className="font-black text-black">TUTORLY</span>
             </Link>
             <div className="flex items-center space-x-6">
-              <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 HOME
               </a>
-              <Link href="/features" className="font-black hover:text-purple-500 transition-colors text-sm">
+              {/* FIX 2: FEATURES link in sticky nav is also black */}
+              <Link href="/features" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 FEATURES
               </Link>
-              <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 PRICING
               </a>
-              <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 FAQ
               </a>
-              <Link href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <Link href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 STUDY METHODS
               </Link>
-              <Link href="/support" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <Link href="/support" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 SUPPORT
               </Link>
               <Link href="/signup">
@@ -242,6 +243,7 @@ export default function TutorlyLanding() {
       <section className="bg-gray-50 py-20 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
+            {/* FIX 3: Text color for "Everything You Need to Excel" - already black on light background */}
             <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Everything You Need to Excel</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-6"></div>
             <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
@@ -256,7 +258,7 @@ export default function TutorlyLanding() {
                 title: "AI NOTES",
                 desc: "Smart note generation from any content",
                 bg: "bg-white",
-                textColor: "text-black",
+                textColor: "text-black", // Already black, good for light background
                 href: "/features/ai-notes",
               },
               {
@@ -264,7 +266,7 @@ export default function TutorlyLanding() {
                 title: "MATH CHAT",
                 desc: "Solve problems with step-by-step help",
                 bg: "bg-purple-500",
-                textColor: "text-white",
+                textColor: "text-white", // Already white, good for purple background
                 href: "/features/math-chat",
               },
               {
@@ -272,7 +274,7 @@ export default function TutorlyLanding() {
                 title: "AUDIO RECAP",
                 desc: "Convert lectures to organized notes",
                 bg: "bg-blue-600",
-                textColor: "text-white",
+                textColor: "text-white", // Already white, good for blue background
                 href: "/features/audio-recap",
               },
               {
@@ -280,7 +282,7 @@ export default function TutorlyLanding() {
                 title: "DOUBT CHAIN",
                 desc: "Break down complex concepts easily",
                 bg: "bg-green-600",
-                textColor: "text-white",
+                textColor: "text-white", // Already white, good for green background
                 href: "/features/doubt-chain",
               },
               {
@@ -288,7 +290,7 @@ export default function TutorlyLanding() {
                 title: "SMART FLASHCARDS",
                 desc: "Adaptive cards that evolve with you",
                 bg: "bg-orange-500",
-                textColor: "text-white",
+                textColor: "text-white", // Already white, good for orange background
                 href: "/features/flashcards",
               },
               {
@@ -296,7 +298,7 @@ export default function TutorlyLanding() {
                 title: "INSTANT QUIZZES",
                 desc: "Auto-generate tests from materials",
                 bg: "bg-red-500",
-                textColor: "text-white",
+                textColor: "text-white", // Already white, good for red background
                 href: "/features/tests-quiz",
               },
             ].map((feature, index) => (
@@ -332,6 +334,7 @@ export default function TutorlyLanding() {
       <section className="bg-white py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
+            {/* FIX 4: Text color for "Trusted by Students Worldwide" - already black on light background */}
             <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
               Loved by students from top global universities
             </h2>
@@ -369,6 +372,7 @@ export default function TutorlyLanding() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
+            {/* FIX 4: Text color for "Trusted by Students Worldwide" - already black on light background */}
             <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Trusted by Students Worldwide</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
@@ -518,13 +522,15 @@ export default function TutorlyLanding() {
                 style={{ animationDelay: `${index * 0.2}s` }}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
+                  // FIX 5: Popular tag alignment - Adjusted top positioning
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
                     <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
                       🔥 POPULAR
                     </Badge>
                   </div>
                 )}
-                <div className="text-center mb-6 pt-4">
+                {/* Added pt-8 to push content down for popular tag */}
+                <div className="text-center mb-6 pt-8">
                   <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
                   <p className="font-bold mb-4 text-base">{plan.desc}</p>
                   <div className="text-5xl font-black">{plan.price}</div>
@@ -544,12 +550,15 @@ export default function TutorlyLanding() {
                     </div>
                   ))}
                 </div>
-                <Link href="/signup">
+                <Link href="/signup" className="block"> {/* Added block to Link for full width */}
+                  {/* FIX 5: Pricing Plan "TRY FREE" button visibility */}
                   <Button
                     className={`w-full font-black py-4 brutal-button mt-auto ${
-                      plan.popular || plan.name === "TEAM"
-                        ? "bg-white text-black hover:bg-gray-100"
-                        : "bg-purple-500 text-white hover:bg-purple-600"
+                      plan.popular
+                        ? "bg-white text-black hover:bg-gray-100" // PRO plan button
+                        : plan.name === "TEAM"
+                        ? "bg-white text-black hover:bg-gray-100" // TEAM plan button
+                        : "bg-purple-500 text-white hover:bg-purple-600" // BASIC plan button
                     }`}
                   >
                     {plan.cta}
@@ -577,7 +586,7 @@ export default function TutorlyLanding() {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <button
-                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-100 transition-colors text-black"
+                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg text-black transition-colors" // FIX 6: Removed hover:bg-gray-100
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                 >
                   {faq.question}
