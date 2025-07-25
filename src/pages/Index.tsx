@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import Navbar from "@/components/Navbar" // Ensure this import matches your file name and export
+import Navbar from "@/components/navbar" // Ensure this import matches your file name and export
 import { Footer } from "@/components/footer"
 
 export default function TutorlyLanding() {
