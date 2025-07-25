@@ -244,7 +244,7 @@ export default function TutorlyLanding() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
             {/* FIX 3: Text color for "Everything You Need to Excel" - already black on light background */}
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Everything You Need to Excel</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Everything You Need to Excel</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-6"></div>
             <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
               Powerful AI tools designed for modern learners
@@ -373,7 +373,7 @@ export default function TutorlyLanding() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
             {/* FIX 4: Text color for "Trusted by Students Worldwide" - already black on light background */}
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Trusted by Students Worldwide</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Trusted by Students Worldwide</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
@@ -502,7 +502,7 @@ export default function TutorlyLanding() {
                   "Math Solver",
                 ],
                 notIncluded: [],
-                bg: "bg-purple-500 text-white",
+                bg: "bg-white text-black",
                 popular: true,
                 cta: "TRY FREE",
               },
@@ -512,7 +512,7 @@ export default function TutorlyLanding() {
                 price: "$49",
                 features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
                 notIncluded: [],
-                bg: "bg-blue-600 text-white",
+                bg: "bg-white text-black",
                 cta: "TRY FREE",
               },
             ].map((plan, index) => (
