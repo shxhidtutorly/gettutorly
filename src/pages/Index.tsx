@@ -555,11 +555,7 @@ export default function TutorlyLanding() {
               >
                 {plan.popular && (
                   // FIX: Popular tag alignment
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-20">
-                  <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
-                    🔥 POPULAR
-                    </Badge>
-                      </div>
+                  
                 )}
                 {/* Added pt-8 to push content down for popular tag, creating space */}
                 <div className="text-center mb-6 pt-8">
