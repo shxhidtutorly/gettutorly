@@ -3,52 +3,62 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen,
-  Target,
-  Calendar,
-  Brain,
-  Zap,
-  HelpCircle,
-  TrendingUp,
-  Clock,
-  CheckCircle,
   Calculator,
   Sparkles,
   StickyNote,
   MessageCircle,
   Users,
-  Award
+  HelpCircle,
+  Zap,
+  Brain,
+  TrendingUp,
+  CheckCircle,
+  Award,
+  Clock,
+  ArrowRight
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { auth } from "@/lib/firebase";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useUserStats } from "@/hooks/useUserStats";
 import ProgressCard from "@/components/dashboard/ProgressCard";
+
+// BRUTALIST COLOR PALETTE
+const brutalColors = [
+  { bg: "bg-white", text: "text-black", border: "brutal-border", hover: "hover:scale-[1.03]", icon: "text-black" },
+  { bg: "bg-purple-500", text: "text-white", border: "brutal-border", hover: "hover:scale-[1.03]", icon: "text-white" },
+  { bg: "bg-blue-600", text: "text-white", border: "brutal-border", hover: "hover:scale-[1.03]", icon: "text-white" },
+  { bg: "bg-green-600", text: "text-white", border: "brutal-border", hover: "hover:scale-[1.03]", icon: "text-white" },
+  { bg: "bg-orange-500", text: "text-white", border: "brutal-border", hover: "hover:scale-[1.03]", icon: "text-white" },
+  { bg: "bg-red-500", text: "text-white", border: "brutal-border", hover: "hover:scale-[1.03]", icon: "text-white" },
+];
+
+const brutalistCardAnim = {
+  initial: { opacity: 0, y: 30, scale: 0.98 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  transition: { duration: 0.4, ease: "easeOut" }
+};
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  // FIX: Pass user?.uid to useUserStats so stats load for the logged-in user
   const { stats, loading } = useUserStats(user?.uid || null);
   const [isNewUser, setIsNewUser] = useState(false);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/signin');
     }
   }, [user, authLoading, navigate]);
 
-  // Check if user is new (first time login)
   useEffect(() => {
     if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
       const creationTime = new Date(user.metadata.creationTime).getTime();
       const lastSignInTime = new Date(user.metadata.lastSignInTime).getTime();
       const timeDiff = Math.abs(lastSignInTime - creationTime);
-      // If less than 5 minutes difference, consider as new user
       setIsNewUser(timeDiff < 5 * 60 * 1000);
     }
   }, [user]);
@@ -72,177 +82,191 @@ const Dashboard = () => {
   }, [getUserDisplayName, isNewUser]);
 
   const formatStudyTime = (minutes: number) => {
-    if (minutes < 60) {
-      return `${minutes}min`;
-    }
+    if (minutes < 60) return `${minutes}min`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
 
-  const studyTools = useMemo(() => [
+  // Brutalist Feature Cards (matches landing)
+  const featureCards = [
     {
-      title: "Math Chat",
-      desc: "Solve math problems with AI",
-      icon: <Calculator className="h-6 w-6 md:h-8 md:w-8 text-purple-400 mx-auto mb-2" />,
-      route: "/math-chat"
+      icon: <Sparkles className="w-12 h-12 mb-4" />,
+      title: "AI NOTES",
+      desc: "Smart note generation from any content",
+      route: "/ai-notes",
+      color: brutalColors[0]
     },
     {
-      title: "AI Notes",
-      desc: "Generate smart notes from files",
-      icon: <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-blue-400 mx-auto mb-2" />,
-      route: "/ai-notes"
+      icon: <MessageCircle className="w-12 h-12 mb-4" />,
+      title: "MATH CHAT",
+      desc: "Solve problems with step-by-step help",
+      route: "/math-chat",
+      color: brutalColors[1]
     },
     {
-      title: "Audio Recap",
-      desc: "Convert audio to notes",
-      icon: <Users className="h-6 w-6 md:h-8 md:w-8 text-green-400 mx-auto mb-2" />,
-      route: "/audio-notes"
+      icon: <Users className="w-12 h-12 mb-4" />,
+      title: "AUDIO RECAP",
+      desc: "Convert lectures to organized notes",
+      route: "/audio-notes",
+      color: brutalColors[2]
     },
+    {
+      icon: <HelpCircle className="w-12 h-12 mb-4" />,
+      title: "DOUBT CHAIN",
+      desc: "Break down complex concepts easily",
+      route: "/doubt-chain",
+      color: brutalColors[3]
+    },
+    {
+      icon: <Zap className="w-12 h-12 mb-4" />,
+      title: "SMART FLASHCARDS",
+      desc: "Adaptive cards that evolve with you",
+      route: "/flashcards",
+      color: brutalColors[4]
+    },
+    {
+      icon: <BookOpen className="w-12 h-12 mb-4" />,
+      title: "INSTANT QUIZZES",
+      desc: "Auto-generate tests from materials",
+      route: "/quiz",
+      color: brutalColors[5]
+    }
+  ];
+
+  // Quick Actions (keep smaller, but brutalist)
+  const quickActions = [
     {
       title: "Summarize",
       desc: "Quickly summarize any text",
-      icon: <StickyNote className="h-6 w-6 md:h-8 md:w-8 text-pink-400 mx-auto mb-2" />,
-      route: "/summaries"
-    },
-    {
-      title: "Flashcards",
-      desc: "Create and review flashcards",
-      icon: <Zap className="h-6 w-6 md:h-8 md:w-8 text-yellow-400 mx-auto mb-2" />,
-      route: "/flashcards"
-    },
-    {
-      title: "Tests & Quiz",
-      desc: "Test your knowledge",
-      icon: <HelpCircle className="h-6 w-6 md:h-8 md:w-8 text-red-400 mx-auto mb-2" />,
-      route: "/quiz"
-    },
-  ], []);
-
-  const quickActions = useMemo(() => [
-    {
-      title: "Doubt Chain",
-      desc: "Break down complex concepts",
-      icon: <Brain className="h-6 w-6 md:h-8 md:w-8 text-cyan-400 mx-auto mb-2" />,
-      route: "/doubt-chain"
+      icon: <StickyNote className="h-8 w-8 mb-2 text-pink-400" />,
+      route: "/summaries",
+      bg: "bg-pink-600 text-white"
     },
     {
       title: "Library",
       desc: "Browse your materials",
-      icon: <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-indigo-400 mx-auto mb-2" />,
-      route: "/library"
+      icon: <BookOpen className="h-8 w-8 mb-2 text-indigo-400" />,
+      route: "/library",
+      bg: "bg-indigo-600 text-white"
     },
     {
       title: "AI Assistant",
       desc: "Get personalized help",
-      icon: <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-emerald-400 mx-auto mb-2" />,
-      route: "/ai-assistant"
+      icon: <Brain className="h-8 w-8 mb-2 text-cyan-400" />,
+      route: "/ai-assistant",
+      bg: "bg-cyan-600 text-white"
     },
     {
       title: "Progress",
       desc: "Track your learning",
-      icon: <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-orange-400 mx-auto mb-2" />,
-      route: "/progress"
+      icon: <TrendingUp className="h-8 w-8 mb-2 text-orange-400" />,
+      route: "/progress",
+      bg: "bg-orange-600 text-white"
     }
-  ], []);
+  ];
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#111] text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-lg">Loading your dashboard...</p>
+          <p className="text-lg font-mono">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    return null; // Will redirect via useEffect
+    return null;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
+    <div className="min-h-screen flex flex-col bg-[#111] text-white font-mono">
       <Navbar />
 
-      <main className="flex-1 py-4 md:py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
-        <div className="container max-w-6xl mx-auto">
-          {/* Welcome Section */}
+      <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
+        <div className="container max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="mb-6 md:mb-8"
+            className="mb-8"
           >
-            <h1 className="text-xl md:text-3xl font-bold mb-2">
-              {getWelcomeMessage()}
-            </h1>
-            <p className="text-gray-400 text-sm md:text-base">Here's your learning progress overview</p>
+            <h1 className="text-3xl md:text-4xl font-black mb-2 text-white">{getWelcomeMessage()}</h1>
+            <p className="text-gray-300 text-base md:text-lg">Here's your learning progress overview</p>
           </motion.div>
-
+          
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 md:mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-10">
             <ProgressCard
               title="Study Time"
               value={formatStudyTime(stats?.total_study_time || 0)}
-              icon={<Clock className="h-6 w-6 text-blue-400" />}
+              icon={<Clock className="h-7 w-7 text-blue-400" />}
               color="blue"
               trend={`${stats?.sessions_this_month || 0} sessions this month`}
+              className="brutal-border bg-[#181818] text-white"
             />
-            
             <ProgressCard
               title="Learning Milestones"
               value={stats?.learning_milestones || 0}
-              icon={<Award className="h-6 w-6 text-green-400" />}
+              icon={<Award className="h-7 w-7 text-green-400" />}
               color="green"
               trend="Total achievements"
+              className="brutal-border bg-[#181818] text-white"
             />
-
             <ProgressCard
               title="Quizzes"
               value={stats?.quizzes_taken || 0}
-              icon={<CheckCircle className="h-6 w-6 text-yellow-400" />}
+              icon={<CheckCircle className="h-7 w-7 text-yellow-400" />}
               color="yellow"
               trend={`${stats?.average_quiz_score || 0}% avg score`}
+              className="brutal-border bg-[#181818] text-white"
             />
-
             <ProgressCard
               title="AI Notes"
               value={stats?.notes_created || 0}
-              icon={<Sparkles className="h-6 w-6 text-purple-400" />}
+              icon={<Sparkles className="h-7 w-7 text-purple-400" />}
               color="purple"
               trend="Notes generated"
+              className="brutal-border bg-[#181818] text-white"
             />
           </div>
 
-          {/* Study Tools Section */}
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="text-pink-400 h-5 w-5" />
-              Study Tools
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
-              {studyTools.map((tool, idx) => (
+          {/* BRUTALIST FEATURE CARDS */}
+          <div className="mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+              {featureCards.map((feature, idx) => (
                 <motion.div
-                  key={tool.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
+                  key={feature.title}
+                  initial="initial"
+                  animate="animate"
+                  variants={brutalistCardAnim}
+                  transition={{ ...brutalistCardAnim.transition, delay: idx * 0.08 }}
                 >
-                  <Card
-                    className="bg-[#121212] border-slate-700 hover:border-slate-500 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 group"
-                    onClick={() => handleNavigation(tool.route)}
+                  <div
+                    className={`relative p-8 cursor-pointer transition-all duration-150 ${feature.color.bg} ${feature.color.text} ${feature.color.border} ${feature.color.hover} brutal-shadow group`}
+                    onClick={() => handleNavigation(feature.route)}
+                    style={{
+                      minHeight: "260px",
+                      borderWidth: "4px",
+                      borderRadius: "0px",
+                      boxShadow: "6px 6px 0 0 #000"
+                    }}
                   >
-                    <CardContent className="p-4 md:p-6 text-center">
-                      <div className="group-hover:scale-110 transition-transform duration-300">
-                        {tool.icon}
-                      </div>
-                      <h3 className="font-medium text-sm md:text-base text-white">{tool.title}</h3>
-                      <p className="text-xs md:text-sm text-gray-400">{tool.desc}</p>
-                    </CardContent>
-                  </Card>
+                    <div className={`absolute top-6 right-6 ${feature.color.icon} opacity-40`}>
+                      {feature.icon}
+                    </div>
+                    <div className="mb-10">
+                      <div className={`w-12 h-12 mb-4`}></div>
+                    </div>
+                    <h3 className="font-black text-2xl mb-2">{feature.title}</h3>
+                    <p className="font-bold text-base mb-6">{feature.desc}</p>
+                    <div className="flex items-center justify-between mt-8 font-black text-base group-hover:underline">
+                      <span>EXPLORE {feature.title}</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -250,37 +274,39 @@ const Dashboard = () => {
 
           {/* Quick Actions */}
           <div>
-            <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="text-cyan-400 h-5 w-5" />
+            <h2 className="text-2xl font-black mb-4 flex items-center gap-2 text-white">
+              <TrendingUp className="text-cyan-400 h-6 w-6" />
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-7">
               {quickActions.map((action, idx) => (
                 <motion.div
                   key={action.title}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 + 0.3 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
+                  initial={{ opacity: 0, y: 22 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.09 + 0.3 }}
+                  whileHover={{ scale: 1.04, y: -3 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Card
-                    className="bg-[#121212] border-slate-700 hover:border-slate-500 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20"
+                  <div
+                    className={`p-6 cursor-pointer brutal-border brutal-shadow transition-all duration-200 font-black ${action.bg}`}
                     onClick={() => handleNavigation(action.route)}
+                    style={{
+                      borderWidth: "4px",
+                      borderRadius: "0px",
+                      boxShadow: "6px 6px 0 0 #000"
+                    }}
                   >
-                    <CardContent className="p-4 md:p-6 text-center">
-                      {action.icon}
-                      <h3 className="font-medium text-sm md:text-base text-white">{action.title}</h3>
-                      <p className="text-xs md:text-sm text-gray-400">{action.desc}</p>
-                    </CardContent>
-                  </Card>
+                    <div className="mb-2">{action.icon}</div>
+                    <h3 className="font-black text-lg mb-1">{action.title}</h3>
+                    <p className="font-bold text-sm mb-3">{action.desc}</p>
+                  </div>
                 </motion.div>
               ))}
             </div>
           </div>
         </div>
       </main>
-
       <Footer />
       <BottomNav />
     </div>
