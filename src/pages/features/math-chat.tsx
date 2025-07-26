@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calculator, Brain, ArrowRight, Plus, Minus, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { navbar } from "@/components/navbar"
+import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer"
 
 export default function MathChatPage() {
