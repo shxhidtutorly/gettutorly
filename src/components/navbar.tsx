@@ -27,9 +27,9 @@ const Navbar = () => {
     { name: 'Math Chat', href: '/features/math-chat' },
     { name: 'AI Notes', href: '/features/ai-notes' },
     { name: 'Audio Recap', href: '/features/audio-recap' },
-    { name: 'Summarizer', href: '/features/summarizer' },
-    { name: 'Flashcards', href: '/features/flashcards' },
-    { name: 'Tests & Quizzes', href: '/features/tests-quizzes' },
+    { name: 'Summarizer', href: '/features/summaries' },
+    { name: 'Flashcards', href: '/features/flashcard' },
+    { name: 'Tests & Quizzes', href: '/features/tests-quiz' },
     { name: 'Doubt Chain', href: '/features/doubt-chain' },
   ];
 
