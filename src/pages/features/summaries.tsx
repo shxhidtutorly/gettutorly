@@ -75,7 +75,7 @@ const otherFeatures = [
 
             <h1 className="text-5xl md:text-7xl font-black leading-none text-black">Summarize</h1>
 
-            <p className="text-2xl md:text-3xl font-bold text-gray-700 max-w-4xl mx-auto">
+            <p className="text-2xl md:text-3xl font-bold text-blue-700 max-w-4xl mx-auto">
               Quickly summarize any text, article, or document into key points and insights
             </p>
 
@@ -144,7 +144,7 @@ const otherFeatures = [
       <section className="bg-gray-50 py-20">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Summarize FAQs</h2>
+            <h2 className="text-4xl md:text-6xl font-blue mb-6 text-black">Summarize FAQs</h2>
             <div className="w-32 h-2 bg-yellow-500 mx-auto"></div>
           </div>
 
@@ -156,7 +156,7 @@ const otherFeatures = [
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <button
-                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-100 transition-colors text-black"
+                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-black-100 transition-colors text-black"
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                 >
                   {faq.question}
@@ -166,7 +166,7 @@ const otherFeatures = [
                 </button>
                 <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
                   <div className="px-6 pb-6">
-                    <p className="font-bold text-gray-700">{faq.answer}</p>
+                    <p className="font-bold text-black-700">{faq.answer}</p>
                   </div>
                 </div>
               </div>
@@ -190,7 +190,7 @@ const otherFeatures = [
                   className="bg-gray-50 p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer scroll-scale-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <h3 className="text-xl font-black mb-2">{feature.name}</h3>
+                  <h3 className="text-xl font-white mb-2">{feature.name}</h3>
                   <p className="font-bold text-gray-700 mb-4">{feature.desc}</p>
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-purple-600">EXPLORE {feature.name.toUpperCase()}</span>
