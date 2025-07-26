@@ -36,6 +36,8 @@ import PricingPage from "./pages/Pricing";
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
+import MathChatPage from "./pages/features/math-chat";
+
 
 import "./css/animations.css";
 import "./css/darkMode.css";
@@ -64,6 +66,7 @@ const App = () => {
                 <Route path="/signup" element={<SignUpPage />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
                 <Route path="/support" element={<Support />} />
+                <Route path="/features/math-chat" element={<MathChatPage />} />
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/pricing" element={<PricingPage />} />
