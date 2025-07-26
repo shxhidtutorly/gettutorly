@@ -98,19 +98,19 @@ export function Footer() {
               <Link href="/features/math-chat" className="block font-bold hover:text-purple-400 transition-colors">
                 Math Chat
               </Link>
-              <Link href="/features/flashcards" className="block font-bold hover:text-purple-400 transition-colors">
+              <Link href="/features/flashcard" className="block font-bold hover:text-purple-400 transition-colors">
                 Flashcards
               </Link>
               <Link href="/features/audio-recap" className="block font-bold hover:text-purple-400 transition-colors">
                 Audio Recap
               </Link>
               <Link
-                href="/features/tests-and-quizzes"
+                href="/features/tests-quiz"
                 className="block font-bold hover:text-purple-400 transition-colors"
               >
                 Tests & Quizzes
               </Link>
-              <Link href="/features/summarizer" className="block font-bold hover:text-purple-400 transition-colors">
+              <Link href="/features/summaries" className="block font-bold hover:text-purple-400 transition-colors">
                 Summarizer
               </Link>
               <Link href="/features/doubt-chain" className="block font-bold hover:text-purple-400 transition-colors">
