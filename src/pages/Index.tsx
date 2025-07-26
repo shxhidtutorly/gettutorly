@@ -578,14 +578,14 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
-                <Link href="/signup" className="block"> {/* Added block to Link for full width */}
+               <a href="/signup">
                   {/* FIX: Pricing Plan "TRY FREE" button visibility - now all buttons are purple with white text */}
                   <Button
                     className={`w-full font-black py-4 brutal-button mt-auto bg-purple-500 text-white hover:bg-purple-600`}
                   >
                     {plan.cta}
                   </Button>
-                </Link>
+                </a>
               </div>
             ))}
           </div>
