@@ -103,8 +103,8 @@ export default function AudioRecapPage() {
             </h1>
 
             <p
-              className="text-2xl md:text-3xl font-bold text-gray-700 max-w-4xl mx-auto"
-              style={{ color: "#374151", fontWeight: "700", display: "block" }}
+              className="text-2xl md:text-3xl font-bold text-black-700 max-w-4xl mx-auto"
+              style={{ color: "#0000", fontWeight: "700", display: "block" }}
             >
               Convert lectures and audio recordings into organized notes automatically
             </p>
@@ -177,7 +177,7 @@ export default function AudioRecapPage() {
           <div className="text-center mb-16">
             <h2
               className="text-4xl md:text-6xl font-black mb-6 text-black"
-              style={{ color: "#000000", fontWeight: "900", display: "block" }}
+              style={{ color: "#FFFFFF", fontWeight: "900", display: "block" }}
             >
               See Audio Recap in Action
             </h2>
@@ -279,7 +279,7 @@ export default function AudioRecapPage() {
           <div className="text-center mb-16">
             <h2
               className="text-4xl md:text-6xl font-black mb-6 text-black"
-              style={{ color: "#000000", fontWeight: "900", display: "block" }}
+              style={{ color: "#FFFFFF", fontWeight: "900", display: "block" }}
             >
               Explore Other Features
             </h2>
@@ -291,7 +291,7 @@ export default function AudioRecapPage() {
               <Link key={index} href={feature.href}>
                 <div className="bg-white p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer">
                   <h3 className="text-xl font-black mb-2 text-black">{feature.name}</h3>
-                  <p className="font-bold text-gray-700 mb-4">{feature.desc}</p>
+                  <p className="font-bold text-black-700 mb-4">{feature.desc}</p>
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-purple-600">EXPLORE {feature.name.toUpperCase()}</span>
                     <ArrowRight className="w-4 h-4 text-purple-600" />
