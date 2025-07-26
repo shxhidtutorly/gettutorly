@@ -96,7 +96,7 @@ export default function FeaturesPage() {
       {/* Hero */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-7xl font-black mb-6 flex items-center justify-center gap-4">
+          <h1 className="text-5xl md:text-7xl font-white mb-6 flex items-center justify-center gap-4">
             <Lightbulb className="w-12 h-12 text-purple-600 animate-pulse" />
             All Features
           </h1>
