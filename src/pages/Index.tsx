@@ -327,48 +327,81 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Trusted By Universities Section */}
-      <section className="bg-white py-20 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
-              Loved by students from top global universities
-            </h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
-          </div>
+ {/* Trusted By Universities Section */}
+<section className="bg-white py-20 overflow-hidden">
+  <div className="max-w-7xl mx-auto px-4">
+    <div className="text-center mb-16 scroll-fade-in">
+      <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
+        Loved by students from top global universities
+      </h2>
+      <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
+    </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            {[
-              { name: "MIT", logo: "/placeholder.svg?height=64&width=120&text=MIT" },
-              { name: "Stanford", logo: "/placeholder.svg?height=64&width=120&text=Stanford" },
-              { name: "Princeton", logo: "/placeholder.svg?height=64&width=120&text=Princeton" },
-              { name: "Yale", logo: "/placeholder.svg?height=64&width=120&text=Yale" },
-              { name: "Penn", logo: "/placeholder.svg?height=64&width=120&text=Penn" },
-              { name: "McGill", logo: "/placeholder.svg?height=64&width=120&text=McGill" },
-              { name: "NYU", logo: "/placeholder.svg?height=64&width=120&text=NYU" },
-              { name: "Melbourne", logo: "/placeholder.svg?height=64&width=120&text=Melbourne" },
-            ].map((university, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-center p-6 bg-white brutal-border hover-scale hover-lift transition-all duration-300 scroll-slide-left"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <img
-                  src={university.logo || "/placeholder.svg"}
-                  alt={university.name}
-                  className="h-16 w-auto object-contain transition-all duration-300 hover:scale-110"
-                />
-              </div>
-            ))}
-          </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+      {[
+        {
+          name: "MIT",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp",
+        },
+        {
+          name: "Stanford University",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp",
+        },
+        {
+          name: "University of Pennsylvania",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp",
+        },
+        {
+          name: "Yale University",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp",
+        },
+        {
+          name: "University of Cambridge (UOC)",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp",
+        },
+        {
+          name: "Tokyo University of Medicine",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp",
+        },
+        {
+          name: "University of Toronto",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg",
+        },
+        {
+          name: "Harvard University",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
+        },
+      ].map((university, index) => (
+        <div
+          key={index}
+          className="flex items-center justify-center p-6 bg-white brutal-border hover-scale hover-lift transition-all duration-300 scroll-slide-left"
+          style={{ animationDelay: `${index * 0.1}s` }}
+        >
+          <img
+            src={university.logo}
+            alt={university.name}
+            className="h-16 w-auto object-contain transition-all duration-300 hover:scale-110"
+          />
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
+
 
       {/* Enhanced Testimonials Section */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Trusted by Students Worldwide</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Trusted by Students Worldwide</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
@@ -497,7 +530,7 @@ export default function LandingPage() {
                   "Math Solver",
                 ],
                 notIncluded: [],
-                bg: "bg-purple-500 text-white",
+                bg: "bg-white text-black",
                 popular: true,
                 cta: "TRY FREE",
               },
@@ -507,7 +540,7 @@ export default function LandingPage() {
                 price: "$49",
                 features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
                 notIncluded: [],
-                bg: "bg-blue-600 text-white",
+                bg: "bg-white text-black",
                 cta: "TRY FREE",
               },
             ].map((plan, index) => (
@@ -517,7 +550,7 @@ export default function LandingPage() {
                 style={{ animationDelay: `${index * 0.2}s` }}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
                     <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
                       🔥 POPULAR
                     </Badge>
