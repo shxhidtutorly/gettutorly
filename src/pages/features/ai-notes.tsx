@@ -35,15 +35,14 @@ export default function AINotesPage() {
     },
   ]
 
-  const otherFeatures = [
+const otherFeatures = [
     { name: "Math Chat", href: "/features/math-chat", desc: "Solve problems with step-by-step help" },
-    { name: "Audio Recap", href: "/features/audio-recap", desc: "Convert lectures to organized notes" },
+    { name: "AI Notes", href: "/features/ai-notes", desc: "Generate smart notes from any content" },
     { name: "Flashcards", href: "/features/flashcard", desc: "Create adaptive study cards" },
     { name: "Tests & Quizzes", href: "/features/tests-quiz", desc: "Generate practice tests" },
     { name: "Summarizer", href: "/features/summaries", desc: "Summarize any document" },
     { name: "Doubt Chain", href: "/features/doubt-chain", desc: "Break down complex concepts" },
   ]
-
   return (
     <div className="min-h-screen bg-white text-black font-mono">
       <Navbar />
