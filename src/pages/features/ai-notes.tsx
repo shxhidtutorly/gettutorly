@@ -75,7 +75,7 @@ const otherFeatures = [
 
             <h1 className="text-5xl md:text-7xl font-black leading-none text-black">AI Notes</h1>
 
-            <p className="text-2xl md:text-3xl font-bold text-gray-700 max-w-4xl mx-auto">
+            <p className="text-2xl md:text-3xl font-bold text-black-700 max-w-4xl mx-auto">
               Create AI generated notes from PDFs, PowerPoints, and lecture videos, automatically!
             </p>
 
@@ -144,7 +144,7 @@ const otherFeatures = [
       <section className="bg-gray-50 py-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">See AI Notes in Action</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">See AI Notes in Action</h2>
             <div className="w-32 h-2 bg-blue-600 mx-auto"></div>
           </div>
 
@@ -234,7 +234,7 @@ const otherFeatures = [
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Explore Other Features</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Explore Other Features</h2>
             <div className="w-32 h-2 bg-blue-600 mx-auto"></div>
           </div>
 
@@ -246,7 +246,7 @@ const otherFeatures = [
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <h3 className="text-xl font-black mb-2">{feature.name}</h3>
-                  <p className="font-bold text-gray-700 mb-4">{feature.desc}</p>
+                  <p className="font-bold text-black-700 mb-4">{feature.desc}</p>
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-purple-600">EXPLORE {feature.name.toUpperCase()}</span>
                     <ArrowRight className="w-4 h-4 text-purple-600" />
