@@ -36,7 +36,13 @@ import PricingPage from "./pages/Pricing";
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
-import MathChatPage from "./pages/features/math-chat";
+import MathChatPage from "./pages/features/ai-notes";
+import MathChatPage from "./pages/features/audio-recap";
+import MathChatPage from "./pages/features/doubt-chain";
+import MathChatPage from "./pages/features/flashcard";
+import MathChatPage from "./pages/features/study-techniques";
+import MathChatPage from "./pages/features/tests-quiz";
+
 
 
 import "./css/animations.css";
@@ -67,6 +73,13 @@ const App = () => {
                 <Route path="/terms-of-service" element={<TermsOfService />} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/features/math-chat" element={<MathChatPage />} />
+                <Route path="/features/ai-notes" element={<Ainotes />} />
+                <Route path="/features/doubt-chain" element={<doubt-chain />} />
+                <Route path="/features/audio-recap" element={<audio-recap />} />
+                <Route path="/features/flashcard" element={<flashcard />} />
+                <Route path="/features/study-techniques" element={<study-techniques />} />
+                 <Route path="/features/summaries" element={<summaries />} />
+                <Route path="/features/tests-quiz" element={<tests-quiz />} />
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/pricing" element={<PricingPage />} />
