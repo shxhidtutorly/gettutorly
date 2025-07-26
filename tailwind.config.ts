@@ -19,6 +19,14 @@ export default {
 			}
 		},
 		extend: {
+			  fontFamily: {
+    mono: ['"IBM Plex Mono"', 'monospace'],
+  },
+  colors: {
+    purple: {
+      500: '#C084FC',
+    },
+  },
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
