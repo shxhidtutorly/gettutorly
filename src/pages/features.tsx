@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { MessageSquare, FileText, Headphones, BookOpen, HelpCircle, Calculator, CreditCard } from "lucide-react"
 import  Navbar  from "@/components/navbar"
-import { Footer } from "@/components/Footer"
+import { Footer } from "@/components/footer"
 
 export default function FeaturesPage() {
   const coreFeatures = [
