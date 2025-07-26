@@ -81,7 +81,7 @@ const otherFeatures = [
 
             <h1 className="text-5xl md:text-7xl font-black leading-none text-black">Math Chat</h1>
 
-            <p className="text-2xl md:text-3xl font-bold text-gray-700 max-w-4xl mx-auto">
+            <p className="text-2xl md:text-3xl font-bold text-green-700 max-w-4xl mx-auto">
               Solve math problems with AI step-by-step explanations and instant help
             </p>
 
@@ -150,7 +150,7 @@ const otherFeatures = [
       <section className="bg-gray-50 py-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">See Math Chat in Action</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">See Math Chat in Action</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
@@ -242,7 +242,7 @@ const otherFeatures = [
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Explore Other Features</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Explore Other Features</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
@@ -254,7 +254,7 @@ const otherFeatures = [
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <h3 className="text-xl font-black mb-2">{feature.name}</h3>
-                  <p className="font-bold text-gray-700">{feature.desc}</p>
+                  <p className="font-bold text-black-700">{feature.desc}</p>
                   <ArrowRight className="w-5 h-5 mt-4 text-purple-500" />
                 </div>
               </Link>
