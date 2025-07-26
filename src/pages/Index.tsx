@@ -262,13 +262,14 @@ export default function TutorlyLanding() {
                 href: "/features/ai-notes",
               },
               {
-                icon: MessageSquare,
-                title: "MATH CHAT",
-                desc: "Solve problems with step-by-step help",
-                bg: "bg-purple-500",
-                textColor: "text-white", // Already white, good for purple background
-                <Link to="/features/math-chat">Go to Math Chat</Link>
-              },
+  icon: MessageSquare,
+  title: "MATH CHAT",
+  desc: "Solve problems with step-by-step help",
+  bg: "bg-purple-500",
+  textColor: "text-white", // Already white, good for purple background
+  link: <Link to="/features/math-chat">Go to Math Chat</Link>,
+},
+
               {
                 icon: Headphones,
                 title: "AUDIO RECAP",
