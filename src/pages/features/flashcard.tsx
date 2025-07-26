@@ -183,7 +183,7 @@ const otherFeatures = [
           <div className="text-center mb-16">
             <h2
               className="text-4xl md:text-6xl font-white mb-6 text-white"
-              style={{ color: "#000000", fontWeight: "900", display: "block" }}
+              style={{ color: "#FFFFFF", fontWeight: "900", display: "block" }}
             >
               Try Interactive Flashcards
             </h2>
@@ -299,7 +299,7 @@ const otherFeatures = [
           <div className="text-center mb-16">
             <h2
               className="text-4xl md:text-6xl font-white mb-6 text-white"
-              style={{ color: "#000000", fontWeight: "900", display: "block" }}
+              style={{ color: "#FFFFFF", fontWeight: "900", display: "block" }}
             >
               Explore Other Features
             </h2>
