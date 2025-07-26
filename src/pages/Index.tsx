@@ -18,8 +18,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
+import { navbar } from "@/components/navbar"
+import { footer } from "@/components/footer"
 
 export default function TutorlyLanding() {
   const [stickyNav, setStickyNav] = useState(false)
