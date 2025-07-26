@@ -48,6 +48,7 @@ import StudyTechniquesFeature from "./pages/features/study-techniques";
 import TestsQuizFeature from "./pages/features/tests-quiz";
 import SummariesFeature from "./pages/features/summaries";
 import DoubtChainFeature from "./pages/features/doubt-chain";
+import FeaturesPage from './pages/features'
 
 // CSS
 import "./css/animations.css";
@@ -90,6 +91,8 @@ const App = () => {
                 <Route path="/features/tests-quiz" element={<TestsQuizFeature />} />
                 <Route path="/features/summaries" element={<SummariesFeature />} />
                 <Route path="/features/doubt-chain" element={<DoubtChainFeature />} />
+                <Route path="/features" element={<FeaturesPage />} />
+
 
                 {/* Protected Routes */}
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
