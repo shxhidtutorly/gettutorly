@@ -46,13 +46,12 @@ export default function FlashcardsPage() {
     { front: "Define mitochondria", back: "The powerhouse of the cell - organelles that produce ATP energy" },
     { front: "What is DNA?", back: "Deoxyribonucleic acid - the molecule that carries genetic information" },
   ]
-
-  const otherFeatures = [
+const otherFeatures = [
     { name: "Math Chat", href: "/features/math-chat", desc: "Solve problems with step-by-step help" },
     { name: "AI Notes", href: "/features/ai-notes", desc: "Generate smart notes from any content" },
-    { name: "Audio Recap", href: "/features/audio-recap", desc: "Convert lectures to organized notes" },
-    { name: "Tests & Quizzes", href: "/features/tests-and-quizzes", desc: "Generate practice tests" },
-    { name: "Summarizer", href: "/features/summarizer", desc: "Summarize any document" },
+    { name: "Flashcards", href: "/features/flashcard", desc: "Create adaptive study cards" },
+    { name: "Tests & Quizzes", href: "/features/tests-quiz", desc: "Generate practice tests" },
+    { name: "Summarizer", href: "/features/summaries", desc: "Summarize any document" },
     { name: "Doubt Chain", href: "/features/doubt-chain", desc: "Break down complex concepts" },
   ]
 
