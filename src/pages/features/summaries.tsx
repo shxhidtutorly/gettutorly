@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { FileText, Brain, Zap, TrendingUp, Plus, Minus, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { Navbar } from "@/components/navbar"
+import  Navbar  from "@/components/navbar"
 import { Footer } from "@/components/footer"
 
 export default function SummariesPage() {
