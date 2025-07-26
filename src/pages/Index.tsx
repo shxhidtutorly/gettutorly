@@ -1,5 +1,4 @@
 "use client"
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -267,9 +266,7 @@ export default function TutorlyLanding() {
   desc: "Solve problems with step-by-step help",
   bg: "bg-purple-500",
   textColor: "text-white", // Already white, good for purple background
-  link: <Link to="/features/math-chat">Go to Math Chat</Link>,
-},
-
+    href: "/features/math-chat",
               {
                 icon: Headphones,
                 title: "AUDIO RECAP",
