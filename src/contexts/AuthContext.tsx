@@ -40,7 +40,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photoURL: firebaseUser.photoURL,
           imageUrl: firebaseUser.photoURL,
           emailVerified: firebaseUser.emailVerified,
-          isLoaded: true
+          isLoaded: true,
+          metadata: {
+            createdAt: firebaseUser.metadata.creationTime,
+            lastSignInAt: firebaseUser.metadata.lastSignInTime
+          }
         });
       } else {
         setUser(null);

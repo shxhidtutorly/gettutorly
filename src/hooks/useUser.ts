@@ -1,10 +1,13 @@
 // src/hooks/useUser.ts
-import { useFirebaseAuth } from './useFirebaseAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useUser = () => {
-  const { user } = useFirebaseAuth();
+  const { user, loading, isLoaded } = useAuth();
 
   return {
-    user, // may be null
+    user, // AuthUser | null
+    isLoaded, // boolean
+    isSignedIn: !!user,
+    loading
   };
 };

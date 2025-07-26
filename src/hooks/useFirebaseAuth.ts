@@ -23,6 +23,10 @@ export interface AuthUser {
   imageUrl: string | null; // Add imageUrl property for compatibility
   emailVerified: boolean;
   isLoaded?: boolean; // Add isLoaded for compatibility
+  metadata?: {
+    createdAt?: string;
+    lastSignInAt?: string;
+  };
 }
 
 export const useFirebaseAuth = () => {
@@ -42,7 +46,11 @@ export const useFirebaseAuth = () => {
           photoURL: firebaseUser.photoURL,
           imageUrl: firebaseUser.photoURL,
           emailVerified: firebaseUser.emailVerified,
-          isLoaded: true
+          isLoaded: true,
+          metadata: {
+            createdAt: firebaseUser.metadata.creationTime,
+            lastSignInAt: firebaseUser.metadata.lastSignInTime
+          }
         });
       } else {
         setUser(null);

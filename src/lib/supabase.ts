@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 // Safely load from environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
