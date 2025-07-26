@@ -75,7 +75,7 @@ export default function DoubtChainPage() {
 
             <h1 className="text-5xl md:text-7xl font-black leading-none text-black">Doubt Chain</h1>
 
-            <p className="text-2xl md:text-3xl font-bold text-gray-700 max-w-4xl mx-auto">
+            <p className="text-2xl md:text-3xl font-bold text-black-700 max-w-4xl mx-auto">
               Break down complex concepts into simple, connected steps for better understanding
             </p>
 
@@ -144,7 +144,7 @@ export default function DoubtChainPage() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Doubt Chain FAQs</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Doubt Chain FAQs</h2>
             <div className="w-32 h-2 bg-green-600 mx-auto"></div>
           </div>
 
@@ -166,7 +166,7 @@ export default function DoubtChainPage() {
                 </button>
                 <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
                   <div className="px-6 pb-6">
-                    <p className="font-bold text-gray-700">{faq.answer}</p>
+                    <p className="font-bold text-black-700">{faq.answer}</p>
                   </div>
                 </div>
               </div>
@@ -190,7 +190,7 @@ export default function DoubtChainPage() {
                   className="bg-gray-50 p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer scroll-scale-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <h3 className="text-xl font-black mb-2">{feature.name}</h3>
+                  <h3 className="text-xl font-white mb-2">{feature.name}</h3>
                   <p className="font-bold text-gray-700 mb-4">{feature.desc}</p>
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-purple-600">EXPLORE {feature.name.toUpperCase()}</span>
