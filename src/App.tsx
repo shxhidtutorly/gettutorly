@@ -181,6 +181,43 @@ const App = () => {
                 } />
                 
                 <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
+                
+                {/* Feature routes */}
+                <Route path="/features/math-chat" element={
+                  <ProtectedRoute>
+                    <MathChat />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/features/ai-notes" element={
+                  <ProtectedRoute>
+                    <AINotesGenerator />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/features/audio-recap" element={
+                  <ProtectedRoute>
+                    <AudioNotes />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/features/doubt-chain" element={
+                  <ProtectedRoute>
+                    <DoubtChain />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/features/flashcards" element={
+                  <ProtectedRoute>
+                    <Flashcards />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/features/tests-quiz" element={
+                  <ProtectedRoute>
+                    <Quiz />
+                  </ProtectedRoute>
+                } />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>

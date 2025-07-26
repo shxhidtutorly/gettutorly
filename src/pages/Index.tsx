@@ -1,4 +1,4 @@
-"use client"
+import React from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -15,7 +15,7 @@ import {
   BookOpen,
   CreditCard,
 } from "lucide-react"
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import { useState, useEffect } from "react"
 import Navbar from "@/components/navbar" // Ensure this import matches your file name and export
 import { Footer } from "@/components/footer"
@@ -139,7 +139,7 @@ export default function TutorlyLanding() {
       <nav className={`nav-sticky ${stickyNav ? "visible" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-purple-500 brutal-border flex items-center justify-center">
                 <Brain className="w-4 h-4 text-white" />
               </div>
@@ -150,7 +150,7 @@ export default function TutorlyLanding() {
                 HOME
               </a>
               {/* FIX 2: FEATURES link in sticky nav is also black */}
-              <Link href="/features" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <Link to="/features" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 FEATURES
               </Link>
               <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
@@ -159,13 +159,13 @@ export default function TutorlyLanding() {
               <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 FAQ
               </a>
-              <Link href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <Link to="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 STUDY METHODS
               </Link>
-              <Link href="/support" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <Link to="/support" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
                 SUPPORT
               </Link>
-              <Link href="/signup">
+              <Link to="/signup">
                 <Button size="sm" className="bg-purple-500 hover:bg-purple-600 text-white font-black brutal-button">
                   TRY FOR FREE
                 </Button>
@@ -207,7 +207,7 @@ export default function TutorlyLanding() {
 
             {/* Centered Single Button */}
             <div className="flex justify-center">
-              <Link href="/signup">
+              <Link to="/signup">
                 <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
                   START LEARNING FREE
                 </Button>
@@ -301,7 +301,7 @@ export default function TutorlyLanding() {
                 href: "/features/tests-quiz",
               },
             ].map((feature, index) => (
-              <Link key={index} href={feature.href}>
+              <Link key={index} to={feature.href}>
                 <div
                   className={`${feature.bg} ${feature.textColor} p-8 brutal-border hover-scale hover-lift transition-all cursor-pointer scroll-scale-in`}
                   style={{ animationDelay: `${index * 0.1}s` }}
@@ -319,7 +319,7 @@ export default function TutorlyLanding() {
           </div>
 
           <div className="text-center scroll-fade-in">
-            <Link href="/features">
+            <Link to="/features">
               <Button className="bg-gray-800 text-white font-black text-lg px-8 py-4 brutal-button hover:bg-gray-700">
                 SEE ALL FEATURES
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -574,7 +574,7 @@ export default function TutorlyLanding() {
                     </div>
                   ))}
                 </div>
-                <Link href="/signup" className="block"> {/* Added block to Link for full width */}
+                <Link to="/signup" className="block"> {/* Added block to Link for full width */}
                   {/* FIX: Pricing Plan "TRY FREE" button visibility - all buttons now match BASIC plan's style */}
                   <Button
                     className={`w-full font-black py-4 brutal-button mt-auto bg-purple-500 text-white hover:bg-purple-600`}
@@ -631,7 +631,7 @@ export default function TutorlyLanding() {
             Join 500K+ students who are already learning smarter with Tutorly.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link href="/signup">
+            <Link to="/signup">
               <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
                 START LEARNING FREE
               </Button>
