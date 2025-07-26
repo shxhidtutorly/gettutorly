@@ -1,4 +1,5 @@
 "use client"
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -17,7 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import Navbar from "@/components/navbar" // Ensure this import matches your file name and export
+import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 
 export default function TutorlyLanding() {
@@ -40,6 +41,9 @@ export default function TutorlyLanding() {
   }, [])
 
   useEffect(() => {
+    // Immediate hero load with fade-in animation
+    setHeroLoaded(true)
+
     const handleScroll = () => {
       setStickyNav(window.scrollY > 100)
 
@@ -132,10 +136,7 @@ export default function TutorlyLanding() {
     <div className="min-h-screen bg-white text-black font-mono">
       <Navbar />
 
-      {/* Sticky Navigation - If you're using the Navbar component, this sticky nav might be redundant.
-          I'll keep it as per your code, but usually, the main Navbar handles stickiness.
-          FIX 1: Ensure text color is black.
-      */}
+      {/* Sticky Navigation */}
       <nav className={`nav-sticky ${stickyNav ? "visible" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -143,26 +144,25 @@ export default function TutorlyLanding() {
               <div className="w-8 h-8 bg-purple-500 brutal-border flex items-center justify-center">
                 <Brain className="w-4 h-4 text-white" />
               </div>
-              <span className="font-black text-black">TUTORLY</span>
+              <span className="font-black">TUTORLY</span>
             </Link>
             <div className="flex items-center space-x-6">
-              <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm">
                 HOME
               </a>
-              {/* FIX 2: FEATURES link in sticky nav is also black */}
-              <Link href="/features" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <Link href="/features" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FEATURES
               </Link>
-              <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm">
                 PRICING
               </a>
-              <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FAQ
               </a>
-              <Link href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <Link href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm">
                 STUDY METHODS
               </Link>
-              <Link href="/support" className="font-black hover:text-purple-500 transition-colors text-sm text-black">
+              <Link href="/support" className="font-black hover:text-purple-500 transition-colors text-sm">
                 SUPPORT
               </Link>
               <Link href="/signup">
@@ -242,8 +242,7 @@ export default function TutorlyLanding() {
       <section className="bg-gray-50 py-20 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            {/* FIX 3: Text color for "Everything You Need to Excel" - already black on light background */}
-            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Everything You Need to Excel</h2>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Everything You Need to Excel</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-6"></div>
             <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
               Powerful AI tools designed for modern learners
@@ -257,23 +256,23 @@ export default function TutorlyLanding() {
                 title: "AI NOTES",
                 desc: "Smart note generation from any content",
                 bg: "bg-white",
-                textColor: "text-black", // Already black, good for light background
+                textColor: "text-black",
                 href: "/features/ai-notes",
               },
               {
-  icon: MessageSquare,
-  title: "MATH CHAT",
-  desc: "Solve problems with step-by-step help",
-  bg: "bg-purple-500",
-  textColor: "text-white", // Already white, good for purple background
-    href: "/features/math-chat",
+                icon: MessageSquare,
+                title: "MATH CHAT",
+                desc: "Solve problems with step-by-step help",
+                bg: "bg-purple-500",
+                textColor: "text-white",
+                href: "/features/math-chat",
               },
               {
                 icon: Headphones,
                 title: "AUDIO RECAP",
                 desc: "Convert lectures to organized notes",
                 bg: "bg-blue-600",
-                textColor: "text-white", // Already white, good for blue background
+                textColor: "text-white",
                 href: "/features/audio-recap",
               },
               {
@@ -281,7 +280,7 @@ export default function TutorlyLanding() {
                 title: "DOUBT CHAIN",
                 desc: "Break down complex concepts easily",
                 bg: "bg-green-600",
-                textColor: "text-white", // Already white, good for green background
+                textColor: "text-white",
                 href: "/features/doubt-chain",
               },
               {
@@ -289,7 +288,7 @@ export default function TutorlyLanding() {
                 title: "SMART FLASHCARDS",
                 desc: "Adaptive cards that evolve with you",
                 bg: "bg-orange-500",
-                textColor: "text-white", // Already white, good for orange background
+                textColor: "text-white",
                 href: "/features/flashcards",
               },
               {
@@ -297,7 +296,7 @@ export default function TutorlyLanding() {
                 title: "INSTANT QUIZZES",
                 desc: "Auto-generate tests from materials",
                 bg: "bg-red-500",
-                textColor: "text-white", // Already white, good for red background
+                textColor: "text-white",
                 href: "/features/tests-quiz",
               },
             ].map((feature, index) => (
@@ -329,82 +328,48 @@ export default function TutorlyLanding() {
         </div>
       </section>
 
-     {/* Trusted By Universities Section */}
-<section className="bg-white py-20 overflow-hidden">
-  <div className="max-w-7xl mx-auto px-4">
-    <div className="text-center mb-16 scroll-fade-in">
-      <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
-        Loved by students from top global universities
-      </h2>
-      <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
-    </div>
+      {/* Trusted By Universities Section */}
+      <section className="bg-white py-20 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
+              Loved by students from top global universities
+            </h2>
+            <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
+          </div>
 
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-      {[
-        {
-          name: "MIT",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp",
-        },
-        {
-          name: "Stanford University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp",
-        },
-        {
-          name: "University of Pennsylvania",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp",
-        },
-        {
-          name: "Yale University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp",
-        },
-        {
-          name: "University of Cambridge (UOC)",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp",
-        },
-        {
-          name: "Tokyo University of Medicine",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp",
-        },
-        {
-          name: "University of Toronto",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg",
-        },
-        {
-          name: "Harvard University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
-        },
-      ].map((university, index) => (
-        <div
-          key={index}
-          className="flex items-center justify-center p-6 bg-white brutal-border hover-scale hover-lift transition-all duration-300 scroll-slide-left"
-          style={{ animationDelay: `${index * 0.1}s` }}
-        >
-          <img
-            src={university.logo}
-            alt={university.name}
-            className="h-16 w-auto object-contain transition-all duration-300 hover:scale-110"
-          />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            {[
+              { name: "MIT", logo: "/images/mit-logo.webp" },
+              { name: "Stanford", logo: "/images/stanford-logo.webp" },
+              { name: "Princeton", logo: "/images/princeton-logo.webp" },
+              { name: "Yale", logo: "/images/yale-logo.webp" },
+              { name: "Penn", logo: "/images/penn-logo.webp" },
+              { name: "McGill", logo: "/images/mcgill-logo.webp" },
+              { name: "NYU", logo: "/images/nyu-logo.webp" },
+              { name: "Melbourne", logo: "/images/melbourne-logo.webp" },
+            ].map((university, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-center p-6 bg-white brutal-border hover-scale hover-lift transition-all duration-300 scroll-slide-left"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <img
+                  src={university.logo || "/placeholder.svg"}
+                  alt={university.name}
+                  className="h-16 w-auto object-contain transition-all duration-300 hover:scale-110"
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
-    </div>
-  </div>
-</section>
-
+      </section>
 
       {/* Enhanced Testimonials Section */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            {/* FIX 4: Text color for "Trusted by Students Worldwide" - already black on light background */}
-            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Trusted by Students Worldwide</h2>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Trusted by Students Worldwide</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
@@ -533,7 +498,7 @@ export default function TutorlyLanding() {
                   "Math Solver",
                 ],
                 notIncluded: [],
-                bg: "bg-purple-500 text-white", // Card background is purple, text is white
+                bg: "bg-purple-500 text-white",
                 popular: true,
                 cta: "TRY FREE",
               },
@@ -543,7 +508,7 @@ export default function TutorlyLanding() {
                 price: "$49",
                 features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
                 notIncluded: [],
-                bg: "bg-blue-600 text-white", // Card background is blue, text is white
+                bg: "bg-blue-600 text-white",
                 cta: "TRY FREE",
               },
             ].map((plan, index) => (
@@ -552,9 +517,14 @@ export default function TutorlyLanding() {
                 className={`${plan.bg} p-8 brutal-border relative pricing-flash hover-scale hover-lift h-full flex flex-col scroll-scale-in`}
                 style={{ animationDelay: `${index * 0.2}s` }}
               >
-                
-                {/* Added pt-8 to push content down for popular tag, creating space */}
-                <div className="text-center mb-6 pt-8">
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
+                    <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
+                      🔥 POPULAR
+                    </Badge>
+                  </div>
+                )}
+                <div className="text-center mb-6 pt-4">
                   <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
                   <p className="font-bold mb-4 text-base">{plan.desc}</p>
                   <div className="text-5xl font-black">{plan.price}</div>
@@ -574,10 +544,13 @@ export default function TutorlyLanding() {
                     </div>
                   ))}
                 </div>
-                <Link href="/signup" className="block"> {/* Added block to Link for full width */}
-                  {/* FIX: Pricing Plan "TRY FREE" button visibility - all buttons now match BASIC plan's style */}
+                <Link href="/signup">
                   <Button
-                    className={`w-full font-black py-4 brutal-button mt-auto bg-purple-500 text-white hover:bg-purple-600`}
+                    className={`w-full font-black py-4 brutal-button mt-auto ${
+                      plan.popular || plan.name === "TEAM"
+                        ? "bg-white text-black hover:bg-gray-100"
+                        : "bg-purple-500 text-white hover:bg-purple-600"
+                    }`}
                   >
                     {plan.cta}
                   </Button>
@@ -604,7 +577,7 @@ export default function TutorlyLanding() {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <button
-                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg text-black transition-colors" // FIX 6: Removed hover:bg-gray-100
+                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-100 transition-colors text-black"
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                 >
                   {faq.question}
