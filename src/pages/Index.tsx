@@ -551,7 +551,7 @@ export default function LandingPage() {
               >
                 {plan.popular && (
                   // FIX: Popular tag alignment - Adjusted top positioning for better visual alignment
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+                  <div className="absolute top-2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
                     <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
                       🔥 POPULAR
                     </Badge>
