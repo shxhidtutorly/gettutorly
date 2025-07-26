@@ -1,270 +1,215 @@
-import React, { useState } from "react";
+"use client"
 
-const faqs = [
-  {
-    question: "How do I upload my study materials?",
-    answer:
-      "Simply drag and drop or click to upload your PDFs, lecture notes, or textbooks. GetTutorly supports multiple file formats and will process your documents to create summaries and more.",
-  },
-  {
-    question: "What file formats are supported?",
-    answer:
-      "We support PDF, DOCX, TXT, and image files (JPG, PNG). Our AI can extract text from images and process various document layouts for optimal study assistance.",
-  },
-  {
-    question: "How accurate are the AI summaries?",
-    answer:
-      "Our AI provides highly accurate summaries by analyzing the key concepts and main points in your materials. However, we always recommend reviewing the original content for critical details.",
-  },
-  {
-    question: "Is my data secure and private?",
-    answer:
-      "Yes, we take privacy seriously. Your uploaded documents are encrypted and securely stored. We never share your content with third parties and you can delete your data at any time.",
-  },
-  {
-    question: "How to Cancel Your Tutorly Subscription?",
-    answer: (
-      <span>
-        To cancel or request a refund for your subscription, please visit the{" "}
-        <a
-          href="https://gettutorly.com/cancellation"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "#8a2be2", textDecoration: "underline", fontWeight: 600 }}
-        >
-          Cancellation &amp; Refund page
-        </a>
-        .
-      </span>
-    ),
-  },
-];
+import type React from "react"
 
-const Support: React.FC = () => {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Mail, MessageSquare, HelpCircle, Clock, CheckCircle } from "lucide-react"
+import { useState } from "react"
+import  Navbar  from "@/components/navbar"
+import { Footer } from "@/components/footer"
 
-  // Handler for the back button
-  const handleBackToHome = () => {
-    window.location.href = "/";
-  };
+export default function SupportPage() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  })
+  const [openTopic, setOpenTopic] = useState<number | null>(null)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Handle form submission
+    console.log("Support request:", formData)
+    alert("Thank you! We'll get back to you within 24 hours.")
+  }
+
+  const supportTopics = [
+    {
+      title: "Getting Started",
+      desc: "New to Tutorly? Learn the basics and set up your account",
+      icon: HelpCircle,
+      items: ["Account Setup", "First Steps", "Feature Overview", "Mobile App"],
+    },
+    {
+      title: "Technical Issues",
+      desc: "Having trouble with uploads, processing, or app performance?",
+      icon: MessageSquare,
+      items: ["Upload Problems", "Processing Errors", "App Crashes", "Login Issues"],
+    },
+    {
+      title: "Billing & Plans",
+      desc: "Questions about pricing, upgrades, or payment methods",
+      icon: CheckCircle,
+      items: ["Plan Comparison", "Upgrade/Downgrade", "Payment Issues", "Refund Requests"],
+    },
+    {
+      title: "Feature Help",
+      desc: "Need help with specific features like Math Chat or AI Notes?",
+      icon: Clock,
+      items: ["Math Chat", "AI Notes", "Flashcards", "Audio Recap"],
+    },
+  ]
 
   return (
-    <div
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "2rem",
-        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-        color: "#e2e8f0",
-        position: "relative",
-      }}
-    >
-      {/* Back to Home Button */}
-      <button
-        onClick={handleBackToHome}
-        style={{
-          position: "absolute",
-          top: 24,
-          left: 24,
-          background: "linear-gradient(to right, #3b82f6, #8b5cf6)",
-          color: "white",
-          padding: "0.6rem 1.2rem",
-          border: "none",
-          borderRadius: 8,
-          fontWeight: 600,
-          fontSize: 16,
-          cursor: "pointer",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          zIndex: 1,
-        }}
-      >
-        ← Back to Home Page
-      </button>
+    <div className="min-h-screen bg-white text-black font-mono">
+      <Navbar />
 
-      <div
-        style={{
-          textAlign: "center",
-          marginBottom: "3rem",
-        }}
-      >
-        <h1 style={{ fontSize: "2.5rem", fontWeight: 800, color: "white" }}>
-          Get Help & Support
-        </h1>
-        <p style={{ fontSize: "1.2rem", color: "#cbd5e1", maxWidth: 600, margin: "0 auto" }}>
-          We're here to help you make the most of your GetTutorly experience. Whether you have questions, need technical support, or want to share feedback, we've got you covered.
-        </p>
-      </div>
+      {/* Hero Section */}
+      <section className="feature-hero py-20 md:py-32 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center space-y-8 scroll-fade-in">
+            <Badge className="bg-green-600 text-white font-black text-lg px-6 py-3 brutal-border">💬 HELP CENTER</Badge>
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "2rem",
-          marginBottom: "2rem",
-        }}
-      >
-        {/* Contact Card */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 280,
-            background: "rgba(30, 30, 46, 0.9)",
-            borderRadius: 24,
-            padding: "2rem",
-            boxShadow: "0 10px 32px rgba(0,0,0,0.2)",
-            border: "1px solid rgba(138, 43, 226, 0.2)",
-          }}
-        >
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1.3rem", color: "white" }}>
-            Contact Us
-          </h2>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.2rem",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                background: "rgba(138, 43, 226, 0.10)",
-                borderRadius: 16,
-                padding: "1rem",
-                cursor: "pointer",
-              }}
-              onClick={() => window.location.href = "mailto:support@gettutorly.com"}
-            >
-              <span role="img" aria-label="mail" style={{ fontSize: 24 }}>📧</span>
-              <div>
-                <b>Email Support</b>
-                <div>
-                  <a href="mailto:support@gettutorly.com" style={{ color: "#8a2be2", textDecoration: "none" }}>
-                    support@gettutorly.com
-                  </a>
-                </div>
-                <div style={{ fontSize: "0.95rem", color: "#cbd5e0" }}>We typically respond within 24 hours</div>
-              </div>
-            </div>
+            <h1 className="text-5xl md:text-7xl font-black leading-none text-black">Support</h1>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                background: "rgba(138, 43, 226, 0.10)",
-                borderRadius: 16,
-                padding: "1rem",
-                cursor: "pointer",
-              }}
-              onClick={() => window.open("https://www.instagram.com/gettutorly", "_blank")}
-            >
-              <span role="img" aria-label="instagram" style={{ fontSize: 24 }}>📱</span>
-              <div>
-                <b>Follow Us</b>
-                <div>
-                  <a
-                    href="https://www.instagram.com/gettutorly"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "#8a2be2", textDecoration: "none" }}
-                  >
-                    @gettutorly
-                  </a>
-                </div>
-                <div style={{ fontSize: "0.95rem", color: "#cbd5e0" }}>Updates, tips, and community support</div>
-              </div>
+            <p className="text-2xl md:text-3xl font-bold text-gray-700 max-w-4xl mx-auto">
+              We're here to help you succeed with Tutorly
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              <a href="mailto:support@gettutorly.com">
+                <Button className="bg-green-600 hover:bg-green-700 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
+                  <Mail className="w-5 h-5 mr-2" />
+                  Email Support
+                </Button>
+              </a>
+              <Button
+                variant="outline"
+                className="bg-white text-black font-black text-xl px-12 py-6 brutal-button hover:bg-gray-100 border-black"
+                onClick={() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                Contact Form
+              </Button>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* FAQ Card */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 280,
-            background: "rgba(30, 30, 46, 0.9)",
-            borderRadius: 24,
-            padding: "2rem",
-            boxShadow: "0 10px 32px rgba(0,0,0,0.2)",
-            border: "1px solid rgba(138, 43, 226, 0.2)",
-          }}
-        >
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1.3rem", color: "white" }}>
-            Frequently Asked Questions
-          </h2>
-          {faqs.map((faq, idx) => (
-            <div key={idx} style={{ marginBottom: "1.2rem" }}>
+      {/* Support Topics */}
+      <section className="bg-white py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Common Support Topics</h2>
+            <div className="w-32 h-2 bg-green-600 mx-auto"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {supportTopics.map((topic, index) => (
               <div
-                style={{
-                  background: "rgba(138, 43, 226, 0.10)",
-                  borderRadius: 10,
-                  padding: "0.9rem 1rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  color: "#f8fafc",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-                onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
+                key={index}
+                className="bg-gray-50 p-8 brutal-border hover-lift scroll-scale-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <span>{faq.question}</span>
-                <span style={{
-                  fontSize: 18,
-                  transform: openIndex === idx ? "rotate(180deg)" : "rotate(0)",
-                  transition: "transform 0.2s",
-                  marginLeft: 10,
-                }}>▼</span>
-              </div>
-              {openIndex === idx && (
-                <div
-                  style={{
-                    background: "rgba(30, 30, 46, 0.8)",
-                    color: "#cbd5e0",
-                    borderRadius: "0 0 10px 10px",
-                    padding: "1rem 1.2rem",
-                  }}
-                >
-                  {faq.answer}
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-green-600 brutal-border flex items-center justify-center mr-4">
+                    <topic.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">{topic.title}</h3>
+                    <p className="font-bold text-gray-600 text-sm">{topic.desc}</p>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="space-y-2">
+                  {topic.items.map((item, itemIndex) => (
+                    <div key={itemIndex} className="flex items-center">
+                      <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                      <span className="font-bold text-sm">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div
-        style={{
-          background: "rgba(30, 30, 46, 0.9)",
-          borderRadius: 16,
-          padding: "1.2rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "1rem",
-          border: "1px solid rgba(34, 197, 94, 0.3)",
-          color: "#f8fafc",
-          fontWeight: 500,
-          marginTop: "2rem",
-        }}
-      >
-        <span
-          style={{
-            display: "inline-block",
-            width: 12,
-            height: 12,
-            background: "#22c55e",
-            borderRadius: "50%",
-            marginRight: 10,
-            animation: "pulse 2s infinite",
-          }}
-        />
-        <span>All systems operational – GetTutorly is running smoothly</span>
-      </div>
+      {/* Contact Form */}
+      <section id="contact-form" className="bg-gray-50 py-20">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Get in Touch</h2>
+            <div className="w-32 h-2 bg-green-600 mx-auto mb-6"></div>
+            <p className="text-xl font-bold text-gray-700">
+              Can't find what you're looking for? Send us a message and we'll help you out!
+            </p>
+          </div>
+
+          <div className="bg-white p-8 brutal-border scroll-fade-in">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block font-black text-sm mb-2">NAME</label>
+                  <Input
+                    type="text"
+                    placeholder="Your full name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="font-bold brutal-border h-12"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-black text-sm mb-2">EMAIL</label>
+                  <Input
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="font-bold brutal-border h-12"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-black text-sm mb-2">SUBJECT</label>
+                <Input
+                  type="text"
+                  placeholder="What can we help you with?"
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  className="font-bold brutal-border h-12"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-black text-sm mb-2">MESSAGE</label>
+                <textarea
+                  placeholder="Please describe your issue or question in detail..."
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  className="w-full p-4 font-bold brutal-border h-32 resize-none"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-black text-lg py-4 brutal-button"
+              >
+                SEND MESSAGE
+              </Button>
+            </form>
+
+            <div className="mt-8 pt-8 border-t-2 border-black text-center">
+              <p className="font-bold text-gray-600 mb-4">Or reach us directly at:</p>
+              <a
+                href="mailto:support@gettutorly.com"
+                className="font-black text-green-600 hover:text-green-700 text-lg"
+              >
+                support@gettutorly.com
+              </a>
+              <p className="font-bold text-gray-500 text-sm mt-2">We typically respond within 24 hours</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
-  );
-};
-
-export default Support;
+  )
+}
