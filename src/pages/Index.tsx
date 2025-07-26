@@ -241,7 +241,7 @@ export default function LandingPage() {
       <section className="bg-gray-50 py-20 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Everything You Need to Excel</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Everything You Need to Excel</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-6"></div>
             <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
               Powerful AI tools designed for modern learners
@@ -416,7 +416,7 @@ export default function LandingPage() {
                 textColor: "text-black",
               },
               {
-                name: "Bob Martinez",
+                name: "Shahid afrid",
                 role: "Engineering Student",
                 quote: "AI summaries saved me hours",
                 avatar: "B",
@@ -498,7 +498,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Fixed Pricing Section */}
+       {/* Fixed Pricing Section */}
       <section id="pricing" className="bg-white py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
@@ -514,7 +514,7 @@ export default function LandingPage() {
                 price: "$9",
                 features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
                 notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
-                bg: "bg-white text-black",
+                bg: "bg-white text-black", // BASIC card is white with black text
                 cta: "TRY FREE",
               },
               {
@@ -530,7 +530,7 @@ export default function LandingPage() {
                   "Math Solver",
                 ],
                 notIncluded: [],
-                bg: "bg-white text-black",
+                bg: "bg-purple-500 text-white", // PRO card is purple with white text
                 popular: true,
                 cta: "TRY FREE",
               },
@@ -540,7 +540,7 @@ export default function LandingPage() {
                 price: "$49",
                 features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
                 notIncluded: [],
-                bg: "bg-white text-black",
+                bg: "bg-blue-600 text-white", // TEAM card is blue with white text
                 cta: "TRY FREE",
               },
             ].map((plan, index) => (
@@ -550,13 +550,15 @@ export default function LandingPage() {
                 style={{ animationDelay: `${index * 0.2}s` }}
               >
                 {plan.popular && (
-                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
+                  // FIX: Popular tag alignment - Adjusted top positioning for better visual alignment
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
                     <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
                       🔥 POPULAR
                     </Badge>
                   </div>
                 )}
-                <div className="text-center mb-6 pt-4">
+                {/* Added pt-8 to push content down for popular tag, creating space */}
+                <div className="text-center mb-6 pt-8">
                   <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
                   <p className="font-bold mb-4 text-base">{plan.desc}</p>
                   <div className="text-5xl font-black">{plan.price}</div>
@@ -576,17 +578,14 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
-                <a href="/signup">
+                <Link href="/signup" className="block"> {/* Added block to Link for full width */}
+                  {/* FIX: Pricing Plan "TRY FREE" button visibility - now all buttons are purple with white text */}
                   <Button
-                    className={`w-full font-black py-4 brutal-button mt-auto ${
-                      plan.popular || plan.name === "TEAM"
-                        ? "bg-white text-black hover:bg-gray-100"
-                        : "bg-purple-500 text-white hover:bg-purple-600"
-                    }`}
+                    className={`w-full font-black py-4 brutal-button mt-auto bg-purple-500 text-white hover:bg-purple-600`}
                   >
                     {plan.cta}
                   </Button>
-                </a>
+                </Link>
               </div>
             ))}
           </div>
