@@ -19,7 +19,7 @@ import {
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import Navbar from "@/components/navbar"
-import footer from "@/components/footer"
+import Footer from "@/components/footer"
 
 export default function TutorlyLanding() {
   const [stickyNav, setStickyNav] = useState(false)
