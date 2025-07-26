@@ -169,7 +169,6 @@ export const useStudyTracking = () => {
   return {
     currentSession,
     isLoading,
-    isSessionActive: !!currentSession,
     startSession,
     endSession,
     trackQuizCompleted,

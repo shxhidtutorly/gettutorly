@@ -2,11 +2,10 @@
 import { useStudyTracking } from '@/hooks/useStudyTracking';
 
 const SummaryUsageTracker = () => {
-  const { trackActivity, trackSummaryGeneration } = useStudyTracking();
+  const { trackActivity } = useStudyTracking();
 
-  // Function to track summary generation - use the hook method
-  const handleTrackSummaryGeneration = () => {
-    trackSummaryGeneration();
+  // Function to track summary generation
+  const trackSummaryGeneration = () => {
     trackActivity('summary_generated', {
       timestamp: new Date().toISOString(),
       feature: 'text_summarizer'
@@ -14,7 +13,7 @@ const SummaryUsageTracker = () => {
   };
 
   // Export this function so other components can use it
-  (window as any).trackSummaryGeneration = handleTrackSummaryGeneration;
+  (window as any).trackSummaryGeneration = trackSummaryGeneration;
 
   return null; // This is a utility component
 };

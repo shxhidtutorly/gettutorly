@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@/hooks/useUser';
 
 export const useSupabaseStorage = () => {
   const { user } = useUser();

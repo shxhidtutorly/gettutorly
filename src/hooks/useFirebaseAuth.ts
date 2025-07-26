@@ -14,19 +14,11 @@ import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export interface AuthUser {
-  id: string; // Add id property
   uid: string;
   email: string | null;
   displayName: string | null;
-  fullName: string | null; // Add fullName property for compatibility
   photoURL: string | null;
-  imageUrl: string | null; // Add imageUrl property for compatibility
   emailVerified: boolean;
-  isLoaded?: boolean; // Add isLoaded for compatibility
-  metadata?: {
-    createdAt?: string;
-    lastSignInAt?: string;
-  };
 }
 
 export const useFirebaseAuth = () => {
@@ -38,19 +30,11 @@ export const useFirebaseAuth = () => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
-          id: firebaseUser.uid,
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
-          fullName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
-          imageUrl: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified,
-          isLoaded: true,
-          metadata: {
-            createdAt: firebaseUser.metadata.creationTime,
-            lastSignInAt: firebaseUser.metadata.lastSignInTime
-          }
+          emailVerified: firebaseUser.emailVerified
         });
       } else {
         setUser(null);
