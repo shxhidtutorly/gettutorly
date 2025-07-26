@@ -267,6 +267,7 @@ export default function TutorlyLanding() {
   bg: "bg-purple-500",
   textColor: "text-white", // Already white, good for purple background
     href: "/features/math-chat",
+              },
               {
                 icon: Headphones,
                 title: "AUDIO RECAP",
