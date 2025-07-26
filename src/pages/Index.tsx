@@ -16,12 +16,11 @@ import {
   BookOpen,
   CreditCard,
 } from "lucide-react"
-import Link from "next/link"
 import { useState, useEffect } from "react"
-import Navbar from "@/components/navbar"
-import Footer from "@/components/footer"
+import { Navbar } from "@/components/Navbar"
+import { Footer } from "@/components/Footer"
 
-export default function TutorlyLanding() {
+export default function LandingPage() {
   const [stickyNav, setStickyNav] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [counters, setCounters] = useState({ students: 0, countries: 0, institutions: 0 })
@@ -140,36 +139,36 @@ export default function TutorlyLanding() {
       <nav className={`nav-sticky ${stickyNav ? "visible" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
+            <a href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-purple-500 brutal-border flex items-center justify-center">
                 <Brain className="w-4 h-4 text-white" />
               </div>
               <span className="font-black">TUTORLY</span>
-            </Link>
+            </a>
             <div className="flex items-center space-x-6">
               <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm">
                 HOME
               </a>
-              <Link href="/features" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="/features" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FEATURES
-              </Link>
+              </a>
               <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm">
                 PRICING
               </a>
               <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FAQ
               </a>
-              <Link href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm">
                 STUDY METHODS
-              </Link>
-              <Link href="/support" className="font-black hover:text-purple-500 transition-colors text-sm">
+              </a>
+              <a href="/support" className="font-black hover:text-purple-500 transition-colors text-sm">
                 SUPPORT
-              </Link>
-              <Link href="/signup">
+              </a>
+              <a href="/signup">
                 <Button size="sm" className="bg-purple-500 hover:bg-purple-600 text-white font-black brutal-button">
                   TRY FOR FREE
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -207,11 +206,11 @@ export default function TutorlyLanding() {
 
             {/* Centered Single Button */}
             <div className="flex justify-center">
-              <Link href="/signup">
+              <a href="/signup">
                 <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
                   START LEARNING FREE
                 </Button>
-              </Link>
+              </a>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0 max-w-3xl mx-auto mt-16">
@@ -297,10 +296,10 @@ export default function TutorlyLanding() {
                 desc: "Auto-generate tests from materials",
                 bg: "bg-red-500",
                 textColor: "text-white",
-                href: "/features/tests-quiz",
+                href: "/features/tests-and-quizzes",
               },
             ].map((feature, index) => (
-              <Link key={index} href={feature.href}>
+              <a key={index} href={feature.href}>
                 <div
                   className={`${feature.bg} ${feature.textColor} p-8 brutal-border hover-scale hover-lift transition-all cursor-pointer scroll-scale-in`}
                   style={{ animationDelay: `${index * 0.1}s` }}
@@ -313,17 +312,17 @@ export default function TutorlyLanding() {
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>
-              </Link>
+              </a>
             ))}
           </div>
 
           <div className="text-center scroll-fade-in">
-            <Link href="/features">
+            <a href="/features">
               <Button className="bg-gray-800 text-white font-black text-lg px-8 py-4 brutal-button hover:bg-gray-700">
                 SEE ALL FEATURES
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -340,14 +339,14 @@ export default function TutorlyLanding() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
             {[
-              { name: "MIT", logo: "/images/mit-logo.webp" },
-              { name: "Stanford", logo: "/images/stanford-logo.webp" },
-              { name: "Princeton", logo: "/images/princeton-logo.webp" },
-              { name: "Yale", logo: "/images/yale-logo.webp" },
-              { name: "Penn", logo: "/images/penn-logo.webp" },
-              { name: "McGill", logo: "/images/mcgill-logo.webp" },
-              { name: "NYU", logo: "/images/nyu-logo.webp" },
-              { name: "Melbourne", logo: "/images/melbourne-logo.webp" },
+              { name: "MIT", logo: "/placeholder.svg?height=64&width=120&text=MIT" },
+              { name: "Stanford", logo: "/placeholder.svg?height=64&width=120&text=Stanford" },
+              { name: "Princeton", logo: "/placeholder.svg?height=64&width=120&text=Princeton" },
+              { name: "Yale", logo: "/placeholder.svg?height=64&width=120&text=Yale" },
+              { name: "Penn", logo: "/placeholder.svg?height=64&width=120&text=Penn" },
+              { name: "McGill", logo: "/placeholder.svg?height=64&width=120&text=McGill" },
+              { name: "NYU", logo: "/placeholder.svg?height=64&width=120&text=NYU" },
+              { name: "Melbourne", logo: "/placeholder.svg?height=64&width=120&text=Melbourne" },
             ].map((university, index) => (
               <div
                 key={index}
@@ -544,7 +543,7 @@ export default function TutorlyLanding() {
                     </div>
                   ))}
                 </div>
-                <Link href="/signup">
+                <a href="/signup">
                   <Button
                     className={`w-full font-black py-4 brutal-button mt-auto ${
                       plan.popular || plan.name === "TEAM"
@@ -554,7 +553,7 @@ export default function TutorlyLanding() {
                   >
                     {plan.cta}
                   </Button>
-                </Link>
+                </a>
               </div>
             ))}
           </div>
@@ -604,11 +603,11 @@ export default function TutorlyLanding() {
             Join 500K+ students who are already learning smarter with Tutorly.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link href="/signup">
+            <a href="/signup">
               <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
                 START LEARNING FREE
               </Button>
-            </Link>
+            </a>
             <Button
               variant="outline"
               className="bg-transparent border-white text-white font-black text-xl px-12 py-6 brutal-button hover:bg-white hover:text-black"
