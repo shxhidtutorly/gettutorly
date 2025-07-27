@@ -31,6 +31,8 @@ const Navbar = () => {
     { name: 'Flashcards', href: '/features/flashcard' },
     { name: 'Tests & Quizzes', href: '/features/tests-quiz' },
     { name: 'Doubt Chain', href: '/features/doubt-chain' },
+    { name: 'study-methods', href: '/features/study-techniques' },
+
   ];
 
   return (
@@ -77,7 +79,7 @@ const Navbar = () => {
 
           <Link href="/pricing" className="hover:text-purple-600 transition-colors">PRICING</Link>
           <Link href="/faq" className="hover:text-purple-600 transition-colors">FAQ</Link>
-          <Link href="/study-methods" className="hover:text-purple-600 transition-colors">STUDY METHODS</Link>
+          <Link href="/signin" className="hover:text-purple-600 transition-colors">SIGNIN</Link>
           <Link href="/support" className="hover:text-purple-600 transition-colors">SUPPORT</Link>
         </div>
 
