@@ -1,14 +1,14 @@
 "use client"
 
-import type React from "react"
+import React, { useState } from "react";
+import { Mail, MessageSquare, HelpCircle, Clock, CheckCircle, ArrowRight } from "lucide-react";
+import Navbar from "@/components/navbar"; // Assuming you have this component
+import { Footer } from "@/components/footer"; // Assuming you have this component
+import { Button } from "@/components/ui/button"; // Assuming you have this component
+import { Input } from "@/components/ui/input"; // Assuming you have this component
+import { Badge } from "@/components/ui/badge"; // Assuming you have this component
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Mail, MessageSquare, HelpCircle, Clock, CheckCircle } from "lucide-react"
-import { useState } from "react"
-import Navbar from "@/components/navbar"
-import { Footer } from "@/components/footer"
+// --- Main Support Page Component ---
 
 export default function SupportPage() {
   const [formData, setFormData] = useState({
@@ -16,181 +16,206 @@ export default function SupportPage() {
     email: "",
     subject: "",
     message: "",
-  })
+  });
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // --- Brutalist Style Constants ---
+  const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
+  const brutalistTransition = "transition-all duration-300 ease-in-out";
+  const brutalistHover = "hover:shadow-none hover:translate-x-1 hover:translate-y-1";
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Support request:", formData)
-    alert("Thank you! We'll get back to you within 24 hours.")
-  }
+    e.preventDefault();
+    console.log("Support request:", formData);
+    // In a real app, you'd send this data to a server
+    setIsSubmitted(true);
+    setFormData({ name: "", email: "", subject: "", message: "" });
+  };
 
   const supportTopics = [
     {
       title: "Getting Started",
-      desc: "New to Tutorly? Learn the basics and set up your account",
+      desc: "New to the platform? Find setup guides and basic tutorials here.",
       icon: HelpCircle,
+      color: "bg-teal-400",
       items: ["Account Setup", "First Steps", "Feature Overview", "Mobile App"],
     },
     {
       title: "Technical Issues",
-      desc: "Having trouble with uploads, processing, or app performance?",
+      desc: "Trouble with uploads, processing, or app performance? We can help.",
       icon: MessageSquare,
+      color: "bg-rose-400",
       items: ["Upload Problems", "Processing Errors", "App Crashes", "Login Issues"],
     },
     {
       title: "Billing & Plans",
-      desc: "Questions about pricing, upgrades, or payment methods",
+      desc: "Questions about your subscription, pricing, or payment methods.",
       icon: CheckCircle,
-      items: ["Plan Comparison", "Upgrade/Downgrade", "Payment Issues", "Refund Requests"],
+      color: "bg-indigo-400",
+      items: ["Plan Comparison", "Upgrade/Downgrade", "Payment Issues", "Refund Policy"],
     },
     {
       title: "Feature Help",
-      desc: "Need help with specific features like Math Chat or AI Notes?",
+      desc: "Need help with specific tools like AI Notes or Math Solver?",
       icon: Clock,
-      items: ["Math Chat", "AI Notes", "Flashcards", "Audio Recap"],
+      color: "bg-lime-400",
+      items: ["AI Notes", "Flashcards", "Audio Recap", "Math Solver"],
     },
-  ]
+  ];
+
+  // --- Animation for cards ---
+  const cardAnimation = {
+    animation: `slideInUp 0.5s ease-out forwards`,
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-950 dark:to-black text-black dark:text-white font-sans transition-colors duration-500">
+    <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-yellow-400 selection:text-black">
+      {/* Custom CSS for animations */}
+      <style>{`
+        @keyframes slideInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-in {
+          animation: slideInUp 0.5s ease-out forwards;
+        }
+      `}</style>
+
       <Navbar />
 
       {/* Hero Section */}
-      <section className="py-20 md:py-32 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 text-center animate-fade-in">
-          <Badge className="bg-green-600 text-white font-bold text-lg px-6 py-2 rounded-full shadow-lg">
-            HELP CENTER
-          </Badge>
-
-          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mt-6">Support</h1>
-
-          <p className="text-xl md:text-2xl font-medium text-gray-700 dark:text-gray-300 mt-4 max-w-2xl mx-auto">
-            We're here to help you succeed with Tutorly
+      <section className="bg-teal-300 text-black border-b-4 border-black relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8 animate-slide-in" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #8b5cf6' }}>
+            HOW CAN WE HELP?
+          </h1>
+          <p style={{ animationDelay: '0.2s' }} className="animate-slide-in text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/50 backdrop-blur-sm p-4 border-4 border-black">
+            We're here to solve your problems and get you back to learning smarter.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-6 justify-center mt-10">
-            <a href="mailto:support@gettutorly.com">
-              <Button className="bg-green-600 hover:bg-green-700 text-white font-bold text-lg px-8 py-4 shadow-md transition-transform hover:scale-105">
-                <Mail className="w-5 h-5 mr-2" /> Email Support
-              </Button>
-            </a>
-            <Button
-              variant="outline"
-              className="bg-white dark:bg-black text-black dark:text-white border border-black dark:border-white font-bold text-lg px-8 py-4 hover:bg-gray-100 dark:hover:bg-gray-900 transition-transform hover:scale-105"
-              onClick={() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" })}
-            >
-              Contact Form
-            </Button>
-          </div>
         </div>
       </section>
 
-      {/* Support Topics */}
-      <section className="py-20">
+      {/* Support Topics Section */}
+      <section className="bg-stone-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-4xl md:text-6xl font-extrabold text-center mb-12">Common Support Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="text-center mb-16 animate-slide-in">
+            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Explore Common Topics</h2>
+            <div className="w-32 h-2 bg-black mx-auto"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {supportTopics.map((topic, index) => (
               <div
-                key={index}
-                className="bg-white dark:bg-gray-900 p-8 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                key={topic.title}
+                style={{ animationDelay: `${0.2 * (index + 1)}s`, opacity: 0 }}
+                className={`flex flex-col p-8 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover} animate-slide-in`}
               >
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mr-4 shadow-md">
-                    <topic.icon className="w-6 h-6 text-white" />
+                <div className="flex items-center mb-6">
+                  <div className={`w-16 h-16 ${topic.color} flex-shrink-0 flex items-center justify-center ${brutalistShadow}`}>
+                    <topic.icon className="w-9 h-9 text-black" strokeWidth={3} />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold">{topic.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{topic.desc}</p>
+                  <div className="ml-5">
+                    <h3 className="text-3xl font-black uppercase">{topic.title}</h3>
+                    <p className="font-bold text-base text-stone-600">{topic.desc}</p>
                   </div>
                 </div>
-                <ul className="space-y-1 mt-4">
-                  {topic.items.map((item, i) => (
-                    <li key={i} className="flex items-center text-sm text-gray-800 dark:text-gray-300">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" /> {item}
+                <ul className="space-y-3 flex-grow mb-8">
+                  {topic.items.map((item) => (
+                    <li key={item} className="flex items-center font-bold text-md">
+                      <ArrowRight className="w-5 h-5 mr-3 flex-shrink-0 text-black" />
+                      {item}
                     </li>
                   ))}
                 </ul>
+                <Button className={`w-full font-black py-4 mt-auto text-lg border-4 border-black bg-black text-white ${brutalistShadow} ${brutalistTransition} hover:shadow-none hover:translate-x-1 hover:translate-y-1 hover:bg-gray-800`}>
+                  READ MORE
+                </Button>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Contact Form */}
-      <section id="contact-form" className="py-20 bg-gray-50 dark:bg-gray-900">
+      {/* Contact Form Section */}
+      <section id="contact-form" className="py-20 bg-rose-300 border-y-4 border-black">
         <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-4xl md:text-6xl font-extrabold text-center mb-4">Get in Touch</h2>
-          <p className="text-center text-lg text-gray-600 dark:text-gray-400 mb-10">
-            Can't find what you're looking for? Send us a message and we'll help you out!
-          </p>
+          <div className="text-center mb-12 animate-slide-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-4 uppercase">Still Have Questions?</h2>
+            <p className="text-xl font-bold">Send us a message and we'll get back to you within 24 hours.</p>
+          </div>
 
-          <div className="bg-white dark:bg-black p-8 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={`p-8 md:p-12 bg-white ${brutalistShadow} animate-slide-in`} style={{ animationDelay: '0.2s' }}>
+            {isSubmitted ? (
+              <div className="text-center p-8 border-4 border-black bg-lime-300">
+                <h3 className="text-3xl font-black mb-4">MESSAGE SENT!</h3>
+                <p className="font-bold text-lg mb-6">Thanks for reaching out. We've received your message and will get back to you shortly.</p>
+                <Button onClick={() => setIsSubmitted(false)} className={`font-black py-4 px-8 text-lg border-4 border-black bg-black text-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                  SEND ANOTHER
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-lg font-black mb-2 uppercase">Name</label>
+                    <Input
+                      type="text"
+                      placeholder="Your Name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className={`font-bold text-lg p-4 bg-white border-2 border-black focus:bg-yellow-200 focus:outline-none focus:border-4 ${brutalistTransition}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-black mb-2 uppercase">Email</label>
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      className={`font-bold text-lg p-4 bg-white border-2 border-black focus:bg-yellow-200 focus:outline-none focus:border-4 ${brutalistTransition}`}
+                    />
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-bold mb-1">Name</label>
+                  <label className="block text-lg font-black mb-2 uppercase">Subject</label>
                   <Input
                     type="text"
-                    placeholder="Your full name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="What's this about?"
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     required
+                    className={`font-bold text-lg p-4 bg-white border-2 border-black focus:bg-yellow-200 focus:outline-none focus:border-4 ${brutalistTransition}`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold mb-1">Email</label>
-                  <Input
-                    type="email"
-                    placeholder="your.email@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  <label className="block text-lg font-black mb-2 uppercase">Message</label>
+                  <textarea
+                    placeholder="Describe your issue here..."
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     required
+                    rows={6}
+                    className={`w-full font-bold text-lg p-4 bg-white border-2 border-black resize-y focus:bg-yellow-200 focus:outline-none focus:border-4 ${brutalistTransition}`}
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-1">Subject</label>
-                <Input
-                  type="text"
-                  placeholder="What can we help you with?"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-1">Message</label>
-                <textarea
-                  placeholder="Please describe your issue or question in detail..."
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-black dark:text-white resize-none h-32"
-                  required
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-4 rounded-lg shadow-md transition-transform hover:scale-105"
-              >
-                Send Message
-              </Button>
-            </form>
-            <div className="mt-10 text-center border-t pt-6 text-sm text-gray-600 dark:text-gray-400">
-              Or email us directly at{' '}
-              <a
-                href="mailto:support@gettutorly.com"
-                className="text-green-600 hover:text-green-700 dark:hover:text-green-400 font-bold"
-              >
-                support@gettutorly.com
-              </a>
-              <p className="mt-2">We typically respond within 24 hours.</p>
-            </div>
+                <Button type="submit" className={`w-full bg-purple-600 hover:bg-purple-700 text-white font-black text-xl py-5 border-4 border-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                  SEND MESSAGE
+                </Button>
+              </form>
+            )}
           </div>
         </div>
       </section>
 
       <Footer />
     </div>
-  )
+  );
 }
