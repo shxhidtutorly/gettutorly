@@ -158,8 +158,8 @@ export default function LandingPage() {
               <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FAQ
               </a>
-              <a href="/study-techniques" className="font-black hover:text-purple-500 transition-colors text-sm">
-                STUDY METHODS
+              <a href="/sgnin" className="font-black hover:text-purple-500 transition-colors text-sm">
+                SIGNIN
               </a>
               <a href="/support" className="font-black hover:text-purple-500 transition-colors text-sm">
                 SUPPORT
