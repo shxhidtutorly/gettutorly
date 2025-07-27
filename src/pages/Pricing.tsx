@@ -1,161 +1,223 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Check, Star } from "lucide-react"
-import Link from "next/link"
-import { useState, useEffect } from "react"
-import  Navbar  from "@/components/navbar"
-import { Footer } from "@/components/footer"
+import React, { useState } from 'react';
+import { Check, Star, X } from "lucide-react";
 
-export default function PricingPage() {
-  const [counters, setCounters] = useState({ students: 0, countries: 0, institutions: 0 })
+// --- Helper Components (Exported as requested) ---
 
-  useEffect(() => {
-    const animateCounters = () => {
-      const duration = 2000
-      const steps = 60
-      const stepDuration = duration / steps
+export const Navbar = () => (
+  <nav className="bg-white text-black font-mono border-b-4 border-black sticky top-0 z-50">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between h-20">
+        <div className="flex-shrink-0">
+          <a href="/" className="text-3xl font-black">AI-Learn</a>
+        </div>
+        <div className="hidden md:block">
+          <div className="ml-10 flex items-baseline space-x-4">
+            <a href="#" className="text-black hover:bg-black hover:text-white px-3 py-2 text-lg font-bold transition-all duration-200">Home</a>
+            <a href="#" className="text-black hover:bg-black hover:text-white px-3 py-2 text-lg font-bold transition-all duration-200">Features</a>
+            <a href="#" className="bg-black text-white px-3 py-2 text-lg font-bold">Pricing</a>
+            <a href="#" className="text-black hover:bg-black hover:text-white px-3 py-2 text-lg font-bold transition-all duration-200">Contact</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+);
 
-      let step = 0
-      const timer = setInterval(() => {
-        step++
-        const progress = step / steps
+export const Footer = () => (
+    <footer className="bg-white text-black font-mono border-t-4 border-black">
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-black mb-4">AI-Learn</h2>
+            <p className="text-lg font-bold mb-6">Supercharge Your Learning.</p>
+            <div className="flex justify-center space-x-6">
+                <a href="#" className="text-black hover:underline font-bold">Privacy Policy</a>
+                <a href="#" className="text-black hover:underline font-bold">Terms of Service</a>
+            </div>
+            <p className="mt-8 text-center text-base font-bold text-gray-600">&copy; 2025 AI-Learn. All rights reserved.</p>
+        </div>
+    </footer>
+);
 
-        setCounters({
-          students: Math.floor(500 * progress),
-          countries: Math.floor(128 * progress),
-          institutions: Math.floor(200 * progress),
-        })
+// A simple Button component to replicate one from a UI library
+const CustomButton = ({ className, children, ...props }) => (
+    <button className={className} {...props}>
+        {children}
+    </button>
+);
 
-        if (step >= steps) {
-          clearInterval(timer)
-          setCounters({ students: 500, countries: 128, institutions: 200 })
-        }
-      }, stepDuration)
-    }
+// --- Main Pricing Page Component ---
 
-    setTimeout(animateCounters, 500)
-  }, [])
+export default function App() {
+  const [billingCycle, setBillingCycle] = useState('monthly');
+
+  const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
+  const brutalistTransition = "transition-all duration-300 ease-in-out";
+  const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
+
+  const pricingPlans = [
+    {
+      name: "BASIC",
+      desc: "Essential tools to get started",
+      priceMonthly: "$9",
+      priceAnnually: "$90",
+      features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
+      notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
+      color: "bg-sky-400",
+      buttonClass: "bg-black text-white hover:bg-gray-800",
+      cta: "GET STARTED",
+    },
+    {
+      name: "PRO",
+      desc: "Full features + unlimited usage",
+      priceMonthly: "$19",
+      priceAnnually: "$190",
+      features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
+      notIncluded: [],
+      color: "bg-fuchsia-400",
+      popular: true,
+      buttonClass: "bg-black text-white hover:bg-gray-800",
+      cta: "GO PRO",
+    },
+    {
+      name: "TEAM",
+      desc: "For groups & institutions",
+      priceMonthly: "$49",
+      priceAnnually: "$490",
+      features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
+      notIncluded: [],
+      color: "bg-amber-400",
+      buttonClass: "bg-black text-white hover:bg-gray-800",
+      cta: "CONTACT US",
+    },
+  ];
+
+  const testimonials = [
+      { name: "Alice Chen", role: "CS @ MIT", quote: "Feels like a real tutor 24/7. The AI Notes feature is a lifesaver for my lectures.", avatarUrl: "https://placehold.co/100x100/7c3aed/ffffff?text=AC&font=mono" },
+      { name: "Bob Martinez", role: "Engineering @ Stanford", quote: "AI summaries saved me hours of reading. I can focus on the core concepts now.", avatarUrl: "https://placehold.co/100x100/2563eb/ffffff?text=BM&font=mono" },
+      { name: "Charlie Kim", role: "Pre-Med @ Yale", quote: "The adaptive flashcards are incredible. They helped me retain so much more for my bio exams.", avatarUrl: "https://placehold.co/100x100/16a34a/ffffff?text=CK&font=mono" },
+      { name: "Diana Patel", role: "Business @ Penn", quote: "Turns my rambling voice notes from lectures into perfectly structured text. It's magic.", avatarUrl: "https://placehold.co/100x100/f97316/ffffff?text=DP&font=mono" },
+  ];
+
+  const universities = [
+      { name: "MIT", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp" },
+      { name: "Stanford University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp" },
+      { name: "University of Pennsylvania", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp" },
+      { name: "Yale University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp" },
+      { name: "University of Cambridge (UOC)", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp" },
+      { name: "Tokyo University of Medicine", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp" },
+      { name: "University of Toronto", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg" },
+      { name: "Harvard University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png" },
+  ];
+
+  const FloatingShape = ({ className, animationDelay }) => (
+    <div className={`absolute rounded-full mix-blend-multiply filter blur-xl opacity-70 ${className}`} style={{ animation: `float 6s ease-in-out infinite`, animationDelay }}></div>
+  );
 
   return (
-    <div className="min-h-screen bg-white text-black font-mono">
+    <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
+      <style>{`
+        @keyframes float {
+          0% { transform: translate(0, 0); }
+          50% { transform: translate(30px, -40px); }
+          100% { transform: translate(0, 0); }
+        }
+      `}</style>
       <Navbar />
 
       {/* Hero Section */}
-      <section className="bg-white py-20 md:py-32 relative">
-        <div className="max-w-7xl mx-auto px-4 w-full">
-          <div className="text-center space-y-8 scroll-fade-in">
-            <div className="space-y-6">
-              <div className="floating">
-                <Badge className="bg-purple-500 text-white font-black text-lg px-6 py-3 brutal-border">
-                  💰 SIMPLE PRICING
-                </Badge>
-              </div>
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-black">
-                CHOOSE YOUR
-                <br />
-                <span className="text-purple-500">PLAN</span>
-              </h1>
-              <div className="max-w-4xl mx-auto">
-                <p className="text-xl md:text-2xl font-bold text-black leading-tight">
-                  Start learning smarter today with our flexible pricing options designed for every student's needs.
-                </p>
-              </div>
-            </div>
-          </div>
+      <section className="bg-sky-200 text-black border-b-4 border-black relative overflow-hidden">
+        <FloatingShape className="w-72 h-72 bg-fuchsia-300 top-40 -left-20" animationDelay="0s" />
+        <FloatingShape className="w-72 h-72 bg-amber-300 bottom-40 -right-20" animationDelay="2s" />
+        <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative z-10">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
+            CHOOSE YOUR PLAN
+          </h1>
+          <p className="text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/50 backdrop-blur-sm p-4 border-4 border-black">
+            Start learning smarter today with our flexible pricing options designed for every student's needs.
+          </p>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-gray-50 py-20">
+      <section className="bg-stone-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Made Simple. Just Like It Should Be</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+          <div className="text-center mb-8">
+            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Made Simple. Just Like It Should Be.</h2>
+            <div className="w-32 h-2 bg-black mx-auto"></div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-            {[
-              {
-                name: "BASIC",
-                desc: "Essential tools to get started",
-                price: "$9",
-                features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
-                notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
-                bg: "bg-white text-black",
-                cta: "TRY FREE",
-              },
-              {
-                name: "PRO",
-                desc: "Full features + unlimited usage",
-                price: "$19",
-                features: [
-                  "Unlimited Everything",
-                  "Priority Support",
-                  "Advanced Analytics",
-                  "Export Options",
-                  "Audio Recap",
-                  "Math Solver",
-                ],
-                notIncluded: [],
-                bg: "bg-purple-500 text-white",
-                popular: true,
-                cta: "TRY FREE",
-              },
-              {
-                name: "TEAM",
-                desc: "For groups/institutions",
-                price: "$49",
-                features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
-                notIncluded: [],
-                bg: "bg-blue-600 text-white",
-                cta: "TRY FREE",
-              },
-            ].map((plan, index) => (
-              <div
-                key={index}
-                className={`${plan.bg} p-8 brutal-border relative pricing-flash hover-scale hover-lift h-full flex flex-col scroll-scale-in`}
-                style={{ animationDelay: `${index * 0.2}s` }}
-              >
+          <div className="flex justify-center items-center my-12">
+              <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-stone-400'}`}>Monthly</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" value="" className="sr-only peer" onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')} />
+                  <div className={`w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-[4px] after:bg-black after:border after:border-black after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-fuchsia-400`}></div>
+              </label>
+              <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
+              <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
+            {pricingPlans.map((plan) => (
+              <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                    <Badge className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm">
-                      🔥 POPULAR
-                    </Badge>
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                    <div className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">
+                      MOST POPULAR
+                    </div>
                   </div>
                 )}
-                <div className="text-center mb-6 pt-4">
-                  <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
-                  <p className="font-bold mb-4 text-base">{plan.desc}</p>
-                  <div className="text-5xl font-black">{plan.price}</div>
-                  <div className="text-base font-bold">/month</div>
+                <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`}></div>
+                <div className="text-center mb-6 pt-8">
+                  <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
+                  <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
+                  <div className="text-6xl font-black">{billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually}</div>
+                  <div className="text-base font-bold text-stone-600">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
                 </div>
                 <div className="space-y-3 mb-8 flex-grow">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center">
-                      <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-400" />
-                      <span className="font-bold text-sm">{feature}</span>
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-center">
+                      <Check className="w-6 h-6 mr-3 flex-shrink-0 text-green-500" />
+                      <span className="font-bold text-md">{feature}</span>
                     </div>
                   ))}
-                  {plan.notIncluded.map((feature, idx) => (
-                    <div key={idx} className="flex items-center opacity-50">
-                      <div className="w-5 h-5 mr-3 flex-shrink-0 text-red-400 font-black">✕</div>
-                      <span className="font-bold line-through text-sm">{feature}</span>
+                  {plan.notIncluded.map((feature) => (
+                    <div key={feature} className="flex items-center opacity-60">
+                      <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
+                      <span className="font-bold line-through text-md">{feature}</span>
                     </div>
                   ))}
                 </div>
-                <Link href="/signup">
-                  <Button
-                    className={`w-full font-black py-4 brutal-button mt-auto ${
-                      plan.popular || plan.name === "TEAM"
-                        ? "bg-white text-black hover:bg-gray-100"
-                        : "bg-purple-500 text-white hover:bg-purple-600"
-                    }`}
-                  >
+                <a href="/signup" className="mt-auto block">
+                  <CustomButton className={`w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} hover:shadow-none hover:-translate-x-1 hover:-translate-y-1`}>
                     {plan.cta}
-                  </Button>
-                </Link>
+                  </CustomButton>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="bg-stone-100 py-20 border-y-4 border-black">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-6xl font-black mb-4 uppercase">Trusted by Students Worldwide</h2>
+            <div className="w-32 h-2 bg-black mx-auto"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.name} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                <div className="flex items-center mb-4">
+                  <img src={testimonial.avatarUrl} alt={testimonial.name} className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} />
+                  <div className="ml-4">
+                    <div className="font-black text-xl">{testimonial.name}</div>
+                    <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
+                  </div>
+                </div>
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
+                </div>
+                <p className="font-bold text-lg leading-tight">"{testimonial.quote}"</p>
               </div>
             ))}
           </div>
@@ -163,199 +225,38 @@ export default function PricingPage() {
       </section>
 
       {/* Trusted By Universities Section */}
-      <section className="bg-white py-20 overflow-hidden">
+      <section className="bg-white py-20">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
-              Loved by students from top global universities
-            </h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 uppercase">Trusted By Top Universities</h2>
+             <div className="w-32 h-2 bg-black mx-auto"></div>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-      {[
-        {
-          name: "MIT",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp",
-        },
-        {
-          name: "Stanford University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp",
-        },
-        {
-          name: "University of Pennsylvania",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp",
-        },
-        {
-          name: "Yale University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp",
-        },
-        {
-          name: "University of Cambridge (UOC)",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp",
-        },
-        {
-          name: "Tokyo University of Medicine",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp",
-        },
-        {
-          name: "University of Toronto",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg",
-        },
-        {
-          name: "Harvard University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
-        },
-      ].map((university, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-center p-6 bg-white brutal-border hover-scale hover-lift transition-all duration-300 scroll-slide-left"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <img
-                  src={university.logo || "/placeholder.svg"}
-                  alt={university.name}
-                  className="h-16 w-auto object-contain transition-all duration-300 hover:scale-110"
-                />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center">
+            {universities.map((uni) => (
+              <div key={uni.name} className={`p-6 bg-stone-100 flex justify-center items-center h-32 ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                <img src={uni.logo} alt={uni.name} className="max-h-12 w-auto object-contain transition-all duration-300" onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/150x60/e5e5e5/000000?text=Logo&font=mono'; }}/>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Enhanced Testimonials Section */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Trusted by Students Worldwide</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                name: "Alice Chen",
-                role: "Computer Science Student",
-                quote: "Feels like a real tutor 24/7",
-                avatar: "A",
-                bg: "bg-white",
-                textColor: "text-black",
-              },
-              {
-                name: "Bob Martinez",
-                role: "Engineering Student",
-                quote: "AI summaries saved me hours",
-                avatar: "B",
-                bg: "bg-purple-500",
-                textColor: "text-white",
-              },
-              {
-                name: "Charlie Kim",
-                role: "Pre-Med Student",
-                quote: "Flashcards helped me retain better",
-                avatar: "C",
-                bg: "bg-blue-600",
-                textColor: "text-white",
-              },
-              {
-                name: "Diana Patel",
-                role: "Business Student",
-                quote: "Turns lectures into notes instantly",
-                avatar: "D",
-                bg: "bg-green-600",
-                textColor: "text-white",
-              },
-              {
-                name: "Eve Johnson",
-                role: "Psychology Student",
-                quote: "Audio recaps saved my study time",
-                avatar: "E",
-                bg: "bg-orange-500",
-                textColor: "text-white",
-              },
-              {
-                name: "Frank Wilson",
-                role: "Math Student",
-                quote: "Math explanations are super clear",
-                avatar: "F",
-                bg: "bg-red-500",
-                textColor: "text-white",
-              },
-              {
-                name: "Grace Liu",
-                role: "Biology Student",
-                quote: "Everything is organized in one place",
-                avatar: "G",
-                bg: "bg-indigo-600",
-                textColor: "text-white",
-              },
-              {
-                name: "Henry Davis",
-                role: "Physics Student",
-                quote: "Love the personalized help!",
-                avatar: "H",
-                bg: "bg-pink-500",
-                textColor: "text-white",
-              },
-            ].map((testimonial, index) => (
-              <div
-                key={index}
-                className={`${testimonial.bg} ${testimonial.textColor} p-6 brutal-border hover-scale hover-lift scroll-slide-right`}
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="flex items-center mb-4">
-                  <div className="w-16 h-16 bg-purple-500 text-white brutal-border flex items-center justify-center font-black text-xl mr-4 rounded-full">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <div className="font-black text-base">{testimonial.name}</div>
-                    <div className="font-bold text-xs opacity-75">{testimonial.role}</div>
-                  </div>
-                </div>
-                <p className="font-bold mb-3 text-sm">"{testimonial.quote}"</p>
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="bg-gray-800 text-white py-20 relative">
-        <div className="max-w-4xl mx-auto px-4 text-center scroll-fade-in">
-          <h2 className="text-4xl md:text-6xl font-black mb-6 text-white">🚀 READY TO EXCEL?</h2>
-          <p className="text-xl font-bold mb-8 text-gray-300">
-            Join 500K+ students who are already learning smarter with Tutorly.
+       {/* Final CTA */}
+      <section className="bg-amber-400 text-black py-20 border-y-4 border-black">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-5xl md:text-7xl font-black mb-6 uppercase">Ready to Excel?</h2>
+          <p className="text-2xl font-bold mb-10">
+            Join 500K+ students who are already learning smarter with AI-Learn.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link href="/signup">
-              <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
-                START LEARNING FREE
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              className="bg-transparent border-white text-white font-black text-xl px-12 py-6 brutal-button hover:bg-white hover:text-black"
-            >
-              CONTACT SALES
-            </Button>
+            <a href="/signup" className={`block bg-black text-white font-black text-xl px-10 py-5 w-full sm:w-auto ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                START FOR FREE
+            </a>
           </div>
         </div>
       </section>
 
       <Footer />
     </div>
-  )
+  );
 }
