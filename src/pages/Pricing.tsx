@@ -90,8 +90,8 @@ export default function App() {
       <section className="bg-sky-200 text-black border-b-4 border-black relative overflow-hidden">
         <FloatingShape className="w-72 h-72 bg-fuchsia-300 top-40 -left-20" animationDelay="0s" />
         <FloatingShape className="w-72 h-72 bg-amber-300 bottom-40 -right-20" animationDelay="2s" />
-        <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative z-10">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
+<div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
+  <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
             CHOOSE YOUR PLAN
           </h1>
           <p className="text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/50 backdrop-blur-sm p-4 border-4 border-black">
