@@ -93,7 +93,7 @@ const FaqItem = ({ faq, isOpen, onClick, brutalistShadow, brutalistTransition })
                 onClick={onClick}
                 className="w-full flex justify-between items-center text-left p-6 font-black text-xl md:text-2xl uppercase focus:outline-none"
             >
-                <span>{faq.question}</span>
+                <span className="text-black pr-4">{faq.question}</span>
                 <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center border-4 border-black ml-4 ${faq.color} ${brutalistShadow}`}>
                     {isOpen ? <Minus className="w-8 h-8 text-black" strokeWidth={4}/> : <Plus className="w-8 h-8 text-black" strokeWidth={4}/>}
                 </div>
