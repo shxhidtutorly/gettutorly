@@ -2,49 +2,10 @@
 
 import React, { useState } from 'react';
 import { Check, Star, X } from "lucide-react";
-
-// --- Helper Components (Exported as requested) ---
-
-export const Navbar = () => (
-  <nav className="bg-white text-black font-mono border-b-4 border-black sticky top-0 z-50">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between h-20">
-        <div className="flex-shrink-0">
-          <a href="/" className="text-3xl font-black">AI-Learn</a>
-        </div>
-        <div className="hidden md:block">
-          <div className="ml-10 flex items-baseline space-x-4">
-            <a href="#" className="text-black hover:bg-black hover:text-white px-3 py-2 text-lg font-bold transition-all duration-200">Home</a>
-            <a href="#" className="text-black hover:bg-black hover:text-white px-3 py-2 text-lg font-bold transition-all duration-200">Features</a>
-            <a href="#" className="bg-black text-white px-3 py-2 text-lg font-bold">Pricing</a>
-            <a href="#" className="text-black hover:bg-black hover:text-white px-3 py-2 text-lg font-bold transition-all duration-200">Contact</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </nav>
-);
-
-export const Footer = () => (
-    <footer className="bg-white text-black font-mono border-t-4 border-black">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-black mb-4">AI-Learn</h2>
-            <p className="text-lg font-bold mb-6">Supercharge Your Learning.</p>
-            <div className="flex justify-center space-x-6">
-                <a href="#" className="text-black hover:underline font-bold">Privacy Policy</a>
-                <a href="#" className="text-black hover:underline font-bold">Terms of Service</a>
-            </div>
-            <p className="mt-8 text-center text-base font-bold text-gray-600">&copy; 2025 AI-Learn. All rights reserved.</p>
-        </div>
-    </footer>
-);
-
-// A simple Button component to replicate one from a UI library
-const CustomButton = ({ className, children, ...props }) => (
-    <button className={className} {...props}>
-        {children}
-    </button>
-);
+import  Navbar  from "@/components/navbar";
+import { Footer } from "@/components/footer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 // --- Main Pricing Page Component ---
 
@@ -160,9 +121,9 @@ export default function App() {
               <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                    <div className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">
+                    <Badge className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">
                       MOST POPULAR
-                    </div>
+                    </Badge>
                   </div>
                 )}
                 <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`}></div>
@@ -187,9 +148,9 @@ export default function App() {
                   ))}
                 </div>
                 <a href="/signup" className="mt-auto block">
-                  <CustomButton className={`w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} hover:shadow-none hover:-translate-x-1 hover:-translate-y-1`}>
+                  <Button className={`w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} hover:shadow-none hover:-translate-x-1 hover:-translate-y-1`}>
                     {plan.cta}
-                  </CustomButton>
+                  </Button>
                 </a>
               </div>
             ))}
