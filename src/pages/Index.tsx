@@ -499,11 +499,11 @@ export default function LandingPage() {
       </section>
 
        {/* Fixed Pricing Section */}
-      <section id="pricing" className="bg-white py-20">
+    <section className="bg-stone-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Made Simple. Just Like It Should Be</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+          <div className="text-center mb-8">
+            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Made Simple. Just Like It Should Be.</h2>
+            <div className="w-32 h-2 bg-black mx-auto"></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
