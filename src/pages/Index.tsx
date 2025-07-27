@@ -30,46 +30,7 @@ export default function LandingPage() {
   const [heroLoaded, setHeroLoaded] = useState(false)
   const [billingCycle, setBillingCycle] = useState('monthly');
 
-  const pricingPlans = [
-  {
-    name: "BASIC",
-    desc: "Essential tools to get started",
-    priceMonthly: "$9",
-    priceAnnually: "$90",
-    features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
-    notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
-    bg: "bg-white text-black",
-    cta: "TRY FREE",
-  },
-  {
-    name: "PRO",
-    desc: "Full features + unlimited usage",
-    priceMonthly: "$19",
-    priceAnnually: "$190",
-    features: [
-      "Unlimited Everything",
-      "Priority Support",
-      "Advanced Analytics",
-      "Export Options",
-      "Audio Recap",
-      "Math Solver",
-    ],
-    notIncluded: [],
-    bg: "bg-purple-500 text-white",
-    popular: true,
-    cta: "TRY FREE",
-  },
-  {
-    name: "TEAM",
-    desc: "For groups/institutions",
-    priceMonthly: "$49",
-    priceAnnually: "$490",
-    features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
-    notIncluded: [],
-    bg: "bg-blue-600 text-white",
-    cta: "TRY FREE",
-  },
-];
+ 
 
 
   useEffect(() => {
@@ -549,6 +510,7 @@ export default function LandingPage() {
       <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Choose Your Plan</h2>
       <div className="w-32 h-2 bg-black mx-auto"></div>
     </div>
+    
     <div className="flex justify-center items-center my-12">
       <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-stone-400'}`}>Monthly</span>
       <label className="relative inline-flex items-center cursor-pointer">
@@ -558,47 +520,83 @@ export default function LandingPage() {
       <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
       <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-      {pricingPlans.map((plan, index) => (
-        <div
-          key={index}
-          className={`${plan.bg} p-8 brutal-border relative pricing-flash hover-scale hover-lift h-full flex flex-col`}
-        >
-          {plan.popular && (
-            <div className="absolute top-3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-              <span className="bg-gray-800 text-white font-black px-6 py-2 brutal-border text-sm rounded">🔥 POPULAR</span>
-            </div>
-          )}
-          <div className="text-center mb-6 pt-8">
-            <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
-            <p className="font-bold mb-4 text-base">{plan.desc}</p>
-            <div className="text-5xl font-black">
-              {billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually}
-            </div>
-            <div className="text-base font-bold">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
-          </div>
-          <div className="space-y-3 mb-8 flex-grow">
-            {plan.features.map((feature, idx) => (
-              <div key={idx} className="flex items-center">
-                <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-400" />
-                <span className="font-bold text-sm">{feature}</span>
-              </div>
-            ))}
-            {plan.notIncluded.map((feature, idx) => (
-              <div key={idx} className="flex items-center opacity-50">
-                <div className="w-5 h-5 mr-3 flex-shrink-0 text-red-400 font-black">✕</div>
-                <span className="font-bold line-through text-sm">{feature}</span>
-              </div>
-            ))}
-          </div>
-          <a href="/signup">
-            <Button className={`w-full font-black py-4 brutal-button mt-auto bg-purple-500 text-white hover:bg-purple-600`}>
-              {plan.cta}
-            </Button>
-          </a>
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+  {[
+    {
+      name: "BASIC",
+      desc: "Essential tools to get started",
+      price: "$9",
+      features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
+      notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
+      bg: "bg-white text-black", // BASIC card is white with black text
+      cta: "TRY FREE",
+    },
+    {
+      name: "PRO",
+      desc: "Full features + unlimited usage",
+      price: "$19",
+      features: [
+        "Unlimited Everything",
+        "Priority Support",
+        "Advanced Analytics",
+        "Export Options",
+        "Audio Recap",
+        "Math Solver",
+      ],
+      notIncluded: [],
+      bg: "bg-purple-500 text-white", // PRO card is purple with white text
+      popular: true,
+      cta: "TRY FREE",
+    },
+    {
+      name: "TEAM",
+      desc: "For groups/institutions",
+      price: "$49",
+      features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
+      notIncluded: [],
+      bg: "bg-blue-600 text-white", // TEAM card is blue with white text
+      cta: "TRY FREE",
+    },
+  ].map((plan, index) => (
+    <div
+      key={index}
+      className={`${plan.bg} p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all duration-300 h-full flex flex-col`}
+    >
+      {plan.popular && (
+        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+          <Badge className="bg-gray-800 text-white font-black px-6 py-2 border-2 border-black text-sm">
+            🔥 POPULAR
+          </Badge>
         </div>
-      ))}
+      )}
+      <div className="text-center mb-6 pt-8">
+        <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
+        <p className="font-bold mb-4 text-base">{plan.desc}</p>
+        <div className="text-5xl font-black">{plan.price}</div>
+        <div className="text-base font-bold">/month</div>
+      </div>
+         <div className="space-y-3 mb-8 flex-grow">
+        {plan.features.map((feature, idx) => (
+          <div key={idx} className="flex items-center">
+            <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-400" />
+            <span className="font-bold text-sm">{feature}</span>
+          </div>
+        ))}
+        {plan.notIncluded.map((feature, idx) => (
+          <div key={idx} className="flex items-center opacity-50">
+            <div className="w-5 h-5 mr-3 flex-shrink-0 text-red-400 font-black">✕</div>
+            <span className="font-bold line-through text-sm">{feature}</span>
+          </div>
+        ))}
+      </div>
+      <a href="/signup">
+        <Button className="w-full font-black py-4 mt-auto bg-purple-500 text-white hover:bg-purple-600 border-2 border-black">
+          {plan.cta}
+        </Button>
+      </a>
     </div>
+  ))}
+</div>
   </div>
 </section>
       
