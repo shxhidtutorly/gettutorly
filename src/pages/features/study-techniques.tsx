@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button"
 import { Brain, Clock, Lightbulb, Network, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import Navbar from "@/components/navbar"
+import Footer from "@/components/footer"
 
 export default function StudyTechniquesPage() {
   const techniques = [
@@ -45,34 +47,14 @@ export default function StudyTechniquesPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-white text-black font-mono">
-      {/* Header */}
-      <header className="bg-white brutal-border border-b-4 border-black">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-purple-500 brutal-border flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black">TUTORLY</h1>
-                <p className="text-sm font-bold text-gray-600">STUDY SMARTER. LEARN FASTER.</p>
-              </div>
-            </Link>
-            <Link href="/">
-              <Button className="bg-black text-white font-black brutal-button hover:bg-gray-800">
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                BACK TO HOME
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
+            <Navbar />
+
 
       {/* Hero */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-7xl font-black mb-6">📚 STUDY TECHNIQUES</h1>
+          <h1 className="text-5xl md:text-7xl font-white mb-6">📚 STUDY TECHNIQUES</h1>
           <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
           <p className="text-xl md:text-2xl font-bold text-gray-700 max-w-4xl mx-auto">
             Master proven study methods that enhance learning efficiency and retention.
@@ -119,7 +101,7 @@ export default function StudyTechniquesPage() {
       {/* Integration CTA */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-6xl font-black mb-6">🤖 COMBINE WITH AI</h2>
+          <h2 className="text-4xl md:text-6xl font-white mb-6">🤖 COMBINE WITH AI</h2>
           <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
           <p className="text-xl font-bold text-gray-700 mb-8">
             Use these techniques alongside Tutorly's AI features for maximum learning efficiency.
@@ -131,44 +113,15 @@ export default function StudyTechniquesPage() {
               </Button>
             </Link>
             <Link href="/features">
-              <Button
-                variant="outline"
-                className="bg-white text-black font-black text-xl px-12 py-6 brutal-button hover:bg-gray-100"
-              >
+                           <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button">
+
                 EXPLORE FEATURES
               </Button>
             </Link>
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-white py-12 brutal-border border-t-4 border-black">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-purple-500 brutal-border flex items-center justify-center">
-                <Brain className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <div className="font-black">TUTORLY</div>
-                <div className="text-xs font-bold text-gray-600">STUDY SMARTER. LEARN FASTER.</div>
-              </div>
-            </div>
-            <div className="flex space-x-8">
-              <a href="#" className="font-black hover:text-purple-500 transition-colors">
-                PRIVACY
-              </a>
-              <a href="#" className="font-black hover:text-purple-500 transition-colors">
-                TERMS
-              </a>
-              <a href="#" className="font-black hover:text-purple-500 transition-colors">
-                SUPPORT
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+            <Footer />
     </div>
   )
 }
