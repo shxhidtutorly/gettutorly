@@ -82,8 +82,7 @@ const App = () => {
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/privacy" element={<Privacy />} />
-                <Route path="/faq" element={<faq />} />
-
+<Route path="/faq" element={<Faq />} />
                 {/* Feature Pages (Public) */}
                 <Route path="/features/math-chat" element={<MathChatFeature />} />
                 <Route path="/features/ai-notes" element={<AiNotesFeature />} />
