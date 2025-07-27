@@ -173,16 +173,48 @@ export default function PricingPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            {[
-              { name: "MIT", logo: "/images/mit-logo.webp" },
-              { name: "Stanford", logo: "/images/stanford-logo.webp" },
-              { name: "Princeton", logo: "/images/princeton-logo.webp" },
-              { name: "Yale", logo: "/images/yale-logo.webp" },
-              { name: "Penn", logo: "/images/penn-logo.webp" },
-              { name: "McGill", logo: "/images/mcgill-logo.webp" },
-              { name: "NYU", logo: "/images/nyu-logo.webp" },
-              { name: "Melbourne", logo: "/images/melbourne-logo.webp" },
-            ].map((university, index) => (
+      {[
+        {
+          name: "MIT",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp",
+        },
+        {
+          name: "Stanford University",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp",
+        },
+        {
+          name: "University of Pennsylvania",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp",
+        },
+        {
+          name: "Yale University",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp",
+        },
+        {
+          name: "University of Cambridge (UOC)",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp",
+        },
+        {
+          name: "Tokyo University of Medicine",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp",
+        },
+        {
+          name: "University of Toronto",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg",
+        },
+        {
+          name: "Harvard University",
+          logo:
+            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
+        },
+      ].map((university, index) => (
               <div
                 key={index}
                 className="flex items-center justify-center p-6 bg-white brutal-border hover-scale hover-lift transition-all duration-300 scroll-slide-left"
