@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
+import FAQ from "./pages/faq";
 import Summaries from "./pages/Summaries";
 import MicroLessons from "./pages/MicroLessons";
 import AIAssistant from "./pages/AIAssistant";
@@ -81,6 +82,7 @@ const App = () => {
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/privacy" element={<Privacy />} />
+                <Route path="/faq" element={<faq />} />
 
                 {/* Feature Pages (Public) */}
                 <Route path="/features/math-chat" element={<MathChatFeature />} />
