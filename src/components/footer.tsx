@@ -55,8 +55,8 @@ export function Footer() {
               <Link href="/pricing" className="block font-bold hover:text-purple-400 transition-colors">
                 Pricing
               </Link>
-              <Link href="/study-techniques" className="block font-bold hover:text-purple-400 transition-colors">
-                Study Methods
+              <Link href="/signin" className="block font-bold hover:text-purple-400 transition-colors">
+                Sign in
               </Link>
               <Link href="/signup" className="block font-bold hover:text-purple-400 transition-colors">
                 Sign Up
