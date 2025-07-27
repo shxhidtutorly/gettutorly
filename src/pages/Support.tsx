@@ -26,10 +26,25 @@ export default function SupportPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Support request:", formData);
-    // In a real app, you'd send this data to a server
+    // Construct the email body
+    const emailBody = `
+Name: ${formData.name}
+Email: ${formData.email}
+
+Message:
+${formData.message}
+    `;
+
+    // Create the mailto link
+    const mailtoLink = `mailto:support@gettutorly.com?subject=${encodeURIComponent(
+      formData.subject
+    )}&body=${encodeURIComponent(emailBody)}`;
+
+    // Open the user's default email client
+    window.location.href = mailtoLink;
+
+    // Show the submission success message on the page
     setIsSubmitted(true);
-    setFormData({ name: "", email: "", subject: "", message: "" });
   };
 
   const supportTopics = [
@@ -113,7 +128,7 @@ export default function SupportPage() {
               <div
                 key={topic.title}
                 style={{ animationDelay: `${0.2 * (index + 1)}s`, opacity: 0 }}
-                className={`flex flex-col p-8 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover} animate-slide-in`}
+                className={`flex flex-col p-8 bg-white text-black ${brutalistShadow} ${brutalistTransition} animate-slide-in`}
               >
                 <div className="flex items-center mb-6">
                   <div className={`w-16 h-16 ${topic.color} flex-shrink-0 flex items-center justify-center ${brutalistShadow}`}>
@@ -132,9 +147,12 @@ export default function SupportPage() {
                     </li>
                   ))}
                 </ul>
-                <Button className={`w-full font-black py-4 mt-auto text-lg border-4 border-black bg-black text-white ${brutalistShadow} ${brutalistTransition} hover:shadow-none hover:translate-x-1 hover:translate-y-1 hover:bg-gray-800`}>
-                  READ MORE
-                </Button>
+                <div className={`mt-auto text-center border-t-4 border-black pt-6`}>
+                    <a href="mailto:support@gettutorly.com" className={`inline-block w-full font-black py-4 text-lg border-4 border-black bg-black text-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                        EMAIL SUPPORT
+                    </a>
+                    <p className="font-bold text-sm text-stone-500 mt-4">support@gettutorly.com</p>
+                </div>
               </div>
             ))}
           </div>
@@ -152,10 +170,16 @@ export default function SupportPage() {
           <div className={`p-8 md:p-12 bg-white ${brutalistShadow} animate-slide-in`} style={{ animationDelay: '0.2s' }}>
             {isSubmitted ? (
               <div className="text-center p-8 border-4 border-black bg-lime-300">
-                <h3 className="text-3xl font-black mb-4">MESSAGE SENT!</h3>
-                <p className="font-bold text-lg mb-6">Thanks for reaching out. We've received your message and will get back to you shortly.</p>
-                <Button onClick={() => setIsSubmitted(false)} className={`font-black py-4 px-8 text-lg border-4 border-black bg-black text-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-                  SEND ANOTHER
+                <h3 className="text-3xl font-black mb-4">EMAIL CLIENT OPENED!</h3>
+                <p className="font-bold text-lg mb-6">Please send the pre-filled email from your mail app. We'll get back to you shortly!</p>
+                <Button 
+                    onClick={() => {
+                        setIsSubmitted(false);
+                        setFormData({ name: "", email: "", subject: "", message: "" });
+                    }} 
+                    className={`font-black py-4 px-8 text-lg border-4 border-black bg-black text-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+                >
+                  START A NEW MESSAGE
                 </Button>
               </div>
             ) : (
