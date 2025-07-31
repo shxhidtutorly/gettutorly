@@ -485,7 +485,7 @@ const DoubtChain = () => {
                 <CardContent className="p-4 flex flex-col items-center justify-center">
                   <Award className="h-6 w-6 text-yellow-300 mb-2" />
                   <p className="text-2xl font-bold">{stats.conceptsUnderstood}</p>
-                  <p className="text-xs text-gray-100 font-semibold">CONCEPTS</p>
+                  <p className="text-xs text-white">CONCEPTS</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -494,7 +494,7 @@ const DoubtChain = () => {
                 <CardContent className="p-4 flex flex-col items-center justify-center">
                   <Zap className="h-6 w-6 text-blue-400 mb-2" />
                   <p className="text-2xl font-bold">{stats.chainsCompleted}</p>
-                  <p className="text-xs text-gray-100 font-semibold">CHAINS</p>
+                  <p className="text-xs text-white">CHAINS</p>
                 </CardContent>
               </Card>
             </motion.div>
