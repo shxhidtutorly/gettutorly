@@ -141,22 +141,21 @@ const DoubtChain = () => {
   const buildDoubtChain = async (question: string, depth = 0): Promise<DoubtNode> => {
     try {
       // API call placeholder
-      const data = {
-        isExplanation: depth >= 2,
-        result: depth === 0
-          ? "The process of photosynthesis"
-          : depth === 1
-            ? "What is chlorophyll?"
-            : "Chlorophyll is a green pigment found in plants that absorbs light energy to convert it into chemical energy.",
-      };
-      // const response = await fetch('/api/doubt-chain', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ question, depth })
-      // });
-      // const data = await response.json();
-      // if (!response.ok) throw new Error(data.error);
-
+      //const data = {
+        //isExplanation: depth >= 2,
+        //result: depth === 0
+          //? "The process of photosynthesis"
+          //: depth === 1
+            //? "What is chlorophyll?"
+            //: "Chlorophyll is a green pigment found in plants that absorbs light energy to convert it into chemical energy.",
+      const response = await fetch('/api/doubt-chain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, depth })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+      
       const node: DoubtNode = {
         id: `${depth}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         question: data.isExplanation ? data.result : data.result,
@@ -234,24 +233,20 @@ const DoubtChain = () => {
     setDoubtTree(updateNode(doubtTree));
   };
 
-  const handleFollowup = async (nodeId: string, followupType: string) => {
+ const handleFollowup = async (nodeId: string, followupType: string) => {
     setFollowupLoading(nodeId + followupType);
     try {
       const node = findNode(doubtTree!, nodeId);
       if (!node) return;
 
-      // API call placeholder
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const data = {
-        result: `This is a mockup response for the '${followupType}' followup on the question: "${node.question}".`,
-      };
-      // const response = await fetch('/api/followup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ question: node.question, followup: followupType })
-      // });
-      // const data = await response.json();
-      // if (!response.ok) throw new Error(data.error);
+
+      const response = await fetch('/api/followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: node.question, followup: followupType })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
 
       // Update node with followup response
       const updateNode = (n: DoubtNode): DoubtNode => {
