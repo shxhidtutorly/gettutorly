@@ -310,7 +310,7 @@ const DoubtChain = () => {
         whileHover="hover"
         whileTap="tap"
         className="mb-6"
-        layout
+        layout="position"
       >
         <Card
           className={`transition-all duration-100 ease-in-out cursor-pointer bg-black text-white p-0 border-2 border-white rounded-none
@@ -485,7 +485,7 @@ const DoubtChain = () => {
                 <CardContent className="p-4 flex flex-col items-center justify-center">
                   <Award className="h-6 w-6 text-yellow-300 mb-2" />
                   <p className="text-2xl font-bold">{stats.conceptsUnderstood}</p>
-                  <p className="text-xs text-gray-400">CONCEPTS</p>
+                  <p className="text-xs text-gray-100 font-semibold">CONCEPTS</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -494,7 +494,7 @@ const DoubtChain = () => {
                 <CardContent className="p-4 flex flex-col items-center justify-center">
                   <Zap className="h-6 w-6 text-blue-400 mb-2" />
                   <p className="text-2xl font-bold">{stats.chainsCompleted}</p>
-                  <p className="text-xs text-gray-400">CHAINS</p>
+                  <p className="text-xs text-gray-100 font-semibold">CHAINS</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -503,7 +503,7 @@ const DoubtChain = () => {
                 <CardContent className="p-0">
                   <div className="flex items-center gap-2 mb-2">
                     <Target className="h-5 w-5 text-purple-400" />
-                    <p className="text-sm font-bold">WEEKLY GOAL</p>
+                    <p className="text-xs text-white">WEEKLY GOAL</p>
                   </div>
                   <div className="w-full bg-gray-800 border-2 border-white h-4 rounded-full">
                     <motion.div
