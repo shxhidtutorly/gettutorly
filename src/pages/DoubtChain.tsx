@@ -149,13 +149,13 @@ const DoubtChain = () => {
             ? "What is chlorophyll?"
             : "Chlorophyll is a green pigment found in plants that absorbs light energy to convert it into chemical energy.",
       };
-       const response = await fetch('/api/doubt-chain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, depth })
-      });
-       const data = await response.json();
-       if (!response.ok) throw new Error(data.error);
+      // const response = await fetch('/api/doubt-chain', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ question, depth })
+      // });
+      // const data = await response.json();
+      // if (!response.ok) throw new Error(data.error);
 
       const node: DoubtNode = {
         id: `${depth}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
