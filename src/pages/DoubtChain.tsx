@@ -563,8 +563,7 @@ const DoubtChain = () => {
               animate="visible"
               variants={containerAnim}
               className="mb-6 relative"
-              layout
-            >
+              layout="position"            >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl md:text-2xl font-bold font-mono text-white">
                   YOUR DOUBT CHAIN
