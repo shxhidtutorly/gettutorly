@@ -396,5 +396,7 @@ export const AudioNotesUploader = () => {
       )}
     </AnimatePresence>
   </div>
-);
-);
+  );
+};
+
+export default AudioNotesUploader;
