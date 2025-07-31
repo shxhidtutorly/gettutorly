@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Dialog, 
@@ -13,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Zap, X } from "lucide-react";
+import { Plus, Zap, X, Minus, CreditCard } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface FlashcardItem {
@@ -130,108 +129,136 @@ const CreateFlashcardDialog = ({
     setIsOpen(false);
   };
 
- return (
-  <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger asChild>
-      <Button
-        className="bg-orange-500 hover:bg-orange-600 text-white font-black px-6 py-3 brutal-button brutal-button-glow brutal-border text-lg rounded-none shadow-[4px_4px_0px_#ff9800]"
-        onClick={() => setOpen(true)}
-      >
-        <Plus className="w-5 h-5 mr-2" />
-        New Flashcard Set
-      </Button>
-    </DialogTrigger>
-    <DialogContent className="bg-white brutal-border shadow-xl rounded-none p-0 max-w-lg font-mono">
-      <div className="px-8 pt-8 pb-6">
-        <DialogTitle className="text-3xl font-black text-black mb-2 flex items-center gap-3">
-          <CreditCard className="w-8 h-8 text-orange-500" />
-          Create Flashcard Set
-        </DialogTitle>
-        <DialogDescription className="text-gray-600 font-bold mb-6">
-          Enter a set name and add your cards below. <br />
-          <span className="text-orange-500">Brutalist. Fast. Fun.</span>
-        </DialogDescription>
-        <form
-          className="space-y-6"
-          onSubmit={handleSubmit}
-        >
-          <div>
-            <label className="block font-black mb-1 text-lg text-black">Set Name</label>
-            <input
-              type="text"
-              value={setName}
-              onChange={e => setSetName(e.target.value)}
-              className="brutal-border w-full px-4 py-3 font-bold text-black bg-gray-50 rounded-none focus:outline-none focus:ring-2 focus:ring-orange-500 mb-3"
-              placeholder="e.g. Biology Chapter 5"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block font-black mb-1 text-lg text-black">Cards</label>
-            {cards.map((card, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 mb-2"
-              >
-                <input
-                  type="text"
-                  value={card.front}
-                  onChange={e => handleCardChange(idx, "front", e.target.value)}
-                  className="brutal-border px-3 py-2 font-bold text-black bg-white rounded-none w-1/2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Front (Question)"
-                  required
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild id={id}>
+        {trigger || (
+          <Button className="bg-orange-500 hover:bg-orange-600 text-white font-black px-6 py-3 brutal-button brutal-button-glow brutal-border text-lg rounded-none shadow-[4px_4px_0px_#ff9800]">
+            <Plus className="mr-2 h-4 w-4" /> Create New Set
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="bg-white brutal-border shadow-xl rounded-none p-0 max-w-lg font-mono sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-3xl font-black text-black mb-2">
+            <Zap className="h-5 w-5 text-orange-500" />
+            {singleCard ? "Add New Flashcard" : "Create New Flashcard Set"}
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 font-bold mb-6">
+            {singleCard 
+              ? "Add a new flashcard to your set" 
+              : "Create a set of flashcards to help you study"
+            }
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+          {!singleCard && (
+            <div className="space-y-2">
+              <Label htmlFor="setName" className="font-black text-lg text-black">Set Name</Label>
+              <Input
+                id="setName"
+                value={setName}
+                onChange={(e) => setSetName(e.target.value)}
+                placeholder="e.g., Biology Terms"
+                className="w-full brutal-border px-4 py-3 font-bold text-black bg-gray-50 rounded-none focus:outline-none focus:ring-2 focus:ring-orange-500 mb-3"
+              />
+            </div>
+          )}
+          
+          {singleCard ? (
+            <div className="p-4 brutal-border brutal-bg space-y-3 bg-muted/30">
+              <div className="space-y-2">
+                <Label htmlFor="single-front" className="font-black">Front (Question/Term)</Label>
+                <Input
+                  id="single-front"
+                  value={singleCardData.front}
+                  onChange={(e) => handleSingleCardChange("front", e.target.value)}
+                  placeholder="Enter question or term"
+                  className="w-full brutal-border px-3 py-2 font-bold text-black bg-white rounded-none"
                 />
-                <input
-                  type="text"
-                  value={card.back}
-                  onChange={e => handleCardChange(idx, "back", e.target.value)}
-                  className="brutal-border px-3 py-2 font-bold text-black bg-white rounded-none w-1/2 focus:outline-none focus:ring-2 focus:ring-green-600"
-                  placeholder="Back (Answer)"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="brutal-border bg-red-100 text-red-600 hover:bg-red-200 rounded-none ml-2"
-                  onClick={() => removeCard(idx)}
-                  aria-label="Remove card"
-                >
-                  <Minus className="w-5 h-5" />
-                </Button>
               </div>
-            ))}
-            <Button
-              type="button"
-              onClick={addCard}
-              className="bg-purple-500 hover:bg-purple-600 text-white font-black px-4 py-2 mt-2 brutal-button brutal-border rounded-none shadow-[2px_2px_0px_#a855f7]"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Card
-            </Button>
-          </div>
-
-          <div className="flex justify-between gap-4 mt-8">
-            <Button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="bg-gray-200 text-black font-black px-6 py-3 brutal-button brutal-border rounded-none hover:bg-gray-300"
-            >
+              
+              <div className="space-y-2">
+                <Label htmlFor="single-back" className="font-black">Back (Answer/Definition)</Label>
+                <Textarea
+                  id="single-back"
+                  value={singleCardData.back}
+                  onChange={(e) => handleSingleCardChange("back", e.target.value)}
+                  placeholder="Enter answer or definition"
+                  className="w-full min-h-[80px] brutal-border px-3 py-2 font-bold text-black bg-white rounded-none"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">Flashcards</h4>
+                <span className="text-sm text-muted-foreground">{cards.length} cards</span>
+              </div>
+              
+              {cards.map((card, index) => (
+                <div key={index} className="p-4 brutal-border bg-muted/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-sm font-medium">Card {index + 1}</h5>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 brutal-border bg-red-100 text-red-600 hover:bg-red-200 rounded-none ml-2"
+                      onClick={() => handleRemoveCard(index)}
+                      aria-label="Remove card"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`front-${index}`} className="font-black">Front</Label>
+                    <Input
+                      id={`front-${index}`}
+                      value={card.front}
+                      onChange={(e) => handleCardChange(index, "front", e.target.value)}
+                      placeholder="Question or term"
+                      className="w-full brutal-border px-3 py-2 font-bold text-black bg-white rounded-none"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor={`back-${index}`} className="font-black">Back</Label>
+                    <Textarea
+                      id={`back-${index}`}
+                      value={card.back}
+                      onChange={(e) => handleCardChange(index, "back", e.target.value)}
+                      placeholder="Answer or definition"
+                      className="w-full min-h-[80px] brutal-border px-3 py-2 font-bold text-black bg-white rounded-none"
+                    />
+                  </div>
+                </div>
+              ))}
+              
+              <Button
+                type="button"
+                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-black px-4 py-2 mt-2 brutal-button brutal-border rounded-none shadow-[2px_2px_0px_#a855f7]"
+                onClick={handleAddCard}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Card
+              </Button>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-3 brutal-button brutal-border brutal-button-glow rounded-none shadow-[4px_4px_0px_#ff9800]"
-            >
-              <CreditCard className="w-5 h-5 mr-2" />
-              Create Set
+            <Button type="submit">
+              {singleCard ? "Add Flashcard" : "Create Flashcard Set"}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </DialogContent>
-  </Dialog>
+      </DialogContent>
+    </Dialog>
   );
 };
 
