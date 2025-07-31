@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { 
-  Search, 
-  ChevronDown, 
-  ChevronRight, 
-  Lightbulb, 
-  BookOpen, 
+import {
+  Search,
+  ChevronDown,
+  ChevronRight,
+  Lightbulb,
+  BookOpen,
   CheckCircle,
   Bookmark,
   Target,
@@ -24,11 +23,10 @@ import {
   FileText,
   Users,
   Award,
-  ArrowLeftCircle
+  ArrowLeftCircle,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface DoubtNode {
   id: string;
@@ -43,55 +41,82 @@ interface DoubtNode {
 }
 
 const DoubtChain = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const [initialQuestion, setInitialQuestion] = useState("");
   const [doubtTree, setDoubtTree] = useState<DoubtNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [followupLoading, setFollowupLoading] = useState<string | null>(null);
   const [bookmarkedChains, setBookmarkedChains] = useState<any[]>([]);
-  const [stats, setStats] = useState({ 
-    conceptsUnderstood: 0, 
-    chainsCompleted: 0, 
+  const [stats, setStats] = useState({
+    conceptsUnderstood: 0,
+    chainsCompleted: 0,
     weeklyGoal: 20,
-    currentWeekConcepts: 0
+    currentWeekConcepts: 0,
   });
   const { user } = useUser();
   const { toast } = useToast();
 
   const followupOptions = [
-    { key: "example", label: "What's an example?", icon: <Eye className="h-4 w-4" /> },
-    { key: "reallife", label: "Real life connection?", icon: <Users className="h-4 w-4" /> },
-    { key: "simple", label: "Explain like I'm 5", icon: <Lightbulb className="h-4 w-4" /> },
-    { key: "formula", label: "Show formula", icon: <FileText className="h-4 w-4" /> },
-    { key: "summary", label: "1-line summary", icon: <Target className="h-4 w-4" /> }
+    { key: "example", label: "Example", icon: <Eye className="h-4 w-4" /> },
+    { key: "reallife", label: "Real Life", icon: <Users className="h-4 w-4" /> },
+    { key: "simple", label: "Explain Simply", icon: <Lightbulb className="h-4 w-4" /> },
+    { key: "formula", label: "Formula", icon: <FileText className="h-4 w-4" /> },
+    { key: "summary", label: "Summary", icon: <Target className="h-4 w-4" /> },
   ];
 
-  // Animations
+  // Brutalist-style Animations
   const nodeAnim = {
-    hidden: { opacity: 0, x: -30, scale: 0.97 },
-    visible: { 
-      opacity: 1, 
-      x: 0, 
+    hidden: { opacity: 0, x: -20, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      x: 0,
       scale: 1,
-      transition: { 
-        type: "spring" as const, 
-        stiffness: 150, 
-        damping: 15 
-      }
-    }
+      transition: {
+        type: "spring",
+        stiffness: 150,
+        damping: 15,
+      },
+    },
+    hover: {
+      scale: 1.01,
+      boxShadow: "8px 8px 0px 0px #ffffff", // A high-contrast shadow
+      transition: { duration: 0.1 },
+    },
+    tap: {
+      scale: 0.98,
+      x: 4,
+      y: 4,
+      boxShadow: "2px 2px 0px 0px #ffffff", // "Press" effect
+      transition: { duration: 0.1 },
+    },
   };
-  
-  const followupAnim = {
-    hidden: { opacity: 0, y: 24 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
-        duration: 0.35, 
-        type: "spring" as const 
-      } 
-    }
+
+  const buttonAnim = {
+    hover: {
+      scale: 1.05,
+      boxShadow: "6px 6px 0px 0px #ffffff",
+    },
+    tap: {
+      scale: 0.95,
+      x: 3,
+      y: 3,
+      boxShadow: "1px 1px 0px 0px #ffffff",
+    },
+  };
+
+  const containerAnim = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemAnim = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 },
   };
 
   // Load stats and bookmarks on mount
@@ -100,13 +125,6 @@ const DoubtChain = () => {
       loadUserData();
     }
   }, [user]);
-
-  // Handle pre-filled question from navigation
-  useEffect(() => {
-    if (location.state?.prefilledQuestion) {
-      setInitialQuestion(location.state.prefilledQuestion);
-    }
-  }, [location.state]);
 
   const loadUserData = () => {
     const savedStats = localStorage.getItem(`doubt_stats_${user?.id}`);
@@ -122,25 +140,33 @@ const DoubtChain = () => {
 
   const buildDoubtChain = async (question: string, depth = 0): Promise<DoubtNode> => {
     try {
-      const response = await fetch('/api/doubt-chain', {
+      // API call placeholder
+      const data = {
+        isExplanation: depth >= 2,
+        result: depth === 0
+          ? "The process of photosynthesis"
+          : depth === 1
+            ? "What is chlorophyll?"
+            : "Chlorophyll is a green pigment found in plants that absorbs light energy to convert it into chemical energy.",
+      };
+       const response = await fetch('/api/doubt-chain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, depth })
       });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+       const data = await response.json();
+       if (!response.ok) throw new Error(data.error);
 
       const node: DoubtNode = {
         id: `${depth}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        question,
+        question: data.isExplanation ? data.result : data.result,
         explanation: data.isExplanation ? data.result : undefined,
         isExplanation: data.isExplanation,
         depth,
         children: [],
         isExpanded: false,
         isExplored: false,
-        followups: {}
+        followups: {},
       };
 
       // If not at explanation level, recurse
@@ -151,7 +177,7 @@ const DoubtChain = () => {
 
       return node;
     } catch (error) {
-      console.error('Error building doubt chain:', error);
+      console.error("Error building doubt chain:", error);
       throw error;
     }
   };
@@ -162,46 +188,46 @@ const DoubtChain = () => {
     try {
       const tree = await buildDoubtChain(initialQuestion.trim());
       setDoubtTree(tree);
-      setStats(prev => ({ ...prev, chainsCompleted: prev.chainsCompleted + 1 }));
+      setStats((prev) => ({ ...prev, chainsCompleted: prev.chainsCompleted + 1 }));
       toast({
-        title: "Doubt Chain Created! 🌱",
-        description: "Explore each level to understand the fundamentals"
+        title: "Doubt Chain Created!",
+        description: "Explore each level to understand the fundamentals",
       });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to create doubt chain",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleNodeClick = async (nodeId: string) => {
+  const handleNodeClick = (nodeId: string) => {
     if (!doubtTree) return;
 
     const updateNode = (node: DoubtNode): DoubtNode => {
       if (node.id === nodeId) {
         const wasExplored = node.isExplored;
-        const updated = { 
-          ...node, 
+        const updated = {
+          ...node,
           isExpanded: !node.isExpanded,
-          isExplored: true
+          isExplored: true,
         };
         // Track concept understanding
         if (!wasExplored) {
-          setStats(prev => ({ 
-            ...prev, 
+          setStats((prev) => ({
+            ...prev,
             conceptsUnderstood: prev.conceptsUnderstood + 1,
-            currentWeekConcepts: prev.currentWeekConcepts + 1
+            currentWeekConcepts: prev.currentWeekConcepts + 1,
           }));
         }
         return updated;
       }
       return {
         ...node,
-        children: node.children.map(updateNode)
+        children: node.children.map(updateNode),
       };
     };
 
@@ -214,25 +240,18 @@ const DoubtChain = () => {
       const node = findNode(doubtTree!, nodeId);
       if (!node) return;
 
-      const followupMap = {
-        example: "What's an example of this?",
-        reallife: "Can you relate this to real life?",
-        simple: "Explain like I'm 5",
-        formula: "Give formula (if applicable)",
-        summary: "Show 1-line summary"
+      // API call placeholder
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const data = {
+        result: `This is a mockup response for the '${followupType}' followup on the question: "${node.question}".`,
       };
-
-      const response = await fetch('/api/followup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          question: node.question, 
-          followup: followupMap[followupType as keyof typeof followupMap]
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      // const response = await fetch('/api/followup', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ question: node.question, followup: followupType })
+      // });
+      // const data = await response.json();
+      // if (!response.ok) throw new Error(data.error);
 
       // Update node with followup response
       const updateNode = (n: DoubtNode): DoubtNode => {
@@ -242,13 +261,12 @@ const DoubtChain = () => {
         return { ...n, children: n.children.map(updateNode) };
       };
 
-      setDoubtTree(prev => prev ? updateNode(prev) : null);
-      
+      setDoubtTree((prev) => (prev ? updateNode(prev) : null));
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to get followup response",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setFollowupLoading(null);
@@ -268,7 +286,7 @@ const DoubtChain = () => {
     if (!node) return false;
     if (!node.isExplored) return false;
     return node.children.every(isChainFullyExplored);
-  }
+  };
 
   const bookmarkChain = () => {
     if (!doubtTree) return;
@@ -276,291 +294,299 @@ const DoubtChain = () => {
       id: Date.now().toString(),
       originalQuestion: initialQuestion,
       tree: doubtTree,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    setBookmarkedChains(prev => [bookmark, ...prev]);
+    setBookmarkedChains((prev) => [bookmark, ...prev]);
     saveUserData();
     toast({
-      title: "Bookmarked! 📌",
-      description: "Chain saved to your bookmarks"
+      title: "Bookmarked!",
+      description: "Chain saved to your bookmarks",
     });
   };
 
-  // --- Responsive Mobile Nav for Dashboard ---
-  const goToDashboard = () => navigate("/dashboard");
-
-  // --- Render Doubt Nodes with Animations ---
-  const renderDoubtNode = (node: DoubtNode, isRoot = false, i = 0) => (
-    <motion.div
-      key={node.id}
-      variants={nodeAnim}
-      initial="hidden"
-      animate="visible"
-      className="mb-4"
-      layout
-    >
-      <Card className={`transition-all duration-300 shadow-md ${
-        node.isExplored ? 'border-green-500 bg-green-50 dark:bg-green-950' : 
-        'hover:border-blue-500 cursor-pointer'
-      }`}>
-        <CardHeader 
-          className="pb-3 cursor-pointer"
-          onClick={() => handleNodeClick(node.id)}
+  const renderDoubtNode = (node: DoubtNode, isRoot = false) => {
+    const isExpanded = node.isExpanded;
+    return (
+      <motion.div
+        key={node.id}
+        variants={nodeAnim}
+        initial="hidden"
+        animate="visible"
+        whileHover="hover"
+        whileTap="tap"
+        className="mb-6"
+        layout
+      >
+        <Card
+          className={`transition-all duration-100 ease-in-out cursor-pointer bg-black text-white p-0 border-2 border-white rounded-none
+            ${node.isExplored ? "bg-purple-950 border-purple-400" : "hover:border-purple-400"}`}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {node.isExplanation ? (
-                <CheckCircle className="h-5 w-5 text-green-500 animate-bounce" />
-              ) : (
-                <Brain className="h-5 w-5 text-blue-500 animate-pulse" />
-              )}
-              <div>
-                <CardTitle className="text-sm md:text-base">{node.question}</CardTitle>
-                <Badge variant="secondary" className="mt-1 text-xs">
-                  {node.isExplanation ? 'Fundamental' : `Level ${node.depth + 1}`}
-                </Badge>
-              </div>
-            </div>
-            {!node.isExplanation && (
-              node.isExpanded ? 
-              <ChevronDown className="h-5 w-5" /> : 
-              <ChevronRight className="h-5 w-5" />
-            )}
-          </div>
-        </CardHeader>
-        <AnimatePresence>
-          {node.isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.35, type: "spring" }}
-              layout
-            >
-              <CardContent>
-                {node.explanation && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg"
-                  >
-                    <p className="text-sm md:text-base leading-relaxed">{node.explanation}</p>
-                  </motion.div>
-                )}
-                {/* Followup buttons */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-                  {followupOptions.map((option, idx) => (
-                    <motion.div
-                      key={option.key}
-                      variants={followupAnim}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: 0.12 * idx }}
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => handleFollowup(node.id, option.key)}
-                        disabled={followupLoading === node.id + option.key}
-                      >
-                        {option.icon}
-                        {option.label}
-                      </Button>
-                    </motion.div>
-                  ))}
+          <CardHeader
+            className="pb-3 px-4 md:px-6 py-4"
+            onClick={() => handleNodeClick(node.id)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`flex-shrink-0 p-2 border-2 border-white rounded-none ${
+                    node.isExplanation ? "bg-green-400" : "bg-cyan-400"
+                  }`}
+                >
+                  {node.isExplanation ? (
+                    <CheckCircle className="h-5 w-5 text-black" />
+                  ) : (
+                    <Brain className="h-5 w-5 text-black" />
+                  )}
                 </div>
-                {/* Followup responses */}
                 <div>
-                  {Object.entries(node.followups).map(([type, response], idx) => (
-                    <motion.div
-                      key={type}
-                      variants={followupAnim}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: 0.10 + 0.09 * idx }}
-                      className="mb-2 p-3 bg-yellow-50 dark:bg-yellow-950 rounded border-l-4 border-yellow-400"
-                    >
-                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
-                        {followupOptions.find(o => o.key === type)?.label}
-                      </p>
-                      <p className="text-sm text-yellow-700 dark:text-yellow-300">{response}</p>
-                    </motion.div>
-                  ))}
+                  <CardTitle className="text-sm md:text-base font-bold text-white">
+                    {node.question}
+                  </CardTitle>
+                  <Badge
+                    variant="default"
+                    className={`mt-1 text-xs font-mono font-normal rounded-none border-2 border-white ${
+                      node.isExplanation ? "bg-green-400 text-black" : "bg-cyan-400 text-black"
+                    }`}
+                  >
+                    {node.isExplanation ? "FUNDAMENTAL" : `LEVEL ${node.depth + 1}`}
+                  </Badge>
                 </div>
-              </CardContent>
+              </div>
+              {!node.isExplanation && (
+                <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
+                  <ChevronDown className="h-6 w-6" />
+                </motion.div>
+              )}
+            </div>
+          </CardHeader>
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, type: "tween" }}
+                className="overflow-hidden"
+              >
+                <CardContent className="pt-4 pb-6 px-4 md:px-6">
+                  {node.explanation && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-4 p-4 border-2 border-white rounded-none bg-yellow-950/20"
+                    >
+                      <p className="text-sm md:text-base leading-relaxed text-yellow-300">
+                        {node.explanation}
+                      </p>
+                    </motion.div>
+                  )}
+                  {/* Followup buttons */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                    {followupOptions.map((option, idx) => (
+                      <motion.div
+                        key={option.key}
+                        variants={itemAnim}
+                        initial="hidden"
+                        animate="visible"
+                        transition={{ delay: 0.05 * idx }}
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs font-mono rounded-none border-2 border-white bg-black text-white hover:bg-yellow-400 hover:text-black transition-colors"
+                          onClick={() => handleFollowup(node.id, option.key)}
+                          disabled={followupLoading === node.id + option.key}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {option.icon}
+                          {option.label}
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </div>
+                  {/* Followup responses */}
+                  <div>
+                    {Object.entries(node.followups).map(([type, response], idx) => (
+                      <motion.div
+                        key={type}
+                        variants={itemAnim}
+                        initial="hidden"
+                        animate="visible"
+                        transition={{ delay: 0.08 * idx }}
+                        className="mb-2 p-3 bg-yellow-950/40 rounded-none border-l-4 border-yellow-300"
+                      >
+                        <p className="text-sm font-bold text-yellow-300 mb-1">
+                          {followupOptions.find((o) => o.key === type)?.label}:
+                        </p>
+                        <p className="text-sm text-yellow-200">{response}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+        {/* Render children */}
+        <AnimatePresence>
+          {isExpanded && node.children.length > 0 && (
+            <motion.div
+              key={`${node.id}-children`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="pl-6 ml-4 relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-white before:opacity-20 before:rounded-full before:z-0"
+            >
+              <div className="relative z-10 flex flex-col gap-4 pt-4">
+                {node.children.map((child, i) => (
+                  <motion.div key={child.id} layout variants={itemAnim} custom={i}>
+                    {renderDoubtNode(child, false)}
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </Card>
-      {/* Render children */}
-      {node.children.length > 0 && (
-        <div className="ml-4 md:ml-8 mt-4 border-l-2 border-dashed border-gray-300 pl-4">
-          {node.children.map((child, idx) => renderDoubtNode(child, false, idx))}
-        </div>
-      )}
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
-  // --- Render ---
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white relative">
+    <div className="min-h-screen flex flex-col bg-black text-white font-sans">
       <Navbar />
-      {/* Mobile Dashboard FAB */}
-      <button
-        onClick={goToDashboard}
-        className="fixed bottom-20 right-4 z-50 block md:hidden bg-gradient-to-br from-blue-500 to-purple-500 p-3 rounded-full shadow-lg border-2 border-white"
-        aria-label="Back to Dashboard"
-        style={{ boxShadow: "0 5px 24px 0 rgba(88, 101, 242, 0.22)" }}
-      >
-        <ArrowLeftCircle className="h-7 w-7 text-white" />
-      </button>
-
-      <main className="flex-1 py-4 md:py-8 px-2 md:px-4 pb-20 md:pb-8">
-        <div className="container max-w-4xl mx-auto">
+      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
+        <div className="container max-w-5xl mx-auto">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-6 md:mb-8"
+            className="text-center mb-10"
           >
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Brain className="h-8 w-8 text-purple-500" />
-              <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-[0_1px_8px_rgba(139,92,246,0.5)]">
-                AI Doubt Chain
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              >
+                <Brain className="h-10 w-10 text-cyan-400" />
+              </motion.div>
+              <h1 className="text-3xl md:text-5xl font-bold font-mono text-white drop-shadow-[0_4px_4px_rgba(0,255,255,0.2)]">
+                AI DOUBT CHAIN
               </h1>
             </div>
-            <p className="text-muted-foreground">
-              Break down complex concepts into simple, understandable parts
+            <p className="text-sm md:text-base text-gray-400 font-mono">
+              Break down complex concepts into fundamental, digestible parts.
             </p>
           </motion.div>
-
-          {/* Celebratory Message */}
-          {doubtTree && isChainFullyExplored(doubtTree) && (
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 220, damping: 18 }}
-              className="mb-4 md:mb-6 text-center"
-            >
-              <div
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-green-400 via-purple-400 to-blue-400 shadow-lg border-2 border-white"
-                style={{ fontWeight: 600, fontSize: "1.1rem", color: "#222" }}
-              >
-                <span role="img" aria-label="celebrate">🎉</span>
-                Great job! You've fully understood this concept step-by-step.
-                <span role="img" aria-label="party">🌟</span>
-              </div>
-            </motion.div>
-          )}
-
           {/* Stats Dashboard */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6"
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10"
           >
-            <Card className="dark:bg-card">
-              <CardContent className="p-3 md:p-4 text-center">
-                <Award className="h-6 w-6 text-yellow-500 mx-auto mb-2 animate-bounce" />
-                <p className="text-lg font-bold">{stats.conceptsUnderstood}</p>
-                <p className="text-xs text-muted-foreground">Concepts</p>
-              </CardContent>
-            </Card>
-            <Card className="dark:bg-card">
-              <CardContent className="p-3 md:p-4 text-center">
-                <Zap className="h-6 w-6 text-blue-500 mx-auto mb-2 animate-pulse" />
-                <p className="text-lg font-bold">{stats.chainsCompleted}</p>
-                <p className="text-xs text-muted-foreground">Chains</p>
-              </CardContent>
-            </Card>
-            <Card className="dark:bg-card col-span-2">
-              <CardContent className="p-3 md:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="h-5 w-5 text-green-500" />
-                  <p className="text-sm font-medium">Weekly Goal</p>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min((stats.currentWeekConcepts / stats.weeklyGoal) * 100, 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats.currentWeekConcepts}/{stats.weeklyGoal} concepts this week
-                </p>
-              </CardContent>
-            </Card>
+            <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim}>
+              <Card className="dark:bg-black p-0 border-2 border-white rounded-none">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <Award className="h-6 w-6 text-yellow-300 mb-2" />
+                  <p className="text-2xl font-bold">{stats.conceptsUnderstood}</p>
+                  <p className="text-xs text-gray-400">CONCEPTS</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+            <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim}>
+              <Card className="dark:bg-black p-0 border-2 border-white rounded-none">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <Zap className="h-6 w-6 text-blue-400 mb-2" />
+                  <p className="text-2xl font-bold">{stats.chainsCompleted}</p>
+                  <p className="text-xs text-gray-400">CHAINS</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+            <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim} className="col-span-2">
+              <Card className="dark:bg-black p-4 border-2 border-white rounded-none">
+                <CardContent className="p-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="h-5 w-5 text-purple-400" />
+                    <p className="text-sm font-bold">WEEKLY GOAL</p>
+                  </div>
+                  <div className="w-full bg-gray-800 border-2 border-white h-4 rounded-full">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${Math.min((stats.currentWeekConcepts / stats.weeklyGoal) * 100, 100)}%`,
+                      }}
+                      transition={{ duration: 0.5 }}
+                      className="bg-purple-400 h-full rounded-full transition-all"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {stats.currentWeekConcepts}/{stats.weeklyGoal} concepts this week
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
           </motion.div>
-
           {/* Input Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
+            transition={{ delay: 0.4 }}
+            className="mb-10"
           >
-            <Card className="dark:bg-card">
+            <Card className="dark:bg-black p-0 border-2 border-white rounded-none">
               <CardContent className="p-4 md:p-6">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Ask your doubt... (e.g., Why does chlorophyll appear green?)"
+                    placeholder="Ask your doubt..."
                     value={initialQuestion}
                     onChange={(e) => setInitialQuestion(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmitDoubt()}
-                    className="flex-1"
+                    onKeyPress={(e) => e.key === "Enter" && handleSubmitDoubt()}
+                    className="flex-1 rounded-none border-2 border-white bg-black text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                   />
-                  <Button 
-                    onClick={handleSubmitDoubt}
-                    disabled={isLoading || !initialQuestion.trim()}
-                    className="px-4 md:px-6"
-                  >
-                    {isLoading ? (
-                      <div className="loading-spinner" />
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim}>
+                    <Button
+                      onClick={handleSubmitDoubt}
+                      disabled={isLoading || !initialQuestion.trim()}
+                      className="px-4 md:px-6 rounded-none border-2 border-white bg-cyan-400 text-black hover:bg-cyan-500"
+                    >
+                      {isLoading ? (
+                        <div className="loading-spinner" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </motion.div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
-
           {/* Doubt Tree */}
           {doubtTree && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              initial="hidden"
+              animate="visible"
+              variants={containerAnim}
+              className="mb-6 relative"
               layout
             >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Your Doubt Chain</h2>
-                <Button
-                  variant="outline"
-                  onClick={bookmarkChain}
-                  className="flex items-center gap-2"
-                >
-                  <Bookmark className="h-4 w-4" />
-                  Bookmark
-                </Button>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl md:text-2xl font-bold font-mono text-white">
+                  YOUR DOUBT CHAIN
+                </h2>
+                <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim}>
+                  <Button
+                    onClick={bookmarkChain}
+                    className="flex items-center gap-2 rounded-none border-2 border-white bg-yellow-400 text-black hover:bg-yellow-500"
+                  >
+                    <Bookmark className="h-4 w-4" />
+                    Bookmark
+                  </Button>
+                </motion.div>
               </div>
               {renderDoubtNode(doubtTree, true)}
             </motion.div>
           )}
-
-          {/* Back to Dashboard for desktop */}
-          <div className="hidden md:flex justify-center">
-            {/* Desktop only, mobile uses FAB */}
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={goToDashboard}
-              className="gap-2"
-            >
-              <ArrowLeftCircle className="h-6 w-6" />
-              Back to Dashboard
-            </Button>
-          </div>
         </div>
       </main>
       <Footer />
