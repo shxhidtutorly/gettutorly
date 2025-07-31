@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Corrected: Using useNavigate
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { useUserStats } from "@/hooks/useUserStats";
-import ProgressCard from "@/components/dashboard/ProgressCard"; // Assuming this component exists
+import ProgressCard from "@/components/dashboard/ProgressCard"; // Assuming this component exists and is styled
 
 // --- Neon Brutalist UI Configuration ---
 
@@ -135,15 +135,15 @@ const BrutalLoader = () => {
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate(); // Corrected: Using useNavigate
   const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
   const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/signin');
+      navigate('/signin'); // Corrected: Using navigate
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, navigate]); // Corrected: Dependency array
 
   useEffect(() => {
     if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
@@ -154,8 +154,8 @@ const Dashboard = () => {
   }, [user]);
 
   const handleNavigation = useCallback((path: string) => {
-    router.push(path);
-  }, [router]);
+    navigate(path); // Corrected: Using navigate
+  }, [navigate]); // Corrected: Dependency array
 
   const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
@@ -196,7 +196,7 @@ const Dashboard = () => {
   }
 
   if (!user) {
-    return null; // or a redirect component
+    return null; // Or a redirect component
   }
 
   return (
