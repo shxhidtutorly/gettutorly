@@ -1,16 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserDoc, safeSetDoc } from "@/lib/firebase-helpers";
-import { getDoc, Timestamp } from "firebase/firestore";
-import { 
-  updatePassword,
-  sendPasswordResetEmail,
-  updateProfile,
-  deleteUser,
-  updateEmail
-} from "firebase/auth";
-import { useToast } from "@/hooks/use-toast";
+import { db } from "@/lib/firebase"; // Assuming you export db from firebase config
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { updateProfile, sendPasswordResetEmail } from "firebase/auth";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -20,397 +15,283 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Edit, 
-  Check, 
-  User, 
-  Mail, 
-  Calendar, 
-  Crown, 
+import {
+  Edit,
+  Check,
+  User,
+  Crown,
   Settings,
-  CreditCard,
   Shield,
-  Trash2
+  Loader2,
+  Camera
 } from "lucide-react";
 
+// --- Interfaces ---
 interface UserProfile {
   name: string;
   email: string;
-  gender: string;
+  photoURL: string | null;
+  gender: 'male' | 'female' | 'other';
   role: string;
-  created_at: any;
+  createdAt: Timestamp;
   subscription?: {
     plan: string;
     status: string;
-    startDate: string;
     endDate: string;
   };
 }
 
+// --- Main Profile Component ---
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  
+  // State Management
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    name: "",
-    gender: "other",
-  });
+  const [formData, setFormData] = useState({ name: "", gender: "other" as UserProfile['gender'] });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- Data Fetching Effect ---
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      // Optionally navigate to sign-in page
       return;
     }
 
     const loadProfile = async () => {
-      if (!user) return;
-
+      setLoading(true);
       try {
-        setLoading(true);
-        // FIX: Use segment arguments for getUserDoc to ensure even segments
-        const userDocRef = getUserDoc(user.uid, 'profile');
+        // Correctly reference the user's document in the 'users' collection
+        const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
-        
-        let userProfile: UserProfile;
-        
+
+        let userProfileData: UserProfile;
+
         if (userDocSnap.exists()) {
-          userProfile = userDocSnap.data() as UserProfile;
+          userProfileData = userDocSnap.data() as UserProfile;
         } else {
-          // Create default profile
-          userProfile = {
-            name: user.displayName || user.email?.split('@')[0] || '',
+          // If no profile exists, create a default one
+          userProfileData = {
+            name: user.displayName || user.email?.split('@')[0] || 'New User',
             email: user.email || '',
+            photoURL: user.photoURL || null,
             gender: 'other',
             role: 'student',
-            created_at: Timestamp.now(),
+            createdAt: Timestamp.now(),
           };
-          await safeSetDoc(userDocRef, userProfile);
+          await setDoc(userDocRef, userProfileData);
         }
-
-        // Load subscription data
-        try {
-          // FIX: Use segment arguments for getUserDoc to ensure even segments
-          const subscriptionDocRef = getUserDoc(user.uid, 'subscription');
-          const subscriptionSnap = await getDoc(subscriptionDocRef);
-          if (subscriptionSnap.exists()) {
-            userProfile.subscription = subscriptionSnap.data() as UserProfile['subscription'];
-          }
-        } catch (error) {
-          console.log('No subscription data found');
-        }
-
-        setProfile(userProfile);
+        
+        setProfile(userProfileData);
         setFormData({
-          name: userProfile.name || '',
-          gender: userProfile.gender || 'other',
+          name: userProfileData.name,
+          gender: userProfileData.gender,
         });
+
       } catch (error) {
         console.error('Error loading profile:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile data",
-          variant: "destructive"
-        });
+        toast({ title: "Error", description: "Failed to load profile data", variant: "destructive" });
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      loadProfile();
-    }
+    loadProfile();
   }, [user, authLoading, toast]);
 
+  // --- Handlers for Profile Updates ---
   const handleSave = async () => {
     if (!user || !profile) return;
-
     setUpdating(true);
+    
     try {
-      const updatedProfile = {
-        ...profile,
-        name: formData.name.trim(),
-        gender: formData.gender,
-        updated_at: Timestamp.now(),
-      };
+      // Update Firestore document
+      const userDocRef = doc(db, 'users', user.uid);
+      const updatedData = { name: formData.name.trim(), gender: formData.gender };
+      await setDoc(userDocRef, updatedData, { merge: true });
 
-      // FIX: Use segment arguments for getUserDoc to ensure even segments
-      const userDocRef = getUserDoc(user.uid, 'profile');
-      await safeSetDoc(userDocRef, updatedProfile);
-
-      // Update Firebase Auth profile
-      if (user && formData.name.trim() !== user.displayName) {
-        await updateProfile(user, {
-          displayName: formData.name.trim()
-        });
+      // Update Firebase Auth profile if name changed
+      if (formData.name.trim() !== user.displayName) {
+        await updateProfile(user, { displayName: formData.name.trim() });
       }
 
-      setProfile(updatedProfile);
+      setProfile(prev => prev ? { ...prev, ...updatedData } : null);
       setIsEditing(false);
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully"
-      });
+      toast({ title: "Profile Updated", description: "Your changes have been saved." });
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive"
-      });
+      toast({ title: "Update Failed", variant: "destructive" });
     } finally {
       setUpdating(false);
     }
   };
 
-  const handlePasswordReset = async () => {
-    if (!user?.email) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !user) return;
+    const file = e.target.files[0];
+    if (!file.type.startsWith("image/")) {
+        toast({ title: "Invalid File", description: "Please select an image.", variant: "destructive" });
+        return;
+    }
+    setUpdating(true);
 
     try {
+        const storage = getStorage();
+        const storageRef = ref(storage, `profile-pictures/${user.uid}`);
+        
+        // Upload file
+        await uploadBytes(storageRef, file);
+        
+        // Get download URL
+        const photoURL = await getDownloadURL(storageRef);
+        
+        // Update Auth profile
+        await updateProfile(user, { photoURL });
+
+        // Update Firestore document
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, { photoURL }, { merge: true });
+
+        setProfile(prev => prev ? { ...prev, photoURL } : null);
+        toast({ title: "Profile Picture Updated!" });
+
+    } catch (error) {
+        console.error("Image upload error:", error);
+        toast({ title: "Upload Failed", description: "Could not update profile picture.", variant: "destructive" });
+    } finally {
+        setUpdating(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+    try {
       await sendPasswordResetEmail(auth, user.email);
-      toast({
-        title: "Password Reset Sent",
-        description: "Check your email for password reset instructions"
-      });
+      toast({ title: "Password Reset Sent", description: "Check your email for instructions." });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
-  const getProfileImage = (gender: string) => {
-    switch (gender) {
-      case 'male':
-        return '/assets/profile_male.png';
-      case 'female':
-        return '/assets/profile_female.png';
-      default:
-        return '/assets/profile_other.png';
-    }
-  };
-
-  const getPlanBadge = (plan: string) => {
-    const colors = {
-      'free': 'bg-gray-600',
-      'pro': 'bg-blue-600',
-      'premium': 'bg-purple-600'
-    };
-    return colors[plan as keyof typeof colors] || colors.free;
-  };
-
+  // --- UI and Loading States ---
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-lg">Loading profile...</p>
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="text-center font-mono">
+          <Loader2 className="h-12 w-12 animate-spin text-pink-500 mx-auto mb-4" />
+          <p className="text-lg">Loading Profile...</p>
         </div>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
+  if (!user || !profile) {
+    // This can be a redirect to a login page or a proper message
+    return <div className="min-h-screen flex items-center justify-center bg-black text-white">No user profile found.</div>;
   }
+  
+  const neonColors = {
+    pink: 'border-pink-500 text-pink-500 shadow-[4px_4px_0px_#ec4899]',
+    yellow: 'border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_#facc15]',
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
+    <div className="min-h-screen flex flex-col bg-black text-white font-mono">
       <Navbar />
-
-      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
-        <div className="container max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 md:mb-8"
-          >
-            <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
-              <User className="h-6 md:h-8 w-6 md:w-8 text-purple-400" />
-              Your Profile
+      <main className="flex-1 py-8 px-4 pb-20 md:pb-8">
+        <div className="container max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+            <h1 className="text-4xl md:text-5xl font-black mb-2 flex items-center gap-3">
+              <User className="h-10 w-10 text-pink-500" />
+              Profile Settings
             </h1>
-            <p className="text-gray-400 text-sm md:text-base">Manage your account details and preferences</p>
+            <p className="text-gray-400">Manage your account details and preferences.</p>
           </motion.div>
 
-          <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-            {/* Profile Card */}
-            <div className="lg:col-span-2">
-              <Card className="bg-[#121212] border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between pb-3">
-                  <CardTitle className="text-white text-lg">Account Information</CardTitle>
-                  <Button
-                    variant="ghost"
-                    onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                    disabled={updating}
-                    className="text-purple-400 hover:text-purple-300 text-sm"
-                  >
-                    {updating ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400"></div>
-                    ) : isEditing ? (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Save
-                      </>
-                    ) : (
-                      <>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </>
-                    )}
+          <div className="mt-8 grid gap-8 lg:grid-cols-3">
+            {/* --- Profile Details Card (Left) --- */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-2">
+              <Card className={`bg-gray-900 border-2 rounded-none p-6 ${neonColors.pink}`}>
+                <CardHeader className="flex flex-row items-center justify-between p-0 mb-6">
+                  <CardTitle className="text-2xl font-black text-white">Account Information</CardTitle>
+                  <Button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={updating} className={`bg-pink-500 text-black border-2 border-pink-400 hover:bg-pink-400 rounded-none font-black transition-all duration-200 shadow-[4px_4px_0px_#ec4899] h-10 px-4`}>
+                    {updating ? <Loader2 className="h-5 w-5 animate-spin" /> : (isEditing ? <Check className="h-5 w-5" /> : <Edit className="h-5 w-5" />)}
                   </Button>
                 </CardHeader>
-                <CardContent className="space-y-4 md:space-y-6">
-                  {/* Avatar */}
-                  <div className="flex justify-center">
-                    <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-purple-500">
-                      <AvatarImage 
-                        src={getProfileImage(profile?.gender || 'other')} 
-                        alt="Profile"
-                      />
-                      <AvatarFallback className="bg-purple-600 text-white text-xl md:text-2xl">
-                        {profile?.name?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-
-                  {/* Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-gray-300 text-sm">Full Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      disabled={!isEditing}
-                      className="bg-[#1A1A1A] border-slate-600 text-white disabled:opacity-70"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">Email Address</Label>
-                    <Input
-                      value={profile?.email || ''}
-                      disabled
-                      className="bg-[#1A1A1A] border-slate-600 text-gray-400"
-                    />
-                  </div>
-
-                  {/* Gender */}
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">Gender</Label>
-                    <Select
-                      value={formData.gender}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-                      disabled={!isEditing}
-                    >
-                      <SelectTrigger className="bg-[#1A1A1A] border-slate-600 text-white disabled:opacity-70">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#1A1A1A] border-slate-600">
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Role */}
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">Role</Label>
-                    <Input
-                      value="Student"
-                      disabled
-                      className="bg-[#1A1A1A] border-slate-600 text-gray-400"
-                    />
-                  </div>
-
-                  {/* Created Date */}
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">Member Since</Label>
-                    <Input
-                      value={profile?.created_at ? new Date(profile.created_at.toDate ? profile.created_at.toDate() : profile.created_at).toLocaleDateString() : 'N/A'}
-                      disabled
-                      className="bg-[#1A1A1A] border-slate-600 text-gray-400"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Subscription & Actions */}
-            <div className="space-y-4 md:space-y-6">
-              {/* Subscription Card */}
-              <Card className="bg-[#121212] border-slate-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-white flex items-center gap-2 text-lg">
-                    <Crown className="h-5 w-5 text-yellow-500" />
-                    Subscription
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {profile?.subscription ? (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-300 text-sm">Plan</span>
-                        <Badge className={`${getPlanBadge(profile.subscription.plan)} text-white text-xs`}>
-                          {profile.subscription.plan.toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-300 text-sm">Status</span>
-                        <Badge variant={profile.subscription.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                          {profile.subscription.status}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        <p>Expires: {new Date(profile.subscription.endDate).toLocaleDateString()}</p>
-                      </div>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-sm">
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Manage Subscription
-                      </Button>
-                    </>
-                  ) : (
-                    <div className="text-center">
-                      <p className="text-gray-400 mb-4 text-sm">No active subscription</p>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-sm">
-                        <Crown className="mr-2 h-4 w-4" />
-                        Upgrade to Pro
-                      </Button>
+                <CardContent className="p-0 space-y-6">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <div className="relative">
+                      <Avatar className="h-28 w-28 border-4 border-gray-700">
+                        <AvatarImage src={profile.photoURL || ''} alt={profile.name} />
+                        <AvatarFallback className="bg-gray-800 text-pink-500 text-4xl font-black">
+                          {profile.name?.[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isEditing && (
+                        <Button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 h-8 w-8 p-0 bg-white text-black rounded-none border-2 border-black hover:bg-gray-200">
+                          <Camera size={16}/>
+                        </Button>
+                      )}
+                      <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
                     </div>
-                  )}
+                    <div className="flex-1 w-full space-y-4">
+                        <div>
+                            <Label htmlFor="name" className="font-bold text-gray-400">Name</Label>
+                            <Input id="name" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} disabled={!isEditing} className="bg-black border-2 border-gray-600 rounded-none mt-1 h-12 text-lg focus:border-pink-500"/>
+                        </div>
+                        <div>
+                            <Label htmlFor="email" className="font-bold text-gray-400">Email</Label>
+                            <Input id="email" value={profile.email} disabled className="bg-black border-2 border-gray-600 rounded-none mt-1 h-12 text-lg text-gray-500"/>
+                        </div>
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div>
+                        <Label htmlFor="gender" className="font-bold text-gray-400">Gender</Label>
+                        <Select value={formData.gender} onValueChange={(v) => setFormData(p => ({ ...p, gender: v as any }))} disabled={!isEditing}>
+                            <SelectTrigger className="bg-black border-2 border-gray-600 rounded-none mt-1 h-12 text-lg focus:border-pink-500"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-black border-2 border-gray-600 rounded-none text-white font-mono"><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="member-since" className="font-bold text-gray-400">Member Since</Label>
+                        <Input id="member-since" value={profile.createdAt.toDate().toLocaleDateString()} disabled className="bg-black border-2 border-gray-600 rounded-none mt-1 h-12 text-lg text-gray-500"/>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+            </motion.div>
 
-              {/* Account Actions */}
-              <Card className="bg-[#121212] border-slate-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-white flex items-center gap-2 text-lg">
-                    <Settings className="h-5 w-5" />
-                    Account Actions
-                  </CardTitle>
+            {/* --- Subscription & Actions (Right) --- */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="space-y-8">
+              <Card className={`bg-gray-900 border-2 rounded-none p-6 ${neonColors.yellow}`}>
+                <CardHeader className="p-0 mb-4">
+                  <CardTitle className="text-2xl font-black text-white flex items-center gap-2"><Crown className="text-yellow-400"/> Subscription</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-white border-slate-600 hover:bg-slate-800 text-sm"
-                    onClick={handlePasswordReset}
-                  >
-                    <Shield className="mr-2 h-4 w-4" />
-                    Reset Password
+                <CardContent className="p-0">
+                    <div className="text-center text-gray-400">No active subscription.</div>
+                    <Button className="w-full mt-4 bg-yellow-400 text-black border-2 border-yellow-300 hover:bg-yellow-300 rounded-none font-black h-12 text-lg">Upgrade to Pro</Button>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-900 border-2 border-gray-700 rounded-none p-6">
+                <CardHeader className="p-0 mb-4">
+                  <CardTitle className="text-2xl font-black text-white flex items-center gap-2"><Settings/> Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Button onClick={handlePasswordReset} variant="outline" className="w-full bg-transparent text-white border-2 border-gray-600 hover:bg-gray-800 hover:border-gray-500 rounded-none font-bold h-12">
+                      <Shield className="mr-2 h-4 w-4" /> Reset Password
                   </Button>
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
           </div>
         </div>
       </main>
-
       <Footer />
       <BottomNav />
     </div>
