@@ -98,6 +98,21 @@ const Profile = () => {
       } catch (error) {
         console.error('Error loading profile:', error);
         toast({ title: "Error", description: "Failed to load profile data", variant: "destructive" });
+        
+        // Set fallback profile data
+        const fallbackProfile: UserProfile = {
+          name: user.displayName || user.email?.split('@')[0] || 'New User',
+          email: user.email || '',
+          photoURL: user.photoURL || null,
+          gender: 'other',
+          role: 'student',
+          createdAt: Timestamp.now(),
+        };
+        setProfile(fallbackProfile);
+        setFormData({
+          name: fallbackProfile.name,
+          gender: fallbackProfile.gender,
+        });
       } finally {
         setLoading(false);
       }
@@ -173,7 +188,7 @@ const Profile = () => {
   const handlePasswordReset = async () => {
     if (!user?.email) return;
     try {
-      await sendPasswordResetEmail(auth, user.email);
+      await sendPasswordResetEmail(user.email);
       toast({ title: "Password Reset Sent", description: "Check your email for instructions." });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -223,8 +238,26 @@ const Profile = () => {
     );
   }
 
-  if (!user || !profile) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">No user profile found.</div>;
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+          <p className="text-gray-400">Please sign in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Profile Not Found</h2>
+          <p className="text-gray-400">Unable to load profile data.</p>
+        </div>
+      </div>
+    );
   }
   
   const neonColors = {

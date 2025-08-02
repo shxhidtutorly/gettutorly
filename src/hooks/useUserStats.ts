@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserDoc, getUserDocs, safeSetDoc } from '@/lib/firebase-helpers';
 import { getDoc, Timestamp } from 'firebase/firestore';
+import { getUserStats, updateUserStats } from '@/lib/firebase-firestore';
 
 export interface UserStats {
   total_study_time: number;
@@ -33,16 +34,15 @@ export const useUserStats = () => {
       try {
         const uid = user.uid;
         
-        // Check for cached stats first
-        // FIX: Use segment arguments for getUserDoc to ensure even segments
-        const cachedStatsDoc = await getDoc(getUserDoc(uid, 'stats'));
-        if (cachedStatsDoc.exists()) {
-          const cachedData = cachedStatsDoc.data() as UserStats;
-          const lastUpdated = cachedData.lastUpdated?.toDate ? cachedData.lastUpdated.toDate() : new Date(0);
+        // FIXED: Use the corrected getUserStats function
+        const cachedStats = await getUserStats(uid);
+        
+        if (cachedStats && cachedStats.lastUpdated) {
+          const lastUpdated = cachedStats.lastUpdated?.toDate ? cachedStats.lastUpdated.toDate() : new Date(0);
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
           if (lastUpdated > oneHourAgo) {
-            setStats(cachedData);
+            setStats(cachedStats as UserStats);
             setLoading(false);
             console.log("Loaded user stats from cache.");
             return;
@@ -112,23 +112,20 @@ export const useUserStats = () => {
           flashcards_created: flashcards.length,
           average_quiz_score: averageQuizScore,
           sessions_this_month: sessionsThisMonth,
-          learning_milestones: learningMilestones
+          learning_milestones: learningMilestones,
+          lastUpdated: Timestamp.now()
         };
 
         setStats(calculatedStats);
         console.log("Calculated and set new user stats:", calculatedStats);
 
-        // Save stats to cache
-        // FIX: Use segment arguments for getUserDoc to ensure even segments
-        await safeSetDoc(getUserDoc(uid, 'stats'), {
-          ...calculatedStats,
-          lastUpdated: Timestamp.now()
-        });
+        // FIXED: Use the corrected updateUserStats function
+        await updateUserStats(uid, calculatedStats);
 
       } catch (error) {
         console.error('Error loading user stats:', error);
         // Set default stats on error
-        setStats({
+        const defaultStats: UserStats = {
           total_study_time: 0,
           materials_created: 0,
           notes_created: 0,
@@ -136,8 +133,10 @@ export const useUserStats = () => {
           flashcards_created: 0,
           average_quiz_score: 0,
           sessions_this_month: 0,
-          learning_milestones: 0
-        });
+          learning_milestones: 0,
+          lastUpdated: Timestamp.now()
+        };
+        setStats(defaultStats);
       } finally {
         setLoading(false);
       }
