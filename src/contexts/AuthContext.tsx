@@ -6,11 +6,13 @@ import { auth } from '@/lib/firebase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  loading: true
+  loading: true,
+  isAuthenticated: false
 });
 
 export const useAuth = () => {
@@ -27,15 +29,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+      try {
+        setUser(user);
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    }, (error) => {
+      console.error('Auth state change error:', error);
+      setUser(null);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
+  const value = {
+    user,
+    loading,
+    isAuthenticated: !!user
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

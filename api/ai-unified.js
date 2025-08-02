@@ -6,6 +6,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 console.log('✅ Unified AI API import successful');
 
+// Import authentication utilities
+import { verifyFirebaseToken } from '../src/lib/firebase-auth-utils.js';
+
 export default async function handler(req, res) {
   console.log('=== UNIFIED AI API ROUTE START ===');
   console.log('Method:', req.method);
@@ -13,7 +16,7 @@ export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   // Handle OPTIONS request for CORS
   if (req.method === 'OPTIONS') {
@@ -24,6 +27,25 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     console.log('❌ Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Verify authentication
+  try {
+    const user = await verifyFirebaseToken(req);
+    if (!user) {
+      console.log('❌ Authentication failed');
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'Please provide a valid Firebase ID token'
+      });
+    }
+    console.log('✅ Authenticated user:', user.uid);
+  } catch (error) {
+    console.error('❌ Authentication error:', error);
+    return res.status(500).json({ 
+      error: 'Authentication error',
+      message: 'Internal server error during authentication'
+    });
   }
   
   try {
@@ -104,38 +126,30 @@ export default async function handler(req, res) {
     console.error('=== UNIFIED AI API ROUTE ERROR ===');
     console.error('Error details:', error);
     console.error('Error stack:', error.stack);
-    
+
     // Handle specific error types
     if (error instanceof Error) {
-      if (error.message.includes('rate limit') || error.message.includes('quota')) {
+      if (error.message.includes('rate limit')) {
         console.log('❌ Rate limit error');
-        return res.status(429).json({ 
+        return res.status(429).json({
           error: 'Rate limit exceeded. Please try again later.',
-          details: error.message 
+          details: error.message,
         });
       }
-      
-      if (error.message.includes('unauthorized') || error.message.includes('invalid key') || error.message.includes('API key')) {
+
+      if (error.message.includes('unauthorized') || error.message.includes('invalid key')) {
         console.log('❌ Auth error');
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Authentication failed. Please check API keys.',
-          details: error.message 
-        });
-      }
-      
-      if (error.message.includes('safety') || error.message.includes('blocked')) {
-        console.log('❌ Safety filter error');
-        return res.status(400).json({ 
-          error: 'Content was blocked by safety filters. Please try rephrasing your request.',
-          details: error.message 
+          details: error.message,
         });
       }
     }
-    
+
     console.log('❌ General error');
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Internal server error. Please try again later.',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }

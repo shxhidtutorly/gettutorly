@@ -7,6 +7,9 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
@@ -55,7 +58,7 @@ export const useFirebaseAuth = () => {
       });
       return { user: result.user, error: null };
     } catch (error: any) {
-      const errorMessage = error.message || "Failed to sign in";
+      const errorMessage = getFirebaseErrorMessage(error.code);
       toast({
         title: "Sign In Failed",
         description: errorMessage,
@@ -82,7 +85,7 @@ export const useFirebaseAuth = () => {
       });
       return { user: result.user, error: null };
     } catch (error: any) {
-      const errorMessage = error.message || "Failed to create account";
+      const errorMessage = getFirebaseErrorMessage(error.code);
       toast({
         title: "Sign Up Failed",
         description: errorMessage,
@@ -105,9 +108,10 @@ export const useFirebaseAuth = () => {
       });
       return { user: result.user, error: null };
     } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error.code);
       toast({
         title: "Google Sign In Failed",
-        description: error.message || "Something went wrong with Google sign-in",
+        description: errorMessage,
         variant: "destructive"
       });
       return { user: null, error };
@@ -141,12 +145,108 @@ export const useFirebaseAuth = () => {
       });
       return { error: null };
     } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error.code);
       toast({
         title: "Error",
-        description: error.message || "Failed to send reset email",
+        description: errorMessage,
         variant: "destructive"
       });
       return { error };
+    }
+  };
+
+  // New function to update password with re-authentication
+  const updateUserPassword = async (currentPassword: string, newPassword: string) => {
+    if (!user?.email) {
+      throw new Error('No user email available');
+    }
+
+    try {
+      setLoading(true);
+      
+      // Re-authenticate user before password change
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(auth.currentUser!, credential);
+      
+      // Update password
+      await updatePassword(auth.currentUser!, newPassword);
+      
+      toast({
+        title: "Success",
+        description: "Password updated successfully!"
+      });
+      
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error.code);
+      toast({
+        title: "Password Update Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return { error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // New function to update profile
+  const updateUserProfile = async (updates: { displayName?: string; photoURL?: string }) => {
+    if (!auth.currentUser) {
+      throw new Error('No authenticated user');
+    }
+
+    try {
+      setLoading(true);
+      await updateProfile(auth.currentUser, updates);
+      
+      // Update local state
+      setUser(prev => prev ? {
+        ...prev,
+        displayName: updates.displayName || prev.displayName,
+        photoURL: updates.photoURL || prev.photoURL
+      } : null);
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!"
+      });
+      
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error.code);
+      toast({
+        title: "Profile Update Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return { error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to get user-friendly error messages
+  const getFirebaseErrorMessage = (errorCode: string): string => {
+    switch (errorCode) {
+      case 'auth/user-not-found':
+        return 'No account found with this email address.';
+      case 'auth/wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'auth/email-already-in-use':
+        return 'An account with this email already exists.';
+      case 'auth/weak-password':
+        return 'Password should be at least 6 characters long.';
+      case 'auth/invalid-email':
+        return 'Please enter a valid email address.';
+      case 'auth/too-many-requests':
+        return 'Too many failed attempts. Please try again later.';
+      case 'auth/requires-recent-login':
+        return 'Please sign in again to perform this action.';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your connection.';
+      default:
+        return 'An error occurred. Please try again.';
     }
   };
 
@@ -155,9 +255,11 @@ export const useFirebaseAuth = () => {
     loading,
     signIn,
     signUp,
-    signInWithGoogle, // ✅ now exported
+    signInWithGoogle,
     signOut,
     resetPassword,
+    updateUserPassword,
+    updateUserProfile,
     isAuthenticated: !!user
   };
 };
