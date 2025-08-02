@@ -1,9 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 import { useUserStats } from "@/hooks/useUserStats";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Calendar, Target, Award, Brain } from "lucide-react";
@@ -24,16 +22,23 @@ const Progress = () => {
   const { weeklyData, monthlyData, progressData, loading: dataLoading } = useProgressData(user?.uid || null);
   const [selectedPeriod, setSelectedPeriod] = useState<"week" | "month" | "year">("month");
 
-  const totalCreated = (stats?.summaries_created || 0) + 
-                      (stats?.notes_created || 0) + 
-                      (stats?.quizzes_taken || 0) + 
-                      (stats?.flashcards_created || 0);
+  const totalCreated = (stats?.summaries_created || 0) +
+    (stats?.notes_created || 0) +
+    (stats?.quizzes_taken || 0) +
+    (stats?.flashcards_created || 0);
+    
+  const neonColors = {
+    cyan: 'border-cyan-400 text-cyan-400 shadow-[4px_4px_0px_#00f7ff]',
+    green: 'border-green-400 text-green-400 shadow-[4px_4px_0px_#22c55e]',
+    pink: 'border-pink-500 text-pink-500 shadow-[4px_4px_0px_#ec4899]',
+    yellow: 'border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_#facc15]',
+  };
 
   if (loading || dataLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
           <p className="text-lg">Loading your progress...</p>
         </div>
       </div>
@@ -41,7 +46,7 @@ const Progress = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-white">
+    <div className="min-h-screen flex flex-col bg-black text-white font-mono">
       <Navbar />
       
       <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
@@ -51,8 +56,8 @@ const Progress = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-              <TrendingUp className="h-8 w-8 text-green-400" />
+            <h1 className="text-4xl md:text-5xl font-black mb-2 flex items-center gap-3">
+              <TrendingUp className="h-10 w-10 text-green-400" />
               Learning Progress
             </h1>
             <p className="text-gray-400">Track your learning journey and achievements</p>
@@ -66,7 +71,7 @@ const Progress = () => {
                 variant={selectedPeriod === period ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedPeriod(period)}
-                className={selectedPeriod === period ? "bg-purple-600 hover:bg-purple-700" : "border-slate-600 hover:bg-slate-800"}
+                className={`rounded-none font-bold transition-all duration-200 ${selectedPeriod === period ? `bg-cyan-500 text-black border-2 border-cyan-400 ${neonColors.cyan}` : "bg-gray-800 text-white border-2 border-gray-600 hover:bg-gray-700"}`}
               >
                 {period.charAt(0).toUpperCase() + period.slice(1)}
               </Button>
@@ -78,49 +83,49 @@ const Progress = () => {
             <ProgressStatCard
               title="Total Created"
               value={totalCreated}
-              icon={<Calendar className="h-4 w-4" />}
-              color="blue"
+              icon={<Calendar className="h-6 w-6" />}
+              color="cyan"
             />
             <ProgressStatCard
               title="Notes Created"
               value={stats?.notes_created || 0}
-              icon={<Target className="h-4 w-4" />}
-              color="green"
+              icon={<Target className="h-6 w-6" />}
+              color="pink"
             />
             <ProgressStatCard
               title="Quizzes Taken"
               value={stats?.quizzes_taken || 0}
-              icon={<Award className="h-4 w-4" />}
+              icon={<Award className="h-6 w-6" />}
               color="yellow"
             />
             <ProgressStatCard
               title="Study Hours"
               value={Math.round((stats?.total_study_time || 0) / 60)}
-              icon={<TrendingUp className="h-4 w-4" />}
-              color="purple"
+              icon={<TrendingUp className="h-6 w-6" />}
+              color="green"
             />
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="bg-[#1A1A1A] border border-slate-700">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600">
+            <TabsList className="bg-gray-900 border-2 border-gray-700 rounded-none p-1">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black rounded-none font-bold">
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="materials" className="data-[state=active]:bg-purple-600">
+              <TabsTrigger value="materials" className="data-[state=active]:bg-pink-500 data-[state=active]:text-black rounded-none font-bold">
                 Materials
               </TabsTrigger>
-              <TabsTrigger value="insights" className="data-[state=active]:bg-purple-600">
+              <TabsTrigger value="insights" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black rounded-none font-bold">
                 Insights
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-                <WeeklyStudyHoursChart 
+                <WeeklyStudyHoursChart
                   data={weeklyData}
                   isLoading={dataLoading}
                 />
-                <MonthlyProgressChart 
+                <MonthlyProgressChart
                   data={monthlyData}
                   isLoading={dataLoading}
                 />
@@ -128,7 +133,7 @@ const Progress = () => {
             </TabsContent>
 
             <TabsContent value="materials" className="space-y-6">
-              <MaterialProgressCard 
+              <MaterialProgressCard
                 name="Study Materials Progress"
                 progress={progressData.materialsProgress}
               />
@@ -136,13 +141,13 @@ const Progress = () => {
 
             <TabsContent value="insights" className="space-y-6">
               <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-                <LearningInsightCard 
+                <LearningInsightCard
                   icon={<Brain className="h-6 w-6" />}
                   title="Learning Streak"
                   value={`${progressData.streak} days`}
                   description="Keep up the great work!"
                 />
-                <LearningInsightCard 
+                <LearningInsightCard
                   icon={<Award className="h-6 w-6" />}
                   title="Weekly Goal"
                   value={`${progressData.weeklyProgress}%`}
