@@ -260,7 +260,8 @@ const Profile = () => {
                     </div>
                     <div>
                         <Label htmlFor="member-since" className="font-bold text-gray-400">Member Since</Label>
-                        <Input id="member-since" value={profile.createdAt.toDate().toLocaleDateString()} disabled className="bg-black border-2 border-gray-600 rounded-none mt-1 h-12 text-lg text-gray-500"/>
+                        {/* THE FIX IS HERE */}
+                        <Input id="member-since" value={profile.createdAt?.toDate().toLocaleDateString() || 'N/A'} disabled className="bg-black border-2 border-gray-600 rounded-none mt-1 h-12 text-lg text-gray-500"/>
                     </div>
                   </div>
                 </CardContent>
