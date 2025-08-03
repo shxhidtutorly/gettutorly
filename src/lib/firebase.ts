@@ -6,7 +6,7 @@ import { getStorage } from 'firebase/storage';
 // Use your actual config values here
 const firebaseConfig = {
   apiKey: "AIzaSyBzVjEtj1jTM7P-MKmoUkEneA121juKOjw",
-  authDomain: "studyai-39fb8.firebaseapp.com",
+  authDomain: "auth.gettutorly.com",
   projectId: "studyai-39fb8",
   storageBucket: "studyai-39fb8.appspot.com",
   messagingSenderId: "167999192726",
