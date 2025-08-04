@@ -29,6 +29,7 @@ import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { useHistory } from "@/hooks/useHistory";
+import { Input } from "@/components/ui/input"; 
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
