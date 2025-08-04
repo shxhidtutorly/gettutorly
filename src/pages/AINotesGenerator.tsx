@@ -24,7 +24,7 @@ import {
   Zap
 } from "lucide-react";
 import { ExtractionResult, extractTextFromFile } from "@/lib/fileExtractor";
-import FileUploader from "@/components/FileUploader"; // ✅ Make sure this path is correct
+import FileUploader from "@/components/features/FileUploader";
 // Assuming you have this helper
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
