@@ -1,20 +1,14 @@
-"use client";
-
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import FileUploader from "@/components/features/FileUploader";
-import NotesDisplay from "@/components/features/NotesDisplay";
-import NotesChat from "@/components/features/NotesChat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BookOpen,
   Loader2,
@@ -26,394 +20,250 @@ import {
   FileText,
   Send,
   Trash2,
-  ExternalLink,
+  HelpCircle,
+  Zap
 } from "lucide-react";
-import { ExtractionResult } from "@/lib/fileExtractor";
+import { ExtractionResult, extractTextFromFile } from "@/lib/fileExtractor"; // Assuming you have this helper
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { useHistory } from "@/hooks/useHistory";
-import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
-import { QuizFromNotesButton } from "@/components/features/QuizFromNotesButton";
-import { doc, getDoc } from "firebase/firestore";
-import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 
+// --- Interfaces ---
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
 }
 
+// --- Main Component ---
 const AINotesGenerator = () => {
   const [user] = useAuthState(auth);
-  const [extractedFile, setExtractedFile] = useState<ExtractionResult | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { trackNotesCreation, endSession, startSession } = useStudyTracking();
+  const { addHistoryEntry } = useHistory('notes');
+
+  // --- State Management ---
+  const [inputType, setInputType] = useState<'upload' | 'text'>('upload');
+  const [sourceText, setSourceText] = useState("");
+  const [sourceFilename, setSourceFilename] = useState("Pasted Text");
   const [note, setNote] = useState<AINote | null>(null);
-  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
-  const [notesProgress, setNotesProgress] = useState(0);
-  const [textInput, setTextInput] = useState("");
-  const [activeTab, setActiveTab] = useState("upload");
-  const [showChat, setShowChat] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
+  // Chat State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [flashcardsGenerated, setFlashcardsGenerated] = useState(false);
 
-  const { trackNotesCreation, endSession, startSession } = useStudyTracking();
-  const { addHistoryEntry } = useHistory("notes");
-  const { toast } = useToast();
-
+  // --- Handlers ---
   const handleFileProcessed = async (result: ExtractionResult) => {
-    setExtractedFile(result);
-    startSession();
-    await generateNotes(result);
+    setSourceText(result.text);
+    setSourceFilename(result.filename);
+    await generateNotes(result.text, result.filename);
   };
 
   const handleTextSubmit = async () => {
-    if (!textInput.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Please enter some text to generate notes from",
-      });
+    if (!sourceText.trim()) {
+      toast({ variant: "destructive", title: "Please enter some text." });
       return;
     }
-
-    const result: ExtractionResult = {
-      text: textInput.trim(),
-      filename: "Text Input",
-      fileType: "text",
-    };
-    setExtractedFile(result);
-    startSession();
-    await generateNotes(result);
+    await generateNotes(sourceText, "Pasted Text");
   };
 
-  const generateNotes = async (fileResult: ExtractionResult) => {
-    setIsGeneratingNotes(true);
-    setNotesProgress(10);
-    try {
-      setNotesProgress(30);
-      const generatedNote = await generateNotesAI(fileResult.text, fileResult.filename, user?.uid || "");
-      setNotesProgress(80);
-      setNote(generatedNote);
-      setNotesProgress(100);
+  const generateNotes = async (text: string, filename: string) => {
+    setIsLoading(true);
+    setProgress(10);
+    startSession();
 
-      await addHistoryEntry(
-        `Source: ${fileResult.filename}`,
-        generatedNote.content,
-        { title: generatedNote.title, type: "notes_generation" }
-      );
+    try {
+      setProgress(30);
+      const generatedNote = await generateNotesAI(text, filename, user?.uid || "");
+      setProgress(80);
+      setNote(generatedNote);
+      setProgress(100);
+
+      await addHistoryEntry(`Source: ${filename}`, generatedNote.content, { title: generatedNote.title, type: 'notes_generation' });
       trackNotesCreation();
       endSession("notes", generatedNote.title, true);
 
-      setTimeout(() => setNotesProgress(0), 1000);
-
-      toast({
-        title: "Notes generated successfully! 🎉",
-        description: "Your AI-powered study notes are ready.",
-      });
+      toast({ title: "Notes Generated Successfully! 🎉" });
+      setTimeout(() => setProgress(0), 1000);
     } catch (error) {
       console.error("Error generating notes:", error);
-      setNotesProgress(0);
-      endSession("notes", fileResult.filename, false);
-      toast({
-        variant: "destructive",
-        title: "Error generating notes",
-        description: error instanceof Error ? error.message : "Please try again",
-      });
+      endSession("notes", filename, false);
+      toast({ variant: "destructive", title: "Error Generating Notes", description: error instanceof Error ? error.message : "Please try again." });
+      setProgress(0);
     } finally {
-      setIsGeneratingNotes(false);
+      setIsLoading(false);
     }
   };
-
+  
   const handleChatSubmit = async () => {
     if (!chatInput.trim() || !note) return;
-    const userMessage: ChatMessage = {
-      role: "user",
-      content: chatInput.trim(),
-      timestamp: new Date(),
-    };
-    setChatMessages((prev) => [...prev, userMessage]);
+
+    const newUserMessage: ChatMessage = { role: 'user', content: chatInput.trim() };
+    const currentChatHistory = [...chatMessages, newUserMessage];
+    setChatMessages(currentChatHistory);
     const currentInput = chatInput.trim();
     setChatInput("");
     setIsChatLoading(true);
+
     try {
-      // Simulate AI response - in production, you'd call your AI service
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
           prompt: `Based on these notes: "${note.content}"\n\nUser question: ${currentInput}`,
-          model: "groq",
-        }),
+          model: 'groq' // Or your preferred model
+        })
       });
-
-      if (!response.ok) throw new Error("Failed to get AI response");
+      if (!response.ok) throw new Error('Failed to get AI response');
       const data = await response.json();
-      const aiMessage: ChatMessage = {
-        role: "assistant",
-        content: data.response || data.message || "I apologize, but I had trouble processing your question.",
-        timestamp: new Date(),
-      };
-      setChatMessages((prev) => [...prev, aiMessage]);
-
-      await addHistoryEntry(currentInput, aiMessage.content, {
-        type: "notes_chat",
-        notesTitle: note.title,
-      });
+      
+      const aiMessage: ChatMessage = { role: 'assistant', content: data.response };
+      setChatMessages([...currentChatHistory, aiMessage]);
     } catch (error) {
-      console.error("Error in chat:", error);
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        content: "I apologize, but I had trouble processing your question. Please try again.",
-        timestamp: new Date(),
-      };
-      setChatMessages((prev) => [...prev, errorMessage]);
+      console.error('Chat error:', error);
+      const errorMessage: ChatMessage = { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' };
+      setChatMessages([...currentChatHistory, errorMessage]);
     } finally {
       setIsChatLoading(false);
     }
   };
 
-  const handleGenerateFlashcardsFromNotes = async () => {
-    setIsGeneratingNotes(true);
-    try {
-      const flashcards = await generateFlashcardsAI(note.content);
-      localStorage.setItem("flashcards", JSON.stringify(flashcards));
-      localStorage.setItem("flashcards-source", note.title);
-      setFlashcardsGenerated(true);
-      toast({
-        title: "Flashcards generated!",
-        description: `Created ${flashcards.length} flashcards from your notes.`,
-      });
-    } catch (error) {
-      console.error("Error generating flashcards:", error);
-      toast({
-        variant: "destructive",
-        title: "Error generating flashcards",
-        description: error instanceof Error ? error.message : "Please try again",
-      });
-    } finally {
-      setIsGeneratingNotes(false);
-    }
+  const createFlashcards = () => {
+    if (!note) return;
+    localStorage.setItem('flashcards', JSON.stringify(note.flashcards));
+    localStorage.setItem('flashcards-source', note.title);
+    toast({ title: "Flashcards Ready! 📚", description: "Navigating you to the flashcards page." });
+    navigate('/flashcards');
+  };
+
+  const createQuiz = () => {
+    if (!note) return;
+    localStorage.setItem('generatedQuiz', JSON.stringify({ title: note.title, questions: note.quiz }));
+    toast({ title: "Quiz Ready! 📝", description: "Navigating you to the quiz page." });
+    navigate('/quiz?source=generated');
   };
 
   const startOver = () => {
-    setExtractedFile(null);
+    setSourceText("");
+    setSourceFilename("Pasted Text");
     setNote(null);
-    setNotesProgress(0);
-    setTextInput("");
-    setShowChat(false);
+    setProgress(0);
     setChatMessages([]);
-    setActiveTab("upload");
-    setFlashcardsGenerated(false);
+    setInputType('upload');
   };
 
+  // --- UI Components & Styles ---
+  const neonColors = {
+    green: 'border-green-400 text-green-400 shadow-[4px_4px_0px_#22c55e]',
+    pink: 'border-pink-500 text-pink-500 shadow-[4px_4px_0px_#ec4899]',
+  };
+
+  const BrutalistButton = ({ children, onClick, disabled, className = '' }: { children: React.ReactNode, onClick?: () => void, disabled?: boolean, className?: string }) => (
+    <Button onClick={onClick} disabled={disabled} className={`bg-transparent border-2 hover:bg-gray-800 rounded-none font-bold transition-all duration-200 ${className}`}>
+      {children}
+    </Button>
+  );
+
   return (
-    <div className="min-h-screen flex flex-col text-white bg-black">
+    <div className="min-h-screen flex flex-col bg-black text-white font-mono">
       <Navbar />
+      <main className="flex-1 py-8 px-4">
+        <div className="container max-w-7xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+            <h1 className="text-4xl md:text-5xl font-black text-white flex items-center justify-center gap-3">
+              <Sparkles className="w-10 h-10 text-green-400"/>
+              AI Notes Generator
+            </h1>
+            <p className="text-gray-400 mt-2">Generate notes, flashcards, and quizzes from any document or text.</p>
+          </motion.div>
 
-      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
-        <div className="container max-w-6xl mx-auto">
-          <div className="text-center mb-6 md:mb-8 animate-fadeInDown transition-all duration-300">
-            <div className="flex items-center justify-center mb-4">
-              <span className="text-2xl md:text-3xl mr-2" role="img" aria-label="sparkles">
-                ✨
-              </span>
-              <BookOpen className="h-6 w-6 md:h-8 md:w-8 mr-3 text-primary" />
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide">AI Notes Generator</h1>
-              <span className="text-2xl md:text-3xl ml-2" role="img" aria-label="books">
-                📚
-              </span>
-            </div>
-            <p className="max-w-2xl mx-auto text-sm md:text-base font-medium text-white/80">
-              Turn any study file or text into detailed AI-powered notes, flashcards, and quizzes — all in one place.
-            </p>
-          </div>
-
-          {isGeneratingNotes && notesProgress > 0 && (
-            <div className="max-w-2xl mx-auto mb-8">
-              <div className="text-center mb-4">
-                <Loader2 className="w-8 h-8 md:w-12 md:h-12 animate-spin mx-auto mb-2 text-yellow-400" />
-                <h3 className="text-lg md:text-xl font-bold tracking-wide">
-                  Creating AI Notes... <span role="img" aria-label="robot">🤖</span>
-                </h3>
-                <p className="text-white/70 text-sm md:text-base">
-                  {notesProgress < 30
-                    ? "Thinking... 🤔"
-                    : notesProgress < 80
-                    ? "Structuring Notes... 📝"
-                    : "Generating with AI... 🚀"}
-                </p>
-              </div>
-              <Progress value={notesProgress} className="h-3 bg-gradient-to-r from-yellow-400 to-pink-500" />
-            </div>
-          )}
-
-          {!note && !isGeneratingNotes && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="animate-fadeInUp mb-6 md:mb-8"
-            >
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-800">
-                  <TabsTrigger value="upload" className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden sm:inline">Upload File</span>
-                    <span className="sm:hidden">Upload</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="text" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="hidden sm:inline">Paste Text</span>
-                    <span className="sm:hidden">Text</span>
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="upload">
-                  <FileUploader
-                    onFileProcessed={handleFileProcessed}
-                    isProcessing={isGeneratingNotes}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="text" className="space-y-4">
-                  <Card className="bg-gray-900 border-gray-700">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Paste Your Text
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Textarea
-                        value={textInput}
-                        onChange={(e) => setTextInput(e.target.value)}
-                        placeholder="Paste your study material, lecture notes, or any text content here..."
-                        className="min-h-[200px] resize-none bg-gray-800 border-gray-700 text-white"
-                        disabled={isGeneratingNotes}
-                      />
-                      <Button
-                        onClick={handleTextSubmit}
-                        disabled={isGeneratingNotes || !textInput.trim()}
-                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                      >
-                        {isGeneratingNotes ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4 mr-2" />
-                            Generate AI Notes
-                          </>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </motion.div>
-          )}
-
-          {note && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6 md:space-y-8"
-            >
-              <div className="flex flex-col md:flex-row gap-4 justify-center items-center flex-wrap">
-                <Button onClick={startOver} variant="ghost" className="flex items-center gap-2 text-red-500 hover:text-white hover:bg-red-500">
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Delete Notes</span>
-                  <span className="sm:hidden">Delete</span>
-                </Button>
-                <DownloadNotesButton content={note.content} filename={note.title}>
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline">Download Notes</span>
-                  <span className="sm:hidden">Download</span>
-                </DownloadNotesButton>
-                <QuizFromNotesButton notesContent={note.content} notesTitle={note.title}>
-                  <Sparkles className="w-4 h-4" />
-                  <span className="hidden sm:inline">Generate Quiz</span>
-                  <span className="sm:hidden">Quiz</span>
-                </QuizFromNotesButton>
-                <Button onClick={handleGenerateFlashcardsFromNotes} disabled={isGeneratingNotes || flashcardsGenerated} variant="default" className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700">
-                  {isGeneratingNotes ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : flashcardsGenerated ? (
-                    <>
-                      <ExternalLink className="w-4 h-4" />
-                      <span className="hidden sm:inline">View Flashcards</span>
-                      <span className="sm:hidden">View Cards</span>
-                    </>
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* --- LEFT PANEL: INPUT --- */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+              <div className={`bg-gray-900 border-2 rounded-none p-6 min-h-[60vh] ${note ? 'border-gray-700' : neonColors.green}`}>
+                <AnimatePresence mode="wait">
+                  {note ? (
+                     <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
+                        <h2 className="text-2xl font-black text-white mb-4">Actions</h2>
+                        <div className="space-y-4">
+                           <BrutalistButton onClick={createQuiz} className={`w-full h-14 text-lg ${neonColors.green}`}><HelpCircle className="mr-2"/> Create Quiz</BrutalistButton>
+                           <BrutalistButton onClick={createFlashcards} className={`w-full h-14 text-lg ${neonColors.pink}`}><Zap className="mr-2"/> Create Flashcards</BrutalistButton>
+                           <DownloadNotesButton content={note.content} filename={note.title} />
+                        </div>
+                        <div className="mt-auto pt-4">
+                           <Button onClick={startOver} className="w-full bg-gray-800 text-white border-2 border-gray-600 hover:bg-gray-700 rounded-none font-bold h-12">
+                              <RefreshCcw className="mr-2"/> Generate New Notes
+                           </Button>
+                        </div>
+                     </motion.div>
                   ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span className="hidden sm:inline">Generate Flashcards</span>
-                      <span className="sm:hidden">Cards</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              <div className="w-full max-w-6xl mx-auto space-y-6">
-                <Card className="bg-gray-900 border-gray-700">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <CardTitle className="flex items-center gap-2">
-                          <FileText className="w-5 h-5 text-purple-400" />
-                          {note.title}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Badge variant="secondary" className="bg-gray-700 text-gray-200">{note.filename}</Badge>
-                          <span>•</span>
-                          <span>{new Date(note.timestamp).toLocaleDateString()}</span>
-                        </div>
+                    <motion.div key="input-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                      <div className="flex justify-center gap-2 mb-6 p-1 bg-black border-2 border-gray-700 rounded-none w-fit mx-auto">
+                        <Button onClick={() => setInputType('upload')} className={`rounded-none font-bold ${inputType === 'upload' ? 'bg-green-500 text-black' : 'bg-transparent text-white'}`}><Upload className="w-4 h-4 mr-2"/> Upload</Button>
+                        <Button onClick={() => setInputType('text')} className={`rounded-none font-bold ${inputType === 'text' ? 'bg-green-500 text-black' : 'bg-transparent text-white'}`}><FileText className="w-4 h-4 mr-2"/> Paste Text</Button>
                       </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-
-                <Tabs defaultValue="notes" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-gray-800">
-                    <TabsTrigger value="notes" className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Notes
-                    </TabsTrigger>
-                    <TabsTrigger value="chat" className="flex items-center gap-2">
-                      <MessageCircle className="w-4 h-4" />
-                      Chat with Notes
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="notes">
-                    <Card className="bg-gray-900 border-gray-700">
-                      <Separator className="bg-gray-700" />
-                      <CardContent className="p-6">
-                        <div className="prose prose-invert max-w-none">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                  
-                  <TabsContent value="chat">
-                    <NotesChat noteId={note.id || `note-${Date.now()}`} noteContent={note.content} noteTitle={note.title} />
-                  </TabsContent>
-                </Tabs>
+                      
+                      {inputType === 'upload' ? (
+                        <FileUploader onFileProcessed={handleFileProcessed} isProcessing={isLoading} />
+                      ) : (
+                        <Textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} placeholder="Paste your text here..." className="w-full h-48 bg-black border-2 border-gray-600 rounded-none text-white p-4 focus:border-green-400 focus:ring-0 resize-none"/>
+                      )}
+                      
+                      <Button onClick={inputType === 'upload' ? () => {} : handleTextSubmit} disabled={isLoading || (inputType === 'text' && !sourceText.trim())} className="w-full mt-6 bg-green-500 text-black border-2 border-green-400 hover:bg-green-400 rounded-none font-black text-lg h-14">
+                        {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Sparkles className="w-6 h-6 mr-2"/> Generate Notes </>}
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
-          )}
+
+            {/* --- RIGHT PANEL: OUTPUT --- */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
+               <div className={`bg-gray-900 border-2 rounded-none p-6 min-h-[60vh] flex flex-col ${note ? neonColors.pink : 'border-gray-700'}`}>
+                  <AnimatePresence mode="wait">
+                     {isLoading ? (
+                        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full">
+                           <Loader2 className="w-12 h-12 animate-spin text-green-400 mb-4"/>
+                           <h3 className="text-xl font-bold">Generating AI Notes...</h3>
+                           <p className="text-gray-400">This might take a moment.</p>
+                           <Progress value={progress} className="w-full max-w-xs mt-4 h-2 bg-black border-2 border-green-400 rounded-none p-0" />
+                        </motion.div>
+                     ) : note ? (
+                        <motion.div key="notes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
+                           <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-2"><BookOpen/> {note.title}</h2>
+                           <p className="text-sm text-gray-500 mb-4">Source: {sourceFilename}</p>
+                           <div className="flex-grow overflow-y-auto pr-2">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-invert max-w-none">
+                                 {note.content}
+                              </ReactMarkdown>
+                           </div>
+                           <div className="mt-4 pt-4 border-t-2 border-gray-700">
+                               <div className="flex gap-2">
+                                   <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()} placeholder="Chat with your notes..." className="bg-black border-2 border-gray-600 rounded-none h-12 focus:border-pink-500"/>
+                                   <Button onClick={handleChatSubmit} disabled={isChatLoading} className="bg-pink-500 text-black border-2 border-pink-400 hover:bg-pink-400 rounded-none font-black h-12 px-5"><Send/></Button>
+                               </div>
+                           </div>
+                        </motion.div>
+                     ) : (
+                        <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full text-center text-gray-600">
+                           <Sparkles className="w-16 h-16 mb-4"/>
+                           <h3 className="text-2xl font-black text-gray-500">Your Notes Will Appear Here</h3>
+                           <p>Upload a file or paste text to get started.</p>
+                        </motion.div>
+                     )}
+                  </AnimatePresence>
+               </div>
+            </motion.div>
+          </div>
         </div>
       </main>
-
       <Footer />
       <BottomNav />
     </div>
