@@ -23,7 +23,9 @@ import {
   HelpCircle,
   Zap
 } from "lucide-react";
-import { ExtractionResult, extractTextFromFile } from "@/lib/fileExtractor"; // Assuming you have this helper
+import { ExtractionResult, extractTextFromFile } from "@/lib/fileExtractor";
+import FileUploader from "@/components/FileUploader"; // ✅ Make sure this path is correct
+// Assuming you have this helper
 import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { useHistory } from "@/hooks/useHistory";
