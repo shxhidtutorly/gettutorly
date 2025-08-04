@@ -1,16 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useNavigate, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Brain, ArrowLeft, Mail, Lock, User } from "lucide-react"
-import Link from "next/link"
 import { FcGoogle } from "react-icons/fc"
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth" // your custom hook
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"
 
 export default function SignupPage() {
-  const router = useRouter()
+  const navigate = useNavigate()
   const { user, signUp, signInWithGoogle } = useFirebaseAuth()
 
   const [formData, setFormData] = useState({
@@ -22,8 +21,8 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    if (user) router.push("/dashboard")
-  }, [user, router])
+    if (user) navigate("/dashboard") // ✅ fixed from router.push
+  }, [user, navigate]) // ✅ include navigate, not router
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,9 +58,9 @@ export default function SignupPage() {
     <div className="min-h-screen bg-gray-50 text-black font-mono flex items-center justify-center">
       <div className="max-w-md w-full mx-4">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-3 mb-6">
+          <Link to="/" className="inline-flex items-center space-x-3 mb-6">
             <div className="w-16 h-16 bg-purple-500 brutal-border flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="w-8 h-8" /> {/* your logo */}
+              <img src="/logo.png" alt="Logo" className="w-8 h-8" />
             </div>
             <div>
               <h1 className="text-3xl font-black">TUTORLY</h1>
@@ -148,14 +147,14 @@ export default function SignupPage() {
 
           <p className="font-bold text-gray-600 text-center mt-4">
             Already have an account?{" "}
-            <Link href="/login" className="text-purple-500 hover:text-purple-600 font-black">
+            <Link to="/login" className="text-purple-500 hover:text-purple-600 font-black">
               SIGN IN
             </Link>
           </p>
         </div>
 
         <div className="text-center mt-8">
-          <Link href="/">
+          <Link to="/">
             <Button variant="outline" className="font-black brutal-button hover:bg-gray-100 bg-transparent">
               <ArrowLeft className="w-5 h-5 mr-2" />
               BACK TO HOME
