@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
@@ -15,29 +15,136 @@ import {
   Download,
   Sparkles,
   RefreshCcw,
-  MessageCircle,
   Upload,
   FileText,
   Send,
-  Trash2,
   HelpCircle,
   Zap
 } from "lucide-react";
-import { ExtractionResult, extractTextFromFile } from "@/lib/fileExtractor";
-import FileUploader from "@/components/features/FileUploader";
-// Assuming you have this helper
-import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
+import { generateNotesAI, AINote } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { useHistory } from "@/hooks/useHistory";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import * as pdfjsLib from "pdfjs-dist";
+
+// --- PDF.js Worker Setup ---
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.js",
+    import.meta.url
+  ).toString();
+}
 
 // --- Interfaces ---
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
+
+interface ExtractionResult {
+    text: string;
+    filename: string;
+}
+
+// --- Reusable UI Components ---
+const BrutalistButton = ({ children, onClick, disabled, className = '' }: { children: React.ReactNode, onClick?: () => void, disabled?: boolean, className?: string }) => (
+    <Button onClick={onClick} disabled={disabled} className={`bg-transparent border-2 hover:bg-gray-800 rounded-none font-bold transition-all duration-200 ${className}`}>
+      {children}
+    </Button>
+);
+
+const DownloadNotesButton = ({ content, filename }: { content: string, filename: string }) => {
+    const handleDownload = () => {
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename.replace(/\s+/g, '_')}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    return (
+        <BrutalistButton onClick={handleDownload} className="w-full h-14 text-lg border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_#facc15]">
+            <Download className="mr-2"/> Download Notes
+        </BrutalistButton>
+    );
+};
+
+const FileUploader = ({ onFileProcessed, isProcessing }: { onFileProcessed: (result: ExtractionResult) => void, isProcessing: boolean }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const { toast } = useToast();
+
+    const processFile = useCallback(async (file: File) => {
+        if (file.type !== "application/pdf") {
+            toast({ title: "Invalid File Type", description: "Please upload a PDF file.", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                fullText += textContent.items.map((item: any) => item.str).join(" ") + "\n";
+            }
+            onFileProcessed({ text: fullText, filename: file.name });
+        } catch (error) {
+            console.error("Failed to process PDF:", error);
+            toast({ title: "PDF Processing Error", description: "Could not extract text from the PDF.", variant: "destructive" });
+        }
+    }, [onFileProcessed, toast]);
+
+    const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processFile(e.dataTransfer.files[0]);
+            e.dataTransfer.clearData();
+        }
+    }, [processFile]);
+
+    const handleDragEvents = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setIsDragging(true);
+        } else if (e.type === "dragleave") {
+            setIsDragging(false);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            processFile(e.target.files[0]);
+        }
+    };
+
+    return (
+        <label
+            htmlFor="file-upload"
+            onDrop={handleDrop}
+            onDragEnter={handleDragEvents}
+            onDragLeave={handleDragEvents}
+            onDragOver={handleDragEvents}
+            className={`flex flex-col items-center justify-center border-2 border-dashed p-10 cursor-pointer transition-colors duration-300
+                ${isDragging ? 'border-green-400 bg-gray-800' : 'border-gray-600 hover:border-green-400 hover:bg-gray-800'}
+            `}
+        >
+            <Upload className="w-12 h-12 text-gray-500 mb-4"/>
+            <span className="font-bold text-white">Click to browse or drag & drop</span>
+            <span className="text-sm text-gray-500 mt-1">PDF only, max 50MB</span>
+            <input id="file-upload" type="file" accept=".pdf" onChange={handleFileChange} className="hidden" disabled={isProcessing}/>
+        </label>
+    );
+};
 
 // --- Main Component ---
 const AINotesGenerator = () => {
@@ -137,7 +244,10 @@ const AINotesGenerator = () => {
   };
 
   const createFlashcards = () => {
-    if (!note) return;
+    if (!note || !note.flashcards) {
+        toast({ title: "No Flashcards Found", description: "The AI did not generate flashcards for this content.", variant: "destructive" });
+        return;
+    };
     localStorage.setItem('flashcards', JSON.stringify(note.flashcards));
     localStorage.setItem('flashcards-source', note.title);
     toast({ title: "Flashcards Ready! 📚", description: "Navigating you to the flashcards page." });
@@ -145,7 +255,10 @@ const AINotesGenerator = () => {
   };
 
   const createQuiz = () => {
-    if (!note) return;
+    if (!note || !note.quiz) {
+        toast({ title: "No Quiz Found", description: "The AI did not generate a quiz for this content.", variant: "destructive" });
+        return;
+    }
     localStorage.setItem('generatedQuiz', JSON.stringify({ title: note.title, questions: note.quiz }));
     toast({ title: "Quiz Ready! 📝", description: "Navigating you to the quiz page." });
     navigate('/quiz?source=generated');
@@ -160,17 +273,11 @@ const AINotesGenerator = () => {
     setInputType('upload');
   };
 
-  // --- UI Components & Styles ---
   const neonColors = {
     green: 'border-green-400 text-green-400 shadow-[4px_4px_0px_#22c55e]',
     pink: 'border-pink-500 text-pink-500 shadow-[4px_4px_0px_#ec4899]',
+    yellow: 'border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_#facc15]',
   };
-
-  const BrutalistButton = ({ children, onClick, disabled, className = '' }: { children: React.ReactNode, onClick?: () => void, disabled?: boolean, className?: string }) => (
-    <Button onClick={onClick} disabled={disabled} className={`bg-transparent border-2 hover:bg-gray-800 rounded-none font-bold transition-all duration-200 ${className}`}>
-      {children}
-    </Button>
-  );
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-white font-mono">
