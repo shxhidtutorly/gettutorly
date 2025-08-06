@@ -11,6 +11,7 @@ export interface HistoryEntry {
   output: string;
   type: 'math' | 'notes' | 'summary' | 'flashcard' | 'doubt' | 'quiz' | 'chat';
   metadata?: Record<string, any>;
+  userId?: string;
 }
 
 export const useHistory = (type: string) => {
@@ -42,10 +43,11 @@ export const useHistory = (type: string) => {
     if (!user?.uid) return;
 
     try {
-      const entry = {
+      const entry: HistoryEntry = {
+        id: '', // Will be set after firestore add
         input,
         output,
-        type,
+        type: type as HistoryEntry['type'],
         metadata,
         timestamp: new Date(),
         userId: user.uid

@@ -752,7 +752,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 
       const formattedInput = messagePrefix ? `${messagePrefix}${input}]` : input
 
-      onSend(formattedInput, files, { isCanvas: isCanvasMode, isThinking: showThink })
+      onSend(formattedInput, files)
       setInput("")
       setFiles([])
       setFilePreviews({})
@@ -1327,13 +1327,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }, [messages.length, headingState])
 
   const renderMessageContent = (msg: any) => {
-    const parts = parseCodeBlocks(msg.text)
+    const parts = (window as any).parseCodeBlocks ? (window as any).parseCodeBlocks(msg.text) : []
 
     return (
       <div>
         {parts.map((part, index) => {
           if (part.type === "code") {
-            return <CodeBlock key={index} code={part.content} language={part.language} isCanvas={msg.isCanvas} />
+            return <div key={index} className="bg-gray-800 p-4 rounded-lg"><pre><code>{part.content}</code></pre></div>
           } else {
             return (
               <div key={index} className="whitespace-pre-wrap">
@@ -1477,10 +1477,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <PromptInputBox
           onSend={handleSendMessage}
           isLoading={isLoading}
-          messages={messages}
-          setMessages={setMessages}
-          isThinking={isThinking}
-          setIsThinking={setIsThinking}
         />
       </div>
     </div>

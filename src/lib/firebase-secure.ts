@@ -53,9 +53,9 @@ class FirebaseSecureService {
 
     try {
       // FIX: Use spread segments to ensure even segments for Firestore doc references
-      const segments = typeof path === 'string' ? (path.split('/') as [string, ...string[]]) : [];
-      // TypeScript workaround: doc() overloads confuse TS, so cast as DocumentReference
-      await setDoc(doc(db, ...segments) as unknown as import('firebase/firestore').DocumentReference, {
+      const segments = path.split('/');
+      const docRef = doc(db, segments[0], segments[1], ...(segments.slice(2) as [string, ...string[]]));
+      await setDoc(docRef, {
         ...data,
         userId: this.currentUser.uid,
         timestamp: Timestamp.now()
@@ -78,9 +78,9 @@ class FirebaseSecureService {
 
     try {
       // FIX: Use spread segments to ensure even segments for Firestore doc references
-      const segments = typeof path === 'string' ? (path.split('/') as [string, ...string[]]) : [];
-      // TypeScript workaround: doc() overloads confuse TS, so cast as DocumentReference
-      const docSnap = await getDoc(doc(db, ...segments) as unknown as import('firebase/firestore').DocumentReference);
+      const segments = path.split('/');
+      const docRef = doc(db, segments[0], segments[1], ...(segments.slice(2) as [string, ...string[]]));
+      const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         console.log(`Document read from: ${path}`);
         return { id: docSnap.id, ...docSnap.data() };
