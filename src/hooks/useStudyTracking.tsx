@@ -61,15 +61,14 @@ export const useStudyTracking = () => {
     }
   }, [userId]);
 
-  const startSession = useCallback((sessionType: string = 'general', content?: string) => {
+  const startSession = useCallback(() => {
     if (!userId) return;
 
     const session: StudySession = {
       userId,
-      sessionType,
+      sessionType: 'general',
       startTime: new Date(),
       duration: 0,
-      content,
       isCompleted: false,
     };
 
@@ -77,30 +76,21 @@ export const useStudyTracking = () => {
     updateUserStats('sessions_started');
   }, [userId, updateUserStats]);
 
-  const endSession = useCallback(async (sessionType?: string, content?: string, wasCompleted: boolean = true) => {
-    if (!currentSession && !sessionType) return;
-
-    const session = currentSession || {
-      userId: userId!,
-      sessionType: sessionType!,
-      startTime: new Date(),
-      duration: 0,
-      content,
-      isCompleted: wasCompleted,
-    };
+  const endSession = useCallback(async (type: string, activity: string, success: boolean = true) => {
+    if (!currentSession) return;
 
     const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - session.startTime.getTime()) / 1000);
+    const duration = Math.floor((endTime.getTime() - currentSession.startTime.getTime()) / 1000);
 
     try {
       setIsLoading(true);
       
       // Save session to Firestore
       const sessionData = {
-        ...session,
+        ...currentSession,
         endTime,
         duration,
-        isCompleted: wasCompleted,
+        isCompleted: success,
       };
 
       const sessionRef = doc(db, 'study_sessions', `${userId}_${Date.now()}`);
@@ -169,6 +159,7 @@ export const useStudyTracking = () => {
   return {
     currentSession,
     isLoading,
+    isSessionActive: !!currentSession,
     startSession,
     endSession,
     trackQuizCompleted,
