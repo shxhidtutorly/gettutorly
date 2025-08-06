@@ -17,10 +17,13 @@ import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export interface AuthUser {
+  id: string;
   uid: string;
   email: string | null;
   displayName: string | null;
+  fullName: string | null;
   photoURL: string | null;
+  imageUrl: string | null;
   emailVerified: boolean;
 }
 
@@ -33,10 +36,13 @@ export const useFirebaseAuth = () => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
+          id: firebaseUser.uid,
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
+          fullName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
+          imageUrl: firebaseUser.photoURL,
           emailVerified: firebaseUser.emailVerified
         });
       } else {
@@ -204,7 +210,9 @@ export const useFirebaseAuth = () => {
       setUser(prev => prev ? {
         ...prev,
         displayName: updates.displayName || prev.displayName,
-        photoURL: updates.photoURL || prev.photoURL
+        fullName: updates.displayName || prev.fullName,
+        photoURL: updates.photoURL || prev.photoURL,
+        imageUrl: updates.photoURL || prev.imageUrl
       } : null);
       
       toast({

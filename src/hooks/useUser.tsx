@@ -9,6 +9,7 @@ export const useUser = () => {
   return {
     user: firebaseUser ? {
       id: firebaseUser.uid,
+      uid: firebaseUser.uid,
       email: firebaseUser.email,
       fullName: firebaseUser.displayName,
       imageUrl: firebaseUser.photoURL,

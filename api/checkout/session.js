@@ -24,9 +24,10 @@ export default async function handler(req, res) {
         price_id, 
         quantity: 1 
       }],
-      return_url: `${process.env.VERCEL_URL || 'http://localhost:5173'}/dashboard?payment=success`,
+      return_url: `${process.env.VERCEL_URL || 'http://localhost:5173'}/dashboard?sub=success`,
+      cancel_url: `${process.env.VERCEL_URL || 'http://localhost:5173'}/pricing?sub=cancel`,
       custom_data: {
-        user_id: user_id || email,
+        firebaseUid: user_id,
       }
     });
 

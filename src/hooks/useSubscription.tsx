@@ -9,13 +9,22 @@ export const useSubscription = () => {
   const hasActiveSubscription = !!subscription && !subscription.is_expired;
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (!isLoaded || !user) {
+      setLoading(false);
+      return;
+    }
 
     const fetchSubscription = async () => {
       try {
         setLoading(true);
         const res = await fetch(`/api/subscription?userId=${user.id}`);
-        if (!res.ok) throw new Error("Failed to fetch subscription");
+        if (!res.ok) {
+          if (res.status === 404) {
+            setSubscription(null);
+            return;
+          }
+          throw new Error("Failed to fetch subscription");
+        }
         const data = await res.json();
         setSubscription(data);
       } catch (error) {
@@ -30,6 +39,8 @@ export const useSubscription = () => {
   }, [user, isLoaded]);
 
   const createTrialSubscription = async (planName: string) => {
+    if (!user) return false;
+    
     try {
       const res = await fetch("/api/subscription/trial", {
         method: "POST",

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/useUser";
 
+
 const IS_DEV = import.meta.env.DEV;
 
 interface PricingPlan {
@@ -24,35 +25,19 @@ interface PricingPlan {
 
 const plans: PricingPlan[] = [
   {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    interval: "forever",
-    description: "Perfect for trying out Tutorly",
-    features: [
-      "3 AI-generated summaries per month",
-      "5 flashcard sets",
-      "Basic quiz functionality",
-      "Limited file uploads (10MB)",
-      "Community support"
-    ],
-    icon: <Star className="h-6 w-6" />,
-    color: "from-gray-400 to-gray-600"
-  },
-  {
     id: "pro",
-    name: "Pro",
-    price: "$9.99",
+    name: "Tutorly Pro – Monthly Plan",
+    price: "$5.99",
     interval: "month",
-    description: "Best for serious students",
+    description: "Perfect for regular students with 4-day trial",
     features: [
+      "4-day free trial",
       "Unlimited AI summaries",
       "Unlimited flashcard sets",
       "Advanced quiz features",
-      "Unlimited file uploads (100MB per file)",
+      "Unlimited file uploads",
       "Priority support",
-      "Export to PDF",
-      "Advanced analytics"
+      "Export to PDF"
     ],
     popular: true,
     icon: <Zap className="h-6 w-6" />,
@@ -60,21 +45,39 @@ const plans: PricingPlan[] = [
   },
   {
     id: "premium",
-    name: "Premium",
-    price: "$19.99",
-    interval: "month",
-    description: "For power users and teams",
+    name: "Tutorly Premium – Quarterly",
+    price: "$9.99",
+    interval: "quarter",
+    description: "Best value for dedicated learners with 4-day trial",
     features: [
+      "4-day free trial",
       "Everything in Pro",
-      "Team collaboration",
-      "Custom AI models",
-      "Advanced integrations",
-      "White-label options",
-      "24/7 phone support",
-      "Custom training sessions"
+      "Quarterly billing savings",
+      "Advanced analytics",
+      "Custom study plans",
+      "Priority support",
+      "Team collaboration features"
     ],
     icon: <Crown className="h-6 w-6" />,
     color: "from-yellow-400 to-orange-500"
+  },
+  {
+    id: "max",
+    name: "Tutorly Max – Annual Plan",
+    price: "$36.00",
+    interval: "year",
+    description: "Maximum savings for serious students with 4-day trial",
+    features: [
+      "4-day free trial",
+      "Everything in Premium",
+      "Annual billing - biggest savings",
+      "Custom AI models",
+      "Advanced integrations",
+      "24/7 phone support",
+      "Personal learning coach"
+    ],
+    icon: <Star className="h-6 w-6" />,
+    color: "from-green-400 to-blue-500"
   }
 ];
 
@@ -82,6 +85,33 @@ export default function PaddlePricing() {
   const { user } = useUser();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
+
+  // Initialize Paddle when component mounts
+  useEffect(() => {
+    const initPaddle = async () => {
+      try {
+        // Load Paddle.js
+        const script = document.createElement('script');
+        script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+        script.onload = () => {
+          if (window.Paddle) {
+            window.Paddle.Environment.set('sandbox'); // Change to 'production' for live
+            window.Paddle.Setup({ 
+              vendor: process.env.VITE_PADDLE_VENDOR_ID || 'your-vendor-id',
+              eventCallback: function(data) {
+                console.log('Paddle event:', data);
+              }
+            });
+          }
+        };
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error('Failed to initialize Paddle:', error);
+      }
+    };
+
+    initPaddle();
+  }, []);
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {
@@ -93,10 +123,18 @@ export default function PaddlePricing() {
       return;
     }
 
-    if (planId === "free") {
+    const priceIds = {
+      'pro': 'pri_01jxq0pfrjcd0gkj08cmqv6rb1',
+      'premium': 'pri_01jxq0wydxwg59kmha33h213ab',
+      'max': 'pri_01jxq11xb6dpkzgqr27fxkejc3'
+    };
+
+    const priceId = priceIds[planId];
+    if (!priceId) {
       toast({
-        title: "You're already on the free plan!",
-        description: "Upgrade to Pro or Premium for more features.",
+        title: "Invalid plan",
+        description: "Please select a valid subscription plan.",
+        variant: "destructive"
       });
       return;
     }
@@ -104,14 +142,40 @@ export default function PaddlePricing() {
     setLoading(planId);
 
     try {
-      // Simulate subscription process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Subscription successful!",
-        description: `Welcome to Tutorly ${planId === 'pro' ? 'Pro' : 'Premium'}!`,
-      });
+      // Option 1: Direct Paddle Checkout (recommended)
+      if (window.Paddle) {
+        window.Paddle.Checkout.open({
+          items: [{ priceId, quantity: 1 }],
+          customerEmail: user.email || '',
+          customData: {
+            firebaseUid: user.id
+          },
+          successUrl: `${window.location.origin}/dashboard?sub=success`,
+          cancelUrl: `${window.location.origin}/pricing?sub=cancel`,
+        });
+      } else {
+        // Option 2: Server-side session creation as fallback
+        const response = await fetch('/api/checkout/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user.email || '',
+            price_id: priceId,
+            user_id: user.id,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create checkout session');
+        }
+
+        const { checkout_url } = await response.json();
+        window.open(checkout_url, '_blank');
+      }
     } catch (error) {
+      console.error('Subscription error:', error);
       toast({
         title: "Subscription failed",
         description: "Please try again or contact support.",
@@ -181,7 +245,7 @@ export default function PaddlePricing() {
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={loading === plan.id}
-                    className={`w-full ${
+                     className={`w-full ${
                       plan.popular
                         ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
                         : 'bg-white/10 hover:bg-white/20 text-white'
@@ -192,10 +256,8 @@ export default function PaddlePricing() {
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                         Processing...
                       </div>
-                    ) : plan.id === 'free' ? (
-                      'Get Started'
                     ) : (
-                      `Subscribe to ${plan.name}`
+                      `Start ${plan.name}`
                     )}
                   </Button>
                 </CardContent>
@@ -211,7 +273,7 @@ export default function PaddlePricing() {
           className="text-center mt-16"
         >
           <p className="text-gray-400 mb-4">
-            All plans include a 14-day free trial. Cancel anytime.
+            All plans include a 4-day free trial. Cancel anytime.
           </p>
           <div className="flex justify-center space-x-8 text-sm text-gray-500">
             <span>✓ No setup fees</span>

@@ -55,25 +55,30 @@ exports.handlePaddleWebhook = functions.https.onRequest(async (req, res) => {
 async function handleSubscriptionEvent(data) {
   const email = data.customer?.email;
   const planName = data.items?.[0]?.price?.product?.name || 'Unknown Plan';
-  const userId = data.custom_data?.user_id || email;
+  const firebaseUid = data.custom_data?.firebaseUid;
 
-  if (!email) {
-    console.error('Missing customer email');
+  if (!email || !firebaseUid) {
+    console.error('Missing customer email or firebaseUid');
     return;
   }
 
-  const userRef = db.collection('users').doc(userId);
+  const userRef = db.collection('users').doc(firebaseUid);
   await userRef.set({
+    subscription: {
+      isActive: true,
+      paddleSubscriptionId: data.id,
+      paddlePlanId: data.items[0]?.price?.id || data.items[0]?.price?.product?.id,
+      paddleStatus: data.status,
+      currentPeriodEndsAt: data.current_billing_period?.ends_at,
+      startedAt: data.current_billing_period?.starts_at,
+      canceledAt: null,
+      manualEntry: false
+    },
     email,
-    subscription_status: 'active',
-    subscription_plan: planName,
-    subscription_id: data.id,
-    subscription_start: data.current_billing_period?.starts_at,
-    subscription_end: data.current_billing_period?.ends_at,
-    updated_at: new Date().toISOString()
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
-  console.log(`✅ Updated subscription for: ${email}`);
+  console.log(`✅ Updated subscription for: ${email} (UID: ${firebaseUid})`);
 }
 
 // 👉 Transaction Completed Handler
@@ -98,13 +103,20 @@ async function handleTransactionCompleted(data) {
 // 👉 Subscription Canceled Handler
 async function handleSubscriptionCanceled(data) {
   const email = data.customer?.email;
-  const userId = data.custom_data?.user_id || email;
+  const firebaseUid = data.custom_data?.firebaseUid;
 
-  const userRef = db.collection('users').doc(userId);
+  if (!firebaseUid) {
+    console.error('Missing firebaseUid for cancellation');
+    return;
+  }
+
+  const userRef = db.collection('users').doc(firebaseUid);
   await userRef.update({
-    subscription_status: 'canceled',
-    updated_at: new Date().toISOString()
+    'subscription.isActive': false,
+    'subscription.paddleStatus': 'canceled',
+    'subscription.canceledAt': admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
   });
 
-  console.log(`❌ Subscription canceled for: ${email}`);
+  console.log(`❌ Subscription canceled for: ${email} (UID: ${firebaseUid})`);
 }
