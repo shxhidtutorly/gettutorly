@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, type ElementType, type ComponentPropsWithoutRef } from "react"
-import { CodeBlock, parseCodeBlocks } from "../components/code-block"
 import { CenteredThinkingOverlay } from "../components/thinking-indicator"
 
 // Utility function for className merging
