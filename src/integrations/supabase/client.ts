@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
 
 // ✅ Your actual Supabase backend URL
 const SUPABASE_URL = 'https://yxwlkxcgnlkskfarpffa.supabase.co';
