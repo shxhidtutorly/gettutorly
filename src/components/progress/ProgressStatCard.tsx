@@ -9,7 +9,6 @@ export interface ProgressStatCardProps {
   change?: number;
   icon: React.ReactNode;
   className?: string;
-  color?: string;
 }
 
 const ProgressStatCard: React.FC<ProgressStatCardProps> = ({
@@ -18,8 +17,7 @@ const ProgressStatCard: React.FC<ProgressStatCardProps> = ({
   unit,
   change,
   icon,
-  className = '',
-  color
+  className = ''
 }) => {
   return (
     <Card className={className}>
