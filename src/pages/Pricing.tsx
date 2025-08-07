@@ -106,16 +106,25 @@ const handlePurchase = (plan: typeof pricingPlans[0]) => {
     ? plan.priceIdMonthly
     : plan.priceIdAnnually;
 
+  // Set your Paddle environment
+  window.Paddle.Environment.set('sandbox'); // or 'production'
+
+  // Set your Paddle vendor ID
+  window.Paddle.Setup({ vendor: 234931 });
+
+  // Open Paddle checkout with correct payload
   window.Paddle.Checkout.open({
-    product: "pro_01jxq0aqmmaasc0nxh2jedgxa9",
+    product: priceId,
+    method: 'inline', // optional, can be 'overlay' too
     successCallback: () => {
       window.location.href = "/dashboard?purchase=success";
     },
     closeCallback: () => {
-    
-    }
+      console.log("Checkout closed by user");
+    },
   });
 };
+
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
