@@ -96,23 +96,26 @@ useEffect(() => {
     />
   );
 
- const handlePurchase = (plan: typeof pricingPlans[0]) => {
-    if (!window.Paddle) {
-      alert("Payment system not loaded. Please try again in a moment.");
-      return;
-    }
-    const priceId = billingCycle === 'monthly'
-      ? plan.priceIdMonthly
-      : plan.priceIdAnnually;
+const handlePurchase = (plan: typeof pricingPlans[0]) => {
+  if (!window.Paddle) {
+    alert("Payment system not loaded. Please try again in a moment.");
+    return;
+  }
 
-    window.Paddle.Checkout.open({
-      product: priceId,
-      override: {
-        successCallback: () => { window.location.href = "/dashboard?purchase=success"; },
-        closeCallback: () => { /* no-op */ },
-      }
-    });
-  };
+  const priceId = billingCycle === 'monthly'
+    ? plan.priceIdMonthly
+    : plan.priceIdAnnually;
+
+  window.Paddle.Checkout.open({
+    product: priceId,
+    successCallback: () => {
+      window.location.href = "/dashboard?purchase=success";
+    },
+    closeCallback: () => {
+    
+    }
+  });
+};
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
