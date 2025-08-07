@@ -1,50 +1,38 @@
-
 import React, { useState, useEffect } from 'react';
 import { Check, Star, X } from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import checkout from "@/api/checkout/session"
-// You will need to install this via npm i @paddle/paddle-js
+// You will need to install this via: npm install @paddle/paddle-js
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
-
-// --- Main Pricing Page Component ---
 
 export default function App() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
-  const [paddle, setPaddle] = useState<Paddle | undefined>(undefined);
+  const [paddle, setPaddle] = useState<Paddle>();
 
   const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
   const brutalistTransition = "transition-all duration-300 ease-in-out";
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
-  // Use useEffect to initialize Paddle
-  // inside your checkout page or useEffect
-useEffect(() => {
-const script = document.createElement("script");
-script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-script.onload = () => {
-window.Paddle?.Initialize({
-seller: import.meta.env.PADDLE_SELLER_ID,
-token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
-});
-};
-document.body.appendChild(script);
-
-return () => {
-document.body.removeChild(script);
-};
-}, []);
+  // initialize Paddle once on mount
+  useEffect(() => {
+    const instance = initializePaddle({
+      vendorId: 234931,                                  // your seller/vendor ID
+      token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,   // client-side token in .env
+      env: import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox'
+    });
+    setPaddle(instance);
+  }, []);
 
   const pricingPlans = [
     {
       name: "PRO",
       desc: "Essential tools to get started",
       priceMonthly: "$5.99",
-      priceAnnually: "$70",
-      priceIdMonthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", // Replace with your actual monthly price ID
-      priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy", // Replace with your actual annual price ID
+      priceAnnually: "$36",         // annual price with 20% discount
+      priceIdMonthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1",
+      priceIdAnnually: "pri_01jxq11xb6dpkzgqr27fxkejc3",
       features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
       notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
       color: "bg-sky-400",
@@ -52,26 +40,26 @@ document.body.removeChild(script);
       cta: "GET STARTED",
     },
     {
-      name: " PREMIUM",
+      name: "PREMIUM",
       desc: "Full features + unlimited usage",
       priceMonthly: "$9.99",
-      priceAnnually: "$99",
-      priceIdMonthly: "pri_01jxq0wydxwg59kmha33h213ab", // Replace with your actual monthly price ID
-      priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy", // Replace with your actual annual price ID
+      priceAnnually: "$65",         // annual price with 20% discount
+      priceIdMonthly: "pri_01jxq0wydxwg59kmha33h213ab",
+      priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy",
       features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
       notIncluded: [],
-      color: "bg-fuchsia-400",
       popular: true,
+      color: "bg-fuchsia-400",
       buttonClass: "bg-black text-white hover:bg-gray-800",
       cta: "GO PRO",
     },
     {
-      name: "TEAM",
+      name: "MAX",
       desc: "For groups & institutions",
-      priceMonthly: "$49",
-      priceAnnually: "$169",
-      priceIdMonthly: "pri_01k22kw22dfrejy55t8xdhrzwd	", // Replace with your actual monthly price ID
-      priceIdAnnually: "pri_01jxq11xb6dpkzgqr27fxkejc3", // Replace with your actual annual price ID
+      priceMonthly: "$14.99",
+      priceAnnually: "$119",        // annual price with 20% discount
+      priceIdMonthly: "pri_01k22kw22dfrejy55t8xdhrzwd",
+      priceIdAnnually: "pri_01k22ty36jptak5rjj74axhvxg",
       features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
       notIncluded: [],
       color: "bg-amber-400",
@@ -99,25 +87,28 @@ document.body.removeChild(script);
   ];
 
   const FloatingShape = ({ className, animationDelay }: { className: string, animationDelay: string }) => (
-    <div className={`absolute rounded-full mix-blend-multiply filter blur-xl opacity-70 ${className}`} style={{ animation: `float 6s ease-in-out infinite`, animationDelay }}></div>
+    <div
+      className={`absolute rounded-full mix-blend-multiply filter blur-xl opacity-70 ${className}`}
+      style={{ animation: `float 6s ease-in-out infinite`, animationDelay }}
+    />
   );
 
   const handlePurchase = (plan: typeof pricingPlans[0]) => {
-    // Check if Paddle is ready
     if (!paddle) {
       alert("Paddle checkout is not ready. Please try again.");
       return;
     }
 
-    // Determine the correct price ID based on the billing cycle
-    const priceId = billingCycle === 'monthly' ? plan.priceIdMonthly : plan.priceIdAnnually;
-    
-    // Open the Paddle checkout overlay
+    const priceId = billingCycle === 'monthly'
+      ? plan.priceIdMonthly
+      : plan.priceIdAnnually;
+
     paddle.Checkout.open({
-      items: [{ priceId }],
+      items: [{ priceId, quantity: 1 }],
       settings: {
-        successUrl: window.location.origin + "/dashboard?purchase=success"
-      },
+        successUrl: `${window.location.origin}/dashboard?purchase=success`,
+        cancelUrl: `${window.location.origin}/pricing?purchase=cancel`,
+      }
     });
   };
 
@@ -137,7 +128,8 @@ document.body.removeChild(script);
         <FloatingShape className="w-72 h-72 bg-fuchsia-300 top-40 -left-20" animationDelay="0s" />
         <FloatingShape className="w-72 h-72 bg-amber-300 bottom-40 -right-20" animationDelay="2s" />
         <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8"
+              style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
             CHOOSE YOUR PLAN
           </h1>
           <p className="text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/50 backdrop-blur-sm p-4 border-4 border-black">
@@ -156,14 +148,18 @@ document.body.removeChild(script);
           <div className="flex justify-center items-center my-12">
             <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-stone-400'}`}>Monthly</span>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')} />
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')}
+              />
               <div className={`w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-[4px] after:bg-black after:border after:border-black after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-fuchsia-400`}></div>
             </label>
             <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
             <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
-            {pricingPlans.map((plan) => (
+            {pricingPlans.map(plan => (
               <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
@@ -180,13 +176,13 @@ document.body.removeChild(script);
                   <div className="text-base font-bold text-stone-600">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
                 </div>
                 <div className="space-y-3 mb-8 flex-grow">
-                  {plan.features.map((feature) => (
+                  {plan.features.map(feature => (
                     <div key={feature} className="flex items-center">
                       <Check className="w-6 h-6 mr-3 flex-shrink-0 text-green-500" />
                       <span className="font-bold text-md">{feature}</span>
                     </div>
                   ))}
-                  {plan.notIncluded.map((feature) => (
+                  {plan.notIncluded.map(feature => (
                     <div key={feature} className="flex items-center opacity-60">
                       <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
                       <span className="font-bold line-through text-md">{feature}</span>
@@ -195,7 +191,7 @@ document.body.removeChild(script);
                 </div>
                 <Button
                   onClick={() => handlePurchase(plan)}
-                  className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} hover:shadow-none hover:-translate-x-1 hover:-translate-y-1`}
+                  className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
                 >
                   {plan.cta}
                 </Button>
@@ -213,19 +209,19 @@ document.body.removeChild(script);
             <div className="w-32 h-2 bg-black mx-auto"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.name} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+            {testimonials.map(t => (
+              <div key={t.name} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
                 <div className="flex items-center mb-4">
-                  <img src={testimonial.avatarUrl} alt={testimonial.name} className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} />
+                  <img src={t.avatarUrl} alt={t.name} className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} />
                   <div className="ml-4">
-                    <div className="font-black text-xl">{testimonial.name}</div>
-                    <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
+                    <div className="font-black text-xl">{t.name}</div>
+                    <div className="font-bold text-md text-stone-600">{t.role}</div>
                   </div>
                 </div>
                 <div className="flex mb-4">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
                 </div>
-                <p className="font-bold text-lg leading-tight">"{testimonial.quote}"</p>
+                <p className="font-bold text-lg leading-tight">"{t.quote}"</p>
               </div>
             ))}
           </div>
@@ -240,9 +236,9 @@ document.body.removeChild(script);
             <div className="w-32 h-2 bg-black mx-auto"></div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center">
-            {universities.map((uni) => (
-              <div key={uni.name} className={`p-6 bg-stone-100 flex justify-center items-center h-32 ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-                <img src={uni.logo} alt={uni.name} className="max-h-12 w-auto object-contain transition-all duration-300" onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/150x60/e5e5e5/000000?text=Logo&font=mono'; }} />
+            {universities.map(u => (
+              <div key={u.name} className={`p-6 bg-stone-100 flex justify-center items-center h-32 ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                <img src={u.logo} alt={u.name} className="max-h-12 w-auto object-contain transition-all duration-300" onError={e => { (e.target as any).src = 'https://placehold.co/150x60/e5e5e5/000000?text=Logo&font=mono'; }} />
               </div>
             ))}
           </div>
@@ -268,4 +264,3 @@ document.body.removeChild(script);
     </div>
   );
 }
-
