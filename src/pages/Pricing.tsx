@@ -98,32 +98,25 @@ useEffect(() => {
 
 const handlePurchase = (plan: typeof pricingPlans[0]) => {
   if (!window.Paddle) {
-    alert("Payment system not loaded. Please try again in a moment.");
+    alert("Payment system not loaded. Please try again later.");
     return;
   }
 
-  const priceId = billingCycle === 'monthly'
-    ? plan.priceIdMonthly
-    : plan.priceIdAnnually;
+  const productId = billingCycle === 'monthly'
+    ? plan.productIdMonthly  // ✅ Must be numeric, e.g. 123456
+    : plan.productIdAnnually;
 
-  // Set your Paddle environment
-  window.Paddle.Environment.set('sandbox'); // or 'production'
-
-  // Set your Paddle vendor ID
-  window.Paddle.Setup({ vendor: 234931 });
-
-  // Open Paddle checkout with correct payload
   window.Paddle.Checkout.open({
-    product: priceId,
-    method: 'inline', // optional, can be 'overlay' too
+    product: productId,
     successCallback: () => {
       window.location.href = "/dashboard?purchase=success";
     },
     closeCallback: () => {
-      console.log("Checkout closed by user");
-    },
+      console.log("Checkout closed");
+    }
   });
 };
+
 
 
   return (
