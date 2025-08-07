@@ -22,7 +22,7 @@ useEffect(() => {
     script.async = true;
     script.onload = () => {
       // your Paddle seller/vendor ID
-      window.Paddle?.Setup({ vendor: 234931 });
+      window.Paddle?.Setup({ vendor: "234931"});
     };
     document.body.appendChild(script);
     return () => { document.body.removeChild(script); };
