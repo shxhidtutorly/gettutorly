@@ -26,8 +26,8 @@ useEffect(() => {
   script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
   script.onload = () => {
     window.Paddle?.Initialize({
-      api: import.meta.env.PADDLE_API_KEY,
-      token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
+ seller: import.meta.env.PADDLE_SELLER_ID,
+token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
     });
   };
   document.body.appendChild(script);
