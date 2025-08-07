@@ -17,12 +17,15 @@ export default function App() {
 
   // initialize Paddle once on mount
   useEffect(() => {
-    const instance = initializePaddle({
-      vendorId: 234931,                                  // your seller/vendor ID
-      token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,   // client-side token in .env
-      env: import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox'
-    });
-    setPaddle(instance);
+    const script = document.createElement("script");
+    script.src = "https://cdn.paddle.com/paddle/paddle.js";
+    script.async = true;
+    script.onload = () => {
+      window.Paddle?.Setup({ vendor: 234931 });  // ← your seller/vendor ID
+      setPaddleReady(true);
+    };
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
   }, []);
 
   const pricingPlans = [
@@ -93,21 +96,17 @@ export default function App() {
     />
   );
 
-  const handlePurchase = (plan: typeof pricingPlans[0]) => {
-    if (!paddle) {
-      alert("Paddle checkout is not ready. Please try again.");
+ const handlePurchase = (plan: typeof pricingPlans[0]) => {
+    if (!paddleReady || !window.Paddle) {
+      alert("Payment system is not ready yet. Please try again in a moment.");
       return;
     }
-
-    const priceId = billingCycle === 'monthly'
-      ? plan.priceIdMonthly
-      : plan.priceIdAnnually;
-
-    paddle.Checkout.open({
-      items: [{ priceId, quantity: 1 }],
-      settings: {
-        successUrl: `${window.location.origin}/dashboard?purchase=success`,
-        cancelUrl: `${window.location.origin}/pricing?purchase=cancel`,
+    const priceId = billingCycle === 'monthly' ? plan.priceIdMonthly : plan.priceIdAnnually;
+    window.Paddle.Checkout.open({
+      product: priceId,
+      override: {
+        successCallback: () => { window.location.href = "/dashboard?purchase=success"; },
+        closeCallback: () => { /* nothing */ },
       }
     });
   };
