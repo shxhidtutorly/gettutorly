@@ -22,15 +22,19 @@ export default function App() {
   // Use useEffect to initialize Paddle
   // inside your checkout page or useEffect
 useEffect(() => {
-  const script = document.createElement("script");
-  script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-  script.onload = () => {
-    window.Paddle?.Initialize({
- seller: import.meta.env.PADDLE_SELLER_ID,
+const script = document.createElement("script");
+script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+script.onload = () => {
+window.Paddle?.Initialize({
+seller: import.meta.env.PADDLE_SELLER_ID,
 token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
-    });
-  };
-  document.body.appendChild(script);
+});
+};
+document.body.appendChild(script);
+
+return () => {
+document.body.removeChild(script);
+};
 }, []);
 
   const pricingPlans = [
