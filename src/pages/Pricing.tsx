@@ -20,19 +20,19 @@ export default function App() {
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
   // Use useEffect to initialize Paddle
-  useEffect(() => {
-    // Only initialize if Paddle is not already loaded
-    if (!paddle) {
-      initializePaddle({
-        environment: import.meta.env.VITE_PADDLE_ENVIRONMENT,
-        token: import.meta.env.VITE_PADDLE_VENDOR_ID,
-      }).then((paddleInstance: Paddle | undefined) => {
-        if (paddleInstance) {
-          setPaddle(paddleInstance);
-        }
-      });
-    }
-  }, [paddle]);
+  // inside your checkout page or useEffect
+useEffect(() => {
+  const script = document.createElement("script");
+  script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+  script.onload = () => {
+    window.Paddle?.Initialize({
+      seller: import.meta.env.VITE_PADDLE_SELLER_ID,
+      environment: import.meta.env.VITE_PADDLE_ENV,
+      token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
+    });
+  };
+  document.body.appendChild(script);
+}, []);
 
   const pricingPlans = [
     {
