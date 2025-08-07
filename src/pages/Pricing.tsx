@@ -5,7 +5,7 @@ import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
+import checkout from "@/api/checkout/session"
 // You will need to install this via npm i @paddle/paddle-js
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 
