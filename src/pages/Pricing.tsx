@@ -107,7 +107,7 @@ const handlePurchase = (plan: typeof pricingPlans[0]) => {
     : plan.priceIdAnnually;
 
   window.Paddle.Checkout.open({
-    product: priceId,
+    product: "pro_01jxq0aqmmaasc0nxh2jedgxa9",
     successCallback: () => {
       window.location.href = "/dashboard?purchase=success";
     },
