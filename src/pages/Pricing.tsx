@@ -36,25 +36,25 @@ export default function App() {
 
   const pricingPlans = [
     {
-      name: "BASIC",
+      name: "PRO",
       desc: "Essential tools to get started",
-      priceMonthly: "$9",
-      priceAnnually: "$90",
+      priceMonthly: "$5.99",
+      priceAnnually: "$70",
       priceIdMonthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", // Replace with your actual monthly price ID
-      priceIdAnnually: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", // Replace with your actual annual price ID
-      features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
+      priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy", // Replace with your actual annual price ID
+      features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
       notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
       color: "bg-sky-400",
       buttonClass: "bg-black text-white hover:bg-gray-800",
       cta: "GET STARTED",
     },
     {
-      name: "PRO",
+      name: " PREMIUM",
       desc: "Full features + unlimited usage",
-      priceMonthly: "$19",
-      priceAnnually: "$190",
+      priceMonthly: "$9.99",
+      priceAnnually: "$99",
       priceIdMonthly: "pri_01jxq0wydxwg59kmha33h213ab", // Replace with your actual monthly price ID
-      priceIdAnnually: "pri_01jxq0wydxwg59kmha33h213ab", // Replace with your actual annual price ID
+      priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy", // Replace with your actual annual price ID
       features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
       notIncluded: [],
       color: "bg-fuchsia-400",
@@ -66,8 +66,8 @@ export default function App() {
       name: "TEAM",
       desc: "For groups & institutions",
       priceMonthly: "$49",
-      priceAnnually: "$490",
-      priceIdMonthly: "pri_01jxq11xb6dpkzgqr27fxkejc3", // Replace with your actual monthly price ID
+      priceAnnually: "$169",
+      priceIdMonthly: "pri_01k22kw22dfrejy55t8xdhrzwd	", // Replace with your actual monthly price ID
       priceIdAnnually: "pri_01jxq11xb6dpkzgqr27fxkejc3", // Replace with your actual annual price ID
       features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
       notIncluded: [],
