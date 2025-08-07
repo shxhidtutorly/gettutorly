@@ -16,13 +16,13 @@ export default function App() {
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
   // initialize Paddle once on mount
-  useEffect(() => {
+useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://cdn.paddle.com/paddle/paddle.js";
     script.async = true;
     script.onload = () => {
-      window.Paddle?.Setup({ vendor: 234931 });  // ← your seller/vendor ID
-      setPaddleReady(true);
+      // your Paddle seller/vendor ID
+      window.Paddle?.Setup({ vendor: 234931 });
     };
     document.body.appendChild(script);
     return () => { document.body.removeChild(script); };
@@ -97,16 +97,19 @@ export default function App() {
   );
 
  const handlePurchase = (plan: typeof pricingPlans[0]) => {
-    if (!paddleReady || !window.Paddle) {
-      alert("Payment system is not ready yet. Please try again in a moment.");
+    if (!window.Paddle) {
+      alert("Payment system not loaded. Please try again in a moment.");
       return;
     }
-    const priceId = billingCycle === 'monthly' ? plan.priceIdMonthly : plan.priceIdAnnually;
+    const priceId = billingCycle === 'monthly'
+      ? plan.priceIdMonthly
+      : plan.priceIdAnnually;
+
     window.Paddle.Checkout.open({
       product: priceId,
       override: {
         successCallback: () => { window.location.href = "/dashboard?purchase=success"; },
-        closeCallback: () => { /* nothing */ },
+        closeCallback: () => { /* no-op */ },
       }
     });
   };
