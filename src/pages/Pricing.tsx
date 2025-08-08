@@ -315,4 +315,4 @@ const Pricing = () => {
        <Footer />
     </div>
   );
-}
+};
