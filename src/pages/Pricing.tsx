@@ -133,22 +133,18 @@ const Pricing = () => {
       return;
     }
 
-    window.Paddle.Checkout.open({
-      product: "pro_01jxq0aqmmaasc0nxh2jedgxa9", // Replace with your Paddle Product ID
-      email: "customer@example.com", // Optional: Prefill user email
-      passthrough: JSON.stringify({
-        userId: "example-user-id",
-        plan: "premium",
-      }),
-      successCallback: function (data) {
-        console.log("Checkout Success:", data);
-        // TODO: Call your backend webhook logic to activate subscription
-      },
-      closeCallback: function () {
-        console.log("Checkout closed");
-      },
-    });
-  };
+  Paddle.Checkout.open({
+  items: [
+    { priceId: plan.priceIdMonthly, quantity: 1 }
+  ],
+  successCallback: () => {
+    window.location.href = "/dashboard?purchase=success";
+  },
+  closeCallback: () => {
+    console.log("Checkout closed");
+  }
+});
+
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
@@ -316,7 +312,7 @@ const Pricing = () => {
         </div>
       </section>
 
-      <Footer />
-   </div>
+       <Footer />
+    </div>
   );
-};
+}
