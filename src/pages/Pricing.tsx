@@ -317,6 +317,8 @@ const Pricing = () => {
       </section>
 
       <Footer />
-    </div>
+   </div>
   );
-}
+};
+
+export default Pricing;
