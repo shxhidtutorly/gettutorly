@@ -4,120 +4,58 @@ import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-// You will need to install this via: npm install @paddle/paddle-js
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 
 export default function App() {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
-  const [paddle, setPaddle] = useState<Paddle>();
+const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
 
-  const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
-  const brutalistTransition = "transition-all duration-300 ease-in-out";
-  const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
-
-  // initialize Paddle once on mount
 useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://cdn.paddle.com/paddle/paddle.js";
-    script.async = true;
-    script.onload = () => {
-      // your Paddle seller/vendor ID
-      window.Paddle?.Setup({ vendor: 234931 });
-    };
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
-  }, []);
-
-  const pricingPlans = [
-    {
-      name: "PRO",
-      desc: "Essential tools to get started",
-      priceMonthly: "$5.99",
-      priceAnnually: "$36",         // annual price with 20% discount
-      priceIdMonthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1",
-      priceIdAnnually: "pri_01jxq11xb6dpkzgqr27fxkejc3",
-      features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
-      notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
-      color: "bg-sky-400",
-      buttonClass: "bg-black text-white hover:bg-gray-800",
-      cta: "GET STARTED",
-    },
-    {
-      name: "PREMIUM",
-      desc: "Full features + unlimited usage",
-      priceMonthly: "$9.99",
-      priceAnnually: "$65",         // annual price with 20% discount
-      priceIdMonthly: "pri_01jxq0wydxwg59kmha33h213ab",
-      priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy",
-      features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
-      notIncluded: [],
-      popular: true,
-      color: "bg-fuchsia-400",
-      buttonClass: "bg-black text-white hover:bg-gray-800",
-      cta: "GO PRO",
-    },
-    {
-      name: "MAX",
-      desc: "For groups & institutions",
-      priceMonthly: "$14.99",
-      priceAnnually: "$119",        // annual price with 20% discount
-      priceIdMonthly: "pri_01k22kw22dfrejy55t8xdhrzwd",
-      priceIdAnnually: "pri_01k22ty36jptak5rjj74axhvxg",
-      features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
-      notIncluded: [],
-      color: "bg-amber-400",
-      buttonClass: "bg-black text-white hover:bg-gray-800",
-      cta: "CONTACT US",
-    },
-  ];
-
-  const testimonials = [
-    { name: "Alice Chen", role: "CS @ MIT", quote: "Feels like a real tutor 24/7. The AI Notes feature is a lifesaver for my lectures.", avatarUrl: "https://placehold.co/100x100/7c3aed/ffffff?text=AC&font=mono" },
-    { name: "Bob Martinez", role: "Engineering @ Stanford", quote: "AI summaries saved me hours of reading. I can focus on the core concepts now.", avatarUrl: "https://placehold.co/100x100/2563eb/ffffff?text=BM&font=mono" },
-    { name: "Charlie Kim", role: "Pre-Med @ Yale", quote: "The adaptive flashcards are incredible. They helped me retain so much more for my bio exams.", avatarUrl: "https://placehold.co/100x100/16a34a/ffffff?text=CK&font=mono" },
-    { name: "Diana Patel", role: "Business @ Penn", quote: "Turns my rambling voice notes from lectures into perfectly structured text. It's magic.", avatarUrl: "https://placehold.co/100x100/f97316/ffffff?text=DP&font=mono" },
-  ];
-
-  const universities = [
-    { name: "MIT", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp" },
-    { name: "Stanford University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp" },
-    { name: "University of Pennsylvania", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp" },
-    { name: "Yale University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp" },
-    { name: "University of Cambridge (UOC)", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp" },
-    { name: "Tokyo University of Medicine", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp" },
-    { name: "University of Toronto", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg" },
-    { name: "Harvard University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png" },
-  ];
-
-  const FloatingShape = ({ className, animationDelay }: { className: string, animationDelay: string }) => (
-    <div
-      className={`absolute rounded-full mix-blend-multiply filter blur-xl opacity-70 ${className}`}
-      style={{ animation: `float 6s ease-in-out infinite`, animationDelay }}
-    />
-  );
-
-const handlePurchase = (plan: typeof pricingPlans[0]) => {
-  if (!window.Paddle) {
-    alert("Payment system not loaded. Please try again later.");
-    return;
-  }
-
-  const productId = billingCycle === 'monthly'
-    ? plan.productIdMonthly  // ✅ Must be numeric, e.g. 123456
-    : plan.productIdAnnually;
-
-  window.Paddle.Checkout.open({
-     priceId: 'pri_01jxq0aqmmaasc0nxh2jedgxa9', quantity: 1 }
-    successCallback: () => {
-      window.location.href = "/dashboard?purchase=success";
-    },
-    closeCallback: () => {
-      console.log("Checkout closed");
-    }
-  });
+const script = document.createElement("script");
+script.src = "https://cdn.paddle.com/paddle/paddle.js";
+script.async = true;
+script.onload = () => {
+window.Paddle?.Setup({ vendor: 234931 });
 };
+document.body.appendChild(script);
+return () => { document.body.removeChild(script); };
+}, []);
 
+const pricingPlans = [
+{
+name: "PRO",
+desc: "Essential tools to get started",
+priceMonthly: "$5.99",
+priceAnnually: "$36",
+priceIdMonthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1",
+priceIdAnnually: "pri_01jxq11xb6dpkzgqr27fxkejc3",
+features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
+color: "bg-sky-400",
+buttonClass: "bg-black text-white hover:bg-gray-800",
+cta: "GET STARTED",
+},
+// Add other plans here...
+];
 
+const handlePurchase = (plan) => {
+if (!window.Paddle) {
+alert("Payment system not loaded. Please try again later.");
+return;
+}
+
+const productId &#x3D; billingCycle &#x3D;&#x3D;&#x3D; &#x27;monthly&#x27;
+  ? plan.priceIdMonthly
+  : plan.priceIdAnnually;
+
+window.Paddle.Checkout.open({
+  productId: productId,
+  successCallback: () &#x3D;&gt; {
+    window.location.href &#x3D; &quot;/dashboard?purchase&#x3D;success&quot;;
+  },
+  closeCallback: () &#x3D;&gt; {
+    console.log(&quot;Checkout closed&quot;);
+  }
+});
+};
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
