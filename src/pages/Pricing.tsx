@@ -273,6 +273,7 @@ const handlePurchase = () => {
       </div>
     </section>
 
-    <Footer />
+   <Footer />
+    </div>
   );
 }
