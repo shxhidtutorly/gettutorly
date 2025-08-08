@@ -268,11 +268,11 @@ const handlePurchase = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <a href="/signup" className={`block bg-black text-white font-black text-xl px-10 py-5 w-full sm:w-auto ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
               START FOR FREE
-            </a>
-          </div>
+          </a>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <Footer />
-    </div>
+    <Footer />
   );
+}
