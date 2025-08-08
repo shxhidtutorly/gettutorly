@@ -107,15 +107,22 @@ const handlePurchase = () => {
     }
     const priceId = PLAN_PRICE_IDS[billingCycle];
     window.Paddle.Checkout.open({
-      product: "pro_01jxq0aqmmaasc0nxh2jedgxa9", // product ID must match your Paddle Catalog
-      successCallback: () => {
-        window.location.href = '/dashboard?purchase=success';
-      },
-      closeCallback: () => {
-        console.log('Checkout closed');
-      }
-    });
-  };
+  items: [
+    {
+      priceId: billingCycle === 'monthly' 
+        ? plan.priceIdMonthly 
+        : plan.priceIdAnnually,
+      quantity: 1
+    }
+  ],
+  successCallback: () => {
+    window.location.href = "/dashboard?purchase=success";
+  },
+  closeCallback: () => {
+    console.log("Checkout closed");
+  }
+});
+
 
 
   return (
