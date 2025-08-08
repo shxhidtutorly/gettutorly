@@ -44,34 +44,18 @@ export default function Pricing(): JSX.Element {
   const brutalistTransition = "transition-all duration-300 ease-in-out";
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
-  // Load Paddle script once
+const Pricing = () => {
   useEffect(() => {
-    const scriptId = 'paddle-js-sdk';
-    if (document.getElementById(scriptId)) return;
-
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://cdn.paddle.com/paddle/paddle.js';
-    script.async = true;
-    script.onload = () => {
-      try {
-        if (!window.Paddle) return;
-        // set environment if Paddle supports it
-        if (window.Paddle.Environment?.set) {
-          try { window.Paddle.Environment.set(PADDLE_ENV); } catch (e) { /* ignore if unsupported */ }
-        }
-        window.Paddle.Setup({ vendor: PADDLE_VENDOR_ID });
-      } catch (err) {
-        // console warn, but don't crash
-        // eslint-disable-next-line no-console
-        console.warn('Paddle setup failed:', err);
-      }
-    };
-    document.body.appendChild(script);
-    return () => {
-      const el = document.getElementById(scriptId);
-      if (el) el.remove();
-    };
+    if (window.Paddle) {
+      window.Paddle.Setup({
+        vendor: 234931, // Replace with your Paddle Vendor ID
+        eventCallback: function (data) {
+          console.log("Paddle Event:", data);
+        },
+      });
+    } else {
+      console.error("Paddle.js not loaded");
+    }
   }, []);
 
   const pricingPlans: Plan[] = [
@@ -143,39 +127,27 @@ export default function Pricing(): JSX.Element {
     />
   );
 
-  // Main paddle purchase handler (receives a plan)
-  const handlePurchase = (plan: Plan) => {
+ const handlePurchase = () => {
     if (!window.Paddle) {
-      alert('Payment system not loaded. Please try again later.');
+      console.error("Paddle is not loaded");
       return;
     }
 
-    // choose appropriate price id
-    const priceId = billingCycle === 'monthly' ? plan.priceIdMonthly : plan.priceIdAnnually;
-
-    try {
-      window.Paddle.Checkout.open({
-        // For Paddle Billing price-based checkout use `items` with a priceId (this matches newer Paddle billing usage).
-        items: [
-          { priceId, quantity: 1 }
-        ],
-        successCallback: () => {
-          // small delay so the overlay can finish
-          setTimeout(() => {
-            window.location.href = '/dashboard?purchase=success';
-          }, 300);
-        },
-        closeCallback: () => {
-          // user closed checkout — you can track analytics here
-          // eslint-disable-next-line no-console
-          console.log('Checkout closed');
-        }
-      });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Paddle checkout error', err);
-      alert('There was an error opening the checkout. Please try again or contact support.');
-    }
+    window.Paddle.Checkout.open({
+      product: "pro_01jxq0aqmmaasc0nxh2jedgxa9", // Replace with your Paddle Product ID
+      email: "customer@example.com", // Optional: Prefill user email
+      passthrough: JSON.stringify({
+        userId: "example-user-id",
+        plan: "premium",
+      }),
+      successCallback: function (data) {
+        console.log("Checkout Success:", data);
+        // TODO: Call your backend webhook logic to activate subscription
+      },
+      closeCallback: function () {
+        console.log("Checkout closed");
+      },
+    });
   };
 
   return (
@@ -348,3 +320,4 @@ export default function Pricing(): JSX.Element {
     </div>
   );
 }
+export default Pricing;
