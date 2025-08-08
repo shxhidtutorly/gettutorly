@@ -1,43 +1,85 @@
+// src/pages/Pricing.tsx
 import React, { useState, useEffect } from 'react';
 import { Check, Star, X } from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-// You will need to install this via: npm install @paddle/paddle-js
-import { initializePaddle, Paddle } from '@paddle/paddle-js';
-const PADDLE_VENDOR_ID = 234931; 
-const PADDLE_ENV = 'sandbox';  //change when going live 
 
-export default function App() {
+/**
+ * Paddle constants (kept as you provided)
+ */
+const PADDLE_VENDOR_ID = 234931;
+const PADDLE_ENV = 'sandbox'; // change to 'production' when going live
+
+/**
+ * Allow TypeScript to know about window.Paddle (Paddle's script attaches here)
+ */
+declare global {
+  interface Window { Paddle?: any; }
+}
+
+/**
+ * Plan type
+ */
+type Plan = {
+  name: string;
+  desc: string;
+  priceMonthly: string;
+  priceAnnually: string;
+  priceIdMonthly: string;
+  priceIdAnnually: string;
+  features: string[];
+  notIncluded: string[];
+  color: string;
+  buttonClass: string;
+  cta: string;
+  popular?: boolean;
+};
+
+export default function Pricing(): JSX.Element {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
-  const [paddle, setPaddle] = useState<Paddle>();
 
   const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
   const brutalistTransition = "transition-all duration-300 ease-in-out";
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
-  // initialize Paddle once on mount
-useEffect(() => {
+  // Load Paddle script once
+  useEffect(() => {
+    const scriptId = 'paddle-js-sdk';
+    if (document.getElementById(scriptId)) return;
+
     const script = document.createElement('script');
+    script.id = scriptId;
     script.src = 'https://cdn.paddle.com/paddle/paddle.js';
     script.async = true;
     script.onload = () => {
-      window.Paddle.Environment?.set?.(PADDLE_ENV); // Set environment if available
-      window.Paddle.Setup({ vendor: PADDLE_VENDOR_ID });
+      try {
+        if (!window.Paddle) return;
+        // set environment if Paddle supports it
+        if (window.Paddle.Environment?.set) {
+          try { window.Paddle.Environment.set(PADDLE_ENV); } catch (e) { /* ignore if unsupported */ }
+        }
+        window.Paddle.Setup({ vendor: PADDLE_VENDOR_ID });
+      } catch (err) {
+        // console warn, but don't crash
+        // eslint-disable-next-line no-console
+        console.warn('Paddle setup failed:', err);
+      }
     };
     document.body.appendChild(script);
     return () => {
-      document.body.removeChild(script);
+      const el = document.getElementById(scriptId);
+      if (el) el.remove();
     };
   }, []);
- 
-  const pricingPlans = [
+
+  const pricingPlans: Plan[] = [
     {
       name: "PRO",
       desc: "Essential tools to get started",
       priceMonthly: "$5.99",
-      priceAnnually: "$36",         // annual price with 20% discount
+      priceAnnually: "$36",
       priceIdMonthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1",
       priceIdAnnually: "pri_01jxq11xb6dpkzgqr27fxkejc3",
       features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
@@ -50,7 +92,7 @@ useEffect(() => {
       name: "PREMIUM",
       desc: "Full features + unlimited usage",
       priceMonthly: "$9.99",
-      priceAnnually: "$65",         // annual price with 20% discount
+      priceAnnually: "$65",
       priceIdMonthly: "pri_01jxq0wydxwg59kmha33h213ab",
       priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy",
       features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
@@ -64,7 +106,7 @@ useEffect(() => {
       name: "MAX",
       desc: "For groups & institutions",
       priceMonthly: "$14.99",
-      priceAnnually: "$119",        // annual price with 20% discount
+      priceAnnually: "$119",
       priceIdMonthly: "pri_01k22kw22dfrejy55t8xdhrzwd",
       priceIdAnnually: "pri_01k22ty36jptak5rjj74axhvxg",
       features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
@@ -93,37 +135,48 @@ useEffect(() => {
     { name: "Harvard University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png" },
   ];
 
-  const FloatingShape = ({ className, animationDelay }: { className: string, animationDelay: string }) => (
+  const FloatingShape = ({ className, animationDelay }: { className: string, animationDelay?: string }) => (
     <div
       className={`absolute rounded-full mix-blend-multiply filter blur-xl opacity-70 ${className}`}
       style={{ animation: `float 6s ease-in-out infinite`, animationDelay }}
+      aria-hidden
     />
   );
 
-const handlePurchase = () => {
+  // Main paddle purchase handler (receives a plan)
+  const handlePurchase = (plan: Plan) => {
     if (!window.Paddle) {
       alert('Payment system not loaded. Please try again later.');
       return;
     }
-    const priceId = PLAN_PRICE_IDS[billingCycle];
-    window.Paddle.Checkout.open({
-  items: [
-    {
-      priceId: billingCycle === 'monthly' 
-        ? plan.priceIdMonthly 
-        : plan.priceIdAnnually,
-      quantity: 1
+
+    // choose appropriate price id
+    const priceId = billingCycle === 'monthly' ? plan.priceIdMonthly : plan.priceIdAnnually;
+
+    try {
+      window.Paddle.Checkout.open({
+        // For Paddle Billing price-based checkout use `items` with a priceId (this matches newer Paddle billing usage).
+        items: [
+          { priceId, quantity: 1 }
+        ],
+        successCallback: () => {
+          // small delay so the overlay can finish
+          setTimeout(() => {
+            window.location.href = '/dashboard?purchase=success';
+          }, 300);
+        },
+        closeCallback: () => {
+          // user closed checkout — you can track analytics here
+          // eslint-disable-next-line no-console
+          console.log('Checkout closed');
+        }
+      });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Paddle checkout error', err);
+      alert('There was an error opening the checkout. Please try again or contact support.');
     }
-  ],
-  successCallback: () => {
-    window.location.href = "/dashboard?purchase=success";
-  },
-  closeCallback: () => {
-    console.log("Checkout closed");
-  }
-});
-
-
+  };
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
@@ -133,7 +186,10 @@ const handlePurchase = () => {
           50% { transform: translate(30px, -40px); }
           100% { transform: translate(0, 0); }
         }
+        /* subtle card hover using transform and box-shadow */
+        .pricing-card:hover { transform: translate(-6px, -6px) scale(1.01); }
       `}</style>
+
       <Navbar />
 
       {/* Hero Section */}
@@ -156,8 +212,9 @@ const handlePurchase = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Made Simple. Just Like It Should Be.</h2>
-            <div className="w-32 h-2 bg-black mx-auto"></div>
+            <div className="w-32 h-2 bg-black mx-auto" />
           </div>
+
           <div className="flex justify-center items-center my-12">
             <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-stone-400'}`}>Monthly</span>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -165,15 +222,22 @@ const handlePurchase = () => {
                 type="checkbox"
                 className="sr-only peer"
                 onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')}
+                checked={billingCycle === 'annually'}
+                aria-label="Toggle billing cycle"
               />
-              <div className={`w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-[4px] after:bg-black after:border after:border-black after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-fuchsia-400`}></div>
+              <div className={`w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-[4px] after:bg-black after:border after:border-black after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-fuchsia-400`} />
             </label>
             <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
             <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
-            {pricingPlans.map(plan => (
-              <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+            {pricingPlans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`relative h-full flex flex-col p-8 text-black bg-white pricing-card ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+                style={{ willChange: 'transform' }}
+              >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
                     <Badge className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">
@@ -181,13 +245,14 @@ const handlePurchase = () => {
                     </Badge>
                   </div>
                 )}
-                <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`}></div>
+                <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`} />
                 <div className="text-center mb-6 pt-8">
                   <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
                   <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
                   <div className="text-6xl font-black">{billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually}</div>
                   <div className="text-base font-bold text-stone-600">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
                 </div>
+
                 <div className="space-y-3 mb-8 flex-grow">
                   {plan.features.map(feature => (
                     <div key={feature} className="flex items-center">
@@ -195,6 +260,7 @@ const handlePurchase = () => {
                       <span className="font-bold text-md">{feature}</span>
                     </div>
                   ))}
+
                   {plan.notIncluded.map(feature => (
                     <div key={feature} className="flex items-center opacity-60">
                       <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
@@ -202,6 +268,7 @@ const handlePurchase = () => {
                     </div>
                   ))}
                 </div>
+
                 <Button
                   onClick={() => handlePurchase(plan)}
                   className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
@@ -219,8 +286,9 @@ const handlePurchase = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-6xl font-black mb-4 uppercase">Trusted by Students Worldwide</h2>
-            <div className="w-32 h-2 bg-black mx-auto"></div>
+            <div className="w-32 h-2 bg-black mx-auto" />
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {testimonials.map(t => (
               <div key={t.name} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
@@ -231,9 +299,11 @@ const handlePurchase = () => {
                     <div className="font-bold text-md text-stone-600">{t.role}</div>
                   </div>
                 </div>
+
                 <div className="flex mb-4">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
                 </div>
+
                 <p className="font-bold text-lg leading-tight">"{t.quote}"</p>
               </div>
             ))}
@@ -246,8 +316,9 @@ const handlePurchase = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-4 uppercase">Trusted By Top Universities</h2>
-            <div className="w-32 h-2 bg-black mx-auto"></div>
+            <div className="w-32 h-2 bg-black mx-auto" />
           </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center">
             {universities.map(u => (
               <div key={u.name} className={`p-6 bg-stone-100 flex justify-center items-center h-32 ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
@@ -268,12 +339,12 @@ const handlePurchase = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <a href="/signup" className={`block bg-black text-white font-black text-xl px-10 py-5 w-full sm:w-auto ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
               START FOR FREE
-          </a>
+            </a>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-   <Footer />
+      <Footer />
     </div>
   );
 }
