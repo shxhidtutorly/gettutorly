@@ -29,21 +29,22 @@ export default function Pricing(): JSX.Element {
   const PADDLE_ENV = 'sandbox';
 
   useEffect(() => {
-    const id = 'paddle-js-sdk';
-    if (document.getElementById(id)) return;
-   const script = document.createElement("script");
+    if (!document.getElementById("paddle-js")) {
+      const script = document.createElement("script");
       script.id = "paddle-js";
       script.src = "https://sandbox-checkout.paddle.com/paddle.js";
       script.async = true;
       script.onload = () => {
-      if (!window.Paddle) return;
-      try {
-        window.Paddle.Environment?.set?.(PADDLE_ENV);
-      } catch {}
-      window.Paddle.Setup({ vendor: PADDLE_VENDOR_ID });
-    };
-    document.body.appendChild(s);
-    return () => { const el = document.getElementById(id); if (el) el.remove(); };
+        if (window.Paddle) {
+          window.Paddle.Environment.set("sandbox"); // 🔹 Remove this line for live
+          window.Paddle.Setup({ vendor: vendorId });
+          setPaddleReady(true);
+        }
+      };
+      document.body.appendChild(script);
+    } else {
+      setPaddleReady(true);
+    }
   }, []);
 
   const pricingPlans: Plan[] = [
