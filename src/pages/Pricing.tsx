@@ -276,4 +276,3 @@ const handlePurchase = () => {
       <Footer />
     </div>
   );
-}
