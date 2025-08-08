@@ -8,14 +8,14 @@ interface SubscriptionGuardProps {
 }
 
 const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
-  const { user, isLoaded: isAuthLoaded } = useUser();
+  const { user, isLoaded: isAuthLoaded, loading: authLoading } = useUser();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Wait for auth to load
-    if (!isAuthLoaded || subLoading) return;
+    // Wait for both auth and subscription to load
+    if (!isAuthLoaded || authLoading || subLoading) return;
 
     // If not logged in, go to signin
     if (!user) {
@@ -28,24 +28,27 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
       return;
     }
 
-    // Check subscription status and route accordingly
-    if (user) {
-      const urlParams = new URLSearchParams(location.search);
-      const subSuccess = urlParams.get('sub') === 'success';
-      
-      // If payment successful or has active subscription, go to dashboard
-      if (subSuccess || hasActiveSubscription) {
-        if (location.pathname !== '/dashboard') {
-          navigate('/dashboard', { replace: true });
-        }
-      } else {
-        // No active subscription, redirect to pricing
-        if (location.pathname !== '/pricing' && location.pathname !== '/signin' && location.pathname !== '/signup') {
-          navigate('/pricing', { replace: true });
-        }
+    // If logged in, route based on subscription
+    const urlParams = new URLSearchParams(location.search);
+    const subSuccess = urlParams.get('sub') === 'success';
+
+    if (subSuccess || hasActiveSubscription) {
+      if (location.pathname !== '/dashboard') {
+        navigate('/dashboard', { replace: true });
+      }
+    } else {
+      if (
+        location.pathname !== '/pricing' &&
+        location.pathname !== '/signin' &&
+        location.pathname !== '/signup'
+      ) {
+        navigate('/pricing', { replace: true });
       }
     }
-  }, [user, isAuthLoaded, hasActiveSubscription, subLoading, location.pathname, location.search, navigate]);
+  }, [user, isAuthLoaded, authLoading, hasActiveSubscription, subLoading, location.pathname, location.search, navigate]);
+
+  // Prevent flash while loading
+  if (!isAuthLoaded || authLoading || subLoading) return null;
 
   return <>{children}</>;
 };

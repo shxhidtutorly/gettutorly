@@ -5,6 +5,8 @@ import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useUser } from "@/hooks/useUser";
+import { useNavigate } from "react-router-dom";
 
 declare global { interface Window { Paddle?: any; } }
 
@@ -25,28 +27,10 @@ type Plan = {
 
 export default function Pricing(): JSX.Element {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
-  const PADDLE_VENDOR_ID = 234931;
-  const PADDLE_ENV = 'sandbox';
+  const navigate = useNavigate();
+  const { user, isLoaded, loading: authLoading } = useUser();
 
-  useEffect(() => {
-    if (!document.getElementById("paddle-js")) {
-      const script = document.createElement("script");
-      script.id = "paddle-js";
-      script.src = "https://sandbox-checkout.paddle.com/paddle.js";
-      script.async = true;
-      script.onload = () => {
-        if (window.Paddle) {
-          window.Paddle.Environment.set("sandbox"); // 🔹 Remove this line for live
-          window.Paddle.Setup({ vendor: vendorId });
-          setPaddleReady(true);
-        }
-      };
-      document.body.appendChild(script);
-    } else {
-      setPaddleReady(true);
-    }
-  }, []);
-
+  // Pricing Plans (Billing - uses pri_ priceIds)
   const pricingPlans: Plan[] = [
     {
       name: "PRO",
@@ -78,19 +62,48 @@ export default function Pricing(): JSX.Element {
   ];
 
   const handlePurchase = (plan: Plan) => {
-    if (!window.Paddle) { alert('Payment system not loaded.'); return; }
     const priceId = billingCycle === 'monthly' ? plan.priceIdMonthly : plan.priceIdAnnually;
-    if (!priceId) { console.error('Price ID missing'); return; }
+
+    if (!priceId) {
+      console.error('Price ID missing');
+      alert('Sorry, something went wrong. Please try another plan.');
+      return;
+    }
+
+    if (!isLoaded || authLoading) {
+      alert('Please wait while we finish signing you in...');
+      return;
+    }
+
+    if (!user) {
+      // Redirect to signup with intended plan in query
+      navigate(`/signup?plan=${encodeURIComponent(plan.name)}&cycle=${billingCycle}`);
+      return;
+    }
+
+    if (!window.Paddle) {
+      alert('Payment system not loaded yet. Please try again in a moment.');
+      return;
+    }
+
+    const baseUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin;
 
     try {
       window.Paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
-        successCallback: () => { setTimeout(()=> window.location.href = '/dashboard?purchase=success', 300); },
-        closeCallback: () => { console.log('Checkout closed'); }
+        customerEmail: user.email || undefined,
+        customData: {
+          firebaseUid: user.uid,
+          email: user.email,
+          plan: plan.name,
+          cycle: billingCycle,
+        },
+        successUrl: `${baseUrl}/dashboard?sub=success`,
+        cancelUrl: `${baseUrl}/pricing?sub=cancel`,
       });
     } catch (err) {
       console.error('Paddle error', err);
-      alert('Could not open checkout. Check console.');
+      alert('Could not open checkout. Please refresh and try again.');
     }
   };
 

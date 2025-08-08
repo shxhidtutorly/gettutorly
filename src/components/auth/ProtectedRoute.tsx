@@ -1,16 +1,16 @@
-
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
 import { useEffect } from "react";
 import { cleanupWebGLContexts } from "@/lib/webgl-cleanup";
+import { useUser } from "@/hooks/useUser";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const [user, loading, error] = useAuthState(auth);
+  const { user, isLoaded, loading: authLoading } = useUser();
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const location = useLocation();
 
   // Global WebGL cleanup on route changes
@@ -20,13 +20,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     };
 
     handleRouteChange();
-    
     return () => {
       cleanupWebGLContexts();
     };
   }, [location.pathname]);
 
-  if (loading) {
+  // Show unified loading until both auth and subscription are ready
+  if (!isLoaded || authLoading || subLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
@@ -37,13 +37,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (error) {
-    console.error("Auth error:", error);
+  // Not authenticated
+  if (!user) {
     return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   }
 
-  if (!user) {
-    return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
+  // Authenticated but no active subscription
+  if (!hasActiveSubscription) {
+    return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;
