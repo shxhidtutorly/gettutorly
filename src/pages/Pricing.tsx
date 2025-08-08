@@ -6,19 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 
+const PADDLE_VENDOR_ID = 234931; 
+const PADDLE_ENV = 'sandbox';     // Switch to 'production' for live transactions
+
+
 export default function App() {
 const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
 
-useEffect(() => {
-const script = document.createElement("script");
-script.src = "https://cdn.paddle.com/paddle/paddle.js";
-script.async = true;
-script.onload = () => {
-window.Paddle?.Setup({ vendor: 234931 });
-};
-document.body.appendChild(script);
-return () => { document.body.removeChild(script); };
-}, []);
+ useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.paddle.com/paddle/paddle.js';
+    script.async = true;
+    script.onload = () => {
+      window.Paddle.Environment?.set?.(PADDLE_ENV); // Set environment if available
+      window.Paddle.Setup({ vendor: 234931 });
+    };
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
 const pricingPlans = [
 {
@@ -36,26 +43,22 @@ cta: "GET STARTED",
 // Add other plans here...
 ];
 
-const handlePurchase = (plan) => {
-if (!window.Paddle) {
-alert("Payment system not loaded. Please try again later.");
-return;
-}
-
-const productId &#x3D; billingCycle &#x3D;&#x3D;&#x3D; &#x27;monthly&#x27;
-  ? plan.priceIdMonthly
-  : plan.priceIdAnnually;
-
-window.Paddle.Checkout.open({
-  productId: productId,
-  successCallback: () &#x3D;&gt; {
-    window.location.href &#x3D; &quot;/dashboard?purchase&#x3D;success&quot;;
-  },
-  closeCallback: () &#x3D;&gt; {
-    console.log(&quot;Checkout closed&quot;);
-  }
-});
-};
+ const handlePurchase = () => {
+    if (!window.Paddle) {
+      alert('Payment system not loaded. Please try again later.');
+      return;
+    }
+    const priceId = PLAN_PRICE_IDS[billingCycle];
+    window.Paddle.Checkout.open({
+      product: "pro_01jxq0aqmmaasc0nxh2jedgxa9", 
+      successCallback: () => {
+        window.location.href = '/dashboard?purchase=success';
+      },
+      closeCallback: () => {
+        console.log('Checkout closed');
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
