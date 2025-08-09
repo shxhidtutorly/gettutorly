@@ -1,6 +1,10 @@
 // api/youtube-summarize.js
 import { AIProviderManager } from "../src/lib/aiProviders.js";
 import { YoutubeTranscript } from "youtube-transcript";
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+
+puppeteer.use(StealthPlugin());
 
 export default async function handler(req, res) {
   // CORS headers
@@ -17,7 +21,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing YouTube URL" });
     }
 
-    // Helper: extract videoId from common YouTube URL patterns
+    // Extract videoId helper
     const extractVideoId = (u) => {
       try {
         const parsed = new URL(u);
@@ -25,7 +29,6 @@ export default async function handler(req, res) {
           return parsed.pathname.replace("/", "");
         }
         if (parsed.searchParams.get("v")) return parsed.searchParams.get("v");
-        // Shorts format
         if (parsed.pathname.startsWith("/shorts/")) return parsed.pathname.split("/")[2];
       } catch {}
       return null;
@@ -34,8 +37,8 @@ export default async function handler(req, res) {
     let transcriptText = "";
     let usedTranscript = false;
 
+    // Try youtube-transcript first
     try {
-      // youtube-transcript can accept URL or videoId; try URL first
       const items = await YoutubeTranscript.fetchTranscript(url).catch(async () => {
         const vid = extractVideoId(url);
         if (!vid) throw new Error("Invalid YouTube URL");
@@ -44,17 +47,69 @@ export default async function handler(req, res) {
 
       if (Array.isArray(items) && items.length) {
         transcriptText = items.map((t) => t.text).join(" ");
-        // Trim extremely long transcripts
         if (transcriptText.length > 16000) transcriptText = transcriptText.slice(0, 16000);
         usedTranscript = true;
       }
     } catch (e) {
-      console.warn("Transcript fetch failed:", e?.message || e);
+      console.warn("youtube-transcript failed:", e?.message || e);
     }
 
-    const aiManager = new AIProviderManager();
+    // If youtube-transcript failed, try Puppeteer
+    if (!usedTranscript) {
+      try {
+        const browser = await puppeteer.launch({
+          headless: true,
+          args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: "networkidle2" });
 
-    const baseInstructions = `You are an expert study assistant. Create a clear, structured study summary with:\n- Title\n- 5-8 key takeaways\n- Short outline\n- Practical examples or formulas when relevant\n- Actionable tips for revision`;
+        // Handle cookies popup (EU)
+        try {
+          await page.waitForSelector('button[aria-label="Accept all"]', { timeout: 3000 });
+          await page.click('button[aria-label="Accept all"]');
+        } catch {}
+
+        // Click 3-dot menu
+        await page.waitForSelector("#more-button", { visible: true });
+        await page.click("#more-button");
+
+        // Click "Show transcript"
+        await page.waitForSelector('tp-yt-paper-item:has-text("Show transcript")', { visible: true });
+        await page.click('tp-yt-paper-item:has-text("Show transcript")');
+
+        // Wait for transcript panel
+        await page.waitForSelector("ytd-transcript-renderer", { visible: true });
+
+        // Extract transcript
+        transcriptText = await page.evaluate(() => {
+          return Array.from(document.querySelectorAll("ytd-transcript-segment-renderer"))
+            .map((el) => {
+              const text = el.querySelector(".segment-text")?.innerText.trim();
+              return text;
+            })
+            .join(" ");
+        });
+
+        if (transcriptText) {
+          if (transcriptText.length > 16000) transcriptText = transcriptText.slice(0, 16000);
+          usedTranscript = true;
+        }
+
+        await browser.close();
+      } catch (e) {
+        console.warn("Puppeteer transcript failed:", e?.message || e);
+      }
+    }
+
+    // Prepare AI prompt
+    const aiManager = new AIProviderManager();
+    const baseInstructions = `You are an expert study assistant. Create a clear, structured study summary with:
+- Title
+- 5-8 key takeaways
+- Short outline
+- Practical examples or formulas when relevant
+- Actionable tips for revision`;
 
     const prompt = usedTranscript
       ? `${baseInstructions}\n\nSummarize the following YouTube transcript in your own words, removing filler. Use concise bullet points and sections.\n\nTRANSCRIPT:\n${transcriptText}`
@@ -71,6 +126,9 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error("YouTube summarize error:", error);
-    return res.status(500).json({ ok: false, error: error instanceof Error ? error.message : "Unknown error" });
+    return res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 }
