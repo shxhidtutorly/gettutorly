@@ -1,6 +1,6 @@
 // api/youtube-summarize.js
 import { AIProviderManager } from "../src/lib/aiProviders.js";
-import { YoutubeTranscript } from "youtube-transcript";
+import { YoutubeTranscriptApi } from "youtube-transcript-api"; // New import
 
 export default async function handler(req, res) {
   // CORS headers
@@ -35,15 +35,15 @@ export default async function handler(req, res) {
     let usedTranscript = false;
 
     try {
-      // youtube-transcript can accept URL or videoId; try URL first
-      const items = await YoutubeTranscript.fetchTranscript(url).catch(async () => {
-        const vid = extractVideoId(url);
-        if (!vid) throw new Error("Invalid YouTube URL");
-        return YoutubeTranscript.fetchTranscript(vid);
-      });
+      const videoId = extractVideoId(url);
+      if (!videoId) throw new Error("Invalid YouTube URL");
 
-      if (Array.isArray(items) && items.length) {
-        transcriptText = items.map((t) => t.text).join(" ");
+      // Use the new library to fetch the transcript
+      const transcripts = await YoutubeTranscriptApi.list_transcripts(videoId);
+      const transcript = await transcripts[0].fetch(); // Fetch the first available transcript
+
+      if (Array.isArray(transcript) && transcript.length) {
+        transcriptText = transcript.map((t) => t.text).join(" ");
         // Trim extremely long transcripts
         if (transcriptText.length > 16000) transcriptText = transcriptText.slice(0, 16000);
         usedTranscript = true;
