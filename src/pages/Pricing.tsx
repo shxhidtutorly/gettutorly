@@ -25,7 +25,7 @@ export default function Pricing() {
     script.onload = () => {
       // Vendor ID from Paddle Dashboard
       window.Paddle?.Setup({
-        vendor: 234931,
+        vendor: 35861,
         eventCallback: (data) => console.log("Paddle Event:", data),
       });
       setPaddleReady(true);
@@ -42,7 +42,7 @@ export default function Pricing() {
       desc: "Essential tools to get started",
       priceMonthly: "$5.99",
       priceAnnually: "$36",
-      priceIdMonthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1",
+      priceIdMonthly: "pri_01k274qrwsngnq4tre5y2qe3pp",
       priceIdAnnually: "pri_01jxq11xb6dpkzgqr27fxkejc3",
       features: [
         "Basic AI Chat",
@@ -63,7 +63,7 @@ export default function Pricing() {
       desc: "Full features + unlimited usage",
       priceMonthly: "$9.99",
       priceAnnually: "$65",
-      priceIdMonthly: "pri_01jxq0wydxwg59kmha33h213ab",
+      priceIdMonthly: "pro_01k274p0bmxcqdcbfs3py7wa9g",
       priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy",
       features: [
         "Unlimited Everything",
@@ -94,7 +94,7 @@ export default function Pricing() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "test@example.com", // replace with logged-in user's email
-          price_id: priceId,
+          price_id: "pri_01k274r984nbbbrt9fvpbk9sda",
           user_id: "firebase-uid-or-any-id",
         }),
       });
