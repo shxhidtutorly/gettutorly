@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, type ElementType, type ComponentPropsWithoutRef } from "react"
+import { CodeBlock, parseCodeBlocks } from "../components/code-block"
 import { CenteredThinkingOverlay } from "../components/thinking-indicator"
 
 // Utility function for className merging
@@ -752,7 +753,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 
       const formattedInput = messagePrefix ? `${messagePrefix}${input}]` : input
 
-      onSend(formattedInput, files)
+      onSend(formattedInput, files, { isCanvas: isCanvasMode, isThinking: showThink })
       setInput("")
       setFiles([])
       setFilePreviews({})
@@ -1327,13 +1328,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }, [messages.length, headingState])
 
   const renderMessageContent = (msg: any) => {
-    const parts = (window as any).parseCodeBlocks ? (window as any).parseCodeBlocks(msg.text) : []
+    const parts = parseCodeBlocks(msg.text)
 
     return (
       <div>
         {parts.map((part, index) => {
           if (part.type === "code") {
-            return <div key={index} className="bg-gray-800 p-4 rounded-lg"><pre><code>{part.content}</code></pre></div>
+            return <CodeBlock key={index} code={part.content} language={part.language} isCanvas={msg.isCanvas} />
           } else {
             return (
               <div key={index} className="whitespace-pre-wrap">
@@ -1477,6 +1478,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <PromptInputBox
           onSend={handleSendMessage}
           isLoading={isLoading}
+          messages={messages}
+          setMessages={setMessages}
+          isThinking={isThinking}
+          setIsThinking={setIsThinking}
         />
       </div>
     </div>
