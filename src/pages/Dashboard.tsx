@@ -16,7 +16,8 @@ import {
   Clock,
   Award,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  Youtube
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -188,7 +189,7 @@ const Dashboard = () => {
     { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries", color: neonColors.pink },
     { title: "Library", desc: "Browse your materials", icon: BookOpen, route: "/library", color: neonColors.blue },
     { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant", color: neonColors.cyan },
-    { title: "Progress", desc: "Track your learning", icon: TrendingUp, route: "/progress", color: neonColors.green }
+    { title: "YouTube Summarizer", desc: "Summarize YouTube videos", icon: Youtube, route: "/youtube-summarizer", color: neonColors.yellow },
   ];
 
   if (authLoading || statsLoading) {

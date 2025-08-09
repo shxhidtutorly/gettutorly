@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase"; // Assuming you export db from firebase config
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { updateProfile, sendPasswordResetEmail } from "firebase/auth";
+import { auth } from '@/lib/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";

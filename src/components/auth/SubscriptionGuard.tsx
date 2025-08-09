@@ -28,22 +28,12 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
       return;
     }
 
-    // If logged in, route based on subscription
-    const urlParams = new URLSearchParams(location.search);
-    const subSuccess = urlParams.get('sub') === 'success';
-
-    if (subSuccess || hasActiveSubscription) {
+    // If logged in, send to dashboard during development
+    if (user) {
       if (location.pathname !== '/dashboard') {
         navigate('/dashboard', { replace: true });
       }
-    } else {
-      if (
-        location.pathname !== '/pricing' &&
-        location.pathname !== '/signin' &&
-        location.pathname !== '/signup'
-      ) {
-        navigate('/pricing', { replace: true });
-      }
+      return;
     }
   }, [user, isAuthLoaded, authLoading, hasActiveSubscription, subLoading, location.pathname, location.search, navigate]);
 

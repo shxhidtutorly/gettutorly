@@ -1,4 +1,6 @@
 
+import * as THREE from 'three';
+
 class WebGLManager {
   private renderers: THREE.WebGLRenderer[] = [];
   private contexts: WebGLRenderingContext[] = [];
@@ -38,7 +40,7 @@ class WebGLManager {
 
   // Hook for React components
   createManagedRenderer(canvas?: HTMLCanvasElement): THREE.WebGLRenderer {
-    const renderer = new (window as any).THREE.WebGLRenderer({ 
+    const renderer = new THREE.WebGLRenderer({ 
       canvas,
       antialias: true,
       alpha: true 

@@ -38,6 +38,7 @@ import PricingPage from "./pages/Pricing";
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
+import YouTubeSummarizer from "./pages/YouTubeSummarizer";
 
 // Feature pages (import with unique names)
 import MathChatFeature from "./pages/features/math-chat";
@@ -116,6 +117,7 @@ const App = () => {
                 <Route path="/doubt-chain" element={<ProtectedRoute><DoubtChain /></ProtectedRoute>} />
                 <Route path="/doubt-bookmarks" element={<ProtectedRoute><DoubtBookmarks /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/youtube-summarizer" element={<ProtectedRoute><YouTubeSummarizer /></ProtectedRoute>} />
                 <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
                 <Route path="*" element={<NotFound />} />

@@ -139,7 +139,7 @@ const AINotesGenerator = () => {
 
   const createFlashcards = () => {
     if (!note) return;
-    localStorage.setItem('flashcards', JSON.stringify(note.flashcards));
+    localStorage.setItem('flashcards', JSON.stringify((note as any).flashcards));
     localStorage.setItem('flashcards-source', note.title);
     toast({ title: "Flashcards Ready! 📚", description: "Navigating you to the flashcards page." });
     navigate('/flashcards');

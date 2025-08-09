@@ -25,7 +25,7 @@ export default function Pricing() {
     script.onload = () => {
       // Vendor ID from Paddle Dashboard
       window.Paddle?.Setup({
-        vendor: 35861,
+        vendor: String(35861) as any,
         eventCallback: (data) => console.log("Paddle Event:", data),
       });
       setPaddleReady(true);
@@ -113,17 +113,7 @@ export default function Pricing() {
       return;
     }
 
-    // If transaction id returned, open Paddle checkout via client JS
-    const txn = data.transaction_id || (data.transaction && data.transaction.id);
-    if (txn && window.Paddle && window.Paddle.Checkout && window.Paddle.Checkout.open) {
-      window.Paddle.Checkout.open({
-        transaction: txn,
-        successCallback: function() { window.location.href = "/dashboard?purchase=success"; },
-        closeCallback: function() { console.info("Paddle checkout closed"); }
-      });
-      return;
-    }
-
+    // If neither checkout_url nor transaction id, report an error
     console.error("No checkout URL or transaction id returned:", data);
     alert("Could not start checkout. Check server logs.");
   } catch (err) {

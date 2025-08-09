@@ -42,10 +42,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   }
 
-  // Authenticated but no active subscription
-  if (!hasActiveSubscription) {
-    return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
-  }
+  // Subscription check disabled for development
+  // if (!hasActiveSubscription) {
+  //   return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
+  // }
 
   return <>{children}</>;
 };
