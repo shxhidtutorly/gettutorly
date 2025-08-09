@@ -187,7 +187,13 @@ const Dashboard = () => {
 
   const quickActions = [
     { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries", color: neonColors.pink },
-    { title: "Library", desc: "Browse your materials", icon: BookOpen, route: "/library", color: neonColors.blue },
+{ 
+  title: "Multi-Doc Session", 
+  desc: "Upload & study multiple documents", 
+  icon: Files, 
+  route: "/multi-doc-session", 
+  color: neonColors.purple 
+},
     { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant", color: neonColors.cyan },
     { title: "YouTube Summarizer", desc: "Summarize YouTube videos", icon: Youtube, route: "/youtube-summarizer", color: neonColors.yellow },
   ];
