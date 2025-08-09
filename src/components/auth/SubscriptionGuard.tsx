@@ -29,23 +29,23 @@ const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
     }
 
     // If logged in, route based on subscription
-   // const urlParams = new URLSearchParams(location.search);
-   // const subSuccess = urlParams.get('sub') === 'success';
+    const urlParams = new URLSearchParams(location.search);
+    const subSuccess = urlParams.get('sub') === 'success';
 
-    //if (subSuccess || hasActiveSubscription) {
-      //if (location.pathname !== '/dashboard') {
-       // navigate('/dashboard', { replace: true });
-    //  }
-    //} else {
-     // if (
-       // location.pathname !== '/pricing' &&
-        //location.pathname !== '/signin' &&
-        //location.pathname !== '/signup'
-      //) {
-        //navigate('/pricing', { replace: true });
-      //}
-    //}
-  //}, [user, isAuthLoaded, authLoading, hasActiveSubscription, subLoading, location.pathname, location.search, navigate]);
+    if (subSuccess || hasActiveSubscription) {
+      if (location.pathname !== '/dashboard') {
+        navigate('/dashboard', { replace: true });
+      }
+    } else {
+      if (
+        location.pathname !== '/pricing' &&
+        location.pathname !== '/signin' &&
+        location.pathname !== '/signup'
+      ) {
+        navigate('/pricing', { replace: true });
+      }
+    }
+  }, [user, isAuthLoaded, authLoading, hasActiveSubscription, subLoading, location.pathname, location.search, navigate]);
 
   // Prevent flash while loading
   if (!isAuthLoaded || authLoading || subLoading) return null;
