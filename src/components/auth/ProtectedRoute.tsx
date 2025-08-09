@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoaded, loading: authLoading } = useUser();
-  const { hasActiveSubscription, loading: subLoading } = useSubscription();
+//  const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const location = useLocation();
 
   // Global WebGL cleanup on route changes
@@ -43,9 +43,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Authenticated but no active subscription
-  if (!hasActiveSubscription) {
-    return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
-  }
+ // if (!hasActiveSubscription) {
+   // return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
+//  }
 
   return <>{children}</>;
 };
