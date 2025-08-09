@@ -39,6 +39,7 @@ import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
 import YouTubeSummarizer from "./pages/YouTubeSummarizer";
+import MultiDocSession from "./pages/MultiDocSession";
 
 // Feature pages (import with unique names)
 import MathChatFeature from "./pages/features/math-chat";
