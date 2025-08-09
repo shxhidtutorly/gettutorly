@@ -1,93 +1,103 @@
 // api/checkout/session.js
-import { Environment, Paddle } from "@paddle/paddle-node-sdk";
+// Replace your current file with this. Uses raw HTTP to Paddle and sanitizes the API key.
+
+import fetch from "node-fetch";
 
 /**
- * REQUIRED ENV VARS (set these in Vercel):
- * - PADDLE_API_KEY        -> the server API key from Paddle (sandbox keys begin with sdbx_ after May 2025)
- * - PADDLE_ENV            -> "sandbox" or "production" (optional; defaults to sandbox)
- * - SITE_URL              -> your public site URL (e.g. https://gettutorly.com) accepted by Paddle
+ * Required env vars:
+ * - PADDLE_API_KEY  -> paste the server API key string (no "Bearer " prefix, no quotes, no newline)
+ * - PADDLE_ENV      -> optional: "sandbox" or "production" (defaults to sandbox)
+ * - SITE_URL        -> optional: your site URL (defaults to https://gettutorly.com)
  */
 
-const API_KEY = process.env.PADDLE_API_KEY || process.env.PADDLE_SECRET_KEY || "";
-const PADDLE_ENV = (process.env.PADDLE_ENV || "sandbox").toLowerCase();
-const SITE_URL = process.env.SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://localhost:3000";
+function sanitizeKey(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  let k = raw.trim();
+  // remove surrounding quotes if someone pasted with quotes
+  if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) {
+    k = k.slice(1, -1).trim();
+  }
+  // remove leading "Bearer " or "bearer " if accidentally included
+  if (k.toLowerCase().startsWith("bearer ")) {
+    k = k.split(" ").slice(1).join(" ").trim();
+  }
+  // final trim
+  return k;
+}
 
-const paddle = new Paddle(API_KEY, {
-  environment: PADDLE_ENV === "production" ? Environment.production : Environment.sandbox,
-});
+function maskKey(key) {
+  if (!key) return "<empty>";
+  if (key.length <= 10) return key.replace(/.(?=.{2})/g, "*");
+  return key.slice(0, 4) + key.slice(4, -4).replace(/./g, "*") + key.slice(-4);
+}
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // quick guard for missing API key (helps surface env var issues)
-  if (!API_KEY) {
-    console.error("Missing Paddle API key. Set PADDLE_API_KEY in Vercel environment variables.");
-    return res.status(500).json({
-      error: "server_config",
-      message: "Missing Paddle API key. Set PADDLE_API_KEY in your environment.",
-    });
+  const rawKey = process.env.PADDLE_API_KEY || process.env.PADDLE_KEY || "";
+  const key = sanitizeKey(rawKey);
+  const PADDLE_ENV = (process.env.PADDLE_ENV || "sandbox").toLowerCase();
+  const SITE_URL = process.env.SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://gettutorly.com";
+
+  // quick guard
+  if (!key) {
+    console.error("[checkout] Missing Paddle API key in environment (raw value masked):", maskKey(rawKey));
+    return res.status(500).json({ error: "missing_api_key", message: "Set PADDLE_API_KEY in Vercel env (raw key, no quotes, no 'Bearer ' prefix)." });
   }
 
   try {
     const { email, price_id: priceId, user_id } = req.body ?? {};
+    if (!priceId) return res.status(400).json({ error: "missing_field", message: "price_id is required" });
 
-    if (!priceId) {
-      return res.status(400).json({ error: "missing_field", message: "price_id is required" });
-    }
-
-    // payload to create a transaction that returns a checkout URL
-    const txPayload = {
+    // Build raw HTTP request to Paddle (transactions endpoint)
+    const payload = {
       items: [{ price_id: priceId, quantity: 1 }],
       collection_mode: "automatic",
       checkout: { url: SITE_URL },
       custom_data: user_id ? { firebaseUid: user_id } : undefined,
     };
 
-    const transaction = await paddle.transactions.create(txPayload);
+    // Log masked key and request payload (no secrets)
+    console.info("[checkout] Paddle env:", PADDLE_ENV, "maskedKey:", maskKey(key));
+    console.info("[checkout] Posting transaction payload:", JSON.stringify(payload));
 
-    const checkoutUrl = transaction?.checkout?.url;
-    if (!checkoutUrl) {
-      // still return transaction id so client can attempt Paddle.Checkout.open({ transaction: ... })
-      return res.status(200).json({
-        message: "transaction_created_no_checkout_url",
-        transaction_id: transaction?.id,
-        transaction,
-      });
+    const apiUrl = "https://api.paddle.com/transactions";
+    const pRes = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await pRes.text();
+    let body;
+    try { body = JSON.parse(text); } catch(e) { body = text; }
+
+    // Log the full response for debugging (will appear in Vercel logs)
+    console.info("[checkout] Paddle response status:", pRes.status, "body:", body);
+
+    // If not OK, return the Paddle body with status (so frontend gets actionable JSON)
+    if (!pRes.ok) {
+      // if 403 or 400, include hint for malformed auth
+      if (pRes.status === 403 && typeof body === "object" && body.code === "authentication_malformed") {
+        return res.status(403).json({
+          error: "authentication_malformed",
+          message: "Authentication header malformed. Check that PADDLE_API_KEY env var is the raw server key (no 'Bearer ' prefix, no surrounding quotes/newlines).",
+          paddle: body,
+        });
+      }
+
+      return res.status(pRes.status).json({ error: "paddle_error", paddle: body });
     }
 
-    return res.status(200).json({
-      checkout_url: checkoutUrl,
-      transaction_id: transaction.id,
-    });
+    // success: prefer checkout_url if present
+    const checkoutUrl = body?.checkout?.url || null;
+    return res.status(200).json({ checkout_url: checkoutUrl, transaction: body });
+
   } catch (err) {
-    console.error("Paddle checkout error:", err);
-
-    // More granular handling for Paddle API errors (forbidden / invalid token / other)
-    const isApiError = err && err.type === "request_error";
-    const code = err?.code || null;
-    const details = err?.detail || err?.message || String(err);
-
-    if (isApiError && code === "forbidden") {
-      // actionable response for forbidden (403)
-      return res.status(403).json({
-        error: "forbidden",
-        message: "Paddle API returned 403 Forbidden. The API key used does not have required permissions or is for the wrong environment.",
-        detail: details,
-        action: [
-          "Check you are using the correct API key (sandbox vs live).",
-          "In Paddle Dashboard -> Developer tools -> Authentication ensure the API key has WRITE permissions for `transactions` and `customers`.",
-          "Ensure your Paddle account has Checkout enabled and your domain is approved in Checkout settings."
-        ]
-      });
-    }
-
-    // generic fallback
-    return res.status(500).json({
-      error: "paddle_error",
-      message: "Failed to create checkout session",
-      details,
-    });
+    console.error("[checkout] Unexpected error:", String(err));
+    return res.status(500).json({ error: "internal_error", details: String(err) });
   }
 }
