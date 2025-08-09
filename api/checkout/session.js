@@ -1,7 +1,7 @@
 import { Paddle } from "@paddle/paddle-node-sdk";
 
 const paddle = new Paddle({
-  apiKey: process.env.PADDLE_API_KEY!,
+  apiKey: process.env.PADDLE_API_KEY || "",
   environment:
     process.env.VITE_PADDLE_ENV === "production" ? "production" : "sandbox",
 });
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     console.error("Paddle checkout error:", error);
     return res.status(500).json({
       error: "Failed to create checkout session",
-      details: error.message,
+      details: error?.message || String(error),
     });
   }
 }
