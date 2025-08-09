@@ -119,6 +119,8 @@ const App = () => {
                 <Route path="/doubt-bookmarks" element={<ProtectedRoute><DoubtBookmarks /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/youtube-summarizer" element={<ProtectedRoute><YouTubeSummarizer /></ProtectedRoute>} />
+                 <Route path="/multi-doc-session" element={<ProtectedRoute><MultiDocSession /></ProtectedRoute>} />
+
                 <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
                 <Route path="*" element={<NotFound />} />
