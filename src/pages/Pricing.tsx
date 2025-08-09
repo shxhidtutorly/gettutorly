@@ -63,7 +63,7 @@ export default function Pricing() {
       desc: "Full features + unlimited usage",
       priceMonthly: "$9.99",
       priceAnnually: "$65",
-      priceIdMonthly: "pro_01k274p0bmxcqdcbfs3py7wa9g",
+      priceIdMonthly: "pri_01k274r984nbbbrt9fvpbk9sda",
       priceIdAnnually: "pri_01k22jjqh6dtn42e25bw0znrgy",
       features: [
         "Unlimited Everything",
