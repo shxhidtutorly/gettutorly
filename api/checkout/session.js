@@ -1,124 +1,76 @@
 // api/checkout/session.js
-// FINAL: robust, sanitized, raw HTTP call to Paddle for creating a transaction
-// Paste this file replacing your current API route exactly.
-
-import fetch from "node-fetch";
-
-/**
- * ENV VARS you MUST set in Vercel (exact names):
- *  - PADDLE_API_KEY  -> the raw server API key from Paddle (no "Bearer ", no quotes, no newline)
- *  - SITE_URL        -> https://gettutorly.com  (or your public site)
- *  - Optionally PADDLE_ENV -> "sandbox" or "production" (unused for URL here, but keep for clarity)
- */
-
-function sanitizeKey(raw) {
-  if (!raw || typeof raw !== "string") return "";
-  let k = raw.trim();
-  // remove surrounding quotes
-  if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) {
-    k = k.slice(1, -1).trim();
-  }
-  // remove accidental "Bearer " prefix
-  if (k.toLowerCase().startsWith("bearer ")) {
-    k = k.split(" ").slice(1).join(" ").trim();
-  }
-  // remove any accidental "Bearer:" etc
-  k = k.replace(/^Bearer:/i, "").trim();
-  // strip newlines
-  k = k.replace(/\r?\n|\r/g, "").trim();
-  return k;
-}
-
-function maskKey(key) {
-  if (!key) return "<empty>";
-  if (key.length <= 8) return key.replace(/.(?=.{2})/g, "*");
-  return key.slice(0, 4) + key.slice(4, -4).replace(/./g, "*") + key.slice(-4);
-}
-
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const rawKey = process.env.PADDLE_API_KEY || "";
-  const key = sanitizeKey(rawKey);
-  const SITE_URL = process.env.SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://gettutorly.com";
+  // sanitize env var
+  const raw = process.env.PADDLE_API_KEY || process.env.PADDLE_KEY || "";
+  const sanitize = s => {
+    if (!s || typeof s !== "string") return "";
+    let k = s.trim();
+    if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) k = k.slice(1, -1).trim();
+    if (k.toLowerCase().startsWith("bearer ")) k = k.split(" ").slice(1).join(" ").trim();
+    k = k.replace(/[\r\n]+/g, "").trim();
+    return k;
+  };
+  const key = sanitize(raw);
+  const mask = k => {
+    if (!k) return "<empty>";
+    if (k.length <= 10) return k.replace(/.(?=.{2})/g, "*");
+    return k.slice(0,4) + k.slice(4,-4).replace(/./g,"*") + k.slice(-4);
+  };
 
-  // quick guard: very explicit and immediate
   if (!key) {
-    console.error("[checkout] Missing/empty PADDLE_API_KEY env var (raw masked):", maskKey(rawKey));
-    return res.status(500).json({
-      error: "missing_api_key",
-      message: "PADDLE_API_KEY missing or empty in environment. Set the raw API key (no quotes, no 'Bearer ' prefix)."
-    });
+    console.error("[checkout] Missing Paddle API key (raw masked):", mask(raw));
+    return res.status(500).json({ error: "missing_api_key", message: "Set PADDLE_API_KEY in environment (raw server key, no 'Bearer ', no quotes)." });
   }
 
+  const { email, price_id: priceId, user_id } = req.body ?? {};
+  if (!priceId) return res.status(400).json({ error: "missing_field", message: "price_id is required" });
+
+  // SITE_URL: prefer explicit env var; fallback to gettutorly.com — ensure scheme
+  let SITE_URL = (process.env.SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://gettutorly.com").trim();
+  if (!SITE_URL.match(/^https?:\/\//)) SITE_URL = "https://" + SITE_URL;
+
+  const payload = {
+    items: [{ price_id: priceId, quantity: 1 }],
+    collection_mode: "automatic",
+    checkout: { url: SITE_URL },
+    custom_data: user_id ? { firebaseUid: user_id } : undefined,
+  };
+
   try {
-    const body = req.body || {};
-    const priceId = body.price_id || body.priceId;
-    const email = body.email || "";
+    console.info("[checkout] Using maskedKey:", mask(key));
+    console.info("[checkout] Payload:", JSON.stringify(payload));
 
-    if (!priceId) {
-      return res.status(400).json({ error: "missing_field", message: "price_id is required in the POST body" });
-    }
-
-    const payload = {
-      items: [{ price_id: priceId, quantity: 1 }],
-      collection_mode: "automatic",
-      checkout: { url: SITE_URL },
-      // custom_data optional:
-      custom_data: body.user_id ? { firebaseUid: body.user_id } : undefined,
-    };
-
-    // Log masked key and payload to server logs for debugging (no secret leak)
-    console.info("[checkout] Using maskedKey:", maskKey(key));
-    console.info("[checkout] Payload:", JSON.stringify({ items: payload.items, checkout: payload.checkout }));
-
-    // Raw HTTP request to Paddle
     const pRes = await fetch("https://api.paddle.com/transactions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${key}`, // correct format
-        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(payload),
-      // no redirect handling needed
     });
 
-    const text = await pRes.text();
-    let parsed;
-    try { parsed = JSON.parse(text); } catch (e) { parsed = text; }
+    const rawBody = await pRes.text();
+    let body;
+    try { body = JSON.parse(rawBody); } catch(e) { body = rawBody; }
 
-    console.info("[checkout] Paddle response status:", pRes.status, "body:", parsed);
+    // try to extract Paddle meta.request_id if present
+    const requestId = body?.meta?.request_id || body?.request_id || null;
+    console.info("[checkout] Paddle response status:", pRes.status, "request_id:", requestId, "body:", body);
 
     if (!pRes.ok) {
-      // helpful, actionable messages for two common cases
-      if (pRes.status === 403) {
-        return res.status(403).json({
-          error: "forbidden_or_auth_malformed",
-          message: "Paddle returned an authorization error. Check the raw API key in Vercel (no quotes/no 'Bearer ').",
-          paddle: parsed
-        });
-      }
-      if (pRes.status === 400 && parsed && parsed.code === "transaction_default_checkout_url_not_set") {
-        return res.status(400).json({
-          error: "transaction_default_checkout_url_not_set",
-          message: "Paddle requires a Default Payment Link to be set in Dashboard -> Checkout settings.",
-          paddle: parsed
-        });
-      }
-      return res.status(pRes.status).json({ error: "paddle_error", paddle: parsed });
+      // Most common actionable causes:
+      //  - 403 forbidden => permission / env mismatch / price id wrong account
+      //  - 400 transaction_default_checkout_url_not_set => default link not set
+      return res.status(pRes.status).json({ error: "paddle_error", status: pRes.status, request_id: requestId, paddle: body });
     }
 
-    // success path: prefer checkout.url
-    const checkoutUrl = parsed?.checkout?.url || null;
-    if (checkoutUrl) {
-      return res.status(200).json({ checkout_url: checkoutUrl, transaction: parsed });
-    }
-
-    // fallback: return transaction id and parsed object (client can use Paddle.Checkout.open with transaction id)
-    return res.status(200).json({ transaction_id: parsed?.id || null, transaction: parsed });
-
+    const checkoutUrl = body?.checkout?.url || null;
+    if (checkoutUrl) return res.status(200).json({ checkout_url: checkoutUrl, transaction: body });
+    return res.status(200).json({ message: "transaction_created_no_checkout_url", transaction: body });
   } catch (err) {
-    console.error("[checkout] Unexpected server error:", String(err));
+    console.error("[checkout] Unexpected error:", String(err));
     return res.status(500).json({ error: "internal_error", details: String(err) });
   }
 }
