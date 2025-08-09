@@ -80,37 +80,58 @@ export default function Pricing() {
     },
   ];
 
-  const handlePurchase = async (plan) => {
-    if (!paddleReady) {
-      alert("Payment system is not ready yet. Please try again shortly.");
+ const handlePurchase = async (plan) => {
+  if (!window.Paddle) {
+    alert("Payment script not ready. Try again in 2-3 seconds.");
+    return;
+  }
+
+  const priceId = billingCycle === "monthly" ? plan.priceIdMonthly : plan.priceIdAnnually;
+
+  try {
+    const res = await fetch("/api/checkout/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: /* logged in user email or '' */ "",
+        price_id: priceId,
+        user_id: /* user id or '' */ "",
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("Checkout API failed:", data);
+      alert("Payment initiation failed. Check console for details.");
       return;
     }
-    const priceId =
-      billingCycle === "monthly" ? plan.priceIdMonthly : plan.priceIdAnnually;
 
-    try {
-      const res = await fetch("/api/checkout/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "test@example.com", // replace with logged-in user's email
-          price_id: "pri_01k274r984nbbbrt9fvpbk9sda",
-          user_id: "firebase-uid-or-any-id",
-        }),
-      });
-
-      const data = await res.json();
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-      } else {
-        console.error("Checkout creation failed", data);
-        alert("Something went wrong starting your checkout.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error starting checkout.");
+    // Prefer direct checkout URL
+    if (data.checkout_url) {
+      window.location.href = data.checkout_url;
+      return;
     }
-  };
+
+    // If transaction id returned, open Paddle checkout via client JS
+    const txn = data.transaction_id || (data.transaction && data.transaction.id);
+    if (txn && window.Paddle && window.Paddle.Checkout && window.Paddle.Checkout.open) {
+      window.Paddle.Checkout.open({
+        transaction: txn,
+        successCallback: function() { window.location.href = "/dashboard?purchase=success"; },
+        closeCallback: function() { console.info("Paddle checkout closed"); }
+      });
+      return;
+    }
+
+    console.error("No checkout URL or transaction id returned:", data);
+    alert("Could not start checkout. Check server logs.");
+  } catch (err) {
+    console.error("Error creating checkout session:", err);
+    alert("Unexpected error. See console.");
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono">
