@@ -15,6 +15,7 @@ import {
   StickyNote,
   Clock,
   Award,
+  Files,
   CheckCircle,
   ArrowRight,
   Youtube
