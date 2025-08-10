@@ -1,13 +1,18 @@
 import React, { useState } from "react";
-import { Loader2, Link, Youtube, FileText, Download } from "lucide-react";
+import { Loader2, Link as LinkIcon, Download } from "lucide-react";
+
+// You must have this utility function in your project for the code to work.
+// This function is expected to return an object like:
+// { success: boolean, content?: string, title?: string, error?: string }
+import { extractTextFromUrl } from "@/lib/jinaReader"; 
 
 // Reusable Button Component for Brutalist Style
 const BrutalistButton = ({ children, onClick, disabled, className = "" }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className={`w-full h-14 px-6 flex items-center justify-center font-black uppercase border-2 text-black transition-all duration-200 ${className} ${
-      disabled ? "bg-gray-600 border-gray-500 cursor-not-allowed" : ""
+    className={`h-14 px-6 flex items-center justify-center font-black uppercase border-2 text-black transition-all duration-200 ${className} ${
+      disabled ? "bg-gray-600 border-gray-500 cursor-not-allowed text-gray-400" : ""
     }`}
     style={{ textShadow: "1px 1px 0px rgba(0,0,0,0.2)" }}
   >
@@ -15,9 +20,8 @@ const BrutalistButton = ({ children, onClick, disabled, className = "" }) => (
   </button>
 );
 
-// Main Content Extractor Component
-const ContentExtractor = () => {
-  const [activeTab, setActiveTab] = useState("youtube");
+// Main Content Importer Component
+const UrlContentImporter = () => {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,7 +29,7 @@ const ContentExtractor = () => {
 
   const handleExtract = async () => {
     if (!/^https?:\/\//i.test(url)) {
-      setError("Please enter a valid URL.");
+      setError("Please enter a valid URL (e.g., https://...).");
       return;
     }
     setError("");
@@ -33,90 +37,58 @@ const ContentExtractor = () => {
     setIsLoading(true);
 
     try {
-      // API endpoint can be dynamic based on the active tab if needed
-      const apiEndpoint = activeTab === 'youtube' ? "/api/youtube-summarize" : "/api/extract-text";
-      const res = await fetch(apiEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      
-      const data = await res.json();
+      // *** FIX: Using your specific extractTextFromUrl function ***
+      // This function handles the API call and response parsing, avoiding the JSON error.
+      const res = await extractTextFromUrl(url);
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to extract content from the link.");
+      if (res.success && res.content) {
+        setResult({
+          title: res.title || url,
+          content: res.content,
+        });
+      } else {
+        // Handle failure case returned by the utility function
+        throw new Error(res.error || "Failed to import from link. The content might be protected or unavailable.");
       }
-
-      setResult({
-        title: data.title || "Extracted Content",
-        content: data.summary || data.content,
-      });
-
     } catch (e) {
+      // Catch any unexpected errors from the utility or network
       setError(e.message || "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
-      setUrl("");
     }
   };
   
   const handleDownload = () => {
     if(!result.content) return;
-    const blob = new Blob([`Title: ${result.title}\n\n${result.content}`], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([`Source URL: ${result.title}\n\n---\n\n${result.content}`], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
+    const safeTitle = (result.title || "extracted_content").replace(/[^a-z0-9]/gi, '_').toLowerCase();
     link.href = URL.createObjectURL(blob);
-    link.download = `${result.title.replace(/ /g, "_")}.txt`;
+    link.download = `${safeTitle}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }
-
-  const renderTabs = () => (
-    <div className="grid grid-cols-3 gap-2 mb-4">
-      <button
-        onClick={() => setActiveTab("youtube")}
-        className={`p-3 border-2 font-bold uppercase flex items-center justify-center gap-2 ${activeTab === 'youtube' ? 'bg-pink-500 text-black border-pink-400' : 'bg-gray-800 border-gray-700 text-white'}`}
-      >
-        <Youtube size={18} /> YouTube
-      </button>
-      <button
-        onClick={() => setActiveTab("link")}
-        className={`p-3 border-2 font-bold uppercase flex items-center justify-center gap-2 ${activeTab === 'link' ? 'bg-cyan-400 text-black border-cyan-300' : 'bg-gray-800 border-gray-700 text-white'}`}
-      >
-        <Link size={18} /> Link
-      </button>
-      <button
-        onClick={() => setActiveTab("file")}
-        disabled
-        className="p-3 border-2 font-bold uppercase flex items-center justify-center gap-2 bg-gray-900 border-gray-700 text-gray-500 cursor-not-allowed"
-      >
-        <FileText size={18} /> File
-      </button>
-    </div>
-  );
+  };
 
   return (
     <div className="min-h-screen bg-black text-white font-mono flex flex-col">
-      {/* <Navbar /> You can add your navbar here */}
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl">
           <h1 className="text-4xl md:text-5xl font-black text-center uppercase mb-2">
-            Content <span className="text-yellow-400">Extractor</span>
+            Content <span className="text-yellow-400">Importer</span>
           </h1>
           <p className="text-gray-400 text-center mb-8">
-            Import from YouTube, Web Pages, and more.
+            Paste any web page link to extract its content.
           </p>
 
           {/* Core App */}
           <div className="border-4 border-gray-700 bg-gray-900 p-4" style={{ boxShadow: "8px 8px 0px #4b5563" }}>
-            {renderTabs()}
-            
             <div className="flex flex-col md:flex-row gap-2">
               <input
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder={activeTab === 'youtube' ? "Paste a YouTube URL..." : "Paste any URL..."}
+                placeholder="Paste any URL..."
                 className="flex-1 h-14 p-4 bg-black text-white border-2 border-gray-700 focus:border-cyan-400 focus:outline-none"
               />
               <BrutalistButton 
@@ -137,7 +109,7 @@ const ContentExtractor = () => {
           )}
           
           {/* Result Display */}
-          {(result.content || isLoading) && (
+          {(result.content || isLoading) && !error && (
             <div className="mt-8">
               <div className="border-4 border-cyan-400 bg-gray-900 p-1" style={{ boxShadow: "8px 8px 0px #0891b2"}}>
                 <div className="bg-black p-4 min-h-[200px] flex flex-col">
@@ -148,7 +120,7 @@ const ContentExtractor = () => {
                      </div>
                    ) : (
                      <div className="flex flex-col flex-1">
-                        <h2 className="text-2xl font-black uppercase text-cyan-400 mb-3">{result.title}</h2>
+                        <h2 className="text-2xl font-black uppercase text-cyan-400 mb-3 break-all">{result.title}</h2>
                         <pre className="whitespace-pre-wrap leading-relaxed text-gray-300 flex-1">{result.content}</pre>
                         <BrutalistButton onClick={handleDownload} className="mt-4 bg-cyan-400 border-cyan-300 self-end w-auto px-4 h-10">
                             <Download size={18} className="mr-2"/> Download
@@ -161,9 +133,8 @@ const ContentExtractor = () => {
           )}
         </div>
       </main>
-      {/* <Footer /> You can add your footer here */}
     </div>
   );
 };
 
-export default ContentExtractor;
+export default UrlContentImporter;
