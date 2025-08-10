@@ -6,6 +6,9 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+// IMPORTANT: Ensure no other Paddle script is loaded in your application.
+// This component handles the entire Paddle initialization.
+
 export default function Pricing() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">(
     "monthly"
@@ -18,21 +21,20 @@ export default function Pricing() {
   const brutalistHover =
     "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
-  // New Paddle.js v2 initialization logic
+  // Final Paddle.js v2 initialization logic
   useEffect(() => {
     const script = document.createElement("script");
-    // This is the correct URL for Paddle.js v2
+    // Correct URL for Paddle.js v2.
     script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
     script.async = true;
     script.onload = () => {
       if (window.Paddle) {
         // This is the correct method and parameter for initializing Paddle.js v2.
         // It requires a 'token', which is your client-side token.
-        // The 'vendor' ID is for the older Paddle.js library.
+        // The 'environment' parameter is valid here.
         window.Paddle.Setup({
           token: "test_26966f1f8c51d54baaba0224e16", // <-- Correctly use 'token'
           environment: "sandbox", // This is a valid parameter for Paddle.js v2
-          eventCallback: (data) => console.log("Paddle Event:", data),
         });
         setPaddleReady(true);
       }
@@ -90,6 +92,7 @@ export default function Pricing() {
   ];
 
   const handlePurchase = async (plan) => {
+    // Check to ensure Paddle has loaded and been initialized
     if (!paddleReady) {
       alert("Payment script not ready. Please try again in a few seconds.");
       return;
@@ -98,7 +101,7 @@ export default function Pricing() {
     const priceId = billingCycle === "monthly" ? plan.priceIdMonthly : plan.priceIdAnnually;
 
     try {
-      // Use Paddle.Checkout.open for sandbox testing
+      // Use Paddle.Checkout.open for sandbox testing with priceId
       window.Paddle.Checkout.open({
         items: [
           {
@@ -113,6 +116,7 @@ export default function Pricing() {
       });
     } catch (err) {
       console.error("Error starting checkout:", err);
+      // alert() is used for immediate feedback, but in a production app, a modal or toast notification is preferred.
       alert("An error occurred during checkout. Please check the console.");
     }
   };
