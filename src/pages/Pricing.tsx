@@ -18,18 +18,20 @@ export default function Pricing() {
   const brutalistHover =
     "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
+  // New Paddle.js v2 initialization logic
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://cdn.paddle.com/paddle/paddle.js";
+    script.src = "https://cdn.paddle.com/paddle/v2/paddle.js"; // Correct Paddle.js v2 script URL
     script.async = true;
     script.onload = () => {
-      // Setup Paddle for sandbox testing
-      window.Paddle?.Setup({
-        environment: "sandbox", // Use the sandbox environment for testing
-        vendor: String(35861) as any,
-        eventCallback: (data) => console.log("Paddle Event:", data),
-      });
-      setPaddleReady(true);
+      if (window.Paddle) {
+        // Correct initialization for Paddle.js v2
+        window.Paddle.Setup({
+          vendor: 35861, // Your Paddle Vendor ID
+          environment: "sandbox", // Use the sandbox environment for testing
+        });
+        setPaddleReady(true);
+      }
     };
     document.body.appendChild(script);
     return () => {
@@ -84,8 +86,8 @@ export default function Pricing() {
   ];
 
   const handlePurchase = async (plan) => {
-    if (!window.Paddle) {
-      alert("Payment script not ready. Try again in 2-3 seconds.");
+    if (!paddleReady) {
+      alert("Payment script not ready. Try again in a few seconds.");
       return;
     }
 
@@ -96,14 +98,13 @@ export default function Pricing() {
       window.Paddle.Checkout.open({
         items: [
           {
-            priceId: priceId,
+            priceId: "pro_01k274p0bmxcqdcbfs3py7wa9g",
             quantity: 1,
           },
         ],
         settings: {
           theme: "light",
           displayMode: "overlay",
-          variant: "one-page",
         },
       });
     } catch (err) {
