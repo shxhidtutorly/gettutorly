@@ -1,128 +1,193 @@
-// Configuration
-// Replace with values from your sandbox account
-const CONFIG = {
-  clientToken: "test_26966f1f8c51d54baaba0224e16",
-  prices: {
-    starter: {
-      month: "pri_01k274r984nbbbrt9fvpbk9sda",
-      year: "pri_01gsz8s48pyr4mbhvv2xfggesg"
-    },
-    pro: {
-      month: "pri_01k274qrwsngnq4tre5y2qe3pp",
-      year: "pri_01gsz8z1q1n00f12qt82y31smh"
-    }
-  }
-};
+// pages/pricing.tsx or src/pages/pricing.tsx
+import React, { useState, useEffect } from "react";
+import { Check, Star, X } from "lucide-react";
+import Navbar from "@/components/navbar";
+import { Footer } from "@/components/footer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-// UI elements
-const monthlyBtn = document.getElementById("monthlyBtn");
-const yearlyBtn = document.getElementById("yearlyBtn");
-const countrySelect = document.getElementById("countrySelect");
-const starterPrice = document.getElementById("starter-price");
-const proPrice = document.getElementById("pro-price");
+export default function Pricing() {
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">(
+    "monthly"
+  );
+  const [paddleReady, setPaddleReady] = useState(false);
 
-// State
-let currentBillingCycle = "month";
-let currentCountry = "US";
-let paddleInitialized = false;
+  const brutalistShadow =
+    "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
+  const brutalistTransition = "transition-all duration-300 ease-in-out";
+  const brutalistHover =
+    "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
-// Initialize Paddle
-function initializePaddle() {
-  try {
-    Paddle.Environment.set("sandbox");
-    Paddle.Initialize({
-      token: CONFIG.clientToken,
-      eventCallback: function (event) {
-        console.log("Paddle event:", event);
-      }
-    });
-    paddleInitialized = true;
-    updatePrices();
-  } catch (error) {
-    console.error("Initialization error:", error);
-  }
-}
-
-// Update billing cycle
-function updateBillingCycle(cycle) {
-  currentBillingCycle = cycle;
-  monthlyBtn.classList.toggle("bg-white", cycle === "month");
-  yearlyBtn.classList.toggle("bg-white", cycle === "year");
-  updatePrices();
-}
-
-// Update prices
-async function updatePrices() {
-  if (!paddleInitialized) {
-    console.log("Paddle not initialized yet");
-    return;
-  }
-
-  try {
-    const request = {
-      items: [
-        {
-          quantity: 1,
-          priceId: CONFIG.prices.starter[currentBillingCycle]
-        },
-        {
-          quantity: 1,
-          priceId: CONFIG.prices.pro[currentBillingCycle]
-        }
-      ],
-      address: {
-        countryCode: currentCountry
-      }
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.paddle.com/paddle/paddle.js";
+    script.async = true;
+    script.onload = () => {
+      // Setup Paddle for sandbox testing
+      window.Paddle?.Setup({
+        environment: "sandbox", // Use the sandbox environment for testing
+        vendor: String(35861) as any,
+        eventCallback: (data) => console.log("Paddle Event:", data),
+      });
+      setPaddleReady(true);
     };
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-    console.log("Fetching prices:", request);
-    const result = await Paddle.PricePreview(request);
-
-    result.data.details.lineItems.forEach((item) => {
-      const price = item.formattedTotals.subtotal;
-      if (item.price.id === CONFIG.prices.starter[currentBillingCycle]) {
-        starterPrice.textContent = price;
-      } else if (item.price.id === CONFIG.prices.pro[currentBillingCycle]) {
-        proPrice.textContent = price;
-      }
-    });
-    console.log("Prices updated:", result);
-  } catch (error) {
-    console.error(`Error fetching prices: ${error.message}`);
-  }
-}
-
-// Open checkout
-function openCheckout(plan) {
-  if (!paddleInitialized) {
-    console.log("Paddle not initialized yet");
-    return;
-  }
-
-  try {
-    Paddle.Checkout.open({
-      items: [
-        {
-          priceId: CONFIG.prices[plan][currentBillingCycle],
-          quantity: 1
-        }
+  const pricingPlans = [
+    {
+      name: "PRO",
+      desc: "Essential tools to get started",
+      priceMonthly: "$5.99",
+      priceAnnually: "$36",
+      // Test price IDs from your configuration
+      priceIdMonthly: "pri_01k274qrwsngnq4tre5y2qe3pp",
+      priceIdAnnually: "pri_01gsz8z1q1n00f12qt82y31smh",
+      features: [
+        "Basic AI Chat",
+        "100+ Notes/Month",
+        "Unlimited Flashcards",
+        "All basic features",
       ],
-      settings: {
-        theme: "light",
-        displayMode: "overlay",
-        variant: "one-page"
-      }
-    });
-  } catch (error) {
-    console.error(`Checkout error: ${error.message}`);
-  }
+      notIncluded: [
+        "Unlimited Usage",
+        "Priority Support",
+        "Advanced Features",
+      ],
+      color: "bg-sky-400",
+      cta: "GET STARTED",
+    },
+    {
+      name: "PREMIUM",
+      desc: "Full features + unlimited usage",
+      priceMonthly: "$9.99",
+      priceAnnually: "$65",
+      // Test price IDs from your configuration
+      priceIdMonthly: "pri_01k274r984nbbbrt9fvpbk9sda",
+      priceIdAnnually: "pri_01gsz8s48pyr4mbhvv2xfggesg",
+      features: [
+        "Unlimited Everything",
+        "Priority Support",
+        "Advanced Analytics",
+        "Export Options",
+        "Audio Recap",
+        "Math Solver",
+      ],
+      notIncluded: [],
+      popular: true,
+      color: "bg-fuchsia-400",
+      cta: "GO PRO",
+    },
+  ];
+
+  const handlePurchase = async (plan) => {
+    if (!window.Paddle) {
+      alert("Payment script not ready. Try again in 2-3 seconds.");
+      return;
+    }
+
+    const priceId = billingCycle === "monthly" ? plan.priceIdMonthly : plan.priceIdAnnually;
+
+    try {
+      // Use Paddle.Checkout.open for sandbox testing
+      window.Paddle.Checkout.open({
+        items: [
+          {
+            priceId: priceId,
+            quantity: 1,
+          },
+        ],
+        settings: {
+          theme: "light",
+          displayMode: "overlay",
+          variant: "one-page",
+        },
+      });
+    } catch (err) {
+      console.error("Error starting checkout:", err);
+      alert("An error occurred during checkout. Please check the console.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-stone-50 text-black font-mono">
+      <Navbar />
+      <section className="bg-sky-200 text-black border-b-4 border-black py-20 text-center">
+        <h1 className="text-5xl font-black">CHOOSE YOUR PLAN</h1>
+      </section>
+
+      <section className="py-20 max-w-6xl mx-auto">
+        <div className="flex justify-center items-center mb-10">
+          <span
+            className={`font-bold mr-4 ${
+              billingCycle === "monthly" ? "text-black" : "text-stone-400"
+            }`}
+          >
+            Monthly
+          </span>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              onChange={() =>
+                setBillingCycle(
+                  billingCycle === "monthly" ? "annually" : "monthly"
+                )
+              }
+            />
+            <div className="w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-[4px] after:bg-black after:border after:border-black after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-fuchsia-400"></div>
+          </label>
+          <span
+            className={`font-bold ml-4 ${
+              billingCycle === "annually" ? "text-black" : "text-stone-400"
+            }`}
+          >
+            Annually
+          </span>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-10">
+          {pricingPlans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`p-8 bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+            >
+              {plan.popular && (
+                <Badge className="bg-black text-white mb-4">MOST POPULAR</Badge>
+              )}
+              <h3 className="text-3xl font-black">{plan.name}</h3>
+              <p>{plan.desc}</p>
+              <div className="text-5xl font-black mt-4">
+                {billingCycle === "monthly"
+                  ? plan.priceMonthly
+                  : plan.priceAnnually}
+              </div>
+              <div className="mt-6 space-y-2">
+                {plan.features.map((f) => (
+                  <div key={f} className="flex items-center">
+                    <Check className="mr-2 text-green-500" /> {f}
+                  </div>
+                ))}
+                {plan.notIncluded.map((f) => (
+                  <div key={f} className="flex items-center opacity-50">
+                    <X className="mr-2 text-red-500" /> {f}
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={() => handlePurchase(plan)}
+                className={`mt-6 w-full font-black border-4 border-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+              >
+                {plan.cta}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </section>
+      <Footer />
+    </div>
+  );
 }
-
-// Event Listeners
-countrySelect.addEventListener("change", (e) => {
-  currentCountry = e.target.value;
-  updatePrices();
-});
-
-// Initialize on page load
-document.addEventListener("DOMContentLoaded", initializePaddle);
