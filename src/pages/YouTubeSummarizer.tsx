@@ -166,4 +166,4 @@ const ContentExtractor = () => {
   );
 };
 
-export default YouTubeSummarizer;
+export default ContentExtractor;
