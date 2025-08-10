@@ -98,7 +98,7 @@ export default function Pricing() {
       window.Paddle.Checkout.open({
         items: [
           {
-            priceId: "pro_01k274p0bmxcqdcbfs3py7wa9g",
+            priceId: priceId,
             quantity: 1,
           },
         ],
