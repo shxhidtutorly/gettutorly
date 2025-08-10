@@ -1,4 +1,4 @@
-// pages/pricing.tsx or src/pages/pricing.tsx
+// pages/pricing.tsx
 import React, { useState, useEffect } from "react";
 import { Check, Star, X } from "lucide-react";
 import Navbar from "@/components/navbar";
@@ -21,14 +21,18 @@ export default function Pricing() {
   // New Paddle.js v2 initialization logic
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://cdn.paddle.com/paddle/v2/paddle.js"; // Correct Paddle.js v2 script URL
+    // This is the correct URL for Paddle.js v2
+    script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
     script.async = true;
     script.onload = () => {
       if (window.Paddle) {
-        // Correct initialization for Paddle.js v2
+        // This is the correct method and parameter for initializing Paddle.js v2.
+        // It requires a 'token', which is your client-side token.
+        // The 'vendor' ID is for the older Paddle.js library.
         window.Paddle.Setup({
-          vendor: 35861, // Your Paddle Vendor ID
-          environment: "sandbox", // Use the sandbox environment for testing
+          token: "test_26966f1f8c51d54baaba0224e16", // <-- Correctly use 'token'
+          environment: "sandbox", // This is a valid parameter for Paddle.js v2
+          eventCallback: (data) => console.log("Paddle Event:", data),
         });
         setPaddleReady(true);
       }
@@ -87,7 +91,7 @@ export default function Pricing() {
 
   const handlePurchase = async (plan) => {
     if (!paddleReady) {
-      alert("Payment script not ready. Try again in a few seconds.");
+      alert("Payment script not ready. Please try again in a few seconds.");
       return;
     }
 
