@@ -1,94 +1,167 @@
 import React, { useState } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Loader2, Play } from "lucide-react";
+import { Loader2, Link, Youtube, FileText, Download } from "lucide-react";
 
-const YouTubeSummarizer: React.FC = () => {
+// Reusable Button Component for Brutalist Style
+const BrutalistButton = ({ children, onClick, disabled, className = "" }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`w-full h-14 px-6 flex items-center justify-center font-black uppercase border-2 text-black transition-all duration-200 ${className} ${
+      disabled ? "bg-gray-600 border-gray-500 cursor-not-allowed" : ""
+    }`}
+    style={{ textShadow: "1px 1px 0px rgba(0,0,0,0.2)" }}
+  >
+    {children}
+  </button>
+);
+
+// Main Content Extractor Component
+const ContentExtractor = () => {
+  const [activeTab, setActiveTab] = useState("youtube");
   const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [usedTranscript, setUsedTranscript] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState({ title: "", content: "" });
 
-  const handleSummarize = async () => {
-    setError("");
-    setSummary("");
-    if (!url.trim()) {
-      setError("Please paste a YouTube URL.");
+  const handleExtract = async () => {
+    if (!/^https?:\/\//i.test(url)) {
+      setError("Please enter a valid URL.");
       return;
     }
-    setLoading(true);
+    setError("");
+    setResult({ title: "", content: "" });
+    setIsLoading(true);
+
     try {
-      const resp = await fetch("/api/youtube-summarize", {
+      // API endpoint can be dynamic based on the active tab if needed
+      const apiEndpoint = activeTab === 'youtube' ? "/api/youtube-summarize" : "/api/extract-text";
+      const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error || "Failed to summarize");
-      setSummary(data.summary);
-      setUsedTranscript(!!data.usedTranscript);
-    } catch (e: any) {
-      setError(e?.message || "Unexpected error");
+      
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to extract content from the link.");
+      }
+
+      setResult({
+        title: data.title || "Extracted Content",
+        content: data.summary || data.content,
+      });
+
+    } catch (e) {
+      setError(e.message || "An unexpected error occurred.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+      setUrl("");
     }
   };
+  
+  const handleDownload = () => {
+    if(!result.content) return;
+    const blob = new Blob([`Title: ${result.title}\n\n${result.content}`], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${result.title.replace(/ /g, "_")}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  const renderTabs = () => (
+    <div className="grid grid-cols-3 gap-2 mb-4">
+      <button
+        onClick={() => setActiveTab("youtube")}
+        className={`p-3 border-2 font-bold uppercase flex items-center justify-center gap-2 ${activeTab === 'youtube' ? 'bg-pink-500 text-black border-pink-400' : 'bg-gray-800 border-gray-700 text-white'}`}
+      >
+        <Youtube size={18} /> YouTube
+      </button>
+      <button
+        onClick={() => setActiveTab("link")}
+        className={`p-3 border-2 font-bold uppercase flex items-center justify-center gap-2 ${activeTab === 'link' ? 'bg-cyan-400 text-black border-cyan-300' : 'bg-gray-800 border-gray-700 text-white'}`}
+      >
+        <Link size={18} /> Link
+      </button>
+      <button
+        onClick={() => setActiveTab("file")}
+        disabled
+        className="p-3 border-2 font-bold uppercase flex items-center justify-center gap-2 bg-gray-900 border-gray-700 text-gray-500 cursor-not-allowed"
+      >
+        <FileText size={18} /> File
+      </button>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-gray-100 font-mono">
-      <Navbar />
-      <main className="flex-1 py-10 px-4">
-        <div className="container max-w-3xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-6 flex items-center gap-3">
-            <Play className="text-pink-500" /> AI YouTube Summarizer
+    <div className="min-h-screen bg-black text-white font-mono flex flex-col">
+      {/* <Navbar /> You can add your navbar here */}
+      <main className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
+          <h1 className="text-4xl md:text-5xl font-black text-center uppercase mb-2">
+            Content <span className="text-yellow-400">Extractor</span>
           </h1>
-          <p className="text-gray-400 mb-8">Paste a YouTube link and get a concise, study-friendly summary.</p>
+          <p className="text-gray-400 text-center mb-8">
+            Import from YouTube, Web Pages, and more.
+          </p>
 
-          <div className="bg-gray-900 border-2 border-pink-500 shadow-[4px_4px_0px_#ec4899] rounded-none p-4 mb-6">
-            <div className="flex gap-2">
-              <Input
-                placeholder="https://www.youtube.com/watch?v=..."
+          {/* Core App */}
+          <div className="border-4 border-gray-700 bg-gray-900 p-4" style={{ boxShadow: "8px 8px 0px #4b5563" }}>
+            {renderTabs()}
+            
+            <div className="flex flex-col md:flex-row gap-2">
+              <input
+                type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                className="bg-black text-white border-2 border-gray-700 rounded-none h-12 focus:border-pink-500"
+                placeholder={activeTab === 'youtube' ? "Paste a YouTube URL..." : "Paste any URL..."}
+                className="flex-1 h-14 p-4 bg-black text-white border-2 border-gray-700 focus:border-cyan-400 focus:outline-none"
               />
-              <Button onClick={handleSummarize} disabled={loading} className="h-12 px-6 bg-pink-500 text-black border-2 border-pink-400 rounded-none font-black hover:bg-pink-400">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Summarize"}
-              </Button>
+              <BrutalistButton 
+                onClick={handleExtract} 
+                disabled={isLoading}
+                className="bg-yellow-400 border-yellow-300 hover:bg-yellow-300"
+              >
+                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Extract"}
+              </BrutalistButton>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Works best when captions are available. We fall back to AI reasoning if transcript is missing.</p>
           </div>
-
+          
+          {/* Error Display */}
           {error && (
-            <div className="bg-red-950/50 border-2 border-red-500 text-red-300 p-4 mb-6">
-              {error}
+             <div className="mt-6 border-4 border-red-500 bg-red-900/50 p-4 text-red-300 font-bold" style={{ boxShadow: "8px 8px 0px #991b1b"}}>
+                <span className="font-black uppercase">Error:</span> {error}
             </div>
           )}
-
-          <div className="min-h-[160px] bg-gray-900 border-2 border-yellow-400 rounded-none p-5 shadow-[4px_4px_0px_#facc15] transition-all duration-300">
-            {loading ? (
-              <div className="flex items-center gap-3 text-yellow-400">
-                <Loader2 className="w-5 h-5 animate-spin" /> Generating summary...
+          
+          {/* Result Display */}
+          {(result.content || isLoading) && (
+            <div className="mt-8">
+              <div className="border-4 border-cyan-400 bg-gray-900 p-1" style={{ boxShadow: "8px 8px 0px #0891b2"}}>
+                <div className="bg-black p-4 min-h-[200px] flex flex-col">
+                   {isLoading ? (
+                     <div className="m-auto flex items-center gap-3 text-cyan-400">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        <span className="font-bold text-xl">ANALYZING...</span>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col flex-1">
+                        <h2 className="text-2xl font-black uppercase text-cyan-400 mb-3">{result.title}</h2>
+                        <pre className="whitespace-pre-wrap leading-relaxed text-gray-300 flex-1">{result.content}</pre>
+                        <BrutalistButton onClick={handleDownload} className="mt-4 bg-cyan-400 border-cyan-300 self-end w-auto px-4 h-10">
+                            <Download size={18} className="mr-2"/> Download
+                        </BrutalistButton>
+                     </div>
+                   )}
+                </div>
               </div>
-            ) : summary ? (
-              <div className="space-y-2">
-                {!usedTranscript && (
-                  <div className="text-xs text-yellow-400">Transcript not available — used AI fallback.</div>
-                )}
-                <pre className="whitespace-pre-wrap leading-relaxed text-gray-200">{summary}</pre>
-              </div>
-            ) : (
-              <div className="text-gray-500">Your summary will appear here.</div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </main>
-      <Footer />
-      <BottomNav />
+      {/* <Footer /> You can add your footer here */}
     </div>
   );
 };
