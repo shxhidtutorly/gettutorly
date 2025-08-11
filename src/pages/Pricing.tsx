@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState, useEffect } from "react";
 import { initializePaddle, previewPrices, openCheckout, PRICES } from "@/lib/paddle";
 import { Check, Star, X } from "lucide-react";
 import  Navbar  from "@/components/navbar";
