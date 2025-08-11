@@ -11,8 +11,6 @@ import { useUser } from "@/hooks/useUser";
 // --- Main Pricing Page Component ---
 
 export default function App() {
-  const [billingCycle, setBillingCycle] = useState('monthly');
-
   const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
   const brutalistTransition = "transition-all duration-300 ease-in-out";
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
