@@ -1,14 +1,15 @@
 // src/pages/pricing.tsx
 import React, { useEffect, useState } from "react";
+import { initializePaddle, Paddle as PaddleType } from "@paddle/paddle-js";
 import { Check } from "lucide-react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/components/navbar";
+import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getPaddle, previewPrices, openCheckout } from "@/lib/paddle";
 import { useUser } from "@/hooks/useUser";
 
-// CONFIG: Paddle price IDs for sandbox
+/* CONFIG: replace with your sandbox client token & Paddle price IDs */
+const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
 const PRICES = {
   PRO: { monthly: "pri_01k274qrwsngnq4tre5y2qe3pp", annually: "pri_01k2cn84n03by5124kp507nfks" },
   PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
@@ -16,8 +17,7 @@ const PRICES = {
 
 export default function Pricing(): JSX.Element {
   const { user, isLoaded: userLoaded } = useUser();
-  const loading = !userLoaded;
-
+  const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
   const [proPriceText, setProPriceText] = useState("—");
@@ -28,7 +28,8 @@ export default function Pricing(): JSX.Element {
     let mounted = true;
     setErrorMessage(null);
 
-    getPaddle()
+    // initializePaddle downloads the correct Paddle.js and returns a Paddle instance
+    initializePaddle({ token: CLIENT_TOKEN, environment: "sandbox" })
       .then((pInstance) => {
         if (!mounted) return;
         if (!pInstance) {
@@ -36,20 +37,11 @@ export default function Pricing(): JSX.Element {
           console.error("initializePaddle returned undefined");
           return;
         }
+        console.log("Paddle instance keys:", Object.keys(pInstance || {}));
+        setPaddle(pInstance);
         setPaddleReady(true);
-        // Initial price preview
-        void previewPrices([
-          { priceId: PRICES.PRO[billingCycle], quantity: 1 },
-          { priceId: PRICES.PREMIUM[billingCycle], quantity: 1 },
-        ]).then((result) => {
-          const items = result?.data?.details?.lineItems ?? [];
-          for (const it of items) {
-            const id = it?.price?.id;
-            const formatted = it?.formattedTotals?.subtotal ?? it?.formattedTotals?.total ?? "";
-            if (id === PRICES.PRO[billingCycle]) setProPriceText(formatted);
-            if (id === PRICES.PREMIUM[billingCycle]) setPremiumPriceText(formatted);
-          }
-        });
+        // preview prices if API available
+        void previewPrices(pInstance, billingCycle);
       })
       .catch((err) => {
         console.error("initializePaddle error:", err);
@@ -57,20 +49,25 @@ export default function Pricing(): JSX.Element {
       });
 
     return () => { mounted = false; };
-  }, []);
+  }, []); // run once
 
   // preview localized prices (best-effort)
-  async function refreshPrices(cycle = billingCycle) {
+  async function previewPrices(pInstance: PaddleType | undefined = paddle, cycle = billingCycle) {
+    if (!pInstance || typeof pInstance.PricePreview !== "function") {
+      // fallback: show static text
+      setProPriceText(cycle === "monthly" ? "$5.99" : "$36");
+      setPremiumPriceText(cycle === "monthly" ? "$9.99" : "$65");
+      return;
+    }
+
     try {
-      const result = await previewPrices([
-        { priceId: PRICES.PRO[cycle] },
-        { priceId: PRICES.PREMIUM[cycle] },
-      ]);
-      if (!result) {
-        setProPriceText(cycle === "monthly" ? "$5.99" : "$36");
-        setPremiumPriceText(cycle === "monthly" ? "$9.99" : "$65");
-        return;
-      }
+      const req = {
+        items: [
+          { quantity: 1, priceId: PRICES.PRO[cycle] },
+          { quantity: 1, priceId: PRICES.PREMIUM[cycle] },
+        ],
+      };
+      const result = await pInstance.PricePreview(req);
       const items = result?.data?.details?.lineItems ?? [];
       for (const it of items) {
         const id = it?.price?.id;
@@ -88,14 +85,18 @@ export default function Pricing(): JSX.Element {
 
   // update preview when billing cycle changes
   useEffect(() => {
-    void refreshPrices(billingCycle);
-  }, [billingCycle]);
+    void previewPrices(undefined, billingCycle);
+  }, [billingCycle, paddle]);
 
   // handle checkout
   const handlePurchase = (planKey: "PRO" | "PREMIUM") => {
     if (loading) return;
     if (!user) {
       window.location.href = "/signup?redirect=/pricing";
+      return;
+    }
+    if (!paddle) {
+      alert("Payments not ready. Try again shortly.");
       return;
     }
 
@@ -107,17 +108,15 @@ export default function Pricing(): JSX.Element {
     }
 
     try {
-      openCheckout({
-        priceId,
-        quantity: 1,
-        customer: { email: user.email },
-        passthrough: { firebaseUid: (user as any).uid || (user as any).id, email: user.email, plan: planKey, cycle: billingCycle },
+      paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        passthrough: JSON.stringify({ firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle }),
         settings: { displayMode: "overlay", theme: "light" },
-        success: (data: any) => {
+        successCallback: (data: any) => {
           console.log("Checkout success:", data);
-          window.location.href = "/dashboard?purchase=success";
+          window.location.href = "/dashboard?subId=" + data.checkout.id;
         },
-        close: () => console.log("Checkout closed"),
+        closeCallback: () => console.log("Checkout closed"),
       });
     } catch (err) {
       console.error("Checkout.open error:", err);
@@ -131,7 +130,7 @@ export default function Pricing(): JSX.Element {
       <section className="bg-sky-200 text-black border-b-4 border-black py-20 text-center">
         <h1 className="text-5xl font-black">CHOOSE YOUR PLAN</h1>
       </section>
-      <section id="plans" className="py-12 max-w-6xl mx-auto">
+      <section className="py-12 max-w-6xl mx-auto">
         {errorMessage && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-800">
             <strong>Payment error:</strong> {errorMessage}
@@ -151,7 +150,7 @@ export default function Pricing(): JSX.Element {
               <li><Check className="inline-block mr-2" />Basic AI Chat</li>
               <li><Check className="inline-block mr-2" />100+ Notes/Month</li>
             </ul>
-            <Button onClick={() => handlePurchase("PRO")} disabled={!paddleReady} className="w-full">Get PRO</Button>
+            <Button onClick={() => handlePurchase("PRO")} disabled={!paddleReady && !paddle} className="w-full">Get PRO</Button>
           </div>
 
           <div className="p-6 bg-white border">
@@ -161,7 +160,7 @@ export default function Pricing(): JSX.Element {
               <li><Check className="inline-block mr-2" />Unlimited Everything</li>
               <li><Check className="inline-block mr-2" />Priority Support</li>
             </ul>
-            <Button onClick={() => handlePurchase("PREMIUM")} disabled={!paddleReady} className="w-full">Get PREMIUM</Button>
+            <Button onClick={() => handlePurchase("PREMIUM")} disabled={!paddleReady && !paddle} className="w-full">Get PREMIUM</Button>
           </div>
         </div>
       </section>
