@@ -14,7 +14,13 @@ const PRICES = {
   PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
 };
 
+/* Replace this with your real auth hook */
+function useAuthStub() {
+  return { user: { uid: "N4E8T7giMCWDy7OtWR56uHXQ1kx1", email: "shahidafrid97419@gmail.com" }, loading: false };
+}
+
 export default function Pricing(): JSX.Element {
+  const { user, loading } = useAuthStub(); // replace with real useAuth()
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
