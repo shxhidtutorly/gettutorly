@@ -8,12 +8,26 @@ import { Badge } from "@/components/ui/badge";
 import { getPaddle, previewPrices, openCheckout } from "@/lib/paddle";
 import { useUser } from "@/hooks/useUser";
 
+// CONFIG: Paddle price IDs for sandbox
+const PRICES = {
+  PRO: { monthly: "pri_01k274qrwsngnq4tre5y2qe3pp", annually: "pri_01k2cn84n03by5124kp507nfks" },
+  PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
+};
+
+export default function Pricing(): JSX.Element {
+  const { user, isLoaded: userLoaded } = useUser();
+  const loading = !userLoaded;
+
+  const [paddleReady, setPaddleReady] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
+  const [proPriceText, setProPriceText] = useState("—");
+  const [premiumPriceText, setPremiumPriceText] = useState("—");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     setErrorMessage(null);
 
-    // initialize Paddle once
     getPaddle()
       .then((pInstance) => {
         if (!mounted) return;
@@ -23,7 +37,7 @@ import { useUser } from "@/hooks/useUser";
           return;
         }
         setPaddleReady(true);
-        // preview prices
+        // Initial price preview
         void previewPrices([
           { priceId: PRICES.PRO[billingCycle], quantity: 1 },
           { priceId: PRICES.PREMIUM[billingCycle], quantity: 1 },
@@ -43,8 +57,7 @@ import { useUser } from "@/hooks/useUser";
       });
 
     return () => { mounted = false; };
-  }, []); // run once
-
+  }, []);
 
   // preview localized prices (best-effort)
   async function refreshPrices(cycle = billingCycle) {
@@ -78,7 +91,6 @@ import { useUser } from "@/hooks/useUser";
     void refreshPrices(billingCycle);
   }, [billingCycle]);
 
-
   // handle checkout
   const handlePurchase = (planKey: "PRO" | "PREMIUM") => {
     if (loading) return;
@@ -99,7 +111,7 @@ import { useUser } from "@/hooks/useUser";
         priceId,
         quantity: 1,
         customer: { email: user.email },
-        passthrough: { firebaseUid: user.uid || user.id, email: user.email, plan: planKey, cycle: billingCycle },
+        passthrough: { firebaseUid: (user as any).uid || (user as any).id, email: user.email, plan: planKey, cycle: billingCycle },
         settings: { displayMode: "overlay", theme: "light" },
         success: (data: any) => {
           console.log("Checkout success:", data);
