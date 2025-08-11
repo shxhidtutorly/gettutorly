@@ -158,67 +158,100 @@ export default function App() {
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-stone-50 py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Made Simple. Just Like It Should Be.</h2>
-            <div className="w-32 h-2 bg-black mx-auto"></div>
-          </div>
-          <div className="flex justify-center items-center my-12">
-              <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-stone-400'}`}>Monthly</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" value="" className="sr-only peer" onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')} />
-                  <div className={`w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-[4px] after:bg-black after:border after:border-black after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-fuchsia-400`}></div>
-              </label>
-              <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
-              <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
-          </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
-  {pricingPlans.map((plan) => (
-    <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-      {plan.popular && (
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-          <Badge className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">MOST POPULAR</Badge>
-        </div>
-      )}
-      <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`}></div>
-      <div className="text-center mb-6 pt-8">
-        <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
-        <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
-        <div className="text-6xl font-black">
-          {plan.name === "PRO" ? (billingCycle === "monthly" ? proPriceText : proPriceText) : (billingCycle === "monthly" ? premiumPriceText : premiumPriceText)}
-        </div>
-        <div className="text-base font-bold text-stone-600">/{billingCycle === "monthly" ? "month" : "year"}</div>
-      </div>
+     <section className="bg-stone-50 py-20">
+  <div className="max-w-7xl mx-auto px-4">
+    <div className="text-center mb-8">
+      <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Made Simple. Just Like It Should Be.</h2>
+      <div className="w-32 h-2 bg-black mx-auto" />
+    </div>
 
-      <div className="space-y-3 mb-8 flex-grow">
-        {plan.features.map((feature) => (
-          <div key={feature} className="flex items-center">
-            <Check className="w-6 h-6 mr-3 flex-shrink-0 text-green-500" />
-            <span className="font-bold text-md">{feature}</span>
-          </div>
-        ))}
-        {plan.notIncluded?.map((feature) => (
-          <div key={feature} className="flex items-center opacity-60">
-            <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
-            <span className="font-bold line-through text-md">{feature}</span>
-          </div>
-        ))}
-      </div>
-               <Button
-        onClick={() => handlePurchase(plan.name === "PRO" ? "PRO" : "PREMIUM")}
-        disabled={!paddleReady}
-        className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+    {/* Billing toggle */}
+    <div className="flex justify-center items-center my-8">
+      <button
+        type="button"
+        onClick={() => setBillingCycle("monthly")}
+        className={`mr-4 px-4 py-2 rounded ${billingCycle === "monthly" ? "font-bold text-black" : "text-stone-400"}`}
       >
-        {plan.cta}
-      </Button>
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        Monthly
+      </button>
 
+      <div className="relative inline-flex items-center">
+        <input
+          type="checkbox"
+          className="sr-only peer"
+          aria-label="Billing toggle"
+          onChange={() => setBillingCycle(billingCycle === "monthly" ? "annually" : "monthly")}
+          checked={billingCycle === "annually"}
+        />
+        <div className="w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer-checked:bg-fuchsia-400 relative">
+          <span className={`absolute top-1/2 left-1 ${billingCycle === "annually" ? "translate-x-full -translate-y-1/2" : "-translate-y-1/2"}`} />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setBillingCycle("annually")}
+        className={`ml-4 px-4 py-2 rounded ${billingCycle === "annually" ? "font-bold text-black" : "text-stone-400"}`}
+      >
+        Annually
+      </button>
+
+      <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
+    </div>
+
+    {/* Plans grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
+      {pricingPlans.map((plan) => {
+        const displayPrice = billingCycle === "monthly" ? plan.priceMonthly : plan.priceAnnually;
+        const planKey = (plan.name || "").toUpperCase(); // handlePurchase expects plan key like "PRO" or "PREMIUM"
+        return (
+          <div
+            key={plan.name}
+            className={`relative h-full flex flex-col p-8 text-black bg-white border-4 border-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+          >
+            {plan.popular && (
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                <Badge className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">MOST POPULAR</Badge>
+              </div>
+            )}
+
+            <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`} />
+            <div className="text-center mb-6 pt-8">
+              <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
+              <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
+              <div className="text-5xl md:text-6xl lg:text-6xl font-black">{displayPrice}</div>
+              <div className="text-base font-bold text-stone-600">/{billingCycle === "monthly" ? "month" : "year"}</div>
+            </div>
+
+            <div className="space-y-3 mb-8 flex-grow">
+              {plan.features.map((feature) => (
+                <div key={feature} className="flex items-center">
+                  <Check className="w-6 h-6 mr-3 flex-shrink-0 text-green-500" />
+                  <span className="font-bold text-md">{feature}</span>
+                </div>
+              ))}
+              {(plan.notIncluded || []).map((feature) => (
+                <div key={feature} className="flex items-center opacity-60">
+                  <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
+                  <span className="font-bold line-through text-md">{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={() => handlePurchase(planKey)}
+              disabled={!paddleReady}
+              className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+            >
+              {plan.cta}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</section>
+      
       {/* Testimonials Section */}
       <section className="bg-stone-100 py-20 border-y-4 border-black">
         <div className="max-w-7xl mx-auto px-4">
