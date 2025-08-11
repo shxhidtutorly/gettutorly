@@ -118,7 +118,7 @@ export default function Pricing(): JSX.Element {
         settings: { displayMode: "overlay", theme: "light" },
         successCallback: (data: any) => {
           console.log("Checkout success:", data);
-          window.location.href = "/dashboard?purchase=success";
+          window.location.href = "/dashboard?subId=" + data.checkout.id;
         },
         closeCallback: () => console.log("Checkout closed"),
       });
