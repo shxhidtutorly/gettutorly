@@ -145,4 +145,3 @@ useEffect(() => {
       <Footer />
     </div>
   );
-}
