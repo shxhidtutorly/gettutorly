@@ -33,158 +33,151 @@ export default function PricingPage(): JSX.Element {
   const [proPriceText, setProPriceText] = useState("—");
   const [premiumPriceText, setPremiumPriceText] = useState("—");
 
-  // helper to poll/wait
-  async function waitFor(fn: () => boolean, attempts = 30, delay = 100) {
-    for (let i = 0; i < attempts; i++) {
-      if (fn()) return true;
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, delay));
-    }
-    return false;
+ const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // sandbox token (keep)
+async function waitFor(fn: () => boolean, attempts = 30, delay = 100) {
+  for (let i = 0; i < attempts; i++) {
+    if (fn()) return true;
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => setTimeout(r, delay));
   }
+  return false;
+}
 
-  // Initialize Paddle (correct script + Initialize API that supports PricePreview)
-  useEffect(() => {
-    const SCRIPT_ID = "paddle-js-sdk-correct";
+useEffect(() => {
+  const SCRIPT_ID = "paddle-js-sdk-flex";
+  const PADDLE_SRC = "https://cdn.paddle.com/paddle/paddle.js"; // recommended (legacy API)
 
-    async function initPaddle() {
-      // if script not injected, inject it
-      if (!document.getElementById(SCRIPT_ID)) {
-        const s = document.createElement("script");
-        s.id = SCRIPT_ID;
-        s.src = "https://cdn.paddle.com/paddle/paddle.js"; // required for Initialize/PricePreview
-        s.async = true;
-        s.onload = async () => {
-          const ok = await waitFor(() => !!window.Paddle && typeof window.Paddle.Initialize === "function", 20, 100);
-          if (!ok) {
-            console.error("Paddle loaded but Initialize() not found. Wrong version or conflict.");
-            return;
-          }
-          try {
-            window.Paddle.Environment?.set?.("sandbox");
-            window.Paddle.Initialize({
-              token: CLIENT_TOKEN,
-              eventCallback: (ev: any) => {
-                // optional
-                // console.debug("Paddle event:", ev);
-              },
-            });
-            setPaddleReady(true);
-            // preview initial prices
-            void previewPrices();
-          } catch (err) {
-            console.error("Paddle init error:", err);
-          }
-        };
-        s.onerror = (e) => console.error("Failed to load Paddle script", e);
-        document.body.appendChild(s);
-      } else {
-        // script exists — wait for API to be ready
-        const ok = await waitFor(() => !!window.Paddle && typeof window.Paddle.Initialize === "function", 20, 100);
+  // try initialize based on what API is present
+  const tryInitFromWindow = async (): Promise<boolean> => {
+    if (!window.Paddle) return false;
+
+    console.log("Paddle keys on window:", Object.keys(window.Paddle || {}));
+
+    // Preferred: legacy billing library that exposes Initialize & PricePreview
+    if (typeof window.Paddle.Initialize === "function") {
+      try {
+        window.Paddle.Environment?.set?.("sandbox");
+        window.Paddle.Initialize({ token: CLIENT_TOKEN });
+        setPaddleReady(true);
+        return true;
+      } catch (err) {
+        console.error("Error calling Paddle.Initialize:", err);
+        return false;
+      }
+    }
+
+    // Fallback: newer v2-like surface with Setup (uses token + environment)
+    if (typeof window.Paddle.Setup === "function") {
+      try {
+        window.Paddle.Setup({ token: CLIENT_TOKEN, environment: "sandbox" });
+        setPaddleReady(true);
+        return true;
+      } catch (err) {
+        console.error("Error calling Paddle.Setup:", err);
+        return false;
+      }
+    }
+
+    // Unknown Paddle interface
+    console.warn("Paddle present but neither Initialize nor Setup available.");
+    return false;
+  };
+
+  const injectScriptAndInit = async () => {
+    // if some paddle script already exists, avoid double-injecting (we still probe window.Paddle)
+    if (!document.getElementById(SCRIPT_ID)) {
+      const s = document.createElement("script");
+      s.id = SCRIPT_ID;
+      s.src = PADDLE_SRC;
+      s.async = true;
+      s.onload = async () => {
+        // wait for the API to attach
+        const ok = await waitFor(() => !!window.Paddle, 20, 100);
         if (!ok) {
-          console.error("Existing Paddle script present but Initialize not available.");
+          console.error("Paddle script loaded but window.Paddle never appeared.");
           return;
         }
-        try {
-          window.Paddle.Environment?.set?.("sandbox");
-          window.Paddle.Initialize({ token: CLIENT_TOKEN });
+        // attempt to initialize
+        const initOk = await tryInitFromWindow();
+        if (!initOk) {
+          console.error("Paddle loaded but Initialize() not found. Wrong version or conflict.");
+          // still mark ready to allow manual Checkout.open attempts (best-effort)
           setPaddleReady(true);
+        } else {
+          // if initialized, try preview
           void previewPrices();
-        } catch (err) {
-          console.error("Paddle init error (existing):", err);
         }
-      }
-    }
-
-    void initPaddle();
-    // DON'T remove script on unmount (other pages may use it)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Fetch localized price preview using Paddle.PricePreview
-  const previewPrices = async () => {
-    if (!paddleReady || !window.Paddle || typeof window.Paddle.PricePreview !== "function") return;
-
-    try {
-      const request = {
-        items: [
-          { quantity: 1, priceId: PRICES.PRO[billingCycle] },
-          { quantity: 1, priceId: PRICES.PREMIUM[billingCycle] },
-        ],
-        // address can be added for localization; leaving out will let Paddle auto-detect in many cases
-        // address: { countryCode: "US" }
       };
-
-      const result = await window.Paddle.PricePreview(request);
-      // guard and map lineItems
-      const lineItems = result?.data?.details?.lineItems ?? [];
-      for (const item of lineItems) {
-        const pid = item?.price?.id;
-        const price = item?.formattedTotals?.subtotal ?? item?.formattedTotals?.total ?? "";
-        if (!pid) continue;
-        if (pid === PRICES.PRO[billingCycle]) setProPriceText(price);
-        if (pid === PRICES.PREMIUM[billingCycle]) setPremiumPriceText(price);
+      s.onerror = (e) => console.error("Failed to load Paddle script", e);
+      document.body.appendChild(s);
+    } else {
+      // script already present; try to init directly
+      const initOk = await tryInitFromWindow();
+      if (!initOk) {
+        console.error("Existing Paddle script present but init failed.");
+        setPaddleReady(true); // enable buttons anyway so you can test manual open
+      } else {
+        void previewPrices();
       }
-    } catch (err) {
-      console.error("PricePreview error:", err);
     }
   };
 
-  // refresh preview when billing cycle changes
-  useEffect(() => {
-    void previewPrices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [billingCycle, paddleReady]);
+  void injectScriptAndInit();
+  // do not remove other script tags here (avoid removing scripts used elsewhere)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
-  // Handle purchase (Billing flow — use priceId in items)
-  const handlePurchase = (planKey: "PRO" | "PREMIUM") => {
-    if (loading) return;
-    if (!user) {
-      // require login
-      window.location.href = "/signup?redirect=/pricing";
-      return;
-    }
-    if (!paddleReady || !window.Paddle) {
-      alert("Payments not ready. Try again shortly.");
-      return;
-    }
+// Price preview with graceful fallback
+const previewPrices = async () => {
+  if (!window.Paddle) return;
+  if (typeof window.Paddle.PricePreview !== "function") {
+    console.info("PricePreview not available on this Paddle build — skipping localized preview.");
+    // fallback: set simple defaults or leave as previously set from config
+    setProPriceText("$9.99"); // optional fallback display
+    setPremiumPriceText("$19.99");
+    return;
+  }
 
-    const priceId = PRICES[planKey][billingCycle];
-    if (!priceId) {
-      console.error("Missing priceId:", planKey, billingCycle);
-      alert("This plan is unavailable — contact support.");
-      return;
+  try {
+    const request = {
+      items: [
+        { quantity: 1, priceId: PRICES.PRO[billingCycle] },
+        { quantity: 1, priceId: PRICES.PREMIUM[billingCycle] },
+      ],
+    };
+    const res = await window.Paddle.PricePreview(request);
+    const items = res?.data?.details?.lineItems ?? [];
+    for (const item of items) {
+      const id = item?.price?.id;
+      const formatted = item?.formattedTotals?.subtotal ?? item?.formattedTotals?.total ?? "";
+      if (id === PRICES.PRO[billingCycle]) setProPriceText(formatted);
+      if (id === PRICES.PREMIUM[billingCycle]) setPremiumPriceText(formatted);
     }
+  } catch (err) {
+    console.error("PricePreview error:", err);
+  }
+};
 
-    try {
-      window.Paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        passthrough: JSON.stringify({
-          firebaseUid: user.uid,
-          email: user.email,
-          plan: planKey,
-          cycle: billingCycle === "monthly" ? "monthly" : "annually",
-        }),
-        settings: {
-          theme: "light",
-          displayMode: "overlay",
-        },
-        // optional callbacks (Paddle will call these from client side)
-        successCallback: (data: any) => {
-          console.log("Checkout success", data);
-          // redirect or show success UI
-          window.location.href = "/dashboard?purchase=success";
-        },
-        closeCallback: () => {
-          console.log("Checkout closed");
-        },
-      });
-    } catch (err) {
-      console.error("Checkout.open error:", err);
-      alert("Could not open checkout. Check console for details.");
-    }
-  };
+// Purchase: keep using items.priceId — works with both Setup and Initialize initializations
+const handlePurchase = (planKey: "PRO" | "PREMIUM") => {
+  if (!user) { window.location.href = "/signup?redirect=/pricing"; return; }
+  if (!window.Paddle) { alert("Payment system not loaded."); return; }
+  const priceId = PRICES[planKey][billingCycle];
+  if (!priceId) { alert("Plan not configured — contact support."); return; }
 
+  try {
+    window.Paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      passthrough: JSON.stringify({ firebaseUid: user.uid, email: user.email, plan: planKey }),
+      settings: { displayMode: "overlay", theme: "light" },
+      successCallback: (d: any) => { console.log("checkout success", d); window.location.href = "/dashboard?purchase=success"; },
+      closeCallback: () => console.log("checkout closed"),
+    });
+  } catch (err) {
+    console.error("Checkout.open error:", err);
+    alert("Could not open checkout; check console.");
+  }
+};
   const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
   const brutalistTransition = "transition-all duration-300 ease-in-out";
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
