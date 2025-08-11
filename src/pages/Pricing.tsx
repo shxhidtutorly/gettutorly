@@ -25,17 +25,22 @@ useEffect(() => {
   let mounted = true;
   (async () => {
     try {
-      const p = await initializePaddle({ token: "test_26966f1f8c51d54baaba0224e16", environment: "sandbox" });
+      const res = await initializePaddle({
+        token: "test_26966f1f8c51d54baaba0224e16",   // preferred if you created client-side token
+        vendorId: 234931,                            // fallback if token not used
+        environment: "sandbox",
+      });
       if (!mounted) return;
-      console.log("Paddle ready, keys:", Object.keys(p || {}));
+      console.log("Paddle ready mode:", res.mode, "keys:", res.keys);
       setPaddleReady(true);
-      // optionally preview prices:
-      const ids = [PRICES.PRO.monthly, PRICES.PREMIUM.monthly];
-      const map = await previewPrices(ids);
-      setProPriceText(map[PRICES.PRO.monthly] || "$5.99");
-      setPremiumPriceText(map[PRICES.PREMIUM.monthly] || "$9.99");
-    } catch (err) {
-      console.error("Paddle init failed:", err);
+      // preview example:
+      try {
+        const map = await previewPrices([PRICES.PRO.monthly, PRICES.PREMIUM.monthly]);
+        setProPriceText(map[PRICES.PRO.monthly] || "$5.99");
+        setPremiumPriceText(map[PRICES.PREMIUM.monthly] || "$9.99");
+      } catch(e){}
+    } catch (err:any) {
+      console.error("Paddle init failed:", err.message || err);
       setPaddleReady(false);
     }
   })();
