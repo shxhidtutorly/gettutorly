@@ -39,89 +39,87 @@ export default function PricingPage(): JSX.Element {
     return false;
   }
 
-  // Remove stray paddle script tags (avoid removing ones not related? we remove only cdn.paddle ones)
-  function removeOtherPaddleScripts() {
-    Array.from(document.querySelectorAll('script[src*="cdn.paddle.com"], script[src*="paddle/paddle"]')).forEach((s) => {
-      // keep only if it is not our injected id (we haven't injected yet)
-      // remove to avoid conflicts
-      s.remove();
+  //useEffect(() => {
+  const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // <--- your sandbox client token
+  const DESIRED_SRC = "https://cdn.paddle.com/paddle/paddle.js";
+  const INJECT_ID = "paddle-billing-inject";
+
+  // helper: poll fn
+  const waitFor = async (fn: () => boolean, attempts = 40, delay = 100) => {
+    for (let i = 0; i < attempts; i++) {
+      if (fn()) return true;
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, delay));
+    }
+    return false;
+  };
+
+  // 1) remove any existing Paddle scripts that could be conflicting
+  const removeConflictingScripts = () => {
+    const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
+    scripts.forEach((s) => {
+      if (s.src.includes("cdn.paddle.com/paddle/v2") || s.src.includes("cdn.paddle.com/paddle/paddle.js") || s.src.match(/paddle\/paddle/)) {
+        // remove all paddle scripts (we'll inject the correct one)
+        s.remove();
+      }
     });
-  }
+    // remove the global if present
+    try { delete (window as any).Paddle; } catch (e) { (window as any).Paddle = undefined; }
+    console.log("[Paddle] removed conflicting scripts and cleared window.Paddle");
+  };
 
-  useEffect(() => {
-    let injectedId = "paddle-billing-inject";
-    const PADDLE_SRC = "https://cdn.paddle.com/paddle/paddle.js"; // bundle that exposes Initialize/PricePreview
-
-    async function initBillingPaddle() {
-      // remove conflicting paddle scripts to avoid Setup/Initialize mismatch
-      removeOtherPaddleScripts();
-
-      // inject our paddle.js
-      if (!document.getElementById(injectedId)) {
-        const s = document.createElement("script");
-        s.id = injectedId;
-        s.src = PADDLE_SRC;
-        s.async = true;
-        s.onload = async () => {
-          // Wait for the Billing API (Initialize) to become available
-          const hasInitialize = await waitFor(() => !!window.Paddle && typeof window.Paddle.Initialize === "function", 30, 150);
-          console.log("Paddle keys on window:", Object.keys(window.Paddle || {}));
-          if (!hasInitialize) {
-            // Not the Billing API — show clear console message for debugging
-            console.error("Paddle loaded but Initialize() not found. Wrong bundle or conflict. Billing features unavailable.");
-            setErrorMessage("Payment system loaded with incompatible build. Please ensure only the Billing paddle.js is loaded (cdn.paddle.com/paddle/paddle.js).");
-            // as a fallback, enable buttons so user can still attempt checkout (best-effort)
-            setPaddleReady(false);
-            return;
-          }
-
-          try {
-            // Set sandbox and Initialize with client token (Billing)
-            window.Paddle.Environment?.set?.("sandbox"); // safe-guard if method exists
-            window.Paddle.Initialize({
-              token: CLIENT_TOKEN,
-              eventCallback: (ev: any) => { /* optional logging */ },
-            });
-
-            setPaddleReady(true);
-            setErrorMessage(null);
-            // initial preview
-            void previewPrices();
-          } catch (err: any) {
-            console.error("Paddle.Initialize() error:", err);
-            setErrorMessage("Failed to initialize Paddle Billing. See console.");
-          }
-        };
-        s.onerror = (e) => {
-          console.error("Failed to load Paddle script", e);
-          setErrorMessage("Failed to load payment script.");
-        };
-        document.body.appendChild(s);
-      } else {
-        // already injected, attempt to init
-        const ok = await waitFor(() => !!window.Paddle && typeof window.Paddle.Initialize === "function", 30, 150);
-        console.log("Paddle keys on window:", Object.keys(window.Paddle || {}));
-        if (!ok) {
-          console.error("Existing paddle present but billing Initialize() not available.");
-          setErrorMessage("Conflicting Paddle build already on the page. Please remove other paddle scripts.");
+  // 2) inject desired script and initialize Billing API
+  const injectAndInit = async () => {
+    // if already injected with id, skip creating a second tag
+    if (!document.getElementById(INJECT_ID)) {
+      const s = document.createElement("script");
+      s.id = INJECT_ID;
+      s.src = DESIRED_SRC;
+      s.async = true;
+      s.onload = async () => {
+        console.log("[Paddle] script loaded, probing API...");
+        // wait until Paddle object exists
+        const okWindow = await waitFor(() => !!(window as any).Paddle, 30, 100);
+        console.log("[Paddle] window.Paddle present?", okWindow, "keys:", Object.keys((window as any).Paddle || {}));
+        // Prefer Initialize (Billing)
+        const hasInitialize = !!(window as any).Paddle && typeof (window as any).Paddle.Initialize === "function";
+        if (!hasInitialize) {
+          console.error("[Paddle] Billing API (Initialize) not found. Wrong bundle or still conflicting scripts.");
           return;
         }
         try {
-          window.Paddle.Environment?.set?.("sandbox");
-          window.Paddle.Initialize({ token: CLIENT_TOKEN });
-          setPaddleReady(true);
-          void previewPrices();
+          (window as any).Paddle.Environment?.set?.("sandbox");
+          (window as any).Paddle.Initialize({ token: CLIENT_TOKEN });
+          console.log("[Paddle] Initialize() called (sandbox). Billing API ready.");
+          // now call your previewPrices() or set paddleReady state
+          // e.g. setPaddleReady(true); previewPrices();
         } catch (err) {
-          console.error("Paddle.Initialize() error (existing):", err);
-          setErrorMessage("Failed to initialize Paddle Billing (existing).");
+          console.error("[Paddle] Initialize() error:", err);
         }
+      };
+      s.onerror = (e) => console.error("[Paddle] failed to load script", e);
+      document.body.appendChild(s);
+    } else {
+      // if present, attempt to initialize directly
+      const hasInitialize = !!(window as any).Paddle && typeof (window as any).Paddle.Initialize === "function";
+      if (hasInitialize) {
+        try {
+          (window as any).Paddle.Environment?.set?.("sandbox");
+          (window as any).Paddle.Initialize({ token: CLIENT_TOKEN });
+          console.log("[Paddle] Initialized existing script (sandbox).");
+          // set state / preview
+        } catch (err) {
+          console.error("[Paddle] init existing error:", err);
+        }
+      } else {
+        console.error("[Paddle] existing script present but Initialize() not available.");
       }
     }
+  };
 
-    void initBillingPaddle();
-    // do NOT remove scripts on unmount; other pages may need it
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // run removal & inject
+  removeConflictingScripts();
+  void injectAndInit();
 
   // PricePreview (only available on Billing-compatible paddle.js)
   const previewPrices = async () => {
