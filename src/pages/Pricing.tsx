@@ -173,40 +173,45 @@ export default function App() {
               <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
               <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
-            {pricingPlans.map((plan) => (
-              <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                    <Badge className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">
-                      MOST POPULAR
-                    </Badge>
-                  </div>
-                )}
-                <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`}></div>
-                <div className="text-center mb-6 pt-8">
-                  <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
-                  <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
-                  <div className="text-6xl font-black">{billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually}</div>
-                  <div className="text-base font-bold text-stone-600">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
-                </div>
-                <div className="space-y-3 mb-8 flex-grow">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-center">
-                      <Check className="w-6 h-6 mr-3 flex-shrink-0 text-green-500" />
-                      <span className="font-bold text-md">{feature}</span>
-                    </div>
-                  ))}
-                  {plan.notIncluded.map((feature) => (
-                    <div key={feature} className="flex items-center opacity-60">
-                      <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
-                      <span className="font-bold line-through text-md">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                <Button className={`w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} hover:shadow-none hover:-translate-x-1 hover:-translate-y-1`}>
-                  onClick={() => handlePurchase('PRO')} disabled={!paddleReady}>{plan.cta}
-                </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
+  {pricingPlans.map((plan) => (
+    <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+      {plan.popular && (
+        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+          <Badge className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">MOST POPULAR</Badge>
+        </div>
+      )}
+      <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`}></div>
+      <div className="text-center mb-6 pt-8">
+        <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
+        <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
+        <div className="text-6xl font-black">
+          {plan.name === "PRO" ? (billingCycle === "monthly" ? proPriceText : proPriceText) : (billingCycle === "monthly" ? premiumPriceText : premiumPriceText)}
+        </div>
+        <div className="text-base font-bold text-stone-600">/{billingCycle === "monthly" ? "month" : "year"}</div>
+      </div>
+
+      <div className="space-y-3 mb-8 flex-grow">
+        {plan.features.map((feature) => (
+          <div key={feature} className="flex items-center">
+            <Check className="w-6 h-6 mr-3 flex-shrink-0 text-green-500" />
+            <span className="font-bold text-md">{feature}</span>
+          </div>
+        ))}
+        {plan.notIncluded?.map((feature) => (
+          <div key={feature} className="flex items-center opacity-60">
+            <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
+            <span className="font-bold line-through text-md">{feature}</span>
+          </div>
+        ))}
+      </div>
+               <Button
+        onClick={() => handlePurchase(plan.name === "PRO" ? "PRO" : "PREMIUM")}
+        disabled={!paddleReady}
+        className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
+      >
+        {plan.cta}
+      </Button>
                 </a>
               </div>
             ))}
