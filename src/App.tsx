@@ -129,11 +129,11 @@ const App = () => {
             </ErrorBoundary>
             <Toaster />
             <Sonner />
+          <Analytics />
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
-     <Analytics />
   );
 };
 
