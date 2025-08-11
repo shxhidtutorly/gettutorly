@@ -6,7 +6,6 @@ import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/hooks/useUser";
 
 /* CONFIG: replace with your sandbox client token & Paddle price IDs */
 const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
@@ -16,7 +15,6 @@ const PRICES = {
 };
 
 export default function Pricing(): JSX.Element {
-  const { user, isLoaded: userLoaded } = useUser();
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
