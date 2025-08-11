@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import BookLoader from "@/components/ui/BookLoader";
+import { Analytics } from '@vercel/analytics/react';
 import NotFoundPage from "@/components/ui/page-not-found";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -132,6 +133,7 @@ const App = () => {
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
+     <Analytics />
   );
 };
 
