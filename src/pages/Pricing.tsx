@@ -21,55 +21,51 @@ export default function App() {
   const [proPriceText, setProPriceText] = useState("—");
   const [premiumPriceText, setPremiumPriceText] = useState("—");
 
-  useEffect(() => {
-    let mounted = true;
-    initializePaddle({ token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || undefined, environment: "sandbox" })
-      .then(() => {
-        if (!mounted) return;
-        setPaddleReady(true);
-        // preview both price ids for current cycle
-        const ids = [PRICES.PRO[billingCycle], PRICES.PREMIUM[billingCycle]];
-        void previewPrices(ids)
-          .then((map) => {
-            if (!mounted) return;
-            setProPriceText(map[PRICES.PRO[billingCycle]] ?? (billingCycle === "monthly" ? "$5.99" : "$36"));
-            setPremiumPriceText(map[PRICES.PREMIUM[billingCycle]] ?? (billingCycle === "monthly" ? "$9.99" : "$65"));
-          })
-          .catch((err) => {
-            console.warn("Price preview error:", err);
-          });
-      })
-      .catch((err) => {
-        console.error("Paddle init failed:", err);
-      });
+useEffect(() => {
+  let mounted = true;
+  (async () => {
+    try {
+      const p = await initializePaddle({ token: "test_26966f1f8c51d54baaba0224e16", environment: "sandbox" });
+      if (!mounted) return;
+      console.log("Paddle ready, keys:", Object.keys(p || {}));
+      setPaddleReady(true);
+      // optionally preview prices:
+      const ids = [PRICES.PRO.monthly, PRICES.PREMIUM.monthly];
+      const map = await previewPrices(ids);
+      setProPriceText(map[PRICES.PRO.monthly] || "$5.99");
+      setPremiumPriceText(map[PRICES.PREMIUM.monthly] || "$9.99");
+    } catch (err) {
+      console.error("Paddle init failed:", err);
+      setPaddleReady(false);
+    }
+  })();
     return () => { mounted = false; };
   }, [billingCycle]);
 
-  const handlePurchase = async (planKey: "PRO" | "PREMIUM") => {
-    if (loading) return;
-    if (!user) { window.location.href = "/signup?redirect=/pricing"; return; }
-    if (!paddleReady) { alert("Payments not ready"); return; }
+const handlePurchase = async (planKey: "PRO" | "PREMIUM") => {
+  if (!user) {
+    window.location.href = "/signup?redirect=/pricing";
+    return;
+  }
+  if (!paddleReady) { alert("Payments not ready"); return; }
 
-    const priceId = PRICES[planKey][billingCycle];
-    if (!priceId) { alert("Plan misconfigured"); return; }
-
-    // pass firebase UID/email in passthrough so webhook can link
+  const priceId = PRICES[planKey][billingCycle];
+  try {
     await openCheckout({
       priceId,
       passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
       onSuccess: (data) => {
-        // data may contain checkout id; redirect (also webhook will create server-side record)
-        const checkoutId = data?.checkout?.id ?? data?.checkout_id ?? "";
-        window.location.href = `/dashboard?purchase=success&checkout_id=${checkoutId}`;
+        console.log("checkout success", data);
+        // redirect — webhook should write Firestore; this is UI redirect.
+        window.location.href = "/dashboard?purchase=success";
       },
-      onClose: () => {
-        console.log("checkout closed");
-      },
-    }).catch((err) => {
-      console.error("openCheckout failed:", err);
-      alert("Could not open checkout. See console.");
+      onClose: () => console.log("Checkout closed"),
     });
-  };
+  } catch (err) {
+    console.error("openCheckout failed:", err);
+    alert("Payment error: " + (err?.message || "Please check console"));
+  }
+};
   
   const pricingPlans = [
     {
