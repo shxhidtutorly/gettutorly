@@ -1,15 +1,11 @@
-import { initializeApp, applicationDefault, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Paddle } from '@paddle/paddle-node-sdk';
+import { getDb } from '../src/server/firebaseAdmin';
 
-// Initialize Firebase Admin
-if (!getApps().length) {
-  initializeApp();
-}
-const db = getFirestore();
+// Initialize Firestore
+const db = getDb();
 
-// Paddle client (for optional signature verification)
+// Paddle client (optional verification helper)
 const paddle = new Paddle({
   apiKey: process.env.PADDLE_API_KEY || '',
   environment: process.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
@@ -31,13 +27,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Attempt verification (best-effort)
+    let verified = false;
     try {
-      // Depending on SDK/webhook version, verification differs; keep best-effort logging
-      // const verified = await paddle.webhooks.verify(event, req.headers as any);
-      // if (!verified) console.warn('[Paddle] Webhook verification failed');
+      // Paddle v2 uses a signature header. SDK verification methods vary by version.
+      // If verification fails, we still log the event but mark verified=false.
+      // const headerSignature = req.headers['paddle-signature'] || req.headers['paddle-signature-v2'];
+      // if (headerSignature) {
+      //   verified = await paddle.webhooks.verify(req.body, req.headers as any);
+      // }
     } catch (e) {
       console.warn('[Paddle] Verification error', e);
     }
+
 
     const type = event?.event_type || event?.alert_name || 'unknown';
     const data = event?.data || event || {};
@@ -58,11 +59,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isActive = statusActiveEvents.has(String(type));
 
     // Write raw event for audit
-    await db.collection('paddle_events').doc(String(eventId)).set({
+    await db.collection('webhookLogs').add({
       type,
-      received_at: new Date().toISOString(),
+      verified,
+      received_at: new Date(),
       data: event,
+      headers: req.headers,
+      processed: false,
     });
+
 
     if (!firebaseUid && !email) {
       console.warn('[Paddle] Missing identifiers in webhook');
@@ -83,7 +88,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     if (firebaseUid) {
-      await db.collection('users').doc(firebaseUid).collection('subscription').doc('current').set(subPayload, { merge: true });
+      // User-scoped subscription doc
+      await db
+        .collection('users')
+        .doc(firebaseUid)
+        .collection('subscription')
+        .doc('current')
+        .set({
+          ...subPayload,
+          checkoutId: data?.id || data?.checkout_id || null,
+          subscriptionId: data?.subscription_id || data?.id || null,
+          passthrough: custom || {},
+          startDate: data?.event_time ? new Date(data.event_time) : new Date(),
+          endDate: data?.subscription?.billing_period?.ends_at ? new Date(data.subscription.billing_period.ends_at) : null,
+          rawPaddleEvent: event,
+        }, { merge: true });
+
+      // Global subscriptions collection
+      const subId = String(data?.subscription_id || data?.id || eventId);
+      await db.collection('subscriptions').doc(subId).set({
+        uid: firebaseUid,
+        ...subPayload,
+        passthrough: custom || {},
+        startDate: data?.event_time ? new Date(data.event_time) : new Date(),
+        endDate: data?.subscription?.billing_period?.ends_at ? new Date(data.subscription.billing_period.ends_at) : null,
+        rawPaddleEvent: event,
+      }, { merge: true });
+
       return res.status(200).json({ ok: true, uid: firebaseUid });
     }
 
@@ -91,9 +122,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await db.collection('manualSubscriptions').doc(String(email)).set({
       ...subPayload,
       matched: false,
+      passthrough: custom || {},
     }, { merge: true });
 
     return res.status(200).json({ ok: true, email });
+
   } catch (error: any) {
     console.error('[Paddle] Webhook error', error);
     return res.status(200).json({ ok: true }); // Always 200 to avoid retries storm

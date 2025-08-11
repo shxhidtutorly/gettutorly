@@ -1,39 +1,20 @@
 // src/pages/pricing.tsx
 import React, { useEffect, useState } from "react";
-import { initializePaddle, Paddle as PaddleType } from "@paddle/paddle-js";
 import { Check } from "lucide-react";
-import Navbar from "@/components/navbar";
-import { Footer } from "@/components/footer";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getPaddle, previewPrices, openCheckout } from "@/lib/paddle";
+import { useUser } from "@/hooks/useUser";
 
-/* CONFIG: replace with your sandbox client token & Paddle price IDs */
-const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
-const PRICES = {
-  PRO: { monthly: "pri_01k274qrwsngnq4tre5y2qe3pp", annually: "pri_01k2cn84n03by5124kp507nfks" },
-  PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
-};
-
-/* Replace this with your real auth hook */
-function useAuthStub() {
-  return { user: { uid: "N4E8T7giMCWDy7OtWR56uHXQ1kx1", email: "shahidafrid97419@gmail.com" }, loading: false };
-}
-
-export default function Pricing(): JSX.Element {
-  const { user, loading } = useAuthStub(); // replace with real useAuth()
-  const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
-  const [paddleReady, setPaddleReady] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
-  const [proPriceText, setProPriceText] = useState("—");
-  const [premiumPriceText, setPremiumPriceText] = useState("—");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     setErrorMessage(null);
 
-    // initializePaddle downloads the correct Paddle.js and returns a Paddle instance
-    initializePaddle({ token: CLIENT_TOKEN, environment: "sandbox" })
+    // initialize Paddle once
+    getPaddle()
       .then((pInstance) => {
         if (!mounted) return;
         if (!pInstance) {
@@ -41,11 +22,20 @@ export default function Pricing(): JSX.Element {
           console.error("initializePaddle returned undefined");
           return;
         }
-        console.log("Paddle instance keys:", Object.keys(pInstance || {}));
-        setPaddle(pInstance);
         setPaddleReady(true);
-        // preview prices if API available
-        void previewPrices(pInstance, billingCycle);
+        // preview prices
+        void previewPrices([
+          { priceId: PRICES.PRO[billingCycle], quantity: 1 },
+          { priceId: PRICES.PREMIUM[billingCycle], quantity: 1 },
+        ]).then((result) => {
+          const items = result?.data?.details?.lineItems ?? [];
+          for (const it of items) {
+            const id = it?.price?.id;
+            const formatted = it?.formattedTotals?.subtotal ?? it?.formattedTotals?.total ?? "";
+            if (id === PRICES.PRO[billingCycle]) setProPriceText(formatted);
+            if (id === PRICES.PREMIUM[billingCycle]) setPremiumPriceText(formatted);
+          }
+        });
       })
       .catch((err) => {
         console.error("initializePaddle error:", err);
@@ -55,23 +45,19 @@ export default function Pricing(): JSX.Element {
     return () => { mounted = false; };
   }, []); // run once
 
-  // preview localized prices (best-effort)
-  async function previewPrices(pInstance: PaddleType | undefined = paddle, cycle = billingCycle) {
-    if (!pInstance || typeof pInstance.PricePreview !== "function") {
-      // fallback: show static text
-      setProPriceText(cycle === "monthly" ? "$5.99" : "$36");
-      setPremiumPriceText(cycle === "monthly" ? "$9.99" : "$65");
-      return;
-    }
 
+  // preview localized prices (best-effort)
+  async function refreshPrices(cycle = billingCycle) {
     try {
-      const req = {
-        items: [
-          { quantity: 1, priceId: PRICES.PRO[cycle] },
-          { quantity: 1, priceId: PRICES.PREMIUM[cycle] },
-        ],
-      };
-      const result = await pInstance.PricePreview(req);
+      const result = await previewPrices([
+        { priceId: PRICES.PRO[cycle] },
+        { priceId: PRICES.PREMIUM[cycle] },
+      ]);
+      if (!result) {
+        setProPriceText(cycle === "monthly" ? "$5.99" : "$36");
+        setPremiumPriceText(cycle === "monthly" ? "$9.99" : "$65");
+        return;
+      }
       const items = result?.data?.details?.lineItems ?? [];
       for (const it of items) {
         const id = it?.price?.id;
@@ -89,18 +75,15 @@ export default function Pricing(): JSX.Element {
 
   // update preview when billing cycle changes
   useEffect(() => {
-    void previewPrices(undefined, billingCycle);
-  }, [billingCycle, paddle]);
+    void refreshPrices(billingCycle);
+  }, [billingCycle]);
+
 
   // handle checkout
   const handlePurchase = (planKey: "PRO" | "PREMIUM") => {
     if (loading) return;
     if (!user) {
       window.location.href = "/signup?redirect=/pricing";
-      return;
-    }
-    if (!paddle) {
-      alert("Payments not ready. Try again shortly.");
       return;
     }
 
@@ -112,15 +95,17 @@ export default function Pricing(): JSX.Element {
     }
 
     try {
-      paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        passthrough: JSON.stringify({ firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle }),
+      openCheckout({
+        priceId,
+        quantity: 1,
+        customer: { email: user.email },
+        passthrough: { firebaseUid: user.uid || user.id, email: user.email, plan: planKey, cycle: billingCycle },
         settings: { displayMode: "overlay", theme: "light" },
-        successCallback: (data: any) => {
+        success: (data: any) => {
           console.log("Checkout success:", data);
-          window.location.href = "/dashboard?subId=" + data.checkout.id;
+          window.location.href = "/dashboard?purchase=success";
         },
-        closeCallback: () => console.log("Checkout closed"),
+        close: () => console.log("Checkout closed"),
       });
     } catch (err) {
       console.error("Checkout.open error:", err);
@@ -134,7 +119,7 @@ export default function Pricing(): JSX.Element {
       <section className="bg-sky-200 text-black border-b-4 border-black py-20 text-center">
         <h1 className="text-5xl font-black">CHOOSE YOUR PLAN</h1>
       </section>
-      <section className="py-12 max-w-6xl mx-auto">
+      <section id="plans" className="py-12 max-w-6xl mx-auto">
         {errorMessage && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-800">
             <strong>Payment error:</strong> {errorMessage}
@@ -154,7 +139,7 @@ export default function Pricing(): JSX.Element {
               <li><Check className="inline-block mr-2" />Basic AI Chat</li>
               <li><Check className="inline-block mr-2" />100+ Notes/Month</li>
             </ul>
-            <Button onClick={() => handlePurchase("PRO")} disabled={!paddleReady && !paddle} className="w-full">Get PRO</Button>
+            <Button onClick={() => handlePurchase("PRO")} disabled={!paddleReady} className="w-full">Get PRO</Button>
           </div>
 
           <div className="p-6 bg-white border">
@@ -164,7 +149,7 @@ export default function Pricing(): JSX.Element {
               <li><Check className="inline-block mr-2" />Unlimited Everything</li>
               <li><Check className="inline-block mr-2" />Priority Support</li>
             </ul>
-            <Button onClick={() => handlePurchase("PREMIUM")} disabled={!paddleReady && !paddle} className="w-full">Get PREMIUM</Button>
+            <Button onClick={() => handlePurchase("PREMIUM")} disabled={!paddleReady} className="w-full">Get PREMIUM</Button>
           </div>
         </div>
       </section>
