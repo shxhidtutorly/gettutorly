@@ -105,7 +105,7 @@ useEffect(() => {
         console.error("Paddle init error (existing):", err);
       }
     })();
-  }
+
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono">
       <Navbar />
@@ -145,3 +145,4 @@ useEffect(() => {
       <Footer />
     </div>
   );
+}
