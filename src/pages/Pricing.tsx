@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
  */
 
 /* ---------- CONFIG - replace tokens/ids if needed ---------- */
-const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
 const PRICES = {
   PRO: { monthly: "pri_01k274qrwsngnq4tre5y2qe3pp", annually: "pri_01k2cn84n03by5124kp507nfks" },
   PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
@@ -34,103 +33,79 @@ export default function PricingPage(): JSX.Element {
   const [premiumPriceText, setPremiumPriceText] = useState("—");
 
   // Load Paddle script and initialize for sandbox (IMPORTANT order)
-  useEffect(() => {
-    const id = "paddle-js-sdk";
-    if (document.getElementById(id)) {
-      // script already loaded — attempt init
-      initPaddleIfAvailable();
-      return;
+useEffect(() => {
+  const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // <- your sandbox client token
+  const SCRIPT_ID = "paddle-js-sdk-correct";
+
+  async function waitFor(fn: () => boolean, attempts = 30, delay = 150) {
+    for (let i = 0; i < attempts; i++) {
+      if (fn()) return true;
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, delay));
     }
+    return false;
+  }
+
+  // If a Paddle script already exists and provides Initialize, use it.
+  const existing = document.getElementById(SCRIPT_ID);
+  if (!existing) {
+    // Remove any other paddle script tags you may have added elsewhere to avoid conflicts.
+    // Create the correct paddle.js script (the one that supports Initialize/PricePreview).
     const s = document.createElement("script");
-    s.id = id;
-    s.src = "https://cdn.paddle.com/paddle/paddle.js"; // use the working SDK URL
+    s.id = SCRIPT_ID;
+    s.src = "https://cdn.paddle.com/paddle/paddle.js"; // <- use this (not /v2) for the Initialize API
     s.async = true;
-    s.onload = () => initPaddleIfAvailable();
+    s.onload = async () => {
+      // wait briefly for the API to be attached
+      const ok = await waitFor(() => !!(window as any).Paddle && typeof (window as any).Paddle.Initialize === "function", 20, 100);
+      if (!ok) {
+        console.error("Paddle loaded but Initialize() not found. Possible version mismatch.");
+        return;
+      }
+
+      try {
+        // set sandbox environment then initialize with client token
+        (window as any).Paddle.Environment?.set?.("sandbox");
+        (window as any).Paddle.Initialize({
+          token: CLIENT_TOKEN,
+          eventCallback: (ev: any) => {
+            // optional: inspect events
+            // console.log("Paddle event:", ev);
+          },
+        });
+        setPaddleReady(true);
+
+        // If you have a previewPrices or price-loading function, call it now:
+        // await previewPrices();
+      } catch (err) {
+        console.error("Paddle init error:", err);
+      }
+    };
+    s.onerror = (e) => {
+      console.error("Failed to load Paddle script", e);
+    };
     document.body.appendChild(s);
-    return () => { const el = document.getElementById(id); if (el) el.remove(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Initialize Paddle (must set environment before Initialize)
-  const initPaddleIfAvailable = async () => {
-    if (!window.Paddle) {
-      console.error("Paddle script not available yet");
-      return;
-    }
-    try {
-      // force sandbox base for checkout endpoints
-      window.Paddle.Environment?.set?.("sandbox");
-      // Initialize with client token (Billing)
-      window.Paddle.Initialize({
-        token: CLIENT_TOKEN,
-        eventCallback: (ev: any) => { console.log("Paddle event:", ev); }
-      });
-      setPaddleReady(true);
-      // initial localized price preview
-      await previewPrices();
-      console.log("Paddle initialized (sandbox).");
-    } catch (err) {
-      console.error("Paddle init error:", err);
-    }
-  };
-
-  // Price preview to display localized prices (uses PricePreview)
-  const previewPrices = async () => {
-    if (!window.Paddle || !paddleReady) return;
-    try {
-      const request = {
-        items: [
-          { quantity: 1, priceId: PRICES.PRO[billingCycle] },
-          { quantity: 1, priceId: PRICES.PREMIUM[billingCycle] }
-        ],
-        address: { countryCode: "US" } // optional: derive from geolocation
-      };
-      const res = await window.Paddle.PricePreview(request);
-      // map line items back to UI
-      res.data.details.lineItems.forEach((li: any) => {
-        const priceStr = li.formattedTotals?.subtotal ?? li.formattedTotals?.total;
-        if (li.price?.id === PRICES.PRO[billingCycle]) setProPriceText(priceStr);
-        if (li.price?.id === PRICES.PREMIUM[billingCycle]) setPremiumPriceText(priceStr);
-      });
-    } catch (err) {
-      console.error("PricePreview failed:", err);
-    }
-  };
-
-  useEffect(() => { previewPrices(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [billingCycle, paddleReady]);
-
-  // Purchase handler — MUST use items.priceId (Billing). If undefined, we'll block it.
-  const handlePurchase = (planKey: "PRO" | "PREMIUM") => {
-    if (loading) return;
-    if (!user) {
-      window.location.href = "/signup?redirect=/pricing";
-      return;
-    }
-    if (!paddleReady) {
-      alert("Payments not ready — try again shortly.");
-      return;
-    }
-
-    const priceId = PRICES[planKey][billingCycle];
-    if (!priceId) {
-      console.error("Missing priceId for", planKey, billingCycle);
-      alert("This plan is currently unavailable. Contact support.");
-      return;
-    }
-
-    try {
-      console.log("Opening checkout with priceId:", priceId);
-      window.Paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        passthrough: JSON.stringify({ firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle }),
-        settings: { displayMode: "overlay", theme: "light" }
-      });
-    } catch (err) {
-      console.error("Checkout.open error:", err);
-      alert("Could not start checkout — check console for details.");
-    }
-  };
-
+  } else {
+    // if already present, ensure the API is ready
+    (async () => {
+      const ok = await waitFor(() => !!(window as any).Paddle && typeof (window as any).Paddle.Initialize === "function", 20, 100);
+      if (!ok) {
+        console.error("Existing Paddle script present but Initialize() not available.");
+        return;
+      }
+      try {
+        (window as any).Paddle.Environment?.set?.("sandbox");
+        (window as any).Paddle.Initialize({
+          token: CLIENT_TOKEN,
+          eventCallback: (ev: any) => {},
+        });
+        setPaddleReady(true);
+        // await previewPrices();
+      } catch (err) {
+        console.error("Paddle init error (existing):", err);
+      }
+    })();
+  }
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono">
       <Navbar />
