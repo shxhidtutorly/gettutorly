@@ -44,15 +44,7 @@ export default function PricingPage(): JSX.Element {
   const DESIRED_SRC = "https://cdn.paddle.com/paddle/paddle.js";
   const INJECT_ID = "paddle-billing-inject";
 
-  // helper: poll fn
-  const waitFor = async (fn: () => boolean, attempts = 40, delay = 100) => {
-    for (let i = 0; i < attempts; i++) {
-      if (fn()) return true;
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, delay));
-    }
-    return false;
-  };
+
 
   // 1) remove any existing Paddle scripts that could be conflicting
   const removeConflictingScripts = () => {
