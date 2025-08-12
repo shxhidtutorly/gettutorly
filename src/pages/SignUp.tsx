@@ -1,8 +1,9 @@
+// src/pages/SignupPage.tsx
 import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Mail, Lock, User } from "lucide-react"
+import { ArrowLeft, Mail, Lock, User, Brain } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 
 // Firebase imports for self-contained component
