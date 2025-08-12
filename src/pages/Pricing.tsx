@@ -177,7 +177,6 @@ export default function Pricing(): JSX.Element {
       // If not authenticated, redirect to the signup page
       navigate('/signup');
     }
-  }
   
     const priceId = PRICES[planKey][billingCycle];
     if (!priceId) {
