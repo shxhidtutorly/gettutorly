@@ -164,27 +164,30 @@ export default function Pricing(): JSX.Element {
   }, [billingCycle, paddle]);
 
   const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    // We are now waiting for the auth state to resolve before taking action
-    if (loading) return;
-
-    if (planKey === "MAX") {
-      // Use a custom modal or message box instead of alert
-      // For now, we'll navigate to a contact page
-      navigate("/contact");
-      return;
+    // Check if the user is in a loading state. If so, do nothing.
+    if (loading) {
+        setErrorMessage("Please wait while we check your authentication status.");
+        return;
     }
-    
+
+    // Now, if loading is false, we know the definitive auth state.
     if (!user) {
-      // Redirect to a signup page if the user is not authenticated
-      // Using `navigate` for a smoother single-page app experience
+      // Redirect to a signup page if the user is not authenticated.
       navigate("/signup");
       return;
     }
 
+    if (planKey === "MAX") {
+      // Use a custom modal or message box instead of alert.
+      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
+      navigate("/contact");
+      return;
+    }
+    
     if (!paddle) {
-      // Use a custom modal or toast instead of alert
+      // Payments library not ready.
       console.error("Payments not ready.");
-      setErrorMessage("Payments not ready. Try again shortly.");
+      setErrorMessage("Payments not ready. Please try again shortly.");
       return;
     }
 
@@ -261,7 +264,7 @@ export default function Pricing(): JSX.Element {
           </div>
           {errorMessage && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-800 font-bold text-center">
-              <strong>Payment error:</strong> {errorMessage}
+              <strong>Error:</strong> {errorMessage}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
@@ -297,6 +300,7 @@ export default function Pricing(): JSX.Element {
                 </div>
                 <Button
                   onClick={() => handlePurchase(plan.planKey as "PRO" | "PREMIUM" | "MAX")}
+                  // The button is disabled until the auth state and Paddle are ready.
                   disabled={loading || !paddleReady}
                   className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
                 >
