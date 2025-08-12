@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, Link } from 'react-router-dom';
 
-// Firebase imports for self-contained component
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
+import useAuth from "@/hooks/useAuth"; // Using the standardized hook
+
 
 // CONFIG: You must replace this with your LIVE client token.
 // Go to your Paddle dashboard -> Developer Tools -> Authentication.
@@ -206,53 +205,51 @@ export default function Pricing(): JSX.Element {
     void previewPrices(undefined, billingCycle);
   }, [billingCycle, paddle]);
 
-  const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    if (loading) {
-        setErrorMessage("Please wait while we check your authentication status.");
-        return;
-    }
+ const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
+    if (loading) return; // Don't do anything if auth state is still loading
 
     if (!user) {
-      navigate("/signup");
+      // This is now a fallback. In the main flow, the user will be logged in.
+      // We can navigate them to signup if they somehow land here without being auth'd.
+      window.location.href = "/signup?redirect=/pricing";
       return;
     }
-    
+
     if (!paddle) {
-      console.error("Payments not ready.");
-      setErrorMessage("Payments not ready. Please try again shortly.");
+      alert("Payment system is not ready. Please try again in a moment.");
       return;
     }
 
     if (planKey === "MAX") {
-      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
-      navigate("/contact");
+      alert("Please contact us for a custom quote on the MAX plan.");
+      // Optional: redirect to a contact page
+      // window.location.href = "/contact";
       return;
     }
 
     const priceId = PRICES[planKey][billingCycle];
     if (!priceId) {
-      console.error("Missing priceId:", planKey, billingCycle);
-      setErrorMessage("Plan misconfigured. Contact support.");
+      console.error("Missing priceId for plan:", planKey, billingCycle);
+      alert("This plan is misconfigured. Please contact support.");
       return;
     }
 
-    try {
-      paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
-        settings: { displayMode: "overlay", theme: "light" },
-        customer: { email: user.email }, // Prefill email if available
-        trialDays: 4, // Add 4-day free trial
-        successCallback: (data: any) => {
-          console.log("Checkout success:", data);
-          navigate("/dashboard?purchase=success");
-        },
-        closeCallback: () => console.log("Checkout closed"),
-      });
-    } catch (err) {
-      console.error("Checkout.open error:", err);
-      setErrorMessage("Could not open checkout. See console for details.");
-    }
+    // ✅ Crucial part: User's info is passed to Paddle
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: {
+        email: user.email || '', // Pass customer email
+      },
+      customData: { // Use customData for your internal identifiers
+        firebaseUid: user.uid,
+        plan: planKey,
+        cycle: billingCycle,
+      },
+      settings: {
+        displayMode: "overlay",
+        theme: "light",
+      },
+    });
   };
 
   const getMonthlyPriceFromAnnual = (priceAnnually: string) => {
