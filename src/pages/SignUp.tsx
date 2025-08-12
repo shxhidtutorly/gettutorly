@@ -1,18 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import useFirebaseAuth from "@/hooks/useFirebaseAuth"; // <-- Use the new hook
+import useFirebaseAuth from "@/hooks/useFirebaseAuth";
 
 const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
 const brutalistTransition = "transition-all duration-300 ease-in-out";
 const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
 export default function SignupPage() {
-  const navigate = useNavigate();
-  const { user, loading, signUp, signInWithGoogle, checkSubscriptionStatus } = useFirebaseAuth();
+  const { signUp, signInWithGoogle } = useFirebaseAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -21,20 +20,6 @@ export default function SignupPage() {
   });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // This useEffect now handles redirection for existing, logged-in users on page load
-  useEffect(() => {
-    if (!loading && user) {
-      // Use the async function from the hook to check subscription status
-      void checkSubscriptionStatus(user.uid).then(hasSubscription => {
-        if (hasSubscription) {
-          navigate("/dashboard");
-        } else {
-          navigate("/pricing");
-        }
-      });
-    }
-  }, [loading, user, navigate, checkSubscriptionStatus]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,7 +57,6 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-3 mb-6">
             <div className={`w-16 h-16 bg-sky-200 border-4 border-black flex items-center justify-center ${brutalistShadow}`}>
-              {/* <img src="/logo.png" alt="Logo" className="w-8 h-8" /> */}
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-black">
                 <path d="M12 21a9 9 0 0 0 9-9c0-1.26-.41-2.5-1.19-3.44S17.65 6.5 16 6s-3.79-.58-5.75-1.11A9 9 0 0 0 3 12a9 9 0 0 0 9 9Z" />
                 <path d="M8 10v4" />
