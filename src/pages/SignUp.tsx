@@ -8,12 +8,7 @@ import { FcGoogle } from "react-icons/fc"
 
 // Firebase imports for self-contained component
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signInWithCustomToken, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
-
-// Helper function to create a unique userId for anonymous sign-in
-function generateRandomUserId() {
-  return 'anon-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
+import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -26,7 +21,6 @@ export default function SignupPage() {
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [auth, setAuth] = useState(null);
-  const [firebaseApp, setFirebaseApp] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   // Initialize Firebase and set up auth listener
@@ -39,9 +33,8 @@ export default function SignupPage() {
     }
     const app = initializeApp(firebaseConfig);
     const authInstance = getAuth(app);
-    setFirebaseApp(app);
     setAuth(authInstance);
-    
+
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
     const signIn = async () => {
       try {
@@ -58,6 +51,8 @@ export default function SignupPage() {
     // Listen for auth state changes and set readiness
     const unsubscribe = onAuthStateChanged(authInstance, (authUser) => {
       setIsAuthReady(true);
+      // This is the key change: we now navigate to the pricing page
+      // after a user has been authenticated.
       if (authUser) {
         navigate("/pricing");
       }
@@ -69,12 +64,11 @@ export default function SignupPage() {
     return () => unsubscribe();
   }, [navigate]);
 
-  const signUp = async (email, password, name) => {
+  const signUp = async (email, password) => {
     if (!auth) return { error: { message: "Firebase Auth not initialized." } };
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      // You can add more user data to Firestore here if needed.
       return { user };
     } catch (error) {
       return { error };
