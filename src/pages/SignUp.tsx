@@ -7,7 +7,7 @@ import { ArrowLeft, Mail, Lock, User, Brain } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 
 // Firebase imports for self-contained component
-import { initializeApp } from "@lib/firebase.ts";
+import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signInWithCustomToken, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
 
 // Helper function to create a unique userId for anonymous sign-in
@@ -27,6 +27,7 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [auth, setAuth] = useState(null);
   const [firebaseApp, setFirebaseApp] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   // Initialize Firebase and set up auth listener
   useEffect(() => {
@@ -40,14 +41,29 @@ export default function SignupPage() {
     const authInstance = getAuth(app);
     setFirebaseApp(app);
     setAuth(authInstance);
-
-    // Listen for auth state changes
+    
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const signIn = async () => {
+      try {
+        if (initialAuthToken) {
+          await signInWithCustomToken(authInstance, initialAuthToken);
+        } else {
+          await signInAnonymously(authInstance);
+        }
+      } catch (error) {
+        console.error("Firebase authentication failed:", error);
+      }
+    };
+    
+    // Listen for auth state changes and set readiness
     const unsubscribe = onAuthStateChanged(authInstance, (authUser) => {
-      // If user is logged in, navigate to the pricing page
+      setIsAuthReady(true);
       if (authUser) {
         navigate("/pricing");
       }
     });
+
+    signIn();
 
     // Clean up subscription
     return () => unsubscribe();
@@ -81,6 +97,12 @@ export default function SignupPage() {
     e.preventDefault()
     setError("")
     setIsSubmitting(true)
+    
+    if (!isAuthReady) {
+      setError("Please wait, Firebase is still initializing.");
+      setIsSubmitting(false);
+      return;
+    }
 
     const { name, email, password } = formData
     if (!name || !email || !password) {
@@ -100,6 +122,13 @@ export default function SignupPage() {
   const handleGoogleLogin = async () => {
     setError("")
     setIsSubmitting(true)
+    
+    if (!isAuthReady) {
+      setError("Please wait, Firebase is still initializing.");
+      setIsSubmitting(false);
+      return;
+    }
+
     const result = await signInWithGoogle()
     if (result.error) {
       setError(result.error.message || "Google sign-up failed")
@@ -175,11 +204,11 @@ export default function SignupPage() {
                 />
               </div>
             </div>
-
+            
             <Button
               type="submit"
               className="w-full bg-purple-500 hover:bg-purple-600 text-white font-black text-lg py-4 brutal-button rounded-lg"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isAuthReady}
             >
               {isSubmitting ? "Creating account..." : "CREATE ACCOUNT"}
             </Button>
@@ -193,6 +222,7 @@ export default function SignupPage() {
             onClick={handleGoogleLogin}
             type="button"
             className="w-full border-4 border-black font-bold flex items-center justify-center gap-2 brutal-button rounded-lg"
+            disabled={isSubmitting || !isAuthReady}
           >
             <FcGoogle className="w-5 h-5" />
             Continue with Google
