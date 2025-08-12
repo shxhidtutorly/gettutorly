@@ -170,16 +170,15 @@ export default function Pricing(): JSX.Element {
     }
     
     if (loading) return;
-    if (!user) {
-      // Redirect to a signup page if the user is not authenticated
-      window.location.href = "/signup?redirect=/pricing";
-      return;
+     if (isAuthenticated) {
+      // Logic to handle checkout, e.g., redirect to a checkout page
+      navigate(`/checkout/${planId}`);
+    } else {
+      // If not authenticated, redirect to the signup page
+      navigate('/signup');
     }
-    if (!paddle) {
-      alert("Payments not ready. Try again shortly.");
-      return;
-    }
-
+  };
+  
     const priceId = PRICES[planKey][billingCycle];
     if (!priceId) {
       console.error("Missing priceId:", planKey, billingCycle);
