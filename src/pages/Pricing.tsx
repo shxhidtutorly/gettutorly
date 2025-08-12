@@ -7,11 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
 
-/* This is a mock auth hook based on your provided code. 
-   Make sure you use your real useAuth() hook. */
-function useAuthStub() {
-  return { user: { uid: "N4E8T7giMCWDy7OtWR56uHXQ1kx1", email: "shahidafrid97419@gmail.com" }, loading: false };
-}
+// Firebase imports
+import { initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 
 // CONFIG: You must replace this with your LIVE client token.
 // Go to your Paddle dashboard -> Developer Tools -> Authentication.
@@ -20,6 +18,7 @@ const CLIENT_TOKEN = "live_6a94977317431ccad01df272b4a";
 
 // Your LIVE Paddle price IDs. You must get these from your live Paddle account.
 // The IDs will look similar to "pri_01k...".
+
 const PRICES = {
   PRO: { monthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", annually: "pri_01jxq11xb6dpkzgqr27fxkejc3" },
   PREMIUM: { monthly: "pri_01jxq0wydxwg59kmha33h213ab", annually: "pri_01k22jjqh6dtn42e25bw0znrgy" },
@@ -96,13 +95,54 @@ const FloatingShape = ({ className, animationDelay }: { className: string, anima
 );
 
 export default function Pricing(): JSX.Element {
-  const { user, loading } = useAuthStub(); // replace with your real useAuth() hook
   const navigate = useNavigate();
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
   const [priceTexts, setPriceTexts] = useState({ PRO: '—', PREMIUM: '—', MAX: '—' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // --- Firebase Auth State ---
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check for firebase config and initialize
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    if (!firebaseConfig) {
+      console.error("Firebase config is missing.");
+      setLoading(false);
+      return;
+    }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Authenticate with custom token or anonymously
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const signIn = async () => {
+      try {
+        if (initialAuthToken) {
+          await signInWithCustomToken(auth, initialAuthToken);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Firebase authentication failed:", error);
+      }
+    };
+    
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      setUser(authUser);
+      setLoading(false);
+    });
+
+    signIn();
+
+    return () => unsubscribe();
+  }, []);
+  // --- End of Firebase Auth State ---
+
 
   useEffect(() => {
     let mounted = true;
