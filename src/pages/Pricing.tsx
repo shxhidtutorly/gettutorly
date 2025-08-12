@@ -1,25 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { initializePaddle, Paddle as PaddleType } from '@paddle/paddle-js';
-import { Check, Star, X } from "lucide-react";
+import { Check, Star, X, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from 'react-router-dom';
 
-// CONFIG: replace with your sandbox client token & Paddle price IDs
-const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
-
-// Your Paddle price IDs, updated with the new MAX plan
-const PRICES = {
-  PRO: { monthly: "pri_01k274qrwsngnq4tre5y2qe3pp", annually: "pri_01k2cn84n03by5124kp507nfks" },
-  PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
-  MAX: { monthly: "pri_01k22kw22dfrejy55t8xdhrzwd", annually: "pri_01k22ty36jptak5rjj74axhvxg" },
-};
-
-/* Replace this with your real auth hook */
+/* This is a mock auth hook based on your provided code. 
+   Make sure you use your real useAuth() hook. */
 function useAuthStub() {
   return { user: { uid: "N4E8T7giMCWDy7OtWR56uHXQ1kx1", email: "shahidafrid97419@gmail.com" }, loading: false };
 }
+
+// CONFIG: You must replace this with your LIVE client token.
+// Go to your Paddle dashboard -> Developer Tools -> Authentication.
+// The live token will start with "live_".
+const CLIENT_TOKEN = "live_6a94977317431ccad01df272b4a";
+
+// Your LIVE Paddle price IDs. You must get these from your live Paddle account.
+// The IDs will look similar to "pri_01k...".
+const PRICES = {
+  PRO: { monthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", annually: "pri_01jxq11xb6dpkzgqr27fxkejc3" },
+  PREMIUM: { monthly: "pri_01jxq0wydxwg59kmha33h213ab", annually: "pri_01k22jjqh6dtn42e25bw0znrgy" },
+  MAX: { monthly: "pri_01k22kw22dfrejy55t8xdhrzwd", annually: "pri_01k22ty36jptak5rjj74axhvxg" },
+};
 
 const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
 const brutalistTransition = "transition-all duration-300 ease-in-out";
@@ -31,7 +36,7 @@ const pricingPlans = [
     desc: "Essential tools to get started",
     priceMonthly: "$5.99",
     priceAnnually: "$36",
-    planKey: "PRO", // Match the key from the PRICES object
+    planKey: "Tutorly Pro – Monthly Plan", // Match the key from the PRICES object
     features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
     notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features", "Team Management", "Bulk Import"],
     color: "bg-sky-400",
@@ -43,7 +48,7 @@ const pricingPlans = [
     desc: "Full features + unlimited usage",
     priceMonthly: "$9.99",
     priceAnnually: "$65",
-    planKey: "PREMIUM", // Match the key from the PRICES object
+    planKey: "Tutorly Premium", // Match the key from the PRICES object
     features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
     notIncluded: ["Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
     popular: true,
@@ -56,7 +61,7 @@ const pricingPlans = [
     desc: "For groups & institutions",
     priceMonthly: "$14.99",
     priceAnnually: "$119",
-    planKey: "MAX", // Match the key from the PRICES object
+    planKey: "Tutorly Max", // Match the key from the PRICES object
     features: ["Everything in Premium", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
     notIncluded: [],
     color: "bg-amber-400",
@@ -91,7 +96,8 @@ const FloatingShape = ({ className, animationDelay }: { className: string, anima
 );
 
 export default function Pricing(): JSX.Element {
-  const { user, loading } = useAuthStub(); // replace with real useAuth()
+  const { user, loading } = useAuthStub(); // replace with your real useAuth() hook
+  const navigate = useNavigate();
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
@@ -102,8 +108,8 @@ export default function Pricing(): JSX.Element {
     let mounted = true;
     setErrorMessage(null);
 
-    // initializePaddle downloads the correct Paddle.js and returns a Paddle instance
-    initializePaddle({ token: CLIENT_TOKEN, environment: "sandbox" })
+    // Initialise Paddle for the live production environment
+    initializePaddle({ token: CLIENT_TOKEN, environment: "production" })
       .then((pInstance) => {
         if (!mounted) return;
         if (!pInstance) {
@@ -113,7 +119,6 @@ export default function Pricing(): JSX.Element {
         }
         setPaddle(pInstance);
         setPaddleReady(true);
-        // preview prices if API available
         void previewPrices(pInstance, billingCycle);
       })
       .catch((err) => {
@@ -124,10 +129,8 @@ export default function Pricing(): JSX.Element {
     return () => { mounted = false; };
   }, []); // run once
 
-  // preview localized prices (best-effort)
   async function previewPrices(pInstance: PaddleType | undefined = paddle, cycle = billingCycle) {
     if (!pInstance || typeof pInstance.PricePreview !== "function") {
-      // fallback: show static text
       setPriceTexts({
         PRO: cycle === "monthly" ? "$5.99" : "$36",
         PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
@@ -157,7 +160,6 @@ export default function Pricing(): JSX.Element {
       setPriceTexts(newPrices);
     } catch (err) {
       console.error("PricePreview error:", err);
-      // fallback
       setPriceTexts({
         PRO: cycle === "monthly" ? "$5.99" : "$36",
         PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
@@ -166,38 +168,48 @@ export default function Pricing(): JSX.Element {
     }
   }
 
-  // update preview when billing cycle changes
   useEffect(() => {
     void previewPrices(undefined, billingCycle);
   }, [billingCycle, paddle]);
 
-  // handle checkout
   const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    if (loading) return;
+    if (loading) {
+        setErrorMessage("Please wait while we check your authentication status.");
+        return;
+    }
+
     if (!user) {
-      window.location.href = "/signup?redirect=/pricing";
+      navigate("/signup");
       return;
     }
+
+    if (planKey === "MAX") {
+      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
+      navigate("/contact");
+      return;
+    }
+    
     if (!paddle) {
-      alert("Payments not ready. Try again shortly.");
+      console.error("Payments not ready.");
+      setErrorMessage("Payments not ready. Please try again shortly.");
       return;
     }
 
     const priceId = PRICES[planKey][billingCycle];
     if (!priceId) {
       console.error("Missing priceId:", planKey, billingCycle);
-      alert("Plan misconfigured. Contact support.");
+      setErrorMessage("Plan misconfigured. Contact support.");
       return;
     }
 
     try {
       paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
-        passthrough: JSON.stringify({ firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle }),
+        passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
         settings: { displayMode: "overlay", theme: "light" },
         successCallback: (data: any) => {
           console.log("Checkout success:", data);
-          window.location.href = "/dashboard?purchase=success";
+          navigate("/dashboard?purchase=success");
         },
         closeCallback: () => console.log("Checkout closed"),
       });
@@ -256,7 +268,7 @@ export default function Pricing(): JSX.Element {
           </div>
           {errorMessage && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-800 font-bold text-center">
-              <strong>Payment error:</strong> {errorMessage}
+              <strong>Error:</strong> {errorMessage}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
