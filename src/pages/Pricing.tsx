@@ -5,7 +5,6 @@ import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import useAuth from '@/hooks/useAuth'; // <-- Updated: Import the real auth hook
 
 // CONFIG: replace with your sandbox client token & Paddle price IDs
 const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
@@ -16,6 +15,11 @@ const PRICES = {
   PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
   MAX: { monthly: "pri_01k22kw22dfrejy55t8xdhrzwd", annually: "pri_01k22ty36jptak5rjj74axhvxg" },
 };
+
+/* Replace this with your real auth hook */
+function useAuthStub() {
+  return { user: { uid: "N4E8T7giMCWDy7OtWR56uHXQ1kx1", email: "shahidafrid97419@gmail.com" }, loading: false };
+}
 
 const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
 const brutalistTransition = "transition-all duration-300 ease-in-out";
@@ -87,7 +91,7 @@ const FloatingShape = ({ className, animationDelay }: { className: string, anima
 );
 
 export default function Pricing(): JSX.Element {
-  const { user, loading } = useAuth(); // <-- Updated: Use the new auth hook
+  const { user, loading } = useAuthStub(); // replace with real useAuth()
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
@@ -98,6 +102,7 @@ export default function Pricing(): JSX.Element {
     let mounted = true;
     setErrorMessage(null);
 
+    // initializePaddle downloads the correct Paddle.js and returns a Paddle instance
     initializePaddle({ token: CLIENT_TOKEN, environment: "sandbox" })
       .then((pInstance) => {
         if (!mounted) return;
@@ -108,6 +113,7 @@ export default function Pricing(): JSX.Element {
         }
         setPaddle(pInstance);
         setPaddleReady(true);
+        // preview prices if API available
         void previewPrices(pInstance, billingCycle);
       })
       .catch((err) => {
@@ -116,10 +122,12 @@ export default function Pricing(): JSX.Element {
       });
 
     return () => { mounted = false; };
-  }, []);
+  }, []); // run once
 
+  // preview localized prices (best-effort)
   async function previewPrices(pInstance: PaddleType | undefined = paddle, cycle = billingCycle) {
     if (!pInstance || typeof pInstance.PricePreview !== "function") {
+      // fallback: show static text
       setPriceTexts({
         PRO: cycle === "monthly" ? "$5.99" : "$36",
         PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
@@ -149,6 +157,7 @@ export default function Pricing(): JSX.Element {
       setPriceTexts(newPrices);
     } catch (err) {
       console.error("PricePreview error:", err);
+      // fallback
       setPriceTexts({
         PRO: cycle === "monthly" ? "$5.99" : "$36",
         PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
@@ -157,21 +166,15 @@ export default function Pricing(): JSX.Element {
     }
   }
 
+  // update preview when billing cycle changes
   useEffect(() => {
     void previewPrices(undefined, billingCycle);
   }, [billingCycle, paddle]);
 
+  // handle checkout
   const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    if (planKey === "MAX") {
-      alert("Please contact us for a custom quote on the MAX plan.");
-      // You can redirect to a contact page here instead of an alert
-      // window.location.href = "/contact";
-      return;
-    }
-    
     if (loading) return;
     if (!user) {
-      // Redirect to a signup page if the user is not authenticated
       window.location.href = "/signup?redirect=/pricing";
       return;
     }
@@ -190,7 +193,7 @@ export default function Pricing(): JSX.Element {
     try {
       paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
-        passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
+        passthrough: JSON.stringify({ firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle }),
         settings: { displayMode: "overlay", theme: "light" },
         successCallback: (data: any) => {
           console.log("Checkout success:", data);
