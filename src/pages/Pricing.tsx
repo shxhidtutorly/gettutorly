@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { initializePaddle, Paddle as PaddleType } from '@paddle/paddle-js';
-import { Check, Star, X, ArrowLeft, Brain } from "lucide-react";
+import { Check, Star, X, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-import useAuth from "@/hooks/useAuth"; // Using the standardized hook
-
+/* This is a mock auth hook based on your provided code. 
+   Make sure you use your real useAuth() hook. */
+function useAuthStub() {
+  return { user: { uid: "N4E8T7giMCWDy7OtWR56uHXQ1kx1", email: "shahidafrid97419@gmail.com" }, loading: false };
+}
 
 // CONFIG: You must replace this with your LIVE client token.
 // Go to your Paddle dashboard -> Developer Tools -> Authentication.
@@ -93,6 +96,7 @@ const FloatingShape = ({ className, animationDelay }: { className: string, anima
 );
 
 export default function Pricing(): JSX.Element {
+  const { user, loading } = useAuthStub(); // replace with your real useAuth() hook
   const navigate = useNavigate();
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
@@ -100,49 +104,11 @@ export default function Pricing(): JSX.Element {
   const [priceTexts, setPriceTexts] = useState({ PRO: '—', PREMIUM: '—', MAX: '—' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // --- Firebase Auth State (self-contained) ---
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    if (!firebaseConfig) {
-      console.error("Firebase config is missing.");
-      setLoading(false);
-      return;
-    }
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-    const signIn = async () => {
-      try {
-        if (initialAuthToken) {
-          await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (error) {
-        console.error("Firebase authentication failed:", error);
-      }
-    };
-    
-    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-      setUser(authUser);
-      setLoading(false);
-    });
-
-    signIn();
-
-    return () => unsubscribe();
-  }, []);
-  // --- End of Firebase Auth State ---
-
-
   useEffect(() => {
     let mounted = true;
     setErrorMessage(null);
 
+    // Initialise Paddle for the live production environment
     initializePaddle({ token: CLIENT_TOKEN, environment: "production" })
       .then((pInstance) => {
         if (!mounted) return;
@@ -153,6 +119,7 @@ export default function Pricing(): JSX.Element {
         }
         setPaddle(pInstance);
         setPaddleReady(true);
+        void previewPrices(pInstance, billingCycle);
       })
       .catch((err) => {
         console.error("initializePaddle error:", err);
@@ -160,14 +127,14 @@ export default function Pricing(): JSX.Element {
       });
 
     return () => { mounted = false; };
-  }, []);
+  }, []); // run once
 
   async function previewPrices(pInstance: PaddleType | undefined = paddle, cycle = billingCycle) {
     if (!pInstance || typeof pInstance.PricePreview !== "function") {
       setPriceTexts({
-        PRO: cycle === "monthly" ? "$5.99" : "$5.99",
-        PREMIUM: cycle === "monthly" ? "$9.99" : "$9.99",
-        MAX: cycle === "monthly" ? "$14.99" : "$14.99"
+        PRO: cycle === "monthly" ? "$5.99" : "$36",
+        PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
+        MAX: cycle === "monthly" ? "$14.99" : "$119"
       });
       return;
     }
@@ -194,9 +161,9 @@ export default function Pricing(): JSX.Element {
     } catch (err) {
       console.error("PricePreview error:", err);
       setPriceTexts({
-        PRO: cycle === "monthly" ? "$5.99" : "$5.99",
-        PREMIUM: cycle === "monthly" ? "$9.99" : "$9.99",
-        MAX: cycle === "monthly" ? "$14.99" : "$14.99"
+        PRO: cycle === "monthly" ? "$5.99" : "$36",
+        PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
+        MAX: cycle === "monthly" ? "$14.99" : "$119"
       });
     }
   }
@@ -205,58 +172,51 @@ export default function Pricing(): JSX.Element {
     void previewPrices(undefined, billingCycle);
   }, [billingCycle, paddle]);
 
- const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    if (loading) return; // Don't do anything if auth state is still loading
-
-    if (!user) {
-      // This is now a fallback. In the main flow, the user will be logged in.
-      // We can navigate them to signup if they somehow land here without being auth'd.
-      window.location.href = "/signup?redirect=/pricing";
-      return;
+  const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
+    if (loading) {
+        setErrorMessage("Please wait while we check your authentication status.");
+        return;
     }
 
-    if (!paddle) {
-      alert("Payment system is not ready. Please try again in a moment.");
+    if (!user) {
+      navigate("/signup");
       return;
     }
 
     if (planKey === "MAX") {
-      alert("Please contact us for a custom quote on the MAX plan.");
-      // Optional: redirect to a contact page
-      // window.location.href = "/contact";
+      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
+      navigate("/contact");
+      return;
+    }
+    
+    if (!paddle) {
+      console.error("Payments not ready.");
+      setErrorMessage("Payments not ready. Please try again shortly.");
       return;
     }
 
     const priceId = PRICES[planKey][billingCycle];
     if (!priceId) {
-      console.error("Missing priceId for plan:", planKey, billingCycle);
-      alert("This plan is misconfigured. Please contact support.");
+      console.error("Missing priceId:", planKey, billingCycle);
+      setErrorMessage("Plan misconfigured. Contact support.");
       return;
     }
 
-    // ✅ Crucial part: User's info is passed to Paddle
-    paddle.Checkout.open({
-      items: [{ priceId, quantity: 1 }],
-      customer: {
-        email: user.email || '', // Pass customer email
-      },
-      customData: { // Use customData for your internal identifiers
-        firebaseUid: user.uid,
-        plan: planKey,
-        cycle: billingCycle,
-      },
-      settings: {
-        displayMode: "overlay",
-        theme: "light",
-      },
-    });
-  };
-
-  const getMonthlyPriceFromAnnual = (priceAnnually: string) => {
-    const annualPrice = parseFloat(priceAnnually.replace('$', ''));
-    if (isNaN(annualPrice) || annualPrice === 0) return null;
-    const monthlyPrice = (annualPrice / 12).toFixed(2);
-    return `$${monthlyPrice}`;
+    try {
+      paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
+        settings: { displayMode: "overlay", theme: "light" },
+        successCallback: (data: any) => {
+          console.log("Checkout success:", data);
+          navigate("/dashboard?purchase=success");
+        },
+        closeCallback: () => console.log("Checkout closed"),
+      });
+    } catch (err) {
+      console.error("Checkout.open error:", err);
+      setErrorMessage("Could not open checkout. See console for details.");
+    }
   };
 
   return (
@@ -275,11 +235,6 @@ export default function Pricing(): JSX.Element {
         <FloatingShape className="w-72 h-72 bg-fuchsia-300 top-40 -left-20" animationDelay="0s" />
         <FloatingShape className="w-72 h-72 bg-amber-300 bottom-40 -right-20" animationDelay="2s" />
         <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
-          <Link to="/" className="inline-flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-black border-4 border-black flex items-center justify-center rounded-lg">
-              <Brain className="w-6 h-6 text-sky-400"/>
-            </div>
-          </Link>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8"
               style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
             CHOOSE YOUR PLAN
@@ -330,13 +285,8 @@ export default function Pricing(): JSX.Element {
                 <div className="text-center mb-6 pt-8">
                   <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
                   <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
-                  {/* Updated pricing display logic */}
-                  <div className="text-6xl font-black">
-                    {billingCycle === 'monthly' ? plan.priceMonthly : getMonthlyPriceFromAnnual(plan.priceAnnually)}
-                  </div>
-                  <div className="text-base font-bold text-stone-600">
-                    {billingCycle === 'monthly' ? '/month' : `per month, billed at ${plan.priceAnnually}/year`}
-                  </div>
+                  <div className="text-6xl font-black">{priceTexts[plan.planKey as keyof typeof priceTexts]}</div>
+                  <div className="text-base font-bold text-stone-600">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
                 </div>
                 <div className="space-y-3 mb-8 flex-grow">
                   {plan.features.map(feature => (
