@@ -36,7 +36,7 @@ const pricingPlans = [
     desc: "Essential tools to get started",
     priceMonthly: "$5.99",
     priceAnnually: "$36",
-    planKey: "Tutorly Pro – Monthly Plan", // Match the key from the PRICES object
+    planKey: "PRO", // Match the key from the PRICES object
     features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
     notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features", "Team Management", "Bulk Import"],
     color: "bg-sky-400",
@@ -48,7 +48,7 @@ const pricingPlans = [
     desc: "Full features + unlimited usage",
     priceMonthly: "$9.99",
     priceAnnually: "$65",
-    planKey: "Tutorly Premium", // Match the key from the PRICES object
+    planKey: "PREMIUM", // Match the key from the PRICES object
     features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
     notIncluded: ["Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
     popular: true,
@@ -61,7 +61,7 @@ const pricingPlans = [
     desc: "For groups & institutions",
     priceMonthly: "$14.99",
     priceAnnually: "$119",
-    planKey: "Tutorly Max", // Match the key from the PRICES object
+    planKey: "MAX", // Match the key from the PRICES object
     features: ["Everything in Premium", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
     notIncluded: [],
     color: "bg-amber-400",
