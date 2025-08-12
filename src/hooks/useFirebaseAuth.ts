@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
+import { useNavigate } from 'react-router-dom';
+import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -13,17 +14,18 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+// IMPORTANT: Assuming you have a separate file for Firebase initialization
+// and export the auth and db instances from there.
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export interface AuthUser {
-  id: string;
   uid: string;
   email: string | null;
   displayName: string | null;
-  fullName: string | null;
   photoURL: string | null;
-  imageUrl: string | null;
   emailVerified: boolean;
 }
 
@@ -31,20 +33,45 @@ export const useFirebaseAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // New async function to check for a subscription in Firestore
+  const checkSubscriptionStatus = async (uid: string) => {
+    if (!db) return false;
+    try {
+      const subscriptionDocRef = doc(db, 'subscriptions', uid);
+      const docSnap = await getDoc(subscriptionDocRef);
+      // A subscription exists if the document exists and the status is active
+      return docSnap.exists() && docSnap.data()?.status === 'active';
+    } catch (error) {
+      console.error("Error checking subscription status:", error);
+      return false;
+    }
+  };
+
+  // Helper function to handle redirection based on subscription status
+  const handleRedirect = async (currentUser: User) => {
+    if (!currentUser) return;
+    const hasSubscription = await checkSubscriptionStatus(currentUser.uid);
+    if (hasSubscription) {
+      navigate("/dashboard");
+    } else {
+      navigate("/pricing");
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
-          id: firebaseUser.uid,
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
-          fullName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
-          imageUrl: firebaseUser.photoURL,
           emailVerified: firebaseUser.emailVerified
         });
+        // Check subscription status and redirect for existing users on load
+        void handleRedirect(firebaseUser);
       } else {
         setUser(null);
       }
@@ -52,7 +79,7 @@ export const useFirebaseAuth = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -62,6 +89,8 @@ export const useFirebaseAuth = () => {
         title: "Success",
         description: "Signed in successfully!"
       });
+      // Handle redirect after successful sign-in
+      await handleRedirect(result.user);
       return { user: result.user, error: null };
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error.code);
@@ -80,15 +109,17 @@ export const useFirebaseAuth = () => {
     try {
       setLoading(true);
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       if (displayName && result.user) {
         await updateProfile(result.user, { displayName });
       }
-      
+
       toast({
         title: "Success",
         description: "Account created successfully!"
       });
+      // Handle redirect after successful sign-up
+      await handleRedirect(result.user);
       return { user: result.user, error: null };
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error.code);
@@ -112,6 +143,8 @@ export const useFirebaseAuth = () => {
         title: "Success",
         description: "Signed in with Google successfully!"
       });
+      // Handle redirect after successful sign-in
+      await handleRedirect(result.user);
       return { user: result.user, error: null };
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error.code);
@@ -129,6 +162,7 @@ export const useFirebaseAuth = () => {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
+      navigate('/login'); // Redirect to login page after sign out
       toast({
         title: "Signed Out",
         description: "You have been signed out successfully"
@@ -161,7 +195,6 @@ export const useFirebaseAuth = () => {
     }
   };
 
-  // New function to update password with re-authentication
   const updateUserPassword = async (currentPassword: string, newPassword: string) => {
     if (!user?.email) {
       throw new Error('No user email available');
@@ -169,19 +202,15 @@ export const useFirebaseAuth = () => {
 
     try {
       setLoading(true);
-      
-      // Re-authenticate user before password change
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(auth.currentUser!, credential);
-      
-      // Update password
       await updatePassword(auth.currentUser!, newPassword);
-      
+
       toast({
         title: "Success",
         description: "Password updated successfully!"
       });
-      
+
       return { error: null };
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error.code);
@@ -196,7 +225,6 @@ export const useFirebaseAuth = () => {
     }
   };
 
-  // New function to update profile
   const updateUserProfile = async (updates: { displayName?: string; photoURL?: string }) => {
     if (!auth.currentUser) {
       throw new Error('No authenticated user');
@@ -205,21 +233,18 @@ export const useFirebaseAuth = () => {
     try {
       setLoading(true);
       await updateProfile(auth.currentUser, updates);
-      
-      // Update local state
+
       setUser(prev => prev ? {
         ...prev,
         displayName: updates.displayName || prev.displayName,
-        fullName: updates.displayName || prev.fullName,
         photoURL: updates.photoURL || prev.photoURL,
-        imageUrl: updates.photoURL || prev.imageUrl
       } : null);
-      
+
       toast({
         title: "Success",
         description: "Profile updated successfully!"
       });
-      
+
       return { error: null };
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error.code);
@@ -234,7 +259,6 @@ export const useFirebaseAuth = () => {
     }
   };
 
-  // Helper function to get user-friendly error messages
   const getFirebaseErrorMessage = (errorCode: string): string => {
     switch (errorCode) {
       case 'auth/user-not-found':
@@ -271,3 +295,5 @@ export const useFirebaseAuth = () => {
     isAuthenticated: !!user
   };
 };
+
+export default useFirebaseAuth;
