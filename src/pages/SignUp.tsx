@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 
 const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
 const brutalistTransition = "transition-all duration-300 ease-in-out";
