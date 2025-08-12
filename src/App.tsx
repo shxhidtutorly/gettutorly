@@ -76,7 +76,7 @@ const App = () => {
           <TooltipProvider>
             <ErrorBoundary>
               <Routes>
-                {/* Public routes */}
+                {/* Public Routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/signin" element={<SignInPage />} />
                 <Route path="/signup" element={<SignUpPage />} />

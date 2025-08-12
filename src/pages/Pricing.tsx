@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
 import { initializePaddle, Paddle as PaddleType } from '@paddle/paddle-js';
-import { Check, Star, X, ArrowLeft } from "lucide-react";
+import { Check, Star, X } from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import useAuth from '@/hooks/useAuth';
+import useAuth from '@/hooks/useAuth'; // <-- Updated: Import the real auth hook
 
 // CONFIG: replace with your sandbox client token & Paddle price IDs
 const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
@@ -88,8 +87,7 @@ const FloatingShape = ({ className, animationDelay }: { className: string, anima
 );
 
 export default function Pricing(): JSX.Element {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const { user, loading } = useAuth(); // <-- Updated: Use the new auth hook
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
@@ -164,37 +162,28 @@ export default function Pricing(): JSX.Element {
   }, [billingCycle, paddle]);
 
   const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    // Check if the user is in a loading state. If so, do nothing.
-    if (loading) {
-        setErrorMessage("Please wait while we check your authentication status.");
-        return;
-    }
-
-    // Now, if loading is false, we know the definitive auth state.
-    if (!user) {
-      // Redirect to a signup page if the user is not authenticated.
-      navigate("/signup");
-      return;
-    }
-
     if (planKey === "MAX") {
-      // Use a custom modal or message box instead of alert.
-      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
-      navigate("/contact");
+      alert("Please contact us for a custom quote on the MAX plan.");
+      // You can redirect to a contact page here instead of an alert
+      // window.location.href = "/contact";
       return;
     }
     
+    if (loading) return;
+    if (!user) {
+      // Redirect to a signup page if the user is not authenticated
+      window.location.href = "/signup?redirect=/pricing";
+      return;
+    }
     if (!paddle) {
-      // Payments library not ready.
-      console.error("Payments not ready.");
-      setErrorMessage("Payments not ready. Please try again shortly.");
+      alert("Payments not ready. Try again shortly.");
       return;
     }
 
     const priceId = PRICES[planKey][billingCycle];
     if (!priceId) {
       console.error("Missing priceId:", planKey, billingCycle);
-      setErrorMessage("Plan misconfigured. Contact support.");
+      alert("Plan misconfigured. Contact support.");
       return;
     }
 
@@ -205,7 +194,7 @@ export default function Pricing(): JSX.Element {
         settings: { displayMode: "overlay", theme: "light" },
         successCallback: (data: any) => {
           console.log("Checkout success:", data);
-          navigate("/dashboard?purchase=success");
+          window.location.href = "/dashboard?purchase=success";
         },
         closeCallback: () => console.log("Checkout closed"),
       });
@@ -264,7 +253,7 @@ export default function Pricing(): JSX.Element {
           </div>
           {errorMessage && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-800 font-bold text-center">
-              <strong>Error:</strong> {errorMessage}
+              <strong>Payment error:</strong> {errorMessage}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
@@ -300,11 +289,10 @@ export default function Pricing(): JSX.Element {
                 </div>
                 <Button
                   onClick={() => handlePurchase(plan.planKey as "PRO" | "PREMIUM" | "MAX")}
-                  // The button is disabled until the auth state and Paddle are ready.
-                  disabled={loading || !paddleReady}
+                  disabled={!paddleReady}
                   className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
                 >
-                  {loading ? "Loading..." : plan.cta}
+                  {plan.cta}
                 </Button>
               </div>
             ))}
