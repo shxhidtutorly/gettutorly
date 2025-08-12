@@ -61,6 +61,8 @@ export const useFirebaseAuth = () => {
   };
 
   useEffect(() => {
+    // This listener is now only for setting the user state, not for redirects.
+    // This prevents the infinite loop.
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
@@ -70,8 +72,6 @@ export const useFirebaseAuth = () => {
           photoURL: firebaseUser.photoURL,
           emailVerified: firebaseUser.emailVerified
         });
-        // Check subscription status and redirect for existing users on load
-        void handleRedirect(firebaseUser);
       } else {
         setUser(null);
       }
