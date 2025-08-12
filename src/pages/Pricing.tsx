@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { initializePaddle, Paddle as PaddleType } from '@paddle/paddle-js';
-import { Check, Star, X, ArrowLeft } from "lucide-react";
+import { Check, Star, X, ArrowLeft, Brain } from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
-// Firebase imports
+// Firebase imports for self-contained component
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 
@@ -18,7 +18,6 @@ const CLIENT_TOKEN = "live_6a94977317431ccad01df272b4a";
 
 // Your LIVE Paddle price IDs. You must get these from your live Paddle account.
 // The IDs will look similar to "pri_01k...".
-
 const PRICES = {
   PRO: { monthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", annually: "pri_01jxq11xb6dpkzgqr27fxkejc3" },
   PREMIUM: { monthly: "pri_01jxq0wydxwg59kmha33h213ab", annually: "pri_01k22jjqh6dtn42e25bw0znrgy" },
@@ -102,12 +101,11 @@ export default function Pricing(): JSX.Element {
   const [priceTexts, setPriceTexts] = useState({ PRO: '—', PREMIUM: '—', MAX: '—' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // --- Firebase Auth State ---
+  // --- Firebase Auth State (self-contained) ---
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for firebase config and initialize
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
     if (!firebaseConfig) {
       console.error("Firebase config is missing.");
@@ -117,7 +115,6 @@ export default function Pricing(): JSX.Element {
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // Authenticate with custom token or anonymously
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
     const signIn = async () => {
       try {
@@ -131,7 +128,6 @@ export default function Pricing(): JSX.Element {
       }
     };
     
-    // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
       setUser(authUser);
       setLoading(false);
@@ -148,7 +144,6 @@ export default function Pricing(): JSX.Element {
     let mounted = true;
     setErrorMessage(null);
 
-    // Initialise Paddle for the live production environment
     initializePaddle({ token: CLIENT_TOKEN, environment: "production" })
       .then((pInstance) => {
         if (!mounted) return;
@@ -159,7 +154,6 @@ export default function Pricing(): JSX.Element {
         }
         setPaddle(pInstance);
         setPaddleReady(true);
-        void previewPrices(pInstance, billingCycle);
       })
       .catch((err) => {
         console.error("initializePaddle error:", err);
@@ -167,14 +161,14 @@ export default function Pricing(): JSX.Element {
       });
 
     return () => { mounted = false; };
-  }, []); // run once
+  }, []);
 
   async function previewPrices(pInstance: PaddleType | undefined = paddle, cycle = billingCycle) {
     if (!pInstance || typeof pInstance.PricePreview !== "function") {
       setPriceTexts({
-        PRO: cycle === "monthly" ? "$5.99" : "$36",
-        PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
-        MAX: cycle === "monthly" ? "$14.99" : "$119"
+        PRO: cycle === "monthly" ? "$5.99" : "$5.99",
+        PREMIUM: cycle === "monthly" ? "$9.99" : "$9.99",
+        MAX: cycle === "monthly" ? "$14.99" : "$14.99"
       });
       return;
     }
@@ -201,9 +195,9 @@ export default function Pricing(): JSX.Element {
     } catch (err) {
       console.error("PricePreview error:", err);
       setPriceTexts({
-        PRO: cycle === "monthly" ? "$5.99" : "$36",
-        PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
-        MAX: cycle === "monthly" ? "$14.99" : "$119"
+        PRO: cycle === "monthly" ? "$5.99" : "$5.99",
+        PREMIUM: cycle === "monthly" ? "$9.99" : "$9.99",
+        MAX: cycle === "monthly" ? "$14.99" : "$14.99"
       });
     }
   }
@@ -222,16 +216,16 @@ export default function Pricing(): JSX.Element {
       navigate("/signup");
       return;
     }
-
-    if (planKey === "MAX") {
-      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
-      navigate("/contact");
-      return;
-    }
     
     if (!paddle) {
       console.error("Payments not ready.");
       setErrorMessage("Payments not ready. Please try again shortly.");
+      return;
+    }
+
+    if (planKey === "MAX") {
+      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
+      navigate("/contact");
       return;
     }
 
@@ -247,6 +241,8 @@ export default function Pricing(): JSX.Element {
         items: [{ priceId, quantity: 1 }],
         passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
         settings: { displayMode: "overlay", theme: "light" },
+        customer: { email: user.email }, // Prefill email if available
+        trialDays: 4, // Add 4-day free trial
         successCallback: (data: any) => {
           console.log("Checkout success:", data);
           navigate("/dashboard?purchase=success");
@@ -257,6 +253,13 @@ export default function Pricing(): JSX.Element {
       console.error("Checkout.open error:", err);
       setErrorMessage("Could not open checkout. See console for details.");
     }
+  };
+
+  const getMonthlyPriceFromAnnual = (priceAnnually: string) => {
+    const annualPrice = parseFloat(priceAnnually.replace('$', ''));
+    if (isNaN(annualPrice) || annualPrice === 0) return null;
+    const monthlyPrice = (annualPrice / 12).toFixed(2);
+    return `$${monthlyPrice}`;
   };
 
   return (
@@ -275,6 +278,11 @@ export default function Pricing(): JSX.Element {
         <FloatingShape className="w-72 h-72 bg-fuchsia-300 top-40 -left-20" animationDelay="0s" />
         <FloatingShape className="w-72 h-72 bg-amber-300 bottom-40 -right-20" animationDelay="2s" />
         <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
+          <Link to="/" className="inline-flex items-center space-x-3 mb-6">
+            <div className="w-12 h-12 bg-black border-4 border-black flex items-center justify-center rounded-lg">
+              <Brain className="w-6 h-6 text-sky-400"/>
+            </div>
+          </Link>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8"
               style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
             CHOOSE YOUR PLAN
@@ -325,8 +333,13 @@ export default function Pricing(): JSX.Element {
                 <div className="text-center mb-6 pt-8">
                   <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
                   <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
-                  <div className="text-6xl font-black">{priceTexts[plan.planKey as keyof typeof priceTexts]}</div>
-                  <div className="text-base font-bold text-stone-600">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
+                  {/* Updated pricing display logic */}
+                  <div className="text-6xl font-black">
+                    {billingCycle === 'monthly' ? plan.priceMonthly : getMonthlyPriceFromAnnual(plan.priceAnnually)}
+                  </div>
+                  <div className="text-base font-bold text-stone-600">
+                    {billingCycle === 'monthly' ? '/month' : `per month, billed at ${plan.priceAnnually}/year`}
+                  </div>
                 </div>
                 <div className="space-y-3 mb-8 flex-grow">
                   {plan.features.map(feature => (
