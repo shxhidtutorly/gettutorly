@@ -1,16 +1,21 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Brain, ArrowLeft, Mail, Lock, User } from "lucide-react"
+import { ArrowLeft, Mail, Lock, User } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"
+
+// Firebase imports for self-contained component
+import { initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged, signInWithCustomToken, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
+
+// Helper function to create a unique userId for anonymous sign-in
+function generateRandomUserId() {
+  return 'anon-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
 
 export default function SignupPage() {
   const navigate = useNavigate()
-  const { user, signUp, signInWithGoogle } = useFirebaseAuth()
 
   const [formData, setFormData] = useState({
     name: "",
@@ -19,12 +24,59 @@ export default function SignupPage() {
   })
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [auth, setAuth] = useState(null);
+  const [firebaseApp, setFirebaseApp] = useState(null);
 
+  // Initialize Firebase and set up auth listener
   useEffect(() => {
-    if (user) navigate("/dashboard") // ✅ fixed from router.push
-  }, [user, navigate]) // ✅ include navigate, not router
+    // Check for firebase config and initialize
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    if (!firebaseConfig) {
+      console.error("Firebase config is missing.");
+      return;
+    }
+    const app = initializeApp(firebaseConfig);
+    const authInstance = getAuth(app);
+    setFirebaseApp(app);
+    setAuth(authInstance);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(authInstance, (authUser) => {
+      // If user is logged in, navigate to the pricing page
+      if (authUser) {
+        navigate("/pricing");
+      }
+    });
+
+    // Clean up subscription
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const signUp = async (email, password, name) => {
+    if (!auth) return { error: { message: "Firebase Auth not initialized." } };
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      // You can add more user data to Firestore here if needed.
+      return { user };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    if (!auth) return { error: { message: "Firebase Auth not initialized." } };
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      return { user };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
     setIsSubmitting(true)
@@ -59,8 +111,8 @@ export default function SignupPage() {
       <div className="max-w-md w-full mx-4">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-3 mb-6">
-            <div className="w-16 h-16 bg-purple-500 brutal-border flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="w-8 h-8" />
+            <div className="w-16 h-16 bg-purple-500 border-4 border-black brutal-shadow flex items-center justify-center rounded-lg">
+              <Brain className="w-8 h-8 text-white"/>
             </div>
             <div>
               <h1 className="text-3xl font-black">TUTORLY</h1>
@@ -72,9 +124,9 @@ export default function SignupPage() {
           <p className="font-bold text-gray-700">Start your AI-powered learning journey today</p>
         </div>
 
-        <div className="bg-white p-8 brutal-border space-y-4">
+        <div className="bg-white p-8 border-4 border-black brutal-shadow space-y-4 rounded-lg">
           {error && (
-            <div className="text-red-600 text-sm font-bold">{error}</div>
+            <div className="bg-red-100 border-2 border-red-500 text-red-700 p-3 rounded-md text-sm font-bold">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -87,7 +139,7 @@ export default function SignupPage() {
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="pl-12 font-bold brutal-border h-12"
+                  className="pl-12 font-bold border-4 border-black h-12 rounded-lg"
                   required
                 />
               </div>
@@ -102,7 +154,7 @@ export default function SignupPage() {
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-12 font-bold brutal-border h-12"
+                  className="pl-12 font-bold border-4 border-black h-12 rounded-lg"
                   required
                 />
               </div>
@@ -117,7 +169,7 @@ export default function SignupPage() {
                   placeholder="Create a strong password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-12 font-bold brutal-border h-12"
+                  className="pl-12 font-bold border-4 border-black h-12 rounded-lg"
                   required
                 />
               </div>
@@ -125,7 +177,7 @@ export default function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white font-black text-lg py-4 brutal-button"
+              className="w-full bg-purple-500 hover:bg-purple-600 text-white font-black text-lg py-4 brutal-button rounded-lg"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Creating account..." : "CREATE ACCOUNT"}
@@ -139,7 +191,7 @@ export default function SignupPage() {
           <Button
             onClick={handleGoogleLogin}
             type="button"
-            className="w-full border font-bold flex items-center justify-center gap-2 brutal-button"
+            className="w-full border-4 border-black font-bold flex items-center justify-center gap-2 brutal-button rounded-lg"
           >
             <FcGoogle className="w-5 h-5" />
             Continue with Google
@@ -155,7 +207,7 @@ export default function SignupPage() {
 
         <div className="text-center mt-8">
           <Link to="/">
-            <Button variant="outline" className="font-black brutal-button hover:bg-gray-100 bg-transparent">
+            <Button variant="outline" className="font-black brutal-button hover:bg-gray-100 bg-transparent rounded-lg">
               <ArrowLeft className="w-5 h-5 mr-2" />
               BACK TO HOME
             </Button>
