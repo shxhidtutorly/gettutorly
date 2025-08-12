@@ -7,7 +7,7 @@ import { ArrowLeft, Mail, Lock, User, Brain } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 
 // Firebase imports for self-contained component
-import { initializeApp } from '@lib/firebase.ts';
+import { initializeApp } from "@lib/firebase.ts";
 import { getAuth, onAuthStateChanged, signInWithCustomToken, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
 
 // Helper function to create a unique userId for anonymous sign-in
