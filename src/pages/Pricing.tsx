@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { initializePaddle, Paddle as PaddleType } from '@paddle/paddle-js';
-import { Check, Star, X } from "lucide-react";
+import { Check, Star, X, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import useAuth from '@/hooks/useAuth'; // <-- Updated: Import the real auth hook
+import useAuth from '@/hooks/useAuth';
 
 // CONFIG: replace with your sandbox client token & Paddle price IDs
 const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16"; // your sandbox client token
@@ -87,7 +88,8 @@ const FloatingShape = ({ className, animationDelay }: { className: string, anima
 );
 
 export default function Pricing(): JSX.Element {
-  const { user, loading } = useAuth(); // <-- Updated: Use the new auth hook
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
@@ -162,26 +164,34 @@ export default function Pricing(): JSX.Element {
   }, [billingCycle, paddle]);
 
   const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
+    // We are now waiting for the auth state to resolve before taking action
+    if (loading) return;
+
     if (planKey === "MAX") {
-      alert("Please contact us for a custom quote on the MAX plan.");
-      // You can redirect to a contact page here instead of an alert
-      // window.location.href = "/contact";
+      // Use a custom modal or message box instead of alert
+      // For now, we'll navigate to a contact page
+      navigate("/contact");
       return;
     }
     
-    if (loading) return;
-     if (isAuthenticated) {
-      // Logic to handle checkout, e.g., redirect to a checkout page
-      navigate(`/checkout/${planId}`);
-    } else {
-      // If not authenticated, redirect to the signup page
-      navigate('/signup');
+    if (!user) {
+      // Redirect to a signup page if the user is not authenticated
+      // Using `navigate` for a smoother single-page app experience
+      navigate("/signup");
+      return;
     }
-  
+
+    if (!paddle) {
+      // Use a custom modal or toast instead of alert
+      console.error("Payments not ready.");
+      setErrorMessage("Payments not ready. Try again shortly.");
+      return;
+    }
+
     const priceId = PRICES[planKey][billingCycle];
     if (!priceId) {
       console.error("Missing priceId:", planKey, billingCycle);
-      alert("Plan misconfigured. Contact support.");
+      setErrorMessage("Plan misconfigured. Contact support.");
       return;
     }
 
@@ -192,7 +202,7 @@ export default function Pricing(): JSX.Element {
         settings: { displayMode: "overlay", theme: "light" },
         successCallback: (data: any) => {
           console.log("Checkout success:", data);
-          window.location.href = "/dashboard?purchase=success";
+          navigate("/dashboard?purchase=success");
         },
         closeCallback: () => console.log("Checkout closed"),
       });
@@ -287,10 +297,10 @@ export default function Pricing(): JSX.Element {
                 </div>
                 <Button
                   onClick={() => handlePurchase(plan.planKey as "PRO" | "PREMIUM" | "MAX")}
-                  disabled={!paddleReady}
+                  disabled={loading || !paddleReady}
                   className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
                 >
-                  {plan.cta}
+                  {loading ? "Loading..." : plan.cta}
                 </Button>
               </div>
             ))}
