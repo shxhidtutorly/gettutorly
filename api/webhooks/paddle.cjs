@@ -1,7 +1,6 @@
-// api/webhooks/paddle.ts
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { signature, EventType } from '@paddle/paddle-node';
-import * as admin from 'firebase-admin';
+const { signature } = require('@paddle/paddle-node');
+const admin = require('firebase-admin');
+const getRawBody = require('raw-body');
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
@@ -18,40 +17,32 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-
 const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
 
-// Vercel config to enable raw body parsing for signature verification
-export const config = {
-  api: {
-    bodyParser: false, // Disables the default body parser
-  },
-};
-
-export default async function paddleWebhook(req: VercelRequest, res: VercelResponse) {
-  // Only process POST requests
+// The main handler function
+const paddleWebhook = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
 
-  // Retrieve the raw body and signature
-  const rawBody = await getRawBody(req);
-  const sig = req.headers['x-paddle-signature'] as string;
+  // Get raw body for signature verification.
+  const rawBody = await getRawBody(req, {
+    encoding: true,
+  });
 
+  const sig = req.headers['x-paddle-signature'];
   if (!sig || !rawBody) {
     return res.status(400).send('Webhook signature missing or body is empty');
   }
 
   try {
-    // signature.verify requires a string and the secret key
-    const event = signature.verify(rawBody, webhookSecret, sig) as EventType;
+    const event = signature.verify(rawBody, webhookSecret, sig);
     const { event_type, data } = event;
 
     console.log(`Received Paddle event: ${event_type}`, { event });
 
-    // Handle subscription events
     if (event_type === 'subscription.activated' || event_type === 'subscription.created') {
-      const subscription = data as any;
+      const subscription = data;
       const customData = subscription.custom_data;
       const userId = customData?.firebaseUid || subscription.customer_id;
 
@@ -70,21 +61,13 @@ export default async function paddleWebhook(req: VercelRequest, res: VercelRespo
       }
     }
 
-    // You can add more logic here for other events like `subscription.canceled`
-
     return res.status(200).send('Webhook received and processed.');
 
   } catch (err) {
     console.error('Webhook verification failed', err);
     return res.status(400).send('Invalid signature');
   }
-}
+};
 
-// Helper function to get the raw body from the request stream
-async function getRawBody(req: VercelRequest): Promise<string | Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-}
+// Export the function using CommonJS syntax
+module.exports = paddleWebhook;
