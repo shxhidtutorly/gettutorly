@@ -23,17 +23,18 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    // If the user object is loaded and populated
-    if (isLoaded && user && !subLoading) {
-      if (hasActiveSubscription) {
-        navigate("/dashboard");
-      } else {
-        navigate("/pricing");
-      }
+useEffect(() => {
+  // If the user object is loaded and populated
+  if (isLoaded && user && !subLoading) {
+    if (hasActiveSubscription) {
+      navigate("/dashboard");
+    } else {
+      // Pass a state flag to the pricing page
+      navigate("/pricing", { state: { fromSignup: true } });
     }
-  }, [user, isLoaded, hasActiveSubscription, subLoading, navigate]);
-
+  }
+}, [user, isLoaded, hasActiveSubscription, subLoading, navigate]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
