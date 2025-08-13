@@ -1,5 +1,5 @@
 // api/webhooks/paddle.js
-import { signature } from '@paddle/paddle-node';
+import { signature } from '@paddle/node'; // Correct package name
 import admin from 'firebase-admin';
 import getRawBody from 'raw-body';
 
