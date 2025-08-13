@@ -6,11 +6,15 @@ import getRawBody from 'raw-body';
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   try {
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+      throw new Error("Missing FIREBASE_SERVICE_ACCOUNT env var");
+    }
+
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-    console.log("✅ Firebase Admin initialized successfully.");
+    console.log("✅ Firebase Admin initialized");
   } catch (error) {
     console.error("❌ Firebase Admin SDK initialization failed:", error);
   }
