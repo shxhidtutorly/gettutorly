@@ -23,11 +23,11 @@ export default function SignupPage() {
 
   // ✅ *** CHANGE IS HERE ***
   // After the user object is populated (successful sign-up), navigate to the pricing page.
-  useEffect(() => {
-    if (user) {
-      navigate("/pricing") // Changed from "/dashboard" to "/pricing"
-    }
-  }, [user, navigate])
+ useEffect(() => {
+  if (user) {
+    navigate("/pricing") // This is the correct logic
+  }
+}, [user, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
