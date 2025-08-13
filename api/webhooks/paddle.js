@@ -67,25 +67,48 @@ export default async function handler(req, res) {
   console.log(`✅ Received Paddle event: ${event.eventType}`, event);
 
   // 4. Process subscription events
-  if (event.eventType === 'subscription.activated' || event.eventType === 'subscription.created') {
-    const subscription = event.data;
-    const customData = subscription.customData;
-    const userId = customData?.firebaseUid || subscription.customerId;
+ if (eventType === 'subscription.activated' || eventType === 'subscription.created') {
+  const subscription = data;
+  const customData = subscription.customData || {};
+  const userId = customData.firebaseUid || subscription.customerId;
 
-    if (userId) {
-      const userRef = db.collection('users').doc(userId);
-      const subscriptionRef = userRef.collection('subscription').doc('current');
-
-      await subscriptionRef.set({
-        paddleId: subscription.id,
-        status: subscription.status,
-        priceId: subscription.items?.[0]?.price?.id || null,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-
-      console.log(`🔄 Subscription for user ${userId} updated to ${subscription.status}`);
-    }
+  if (!userId) {
+    console.warn("⚠ No userId found in Paddle event, skipping save");
+    return;
   }
+
+  const userRef = db.collection('users').doc(userId);
+  const subscriptionRef = userRef.collection('subscription').doc('current');
+
+  await db.runTransaction(async (t) => {
+    const userDoc = await t.get(userRef);
+
+    if (!userDoc.exists) {
+      t.set(userRef, {
+        email: subscription.customer?.email || null,
+        plan: subscription.items?.[0]?.price?.name || "Unknown Plan",
+        subscriptionStatus: subscription.status,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      t.update(userRef, {
+        plan: subscription.items?.[0]?.price?.name || "Unknown Plan",
+        subscriptionStatus: subscription.status,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    t.set(subscriptionRef, {
+      paddleId: subscription.id,
+      status: subscription.status,
+      priceId: subscription.items?.[0]?.price?.id || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+
+  console.log(`✅ Subscription for ${userId} saved in Firestore`);
+}
 
   return res.status(200).send('Webhook processed successfully.');
 }
