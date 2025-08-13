@@ -5,7 +5,7 @@ import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 // Import your actual hooks
 import { useUser } from "@/hooks/useUser";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -96,6 +96,7 @@ export default function Pricing(): JSX.Element {
   const { user, loading: authLoading } = useUser();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
+    const location = useLocation(); 
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
@@ -104,11 +105,11 @@ export default function Pricing(): JSX.Element {
 
   // Redirect to dashboard if the user is already subscribed
   useEffect(() => {
-    if (!authLoading && !subLoading && user && hasActiveSubscription) {
+    if (!authLoading && !subLoading && user && hasActiveSubscription && location.state?.fromSignup !== true) {
       navigate("/dashboard");
     }
-  }, [authLoading, subLoading, user, hasActiveSubscription, navigate]);
-
+  }, [authLoading, subLoading, user, hasActiveSubscription, navigate, location.state]);
+  
   useEffect(() => {
     let mounted = true;
     setErrorMessage(null);
@@ -178,7 +179,8 @@ export default function Pricing(): JSX.Element {
   }, [billingCycle, paddle]);
 
   const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    if (authLoading || subLoading) {
+  const isNewSignup = location.state?.fromSignup === true;
+   if (!isNewSignup && (authLoading || subLoading)) {
       setErrorMessage("Please wait while we check your authentication status.");
       return;
     }
