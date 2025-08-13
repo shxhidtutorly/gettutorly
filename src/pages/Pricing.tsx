@@ -207,10 +207,13 @@ export default function Pricing(): JSX.Element {
         items: [{ priceId, quantity: 1 }],
         passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
         settings: { displayMode: "overlay", theme: "light" },
-        successCallback: (data: any) => {
-          console.log("Checkout success:", data);
-          navigate("/dashboard?purchase=success");
-        },
+       successCallback: (data: any) => {
+      console.log("Checkout success:", data);
+      navigate("/dashboard?purchase=success"); // ✅ This is the correct logic
+    },
+    closeCallback: () => console.log("Checkout closed"),
+  });
+} catch (err) {
         closeCallback: () => console.log("Checkout closed"),
       });
     } catch (err) {
