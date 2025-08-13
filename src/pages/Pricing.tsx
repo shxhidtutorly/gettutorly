@@ -222,7 +222,7 @@ export default function Pricing(): JSX.Element {
   console.error("Checkout.open error:", err);
   setErrorMessage("Could not open checkout. See console for details.");
 }
-
+};
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
