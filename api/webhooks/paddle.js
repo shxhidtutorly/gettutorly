@@ -6,14 +6,13 @@ import getRawBody from 'raw-body';
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   try {
-    const serviceAccount = JSON.parse(
-      Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf8')
-    );
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
+    console.log("✅ Firebase Admin initialized successfully.");
   } catch (error) {
-    console.error('Firebase Admin SDK initialization failed:', error);
+    console.error("❌ Firebase Admin SDK initialization failed:", error);
   }
 }
 
