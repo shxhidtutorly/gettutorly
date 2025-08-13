@@ -6,7 +6,9 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-
+// Import your actual hooks
+import { useUser } from "@/hooks/useUser";
+import { useSubscription } from "@/hooks/useSubscription";
 
 // CONFIG: You must replace this with your LIVE client token.
 // Go to your Paddle dashboard -> Developer Tools -> Authentication.
@@ -91,13 +93,21 @@ const FloatingShape = ({ className, animationDelay }: { className: string, anima
 );
 
 export default function Pricing(): JSX.Element {
-  const { user, loading } = useAuthStub(); // replace with your real useAuth() hook
+  const { user, loading: authLoading } = useUser();
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
   const [priceTexts, setPriceTexts] = useState({ PRO: '—', PREMIUM: '—', MAX: '—' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Redirect to dashboard if the user is already subscribed
+  useEffect(() => {
+    if (!authLoading && !subLoading && user && hasActiveSubscription) {
+      navigate("/dashboard");
+    }
+  }, [authLoading, subLoading, user, hasActiveSubscription, navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -168,9 +178,9 @@ export default function Pricing(): JSX.Element {
   }, [billingCycle, paddle]);
 
   const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    if (loading) {
-        setErrorMessage("Please wait while we check your authentication status.");
-        return;
+    if (authLoading || subLoading) {
+      setErrorMessage("Please wait while we check your authentication status.");
+      return;
     }
 
     if (!user) {
@@ -197,27 +207,24 @@ export default function Pricing(): JSX.Element {
       return;
     }
 
-   try {
-  paddle.Checkout.open({
-    items: [{ priceId, quantity: 1 }],
-    passthrough: {
-      firebaseUid: user.uid,
-      email: user.email,
-      plan: planKey,
-      cycle: billingCycle,
-    },
-    settings: { displayMode: "overlay", theme: "light" },
-    successCallback: (data: any) => {
-      console.log("Checkout success:", data);
-      navigate("/dashboard?purchase=success"); // ✅ This is the correct logic
-    },
-    closeCallback: () => console.log("Checkout closed"),
-  });
-} catch (err) {
-  console.error("Checkout.open error:", err);
-  setErrorMessage("Could not open checkout. See console for details.");
-}
-};
+    try {
+      paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        customer: { id: user.id },
+        customData: { plan: planKey, cycle: billingCycle },
+        settings: { displayMode: "overlay", theme: "light" },
+        successCallback: (data: any) => {
+          console.log("Checkout success:", data);
+          // Your webhook should handle the subscription creation and redirect
+          navigate("/dashboard?purchase=success");
+        },
+        closeCallback: () => console.log("Checkout closed"),
+      });
+    } catch (err) {
+      console.error("Checkout.open error:", err);
+      setErrorMessage("Could not open checkout. See console for details.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
