@@ -1,68 +1,69 @@
-// src/pages/SignupPage.tsx (or your file path)
-// --- MODIFIED CODE ---
-
-import { useState, useEffect } from "react"
-import { useNavigate, Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ArrowLeft, Mail, Lock, User } from "lucide-react"
-import { FcGoogle } from "react-icons/fc"
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"
+// src/pages/SignupPage.tsx
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Mail, Lock, User } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useUser } from "@/hooks/useUser";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export default function SignupPage() {
-  const navigate = useNavigate()
-  const { user, signUp, signInWithGoogle } = useFirebaseAuth()
+  const navigate = useNavigate();
+  const { user: firebaseUser, signUp, signInWithGoogle } = useFirebaseAuth();
+  const { user, isLoaded } = useUser(); // Using your provided useUser hook
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-  })
-  const [error, setError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  });
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ *** CHANGE IS HERE ***
-  // After the user object is populated (successful sign-up), navigate to the pricing page.
- useEffect(() => {
-  if (user) {
-    navigate("/pricing") // This is the correct logic
-  }
-}, [user, navigate])
+  useEffect(() => {
+    // If the user object is loaded and populated
+    if (isLoaded && user && !subLoading) {
+      if (hasActiveSubscription) {
+        navigate("/dashboard");
+      } else {
+        navigate("/pricing");
+      }
+    }
+  }, [user, isLoaded, hasActiveSubscription, subLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsSubmitting(true)
+    e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
 
-    const { name, email, password } = formData
+    const { name, email, password } = formData;
     if (!name || !email || !password) {
-      setError("Please fill in all fields")
-      setIsSubmitting(false)
-      return
+      setError("Please fill in all fields");
+      setIsSubmitting(false);
+      return;
     }
 
-    // The signUp function will update the 'user' state from the hook,
-    // which then triggers the useEffect above.
-    const result = await signUp(email, password, name)
+    const result = await signUp(email, password, name);
     if (result.error) {
-      setError(result.error.message || "Signup failed")
+      setError(result.error.message || "Signup failed");
     }
 
-    setIsSubmitting(false)
-  }
+    setIsSubmitting(false);
+  };
 
   const handleGoogleLogin = async () => {
-    setError("")
-    setIsSubmitting(true)
+    setError("");
+    setIsSubmitting(true);
 
-    // The signInWithGoogle function will also update the 'user' state,
-    // triggering the useEffect.
-    const result = await signInWithGoogle()
+    const result = await signInWithGoogle();
     if (result.error) {
-      setError(result.error.message || "Google sign-up failed")
+      setError(result.error.message || "Google sign-up failed");
     }
-    setIsSubmitting(false)
-  }
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-black font-mono flex items-center justify-center">
@@ -77,7 +78,6 @@ export default function SignupPage() {
               <p className="text-sm font-bold text-gray-600">STUDY SMARTER. LEARN FASTER.</p>
             </div>
           </Link>
-
           <h2 className="text-4xl font-black mb-4">JOIN TUTORLY</h2>
           <p className="font-bold text-gray-700">Start your AI-powered learning journey today</p>
         </div>
@@ -150,6 +150,7 @@ export default function SignupPage() {
             onClick={handleGoogleLogin}
             type="button"
             className="w-full border font-bold flex items-center justify-center gap-2 brutal-button"
+            disabled={isSubmitting}
           >
             <FcGoogle className="w-5 h-5" />
             Continue with Google
@@ -173,5 +174,5 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
