@@ -202,25 +202,27 @@ export default function Pricing(): JSX.Element {
       return;
     }
 
-    try {
-      paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        passthrough: { firebaseUid: user.uid, email: user.email, plan: planKey, cycle: billingCycle },
-        settings: { displayMode: "overlay", theme: "light" },
-       successCallback: (data: any) => {
+   try {
+  paddle.Checkout.open({
+    items: [{ priceId, quantity: 1 }],
+    passthrough: {
+      firebaseUid: user.uid,
+      email: user.email,
+      plan: planKey,
+      cycle: billingCycle,
+    },
+    settings: { displayMode: "overlay", theme: "light" },
+    successCallback: (data: any) => {
       console.log("Checkout success:", data);
       navigate("/dashboard?purchase=success"); // ✅ This is the correct logic
     },
     closeCallback: () => console.log("Checkout closed"),
   });
 } catch (err) {
-        closeCallback: () => console.log("Checkout closed"),
-      });
-    } catch (err) {
-      console.error("Checkout.open error:", err);
-      setErrorMessage("Could not open checkout. See console for details.");
-    }
-  };
+  console.error("Checkout.open error:", err);
+  setErrorMessage("Could not open checkout. See console for details.");
+}
+
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
