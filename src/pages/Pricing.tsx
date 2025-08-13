@@ -7,11 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
 
-/* This is a mock auth hook based on your provided code. 
-   Make sure you use your real useAuth() hook. */
-function useAuthStub() {
-  return { user: { uid: "N4E8T7giMCWDy7OtWR56uHXQ1kx1", email: "shahidafrid97419@gmail.com" }, loading: false };
-}
 
 // CONFIG: You must replace this with your LIVE client token.
 // Go to your Paddle dashboard -> Developer Tools -> Authentication.
