@@ -15,6 +15,9 @@ if (!admin.apps.length) {
     console.error('Firebase Admin SDK initialization failed:', error);
   }
 }
+if (req.method !== 'POST') {
+  return res.status(405).send('Method Not Allowed');
+}
 
 const db = admin.firestore();
 const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
