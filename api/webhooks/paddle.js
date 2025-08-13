@@ -1,31 +1,36 @@
-const { signature } = require('@paddle/paddle-node');
-const admin = require('firebase-admin');
-const getRawBody = require('raw-body');
+// api/webhooks/paddle.js
+import { signature } from '@paddle/paddle-node';
+import admin from 'firebase-admin';
+import getRawBody from 'raw-body';
 
-// The main handler function, which contains all the webhook logic.
-const paddleWebhook = async (req, res) => {
-  // Initialize Firebase Admin SDK if it hasn't been already.
-  // This must be inside the function to work reliably in a serverless environment.
-  if (!admin.apps.length) {
-    try {
-      const serviceAccount = JSON.parse(
-        Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf8')
-      );
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    } catch (error) {
-      console.error('Firebase Admin SDK initialization failed:', error);
-    }
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    const serviceAccount = JSON.parse(
+      Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf8')
+    );
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } catch (error) {
+    console.error('Firebase Admin SDK initialization failed:', error);
   }
+}
 
-  // Only process POST requests
+const db = admin.firestore();
+const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
+
+// Vercel config to disable the default body parser
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export default async function paddleWebhook(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
-
-  const db = admin.firestore();
-  const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
 
   // Get raw body for signature verification.
   let rawBody;
@@ -35,7 +40,7 @@ const paddleWebhook = async (req, res) => {
     console.error('Failed to get raw body:', err);
     return res.status(500).send('Internal Server Error');
   }
-  
+
   const sig = req.headers['x-paddle-signature'];
   if (!sig) {
     return res.status(400).send('Webhook signature missing');
@@ -73,7 +78,4 @@ const paddleWebhook = async (req, res) => {
     console.error('Webhook verification failed', err);
     return res.status(400).send('Invalid signature');
   }
-};
-
-// Export the function using CommonJS syntax
-module.exports = paddleWebhook;
+}
