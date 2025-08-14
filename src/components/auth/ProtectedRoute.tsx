@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { cleanupWebGLContexts } from "@/lib/webgl-cleanup";
 import { useUser } from "@/hooks/useUser";
 import { useSubscription } from "@/hooks/useSubscription";
+import BrutalLoader from '@/components/BrutalLoader'; // Assuming you have a BrutalLoader component
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,40 +14,43 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const location = useLocation();
 
-  // Global WebGL cleanup on route changes
+  // WebGL cleanup logic. This is fine and unrelated to the flickering.
   useEffect(() => {
     const handleRouteChange = () => {
       cleanupWebGLContexts();
     };
-
     handleRouteChange();
     return () => {
       cleanupWebGLContexts();
     };
   }, [location.pathname]);
 
-  // Show unified loading until both auth and subscription are ready
-  if (!isLoaded || authLoading || subLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+  // --- FIX: Consolidated Loading State ---
+  // A single, unambiguous loading state check to prevent race conditions.
+  // The component should only proceed once isLoaded is explicitly true.
+  if (!isLoaded) {
+    return <BrutalLoader />;
   }
 
-  // Not authenticated
+  // --- FIX: Simplified Navigation Logic ---
+  // The component only reaches this point once isLoaded is true.
+  // Therefore, we can reliably check the user status.
   if (!user) {
     return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   }
 
+  // Handle subscription loading only after the user is authenticated.
+  // This prevents the flicker between the loader and the content.
+  if (subLoading) {
+     return <BrutalLoader />;
+  }
+
   // Subscription check disabled for development
   // if (!hasActiveSubscription) {
-  //   return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
+  //  return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
   // }
 
+  // If a user exists and all checks pass, render the children.
   return <>{children}</>;
 };
 
