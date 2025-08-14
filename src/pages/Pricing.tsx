@@ -175,55 +175,75 @@ export default function Pricing(): JSX.Element {
     void previewPrices(undefined, billingCycle);
   }, [billingCycle, paddle]);
 
-  const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
-    const isNewSignup = location.state?.fromSignup === true;
-    if (!isNewSignup && (authLoading || subLoading)) {
-      setErrorMessage("Please wait while we check your authentication status.");
-      return;
-    }
+ const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
+  const isNewSignup = location.state?.fromSignup === true;
+  if (!isNewSignup && (authLoading || subLoading)) {
+    setErrorMessage("Please wait while we check your authentication status.");
+    return;
+  }
 
-    if (!user) {
-      navigate("/signup");
-      return;
-    }
+  if (!user) {
+    navigate("/signup");
+    return;
+  }
 
-    if (planKey === "MAX") {
-      setErrorMessage("Please contact us for a custom quote on the MAX plan.");
-      navigate("/contact");
-      return;
-    }
-    
-    if (!paddle) {
-      console.error("Payments not ready.");
-      setErrorMessage("Payments not ready. Please try again shortly.");
-      return;
-    }
+  if (planKey === "MAX") {
+    setErrorMessage("Please contact us for a custom quote on the MAX plan.");
+    navigate("/contact");
+    return;
+  }
+  
+  if (!paddle) {
+    console.error("Payments not ready.");
+    setErrorMessage("Payments not ready. Please try again shortly.");
+    return;
+  }
 
-    const priceId = PRICES[planKey][billingCycle];
-    if (!priceId) {
-      console.error("Missing priceId:", planKey, billingCycle);
-      setErrorMessage("Plan misconfigured. Contact support.");
-      return;
-    }
+  const priceId = PRICES[planKey][billingCycle];
+  if (!priceId) {
+    console.error("Missing priceId:", planKey, billingCycle);
+    setErrorMessage("Plan misconfigured. Contact support.");
+    return;
+  }
 
-    try {
-      paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        customer: { id: user.id },
-        customData: { plan: planKey, cycle: billingCycle },
-        settings: { displayMode: "overlay", theme: "light" },
-        successCallback: (data: any) => {
-          console.log("Checkout success:", data);
-          // Your webhook should handle the subscription creation and redirect
-          navigate("/dashboard?purchase=success");
-        },
-        closeCallback: () => console.log("Checkout closed"),
-      });
-    } catch (err) {
-      console.error("Checkout.open error:", err);
-      setErrorMessage("Could not open checkout. See console for details.");
-    }
-  };
+  try {
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: { id: user.id },
+      customData: { 
+        plan: planKey, 
+        cycle: billingCycle,
+        firebaseUid: user.id // so webhook can save instantly
+      },
+      settings: { 
+        displayMode: "overlay", 
+        theme: "light",
+        successUrl: `${window.location.origin}/dashboard?purchase=success` // auto redirect after payment
+      },
+      successCallback: (data: any) => {
+        console.log("Checkout success:", data);
+
+        // OPTIONAL: Firestore instant update before webhook
+        import("firebase/firestore").then(({ getFirestore, doc, setDoc, serverTimestamp }) => {
+          const db = getFirestore();
+          setDoc(doc(db, "users", user.id), {
+            plan: planKey,
+            billingCycle,
+            subscriptionStatus: "active",
+            updatedAt: serverTimestamp()
+          }, { merge: true }).catch(err => console.error("Firestore update error:", err));
+        });
+
+        // Immediate redirect to dashboard
+        navigate("/dashboard?purchase=success");
+      },
+      closeCallback: () => console.log("Checkout closed"),
+    });
+  } catch (err) {
+    console.error("Checkout.open error:", err);
+    setErrorMessage("Could not open checkout. See console for details.");
+  }
+};
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
