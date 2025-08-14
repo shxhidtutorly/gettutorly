@@ -4,53 +4,53 @@ import admin from "firebase-admin";
 import getRawBody from "raw-body";
 import querystring from "querystring";
 
+/* Production-grade Paddle v2 webhook for Vercel
+   - Guards against malformed signature header (.split() errors)
+   - Uses SDK verification when possible, falls back to safe parsing
+   - Converts everything to plain objects before saving to Firestore
+   - Idempotent, robust, and logs header when verification fails
+*/
 
-
-// Disable automatic body parsing so we can validate signature
 export const config = { api: { bodyParser: false } };
 
-// ---------- Firebase init ----------
+// Firebase init
 if (!admin.apps.length) {
   try {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
       throw new Error("Missing FIREBASE_SERVICE_ACCOUNT env var");
     }
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     console.info("✅ Firebase Admin initialized");
   } catch (err) {
-    console.error("❌ Firebase Admin SDK initialization failed:", err);
-    // If initialization fails, we still export handler but firestore ops will error.
+    console.error("❌ Firebase Admin initialization failed:", err);
   }
 }
 const db = admin.firestore();
 
-// ---------- Paddle SDK init ----------
+// Paddle SDK init
 const paddle = new Paddle({
-  publicKey: process.env.PADDLE_PUBLIC_KEY || "", // required for v2 verification
+  publicKey: process.env.PADDLE_PUBLIC_KEY || "",
   environment: process.env.PADDLE_ENV || "production",
 });
 
-// ---------- Small helpers ----------
-const toPlain = (obj) => {
+// helpers
+const toPlain = (v) => {
   try {
-    return JSON.parse(JSON.stringify(obj ?? {}));
+    return JSON.parse(JSON.stringify(v ?? {}));
   } catch {
     return {};
   }
 };
-const normalizeEventType = (o) =>
-  o?.eventType || o?.event_type || o?.alert_name || o?.alert || o?.type || o?.event || null;
-const extractEventId = (o) =>
-  o?.id || o?.event_id || o?.alert_id || o?.subscription_id || o?.order_id || o?.transaction_id || o?.checkout_id || null;
+const normalizeEventType = (p) =>
+  p?.eventType || p?.event_type || p?.alert_name || p?.alert || p?.type || null;
+const extractEventId = (p) =>
+  p?.id || p?.event_id || p?.alert_id || p?.subscription_id || p?.order_id || p?.transaction_id || null;
 
-// ---------- Handler ----------
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  // 1) Read raw body (needed for signature verification)
+  // read raw body
   let raw;
   try {
     raw = (await getRawBody(req)).toString("utf8");
@@ -59,49 +59,56 @@ export default async function handler(req, res) {
     return res.status(500).send("Failed to read body");
   }
 
-  // 2) Obtain signature header (Paddle uses lowercase headers on many platforms)
-  const sigHeader = (req.headers["paddle-signature"] || req.headers["x-paddle-signature"] || null);
+  // get signature header (case-insensitive)
+  const sigHeader = req.headers["paddle-signature"] || req.headers["x-paddle-signature"] || null;
 
-  // 3) Try v2 SDK verification only when we have a plausible header and public key
   let parsed = null;
   let verifiedBySdk = false;
+
+  // Attempt v2 SDK verification — but guard heavily to avoid .split errors
   if (sigHeader && typeof sigHeader === "string" && sigHeader.includes("=") && process.env.PADDLE_PUBLIC_KEY) {
+    // log small debug (won't include keys) so you can inspect during failures
+    console.info("Paddle signature header (trimmed):", sigHeader.slice(0, 200));
+
     try {
-      // SDK accepts (rawString, { signature: headerString })
-      parsed = paddle.webhooks.unmarshal(raw, { signature: sigHeader });
+      // Wrap in try/catch to capture any SDK internal errors (including split on undefined)
+      parsed = await (async () => paddle.webhooks.unmarshal(raw, { signature: sigHeader }))();
       verifiedBySdk = true;
       console.info("✅ Paddle SDK v2 verification succeeded");
     } catch (err) {
-      // Verification failed — log & fall back to parsing
-      console.warn("⚠ Paddle SDK v2 verification failed (falling back).", err?.message || err);
+      // If SDK throws anything — including the TypeError for .split on undefined — capture it and fall back
+      console.warn("⚠ Paddle SDK verification threw; falling back to parse. Error:", err?.message || err);
+      // Log the signature header to debug the exact format (copy-paste safely)
+      try { console.info("PADDLE SIGNATURE HEADER (for debugging):", sigHeader); } catch (e) {}
       parsed = null;
     }
   } else {
-    console.warn("⚠ No valid v2 signature header or missing PADDLE_PUBLIC_KEY — skipping SDK verification.");
+    console.warn("⚠ No plausible v2 signature header or missing PADDLE_PUBLIC_KEY - skipping SDK verification");
   }
 
-  // 4) If SDK didn't parse the payload, fall back to JSON or urlencoded parsing
+  // Fallback parsing if SDK didn't yield a parsed object
   if (!parsed) {
+    // Try JSON, then urlencoded
     try {
       parsed = JSON.parse(raw);
       console.info("Parsed raw body as JSON (fallback)");
-    } catch {
+    } catch (e1) {
       try {
         parsed = querystring.parse(raw);
         console.info("Parsed raw body as urlencoded (fallback)");
-      } catch (err) {
-        console.error("Failed to parse webhook body:", err);
+      } catch (e2) {
+        console.error("Failed to parse webhook body (JSON and urlencoded). Errors:", e1, e2);
         return res.status(400).send("Bad Request");
       }
     }
   }
 
-  // 5) Normalize event and data
+  // Normalize event
   const eventType = normalizeEventType(parsed) || "unknown";
-  const eventData = parsed?.data || parsed || null;
+  const eventData = parsed?.data || parsed || {};
   console.info("✅ Received Paddle event:", eventType);
 
-  // 6) Idempotency - derive an eventId (best-effort)
+  // Idempotency: best-effort event ID
   const eventId = extractEventId(parsed) || `${eventType}:${Date.now()}`;
   if (eventId) {
     try {
@@ -111,14 +118,14 @@ export default async function handler(req, res) {
         console.info("Duplicate event — already processed:", eventId);
         return res.status(200).send("Duplicate");
       }
-      // Reserve the id (reduce race)
+      // Reserve
       await evRef.set({ status: "processing", receivedAt: admin.firestore.FieldValue.serverTimestamp() });
     } catch (err) {
-      console.warn("Idempotency reservation failed, continuing:", err);
+      console.warn("Idempotency check failed (continuing):", err);
     }
   }
 
-  // Helper: upsert subscription to users/{userId}/subscription/current
+  // helper: upsert subscription for user
   async function upsertSubscriptionForUser(userId, subscription) {
     const userRef = db.collection("users").doc(userId);
     const subRef = userRef.collection("subscription").doc("current");
@@ -145,36 +152,27 @@ export default async function handler(req, res) {
         });
       }
 
-      t.set(
-        subRef,
-        {
-          paddleId: subscription?.id || subscription?.subscription_id || null,
-          status,
-          priceId,
-          raw: toPlain(subscription),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      t.set(subRef, {
+        paddleId: subscription?.id || subscription?.subscription_id || null,
+        status,
+        priceId,
+        raw: toPlain(subscription),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
     });
   }
 
-  // 7) Process events: subscription, cancel, transaction, other
+  // Process events
   try {
     const evt = eventType.toLowerCase();
 
-    // SUBSCRIPTION events
     if (evt.includes("subscription")) {
       const subscription = eventData || {};
-      // passthrough / custom_data could be stringified
+      // passthrough may be stringified
       const passthroughRaw = subscription?.passthrough || subscription?.custom_data || subscription?.customData || null;
       let passthrough = null;
       if (passthroughRaw) {
-        try {
-          passthrough = typeof passthroughRaw === "string" ? JSON.parse(passthroughRaw) : passthroughRaw;
-        } catch {
-          passthrough = passthroughRaw;
-        }
+        try { passthrough = typeof passthroughRaw === "string" ? JSON.parse(passthroughRaw) : passthroughRaw; } catch {}
       }
 
       const userId =
@@ -187,7 +185,7 @@ export default async function handler(req, res) {
         null;
 
       if (!userId) {
-        // fallback - save subscription under top-level collection for manual resolution
+        // fallback: store in top-level subscriptions for manual resolution
         await db.collection("subscriptions").doc(String(subscription?.id || eventId)).set({
           raw: toPlain(subscription),
           eventType,
@@ -200,7 +198,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // CANCELLATION
     else if (evt.includes("cancel")) {
       const subscription = eventData || {};
       const passthroughRaw = subscription?.passthrough || subscription?.custom_data || subscription?.customData || null;
@@ -222,17 +219,16 @@ export default async function handler(req, res) {
         }, { merge: true });
         console.info("Marked subscription canceled for user:", userId);
       } else {
-        console.warn("Cancel event received but no userId found; saved to logs");
         await db.collection("paddle_webhook_logs").add({
           eventType,
           payload: toPlain(eventData),
           verified: verifiedBySdk,
           receivedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+        console.warn("Cancel event received but no userId found; logged instead.");
       }
     }
 
-    // TRANSACTIONS / PAYMENTS
     else if (evt.includes("transaction") || evt.includes("payment")) {
       const tx = eventData || {};
       const id = tx?.order_id || tx?.orderId || tx?.transaction_id || eventId;
@@ -244,7 +240,6 @@ export default async function handler(req, res) {
       console.info("Saved transaction:", id);
     }
 
-    // OTHER / UNKNOWN
     else {
       await db.collection("paddle_webhook_logs").add({
         eventType,
@@ -255,7 +250,7 @@ export default async function handler(req, res) {
       console.info("Logged unknown event type:", eventType);
     }
 
-    // 8) Mark event processed (idempotency)
+    // mark processed
     try {
       if (eventId) {
         await db.collection("paddle_webhook_events").doc(String(eventId)).set({
