@@ -1,3 +1,4 @@
+// src/pages/SignupPage.tsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,10 +7,14 @@ import { ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useUser } from "@/hooks/useUser";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle } = useFirebaseAuth();
+  const { user: firebaseUser, signUp, signInWithGoogle } = useFirebaseAuth();
+  const { user, isLoaded } = useUser(); // Using your provided useUser hook
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,9 +23,18 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // The problematic useEffect hook that was causing the flicker has been removed.
-  // Post-authentication navigation is now handled by the AuthWrapper component.
-
+useEffect(() => {
+  // If the user object is loaded and populated
+  if (isLoaded && user && !subLoading) {
+    if (hasActiveSubscription) {
+      navigate("/dashboard");
+    } else {
+      // Pass a state flag to the pricing page
+      navigate("/pricing", { state: { fromSignup: true } });
+    }
+  }
+}, [user, isLoaded, hasActiveSubscription, subLoading, navigate]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -58,14 +72,7 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-3 mb-6">
             <div className="w-16 h-16 bg-purple-500 brutal-border flex items-center justify-center">
-              <img
-                src="/logo.png"
-                alt="Logo"
-                className="w-8 h-8"
-                onError={(e) => {
-                  e.currentTarget.src = "https://placehold.co/32x32/8B5CF6/ffffff?text=L";
-                }} // Fallback to a placeholder
-              />
+              <img src="/logo.png" alt="Logo" className="w-8 h-8" />
             </div>
             <div>
               <h1 className="text-3xl font-black">TUTORLY</h1>
