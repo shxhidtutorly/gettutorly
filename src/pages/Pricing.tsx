@@ -257,7 +257,6 @@ const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
           100% { transform: translate(0, 0); }
         }
       `}</style>
-      <Navbar />
 
       {/* Hero Section */}
       <section className="bg-sky-200 text-black border-b-4 border-black relative overflow-hidden">
