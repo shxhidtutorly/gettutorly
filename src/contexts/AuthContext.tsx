@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase'; // Assuming you have a firebase-config file
+import { motion } from "framer-motion";
 
 interface AuthContextType {
   user: User | null;
