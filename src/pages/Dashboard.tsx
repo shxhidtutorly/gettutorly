@@ -20,10 +20,10 @@ import {
   ArrowRight,
   Youtube
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useUnifiedAuth } from "@/contexts/UnifiedAuthContext";
 import { motion } from "framer-motion";
 import ProgressCard from "@/components/dashboard/ProgressCard";
-import BrutalLoader from '@/components/BrutalLoader'; // Assuming you moved the loader to its own file
+// Removed BrutalLoader import - loader is defined inline
 
 // --- Neon Brutalist UI Configuration ---
 const neonColors = {
@@ -88,37 +88,36 @@ const cardAnimation = {
 };
 
 const Dashboard = () => {
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
-  const [isNewUser, setIsNewUser] = useState(false);
+  const { user, firebaseUser, isLoaded } = useUnifiedAuth();
+  const navigate = useNavigate();
+  const [isNewUser, setIsNewUser] = useState(false);
 
-  useEffect(() => {
-    // FIX: Add an explicit check to make sure `user` is not `null` or `undefined`
-    // before allowing any other logic to run.
-    if (authLoading) return;
+  useEffect(() => {
+    // Simplified auth check - ProtectedRoute already handles this
+    if (!isLoaded) return;
+    
+    if (!user) {
+      navigate('/signin');
+    }
+  }, [user, isLoaded, navigate]);
 
-    if (!user) {
-      navigate('/signin');
-    }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
-    if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
-      const creationTime = new Date(user.metadata.creationTime).getTime();
-      const lastSignInTime = new Date(user.metadata.lastSignInTime).getTime();
-      setIsNewUser(Math.abs(lastSignInTime - creationTime) < 5 * 60 * 1000);
-    }
-  }, [user]);
+  useEffect(() => {
+    if (firebaseUser?.metadata?.creationTime && firebaseUser?.metadata?.lastSignInTime) {
+      const creationTime = new Date(firebaseUser.metadata.creationTime).getTime();
+      const lastSignInTime = new Date(firebaseUser.metadata.lastSignInTime).getTime();
+      setIsNewUser(Math.abs(lastSignInTime - creationTime) < 5 * 60 * 1000);
+    }
+  }, [firebaseUser]);
 
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);
 
-  const getUserDisplayName = useCallback(() => {
-    if (user?.displayName) return user.displayName;
-    if (user?.email) return user.email.split('@')[0];
-    return "User";
-  }, [user]);
+  const getUserDisplayName = useCallback(() => {
+    if (user?.fullName) return user.fullName;
+    if (user?.email) return user.email.split('@')[0];
+    return "User";
+  }, [user]);
 
   const getWelcomeMessage = useCallback(() => {
     const name = getUserDisplayName();
@@ -192,13 +191,13 @@ const Dashboard = () => {
     { title: "YouTube Summarizer", desc: "Summarize YouTube videos", icon: Youtube, route: "/youtube-summarizer", color: neonColors.yellow },
   ];
 
-  if (authLoading) {
-    return <BrutalLoader />;
-  }
+  if (!isLoaded) {
+    return <BrutalLoader />;
+  }
 
-  if (!user) {
-    return null; // This will now only be reached if authLoading is false and user is truly null
-  }
+  if (!user) {
+    return null; // ProtectedRoute handles redirect
+  }
   
   return (
     <div className="min-h-screen flex flex-col bg-black text-gray-100 font-mono">

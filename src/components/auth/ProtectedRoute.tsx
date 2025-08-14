@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { cleanupWebGLContexts } from "@/lib/webgl-cleanup";
-import { useUser } from "@/hooks/useUser";
+import { useUnifiedAuth } from "@/contexts/UnifiedAuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 
 interface ProtectedRouteProps {
@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, isLoaded, loading: authLoading } = useUser();
+  const { user, isLoaded } = useUnifiedAuth();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const location = useLocation();
 
@@ -24,29 +24,24 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     };
   }, [location.pathname]);
 
-  // --- FIX: Consolidated Loading State ---
-  // A single, unambiguous loading state check to prevent race conditions.
-  // The component should only proceed once isLoaded is explicitly true.
+  // Single loading check - wait for auth to be fully loaded
   if (!isLoaded) {
-    return ;
+    return null;
   }
 
-  // --- FIX: Simplified Navigation Logic ---
-  // The component only reaches this point once isLoaded is true.
-  // Therefore, we can reliably check the user status.
+  // If no user, redirect to signin
   if (!user) {
     return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   }
 
-  // Handle subscription loading only after the user is authenticated.
-  // This prevents the flicker between the loader and the content.
+  // Wait for subscription loading to complete
   if (subLoading) {
-     return ;
+    return null;
   }
 
   // Subscription check disabled for development
   // if (!hasActiveSubscription) {
-  //  return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
+  //   return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
   // }
 
   // If a user exists and all checks pass, render the children.

@@ -7,10 +7,10 @@ import NotFoundPage from "@/components/ui/page-not-found";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { UnifiedAuthProvider } from "./contexts/UnifiedAuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import { SpeedInsights } from "@vercel/speed-insights/react";
+// import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -71,7 +71,7 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <UnifiedAuthProvider>
         <ThemeProvider>
           <TooltipProvider>
             <ErrorBoundary>
@@ -133,7 +133,7 @@ const App = () => {
           <Analytics />
           </TooltipProvider>
         </ThemeProvider>
-      </AuthProvider>
+      </UnifiedAuthProvider>
     </QueryClientProvider>
   );
 };
