@@ -1,60 +1,126 @@
 import { useState, useEffect } from 'react';
-// Assuming subscribeToUserStats is your real-time listener from firebase-db
-import { subscribeToUserStats } from '@/lib/firebase-db';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserDocs } from '@/lib/firebase-helpers';
+import { Timestamp } from 'firebase/firestore';
+import { getUserStats, updateUserStats } from '@/lib/firebase-firestore';
 
-/**
- * A hook to fetch and subscribe to a user's statistics from Firebase in real-time.
- *
- * This revised hook uses only a real-time listener (`subscribeToUserStats`).
- * This is more efficient and avoids potential race conditions between a one-time
- * fetch and the subscription's initial data emission.
- *
- * @param userId The ID of the user whose stats are to be fetched.
- * @returns An object containing the stats, loading state, and any error.
- */
-export const useUserStats = (userId: string | null) => {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export interface UserStats {
+  total_study_time: number;
+  materials_created: number;
+  notes_created: number;
+  quizzes_taken: number;
+  flashcards_created: number;
+  average_quiz_score: number;
+  sessions_this_month: number;
+  learning_milestones: number;
+  lastUpdated?: Timestamp;
+}
 
-  useEffect(() => {
-    // If there's no user ID, we're not logged in or auth is pending.
-    // Reset state and indicate we are not loading.
-    if (!userId) {
-      setStats(null);
-      setLoading(false); // Not loading if there's no user to load for.
-      return;
+const initialStats: UserStats = {
+  total_study_time: 0,
+  materials_created: 0,
+  notes_created: 0,
+  quizzes_taken: 0,
+  flashcards_created: 0,
+  average_quiz_score: 0,
+  sessions_this_month: 0,
+  learning_milestones: 0,
+};
+
+// --- FIX: All logic is moved into this single, stable function outside the hook ---
+// This function is defined only once, guaranteeing it won't cause re-renders.
+const fetchAndProcessUserStats = async (
+  uid: string,
+  setStats: React.Dispatch<React.SetStateAction<UserStats | null>>,
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>
+) => {
+  setLoading(true);
+  try {
+    // 1. Check for recently cached stats in Firestore
+    const cachedStats = await getUserStats(uid);
+    if (cachedStats && cachedStats.lastUpdated) {
+      const lastUpdatedDate = cachedStats.lastUpdated.toDate();
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+      if (lastUpdatedDate > oneHourAgo) {
+        setStats(cachedStats as UserStats);
+        console.log("Loaded user stats from Firestore cache.");
+        setLoading(false); // Make sure to stop loading
+        return; // We are done, exit the function
+      }
     }
 
-    // Start loading for the new userId.
-    setLoading(true);
-    setError(null);
+    // 2. If no valid cache, calculate fresh stats
+    console.log("Cache stale or missing. Calculating fresh stats...");
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const [userActivity, notesHistory, summaryHistory, flashcards, quizzes, aiSessions] = await Promise.all([
+      getUserDocs(uid, 'userActivity'),
+      getUserDocs(uid, 'notes_history'),
+      getUserDocs(uid, 'summary_sessions'),
+      getUserDocs(uid, 'flashcards'),
+      getUserDocs(uid, 'quizzes'),
+      getUserDocs(uid, 'ai_sessions')
+    ]);
 
-    // Set up the real-time subscription.
-    // This listener will handle both the initial data and subsequent updates.
-    // NOTE: This assumes `subscribeToUserStats` accepts success and error callbacks.
-    const unsubscribe = subscribeToUserStats(
-      userId,
-      (data) => {
-        // Data received from Firestore. Update state and stop loading.
-        setStats(data);
-        setLoading(false);
-      },
-      (err: Error) => {
-        // Handle any errors from the subscription.
-        console.error("Error subscribing to user stats:", err);
-        setError("Failed to subscribe to user statistics.");
-        setLoading(false);
-      }
-    );
+    const totalStudyTime = userActivity.reduce((sum: number, session: any) => sum + (session.duration || 0), 0);
+    const sessionsThisMonth = userActivity.filter((session: any) => 
+      session.timestamp?.toDate && session.timestamp.toDate() >= monthStart
+    ).length;
+    const quizzesTaken = quizzes.length;
+    const quizScores = quizzes.map((q: any) => q.score).filter((s: any): s is number => typeof s === 'number');
+    const averageQuizScore = quizScores.length > 0 ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length) : 0;
+    const learningMilestones = notesHistory.length + summaryHistory.length + flashcards.length + quizzesTaken + aiSessions.length;
 
-    // The cleanup function returned by useEffect.
-    // React runs this when the component unmounts or when `userId` changes.
-    // This is crucial to prevent memory leaks by detaching the listener.
-    return () => {
-      unsubscribe();
+    const calculatedStats: UserStats = {
+      total_study_time: totalStudyTime,
+      materials_created: notesHistory.length + summaryHistory.length,
+      notes_created: notesHistory.length,
+      quizzes_taken: quizzesTaken,
+      flashcards_created: flashcards.length,
+      average_quiz_score: averageQuizScore,
+      sessions_this_month: sessionsThisMonth,
+      learning_milestones: learningMilestones,
+      lastUpdated: Timestamp.now()
     };
-  }, [userId]); // The effect re-runs ONLY when the userId string changes.
 
-  return { stats, loading, error };
+    setStats(calculatedStats);
+    console.log("Calculated and updated user stats in Firestore.");
+    await updateUserStats(uid, calculatedStats);
+
+  } catch (error) {
+    console.error('FATAL: Error loading user stats:', error);
+    setStats(initialStats);
+  } finally {
+    setLoading(false);
+  }
+};
+
+export const useUserStats = () => {
+  const { user, loading: authLoading } = useAuth();
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Wait until the authentication process is complete.
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+    
+    // If we have a logged-in user, call our stable helper function.
+    if (user) {
+      fetchAndProcessUserStats(user.uid, setStats, setLoading);
+    } else {
+      // No user, so reset state and stop loading.
+      setStats(null);
+      setLoading(false);
+    }
+    
+    // This dependency array is now as simple and stable as possible.
+    // This effect will ONLY run when the user logs in or out.
+  }, [user?.uid, authLoading]);
+
+  return { stats, loading: loading || authLoading };
 };
