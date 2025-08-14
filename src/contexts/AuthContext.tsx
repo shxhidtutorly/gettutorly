@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
@@ -28,29 +27,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      try {
-        setUser(user);
-      } catch (error) {
-        console.error('Error in auth state change:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+    // This listener handles all authentication state changes.
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
     }, (error) => {
-      console.error('Auth state change error:', error);
+      // This will catch any errors during the auth process.
+      console.error('Auth state error:', error);
       setUser(null);
       setLoading(false);
     });
 
+    // Cleanup the listener when the component unmounts.
     return () => unsubscribe();
-  }, []);
+  }, []); // The empty dependency array is correct, this runs only once.
 
-  const value = {
+  // --- THE FIX ---
+  // We wrap the context value in `useMemo`.
+  // This ensures that the `value` object reference only changes if `user` or `loading` changes.
+  // This prevents all consuming components from re-rendering unnecessarily.
+  const value = useMemo(() => ({
     user,
     loading,
     isAuthenticated: !!user
-  };
+  }), [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>
