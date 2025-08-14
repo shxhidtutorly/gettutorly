@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import {
@@ -201,8 +200,8 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen flex flex-col bg-black text-gray-100 font-mono">
-      <Navbar />
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
+
+      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         <div className="container max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
