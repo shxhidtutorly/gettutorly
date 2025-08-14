@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom"; // Corrected: Using useNavigate
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -22,12 +22,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import ProgressCard from "@/components/dashboard/ProgressCard"; // Assuming this component exists and is styled
+import ProgressCard from "@/components/dashboard/ProgressCard";
 
 // --- Neon Brutalist UI Configuration ---
 
 // 1. NEON COLOR PALETTE
-// A vibrant, high-contrast palette that pops against the black background.
 const neonColors = {
   cyan: {
     base: 'cyan-400',
@@ -58,18 +57,18 @@ const neonColors = {
     text: 'text-yellow-400',
   },
   purple: {
-      base: 'purple-500',
-      border: 'border-purple-500',
-      shadow: 'shadow-[4px_4px_0px_#a855f7]',
-      hoverShadow: 'hover:shadow-[6px_6px_0px_#a855f7]',
-      text: 'text-purple-500',
+    base: 'purple-500',
+    border: 'border-purple-500',
+    shadow: 'shadow-[4px_4px_0px_#a855f7]',
+    hoverShadow: 'hover:shadow-[6px_6px_0px_#a855f7]',
+    text: 'text-purple-500',
   },
   blue: {
-      base: 'blue-500',
-      border: 'border-blue-500',
-      shadow: 'shadow-[4px_4px_0px_#3b82f6]',
-      hoverShadow: 'hover:shadow-[6px_6px_0px_#3b82f6]',
-      text: 'text-blue-500',
+    base: 'blue-500',
+    border: 'border-blue-500',
+    shadow: 'shadow-[4px_4px_0px_#3b82f6]',
+    hoverShadow: 'hover:shadow-[6px_6px_0px_#3b82f6]',
+    text: 'text-blue-500',
   }
 };
 
@@ -94,22 +93,22 @@ const BrutalLoader = () => {
   const loadingText = "LOADING_DASHBOARD...".split("");
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white font-mono">
-        <div className="w-24 h-24 mb-6">
-            <motion.div
-                className="w-full h-full bg-cyan-400"
-                animate={{
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 90, 180],
-                    borderRadius: ["20%", "50%", "20%"],
-                }}
-                transition={{
-                    duration: 2.5,
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                    repeatDelay: 0.5
-                }}
-            />
-        </div>
+      <div className="w-24 h-24 mb-6">
+        <motion.div
+          className="w-full h-full bg-cyan-400"
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 90, 180],
+            borderRadius: ["20%", "50%", "20%"],
+          }}
+          transition={{
+            duration: 2.5,
+            ease: "easeInOut",
+            repeat: Infinity,
+            repeatDelay: 0.5
+          }}
+        />
+      </div>
       <div className="flex items-center justify-center space-x-1">
         {loadingText.map((char, i) => (
           <motion.span
@@ -133,17 +132,16 @@ const BrutalLoader = () => {
   );
 };
 
-
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate(); // Corrected: Using useNavigate
+  const navigate = useNavigate();
   const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/signin'); // Corrected: Using navigate
+      navigate('/signin');
     }
-  }, [user, authLoading, navigate]); // Corrected: Dependency array
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
@@ -154,8 +152,8 @@ const Dashboard = () => {
   }, [user]);
 
   const handleNavigation = useCallback((path: string) => {
-    navigate(path); // Corrected: Using navigate
-  }, [navigate]); // Corrected: Dependency array
+    navigate(path);
+  }, [navigate]);
 
   const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
@@ -167,7 +165,8 @@ const Dashboard = () => {
     const name = getUserDisplayName();
     return isNewUser ? `Welcome, ${name}! 🎉` : `Welcome back, ${name}! 👋`;
   }, [getUserDisplayName, isNewUser]);
-  
+
+  // Removed since stats is no longer available.
   const formatStudyTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}min`;
     const hours = Math.floor(minutes / 60);
@@ -186,20 +185,24 @@ const Dashboard = () => {
 
   const quickActions = [
     { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries", color: neonColors.pink },
-{ 
-  title: "Multi-Doc Session", 
-  desc: "Upload & study multiple documents", 
-  icon: Files, 
-  route: "/multi-doc-session", 
-  color: neonColors.purple 
-},
+    {
+      title: "Multi-Doc Session",
+      desc: "Upload & study multiple documents",
+      icon: Files,
+      route: "/multi-doc-session",
+      color: neonColors.purple
+    },
     { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant", color: neonColors.cyan },
     { title: "YouTube Summarizer", desc: "Summarize YouTube videos", icon: Youtube, route: "/youtube-summarizer", color: neonColors.yellow },
   ];
 
+  // Removed the statsLoading condition.
+  if (authLoading) {
+    return <BrutalLoader />;
+  }
 
   if (!user) {
-    return null; // Or a redirect component
+    return null;
   }
 
   return (
@@ -208,7 +211,7 @@ const Dashboard = () => {
 
       <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         <div className="container max-w-7xl mx-auto">
-          
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -218,13 +221,15 @@ const Dashboard = () => {
             <h1 className="text-4xl md:text-5xl font-black mb-2 text-white">{getWelcomeMessage()}</h1>
             <p className="text-gray-400 text-lg">Let's supercharge your learning today.</p>
           </motion.div>
-          
+
           {/* --- Stats Cards --- */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <ProgressCard title="Study Time" value={formatStudyTime(stats?.total_study_time || 0)} icon={<Clock className={`h-7 w-7 ${neonColors.blue.text}`} />} trend={`${stats?.sessions_this_month || 0} sessions this month`} className={`bg-gray-900 border-2 rounded-none ${neonColors.blue.border} ${neonColors.blue.shadow}`} />
-            <ProgressCard title="Milestones" value={stats?.learning_milestones || 0} icon={<Award className={`h-7 w-7 ${neonColors.green.text}`} />} trend="Total achievements" className={`bg-gray-900 border-2 rounded-none ${neonColors.green.border} ${neonColors.green.shadow}`} />
-            <ProgressCard title="Quizzes" value={stats?.quizzes_taken || 0} icon={<CheckCircle className={`h-7 w-7 ${neonColors.yellow.text}`} />} trend={`${stats?.average_quiz_score || 0}% avg score`} className={`bg-gray-900 border-2 rounded-none ${neonColors.yellow.border} ${neonColors.yellow.shadow}`} />
-            <ProgressCard title="AI Notes" value={stats?.notes_created || 0} icon={<Sparkles className={`h-7 w-7 ${neonColors.purple.text}`} />} trend="Notes generated" className={`bg-gray-900 border-2 rounded-none ${neonColors.purple.border} ${neonColors.purple.shadow}`} />
+            {/* Removed all ProgressCard components that relied on the `stats` object */}
+            {/* You can add placeholders or remove this section entirely if the stats aren't available */}
+            <ProgressCard title="Study Time" value="--" icon={<Clock className={`h-7 w-7 ${neonColors.blue.text}`} />} trend="-- sessions this month" className={`bg-gray-900 border-2 rounded-none ${neonColors.blue.border} ${neonColors.blue.shadow}`} />
+            <ProgressCard title="Milestones" value="--" icon={<Award className={`h-7 w-7 ${neonColors.green.text}`} />} trend="Total achievements" className={`bg-gray-900 border-2 rounded-none ${neonColors.green.border} ${neonColors.green.shadow}`} />
+            <ProgressCard title="Quizzes" value="--" icon={<CheckCircle className={`h-7 w-7 ${neonColors.yellow.text}`} />} trend="--% avg score" className={`bg-gray-900 border-2 rounded-none ${neonColors.yellow.border} ${neonColors.yellow.shadow}`} />
+            <ProgressCard title="AI Notes" value="--" icon={<Sparkles className={`h-7 w-7 ${neonColors.purple.text}`} />} trend="Notes generated" className={`bg-gray-900 border-2 rounded-none ${neonColors.purple.border} ${neonColors.purple.shadow}`} />
           </div>
 
           {/* --- Main Feature Cards --- */}
@@ -260,8 +265,8 @@ const Dashboard = () => {
           {/* --- Quick Actions --- */}
           <div>
             <h2 className="text-3xl font-black mb-6 flex items-center gap-3 text-white">
-                <Zap className="text-yellow-400 h-7 w-7" />
-                Quick Actions
+              <Zap className="text-yellow-400 h-7 w-7" />
+              Quick Actions
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {quickActions.map((action, idx) => (
@@ -277,8 +282,8 @@ const Dashboard = () => {
                 >
                   <action.icon className={`w-8 h-8 flex-shrink-0 ${action.color.text}`} />
                   <div>
-                      <h3 className="font-black text-lg text-white">{action.title}</h3>
-                      <p className="font-bold text-sm text-gray-400">{action.desc}</p>
+                    <h3 className="font-black text-lg text-white">{action.title}</h3>
+                    <p className="font-bold text-sm text-gray-400">{action.desc}</p>
                   </div>
                 </motion.div>
               ))}
