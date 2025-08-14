@@ -4,26 +4,12 @@ import admin from "firebase-admin";
 import getRawBody from "raw-body";
 import querystring from "querystring";
 
-/**
- * Production-ready Paddle webhook -> Firestore handler
- * - Verifies webhooks using Paddle SDK (v2 signatures)
- * - Falls back to parsing payload (useful for sandbox/testing or v1 fallback)
- * - Writes subscription info into Firestore under: users/{userId} and users/{userId}/subscription/current
- * - Uses idempotency by storing processed event ids in collection: paddle_webhook_events
- *
- * IMPORTANT:
- * - Set PADDLE_PUBLIC_KEY (public key from Paddle dashboard) for signature verification.
- * - For full security, ensure your Paddle webhooks are configured to use v2 signature.
- */
-
-// Disable Vercel body parsing (we need raw body for signature verification)
+// Disable body parsing (needed for Paddle v2 signature verification)
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
-// Initialize Firebase Admin once
+// --- Initialize Firebase Admin ---
 if (!admin.apps.length) {
   try {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -41,14 +27,14 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Paddle client (used for SDK validation/unmarshal)
+// --- Initialize Paddle SDK ---
 const paddle = new Paddle({
-  publicKey: process.env.PADDLE_PUBLIC_KEY || "", // required for signature verification (v2)
-  environment: process.env.PADDLE_ENV || "sandbox",
+  publicKey: process.env.PADDLE_PUBLIC_KEY || "",
+  environment: process.env.PADDLE_ENV || "production", // "production" or "sandbox"
 });
 
+// --- Helpers ---
 function normalizeEventType(obj) {
-  // Accept many possible property names depending on Paddle version
   return (
     obj?.eventType ||
     obj?.event_type ||
@@ -61,7 +47,6 @@ function normalizeEventType(obj) {
 }
 
 function extractEventId(obj) {
-  // Try to find a stable id for idempotency
   return (
     obj?.id ||
     obj?.event_id ||
@@ -75,74 +60,69 @@ function extractEventId(obj) {
   );
 }
 
+function toPlain(obj) {
+  return JSON.parse(JSON.stringify(obj || {}));
+}
+
+// --- Main Handler ---
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).send("Method Not Allowed");
   }
 
-  // Read raw body
-  let rawBodyBuf;
+  // Get raw request body
+  let raw;
   try {
-    rawBodyBuf = await getRawBody(req);
+    raw = (await getRawBody(req)).toString("utf8");
   } catch (err) {
-    console.error("Failed to read raw body:", err);
+    console.error("❌ Failed to read raw body:", err);
     return res.status(500).send("Internal Server Error");
   }
-  const raw = rawBodyBuf.toString("utf8");
 
-  // Get possible signature header(s)
+  // Get v2 signature header
   const sigHeader =
     req.headers["paddle-signature"] ||
     req.headers["x-paddle-signature"] ||
-    req.headers["p_signature"] || // sometimes appears in body rather than header
     null;
 
-  // Try to verify with SDK (v2 style). If it fails, fall back to parsing payload.
-  let parsed;
+  let parsed = null;
   let verifiedBySdk = false;
 
-  if (sigHeader && process.env.PADDLE_PUBLIC_KEY) {
+  // Try Paddle v2 SDK verification
+  if (sigHeader && typeof sigHeader === "string" && process.env.PADDLE_PUBLIC_KEY) {
     try {
-      // SDK expects (rawBodyString, { signature: sigHeader })
       parsed = paddle.webhooks.unmarshal(raw, { signature: sigHeader });
       verifiedBySdk = true;
-      console.info("✅ Paddle SDK verification succeeded");
+      console.info("✅ Paddle SDK v2 verification succeeded");
     } catch (err) {
-      // SDK verification failed (could be v1 signature, or malformed)
       console.warn("⚠ Paddle SDK verification failed:", err?.message || err);
       parsed = null;
     }
   } else {
-    console.warn(
-      "⚠ No signature header or no PADDLE_PUBLIC_KEY - skipping SDK verification (sandbox/testing)."
-    );
+    console.warn("⚠ No valid v2 signature header — skipping SDK verification.");
   }
 
-  // If SDK didn't produce a parsed event, try to parse body as JSON or urlencoded form
+  // Fallback: parse as JSON or URL-encoded
   if (!parsed) {
     try {
       parsed = JSON.parse(raw);
       console.info("Parsed raw body as JSON (fallback)");
-    } catch (e) {
-      // try urlencoded parse
+    } catch {
       try {
         parsed = querystring.parse(raw);
         console.info("Parsed raw body as urlencoded (fallback)");
       } catch (e2) {
-        console.error("Failed to parse webhook body:", e2);
+        console.error("❌ Failed to parse webhook body:", e2);
         return res.status(400).send("Bad Request");
       }
     }
   }
 
-  // Normalize event and data
-  // If parsed came from SDK.unmarshal it will likely be { eventType, data, ... }
   const eventType = normalizeEventType(parsed);
   const eventData = parsed?.data || parsed || null;
-
   console.info("✅ Received Paddle event:", eventType || "<unknown>");
 
-  // Idempotency: dedupe by event id (if available)
+  // Idempotency check
   const eventId = extractEventId(parsed) || `${eventType || "unknown"}:${Date.now()}`;
   if (eventId) {
     try {
@@ -152,27 +132,27 @@ export default async function handler(req, res) {
         console.info("Duplicate event, already processed:", eventId);
         return res.status(200).send("OK");
       }
-      // Reserve id (in case of concurrent delivery)
       await evRef.set({
         status: "processing",
         receivedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     } catch (err) {
-      console.error("Failed idempotency check:", err);
-      // continue, but caution
+      console.error("Idempotency check failed:", err);
     }
   }
 
-  // Helper: save/update subscription under users/{uid}/subscription/current
+  // Save/update subscription for user
   async function upsertSubscriptionForUser(userId, subscription) {
     const userRef = db.collection("users").doc(userId);
     const subRef = userRef.collection("subscription").doc("current");
+
     await db.runTransaction(async (t) => {
       const userDoc = await t.get(userRef);
       const planName = subscription?.items?.[0]?.price?.name || subscription?.plan || null;
       const priceId = subscription?.items?.[0]?.price?.id || subscription?.plan_id || null;
       const email = subscription?.customer?.email || subscription?.email || null;
       const status = subscription?.status || subscription?.state || null;
+
       if (!userDoc.exists) {
         t.set(userRef, {
           email,
@@ -195,7 +175,7 @@ export default async function handler(req, res) {
           paddleId: subscription?.id || subscription?.subscription_id || null,
           status,
           priceId,
-          raw: subscription,
+          raw: toPlain(subscription),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true }
@@ -203,40 +183,40 @@ export default async function handler(req, res) {
     });
   }
 
-  // Process common events
   try {
     const evt = (eventType || "").toString().toLowerCase();
 
-    // Subscription created / activated / updated
     if (evt.includes("subscription.created") || evt.includes("subscription.activated") || evt.includes("subscription.updated") || evt.includes("subscription")) {
-      // attempt to find firebaseUid in passthrough / custom_data
       const subscription = eventData;
       const passthroughRaw = subscription?.passthrough || subscription?.custom_data || subscription?.customData || null;
       let passthrough = null;
       if (passthroughRaw) {
-        try {
-          passthrough = typeof passthroughRaw === "string" ? JSON.parse(passthroughRaw) : passthroughRaw;
-        } catch (e) {
-          passthrough = passthroughRaw;
-        }
+        try { passthrough = typeof passthroughRaw === "string" ? JSON.parse(passthroughRaw) : passthroughRaw; } catch {}
       }
 
-      const userId = passthrough?.firebaseUid || passthrough?.uid || subscription?.customer_id || subscription?.customerId || subscription?.customer?.id || subscription?.customer?.email || null;
+      const userId =
+        passthrough?.firebaseUid ||
+        passthrough?.uid ||
+        subscription?.customer_id ||
+        subscription?.customerId ||
+        subscription?.customer?.id ||
+        subscription?.customer?.email ||
+        null;
 
       if (!userId) {
-        console.warn("No userId found in subscription event. Saving subscription to 'subscriptions' collection as fallback.");
-        // fallback: store in top-level subscriptions collection
-        await db.collection("subscriptions").doc(String(subscription?.id || subscription?.subscription_id || eventId)).set({
-          raw: subscription,
+        console.warn("No userId in subscription event. Saving to 'subscriptions' collection.");
+        await db.collection("subscriptions").doc(String(subscription?.id || eventId)).set({
+          raw: toPlain(subscription),
           eventType,
           receivedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
       } else {
         await upsertSubscriptionForUser(userId, subscription);
-        console.info("Saved subscription for user:", userId);
+        console.info("✅ Saved subscription for user:", userId);
       }
-    } else if (evt.includes("subscription.cancelled") || evt.includes("subscription.cancel")) {
-      // cancellation: update status
+    }
+
+    else if (evt.includes("subscription.cancelled") || evt.includes("subscription.cancel")) {
       const subscription = eventData;
       const passthroughRaw = subscription?.passthrough || subscription?.custom_data || subscription?.customData || null;
       let passthrough = null;
@@ -253,49 +233,45 @@ export default async function handler(req, res) {
         await userRef.collection("subscription").doc("current").set({
           status: "canceled",
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          raw: subscription,
+          raw: toPlain(subscription),
         }, { merge: true });
-        console.info("Marked subscription canceled for user:", userId);
-      } else {
-        console.warn("Cancel event received but no userId found.");
+        console.info("✅ Canceled subscription for user:", userId);
       }
-    } else if (evt.includes("transaction") || evt.includes("payment")) {
-      // transaction/one-time payment - store transaction
+    }
+
+    else if (evt.includes("transaction") || evt.includes("payment")) {
       const tx = eventData;
       const id = tx?.order_id || tx?.orderId || tx?.transaction_id || eventId;
       await db.collection("transactions").doc(String(id)).set({
-        raw: tx,
+        raw: toPlain(tx),
         eventType,
         receivedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
-      console.info("Saved transaction:", id);
-    } else {
-      // Unknown/other event - log for investigation
+      console.info("✅ Saved transaction:", id);
+    }
+
+    else {
       await db.collection("paddle_webhook_logs").add({
         eventType,
-        payload: eventData,
+        payload: toPlain(eventData),
         verified: verifiedBySdk,
         receivedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
-      console.info("Logged unknown event type:", eventType);
+      console.info("ℹ Logged unknown event:", eventType);
     }
 
-    // Mark event processed (idempotency doc)
-    try {
-      if (eventId) {
-        await db.collection("paddle_webhook_events").doc(String(eventId)).set({
-          status: "processed",
-          eventType,
-          processedAt: admin.firestore.FieldValue.serverTimestamp(),
-        }, { merge: true });
-      }
-    } catch (e) {
-      console.warn("Failed to mark event processed:", e);
+    // Mark event processed
+    if (eventId) {
+      await db.collection("paddle_webhook_events").doc(String(eventId)).set({
+        status: "processed",
+        eventType,
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
     }
 
     return res.status(200).send("OK");
   } catch (err) {
-    console.error("Error processing event:", err);
+    console.error("❌ Error processing event:", err);
     return res.status(500).send("Handler error");
   }
 }
