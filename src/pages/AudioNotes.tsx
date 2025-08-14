@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
-import { AudioNotesUploader } from "@/components/features/AudioNotesUploader";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
