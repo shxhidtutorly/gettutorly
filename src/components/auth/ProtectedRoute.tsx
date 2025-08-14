@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { cleanupWebGLContexts } from "@/lib/webgl-cleanup";
 import { useUser } from "@/hooks/useUser";
 import { useSubscription } from "@/hooks/useSubscription";
-import BrutalLoader from '@/components/BrutalLoader'; // Assuming you have a BrutalLoader component
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -29,7 +28,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // A single, unambiguous loading state check to prevent race conditions.
   // The component should only proceed once isLoaded is explicitly true.
   if (!isLoaded) {
-    return <BrutalLoader />;
+    return ;
   }
 
   // --- FIX: Simplified Navigation Logic ---
@@ -42,7 +41,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Handle subscription loading only after the user is authenticated.
   // This prevents the flicker between the loader and the content.
   if (subLoading) {
-     return <BrutalLoader />;
+     return ;
   }
 
   // Subscription check disabled for development
