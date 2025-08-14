@@ -92,14 +92,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [isNewUser, setIsNewUser] = useState(false);
 
-  useEffect(() => {
-    // Simplified auth check - ProtectedRoute already handles this
-    if (!isLoaded) return;
-    
-    if (!user) {
-      navigate('/signin');
-    }
-  }, [user, isLoaded, navigate]);
+  // Remove duplicate auth check - ProtectedRoute already handles this
+  // useEffect(() => {
+  //   if (!isLoaded) return;
+  //   
+  //   if (!user) {
+  //     navigate('/signin');
+  //   }
+  // }, [user, isLoaded, navigate]);
 
   useEffect(() => {
     if (firebaseUser?.metadata?.creationTime && firebaseUser?.metadata?.lastSignInTime) {
