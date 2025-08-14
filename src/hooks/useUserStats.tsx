@@ -30,7 +30,7 @@ const initialStats: UserStats = {
 // --- FIX: This function is now memoized using useCallback ---
 // It will only be recreated if `setStats` or `setLoading` change,
 // which they won't, as they are stable React dispatch functions.
-const useUserStats = () => {
+export const useUserStats = () => {
   const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
