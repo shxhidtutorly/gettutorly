@@ -5,18 +5,21 @@ import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 // Import your actual hooks
 import { useUser } from "@/hooks/useUser";
 import { useSubscription } from "@/hooks/useSubscription";
 
-// SANDBOX CONFIG:
-// This is your sandbox client token and price IDs for testing.
-// It will not work with real payments.
-const CLIENT_TOKEN = "test_26966f1f8c51d54baaba0224e16";
+// CONFIG: You must replace this with your LIVE client token.
+// Go to your Paddle dashboard -> Developer Tools -> Authentication.
+// The live token will start with "live_".
+const CLIENT_TOKEN = "live_6a94977317431ccad01df272b4a";
+
+// Your LIVE Paddle price IDs. You must get these from your live Paddle account.
+// The IDs will look similar to "pri_01k...".
 const PRICES = {
-  PRO: { monthly: "pri_01k274qrwsngnq4tre5y2qe3pp", annually: "pri_01k2cn84n03by5124kp507nfks" },
-  PREMIUM: { monthly: "pri_01k274r984nbbbrt9fvpbk9sda", annually: "pri_01k2cn9c1thzxwf3nyd4bkzg78" },
+  PRO: { monthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", annually: "pri_01jxq11xb6dpkzgqr27fxkejc3" },
+  PREMIUM: { monthly: "pri_01jxq0wydxwg59kmha33h213ab", annually: "pri_01k22jjqh6dtn42e25bw0znrgy" },
   MAX: { monthly: "pri_01k22kw22dfrejy55t8xdhrzwd", annually: "pri_01k22ty36jptak5rjj74axhvxg" },
 };
 
@@ -93,7 +96,7 @@ export default function Pricing(): JSX.Element {
   const { user, loading: authLoading } = useUser();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
-  const location = useLocation();
+    const location = useLocation(); 
   const [paddle, setPaddle] = useState<PaddleType | undefined>(undefined);
   const [paddleReady, setPaddleReady] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("monthly");
@@ -106,13 +109,13 @@ export default function Pricing(): JSX.Element {
       navigate("/dashboard");
     }
   }, [authLoading, subLoading, user, hasActiveSubscription, navigate, location.state]);
-
+  
   useEffect(() => {
     let mounted = true;
     setErrorMessage(null);
 
-    // Initialise Paddle for the SANDBOX environment
-    initializePaddle({ token: CLIENT_TOKEN, environment: "sandbox" })
+    // Initialise Paddle for the live production environment
+    initializePaddle({ token: CLIENT_TOKEN, environment: "production" })
       .then((pInstance) => {
         if (!mounted) return;
         if (!pInstance) {
@@ -147,7 +150,7 @@ export default function Pricing(): JSX.Element {
         items: [
           { quantity: 1, priceId: PRICES.PRO[cycle] },
           { quantity: 1, priceId: PRICES.PREMIUM[cycle] },
-          // Removed MAX from sandbox testing as it's not in the old logic
+          { quantity: 1, priceId: PRICES.MAX[cycle] },
         ],
       };
       const result = await pInstance.PricePreview(req);
@@ -158,7 +161,7 @@ export default function Pricing(): JSX.Element {
         const formatted = it?.formattedTotals?.subtotal ?? it?.formattedTotals?.total ?? "";
         if (id === PRICES.PRO[cycle]) newPrices.PRO = formatted;
         if (id === PRICES.PREMIUM[cycle]) newPrices.PREMIUM = formatted;
-        // The sandbox logic you provided doesn't have a price ID for MAX, so we won't preview it.
+        if (id === PRICES.MAX[cycle]) newPrices.MAX = formatted;
       }
       setPriceTexts(newPrices);
     } catch (err) {
@@ -166,7 +169,7 @@ export default function Pricing(): JSX.Element {
       setPriceTexts({
         PRO: cycle === "monthly" ? "$5.99" : "$36",
         PREMIUM: cycle === "monthly" ? "$9.99" : "$65",
-        MAX: cycle === "monthly" ? "$14.99" : "$119" // Fallback still includes MAX
+        MAX: cycle === "monthly" ? "$14.99" : "$119"
       });
     }
   }
@@ -175,7 +178,7 @@ export default function Pricing(): JSX.Element {
     void previewPrices(undefined, billingCycle);
   }, [billingCycle, paddle]);
 
- const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
+const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
   const isNewSignup = location.state?.fromSignup === true;
   if (!isNewSignup && (authLoading || subLoading)) {
     setErrorMessage("Please wait while we check your authentication status.");
@@ -213,17 +216,17 @@ export default function Pricing(): JSX.Element {
       customData: { 
         plan: planKey, 
         cycle: billingCycle,
-        firebaseUid: user.id // so webhook can save instantly
+        firebaseUid: user.id // so webhook knows which user to update
       },
       settings: { 
         displayMode: "overlay", 
         theme: "light",
-        successUrl: `${window.location.origin}/dashboard?purchase=success` // auto redirect after payment
+        successUrl: `${window.location.origin}/dashboard?purchase=success`
       },
       successCallback: (data: any) => {
         console.log("Checkout success:", data);
 
-        // OPTIONAL: Firestore instant update before webhook
+        // Instant Firestore update so dashboard reflects changes immediately
         import("firebase/firestore").then(({ getFirestore, doc, setDoc, serverTimestamp }) => {
           const db = getFirestore();
           setDoc(doc(db, "users", user.id), {
@@ -234,7 +237,6 @@ export default function Pricing(): JSX.Element {
           }, { merge: true }).catch(err => console.error("Firestore update error:", err));
         });
 
-        // Immediate redirect to dashboard
         navigate("/dashboard?purchase=success");
       },
       closeCallback: () => console.log("Checkout closed"),
@@ -244,6 +246,7 @@ export default function Pricing(): JSX.Element {
     setErrorMessage("Could not open checkout. See console for details.");
   }
 };
+
 
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
