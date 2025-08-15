@@ -117,10 +117,10 @@ const Navbar = ({ theme, toggleTheme }: { theme: 'light' | 'dark', toggleTheme: 
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="relative">
-              <Brain 
-                className="h-8 w-8 border-2 border-black p-1" 
-                style={{ backgroundColor: '#00e6c4', color: '#000' }} 
-              />
+             <Brain 
+  className="h-8 w-8 border-2 border-black p-1" 
+  style={{ backgroundColor: '#A442F1', color: '#fff' }} 
+/>
             </div>
             <span className="text-2xl font-black tracking-tight">TUTORLY</span>
           </Link>
