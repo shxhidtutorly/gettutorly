@@ -1,5 +1,6 @@
+// FILE: src/pages/Dashboard.tsx
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom"; // Corrected: Using useNavigate
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -16,136 +17,32 @@ import {
   Clock,
   Award,
   CheckCircle,
- ArrowRight,
-  Files, 
-  Youtube 
+  ArrowRight,
+  Files,
+  Youtube,
+  Sun,
+  Moon,
+  Plus,
+  Upload,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { useUserStats } from "@/hooks/useUserStats";
-import ProgressCard from "@/components/dashboard/ProgressCard"; // Assuming this component exists and is styled
-
-// --- Neon Brutalist UI Configuration ---
-
-// 1. NEON COLOR PALETTE
-// A vibrant, high-contrast palette that pops against the black background.
-const neonColors = {
-  cyan: {
-    base: 'cyan-400',
-    border: 'border-cyan-400',
-    shadow: 'shadow-[4px_4px_0px_#00f7ff]',
-    hoverShadow: 'hover:shadow-[6px_6px_0px_#00f7ff]',
-    text: 'text-cyan-400',
-  },
-  green: {
-    base: 'green-400',
-    border: 'border-green-400',
-    shadow: 'shadow-[4px_4px_0px_#22c55e]',
-    hoverShadow: 'hover:shadow-[6px_6px_0px_#22c55e]',
-    text: 'text-green-400',
-  },
-  pink: {
-    base: 'pink-500',
-    border: 'border-pink-500',
-    shadow: 'shadow-[4px_4px_0px_#ec4899]',
-    hoverShadow: 'hover:shadow-[6px_6px_0px_#ec4899]',
-    text: 'text-pink-500',
-  },
-  yellow: {
-    base: 'yellow-400',
-    border: 'border-yellow-400',
-    shadow: 'shadow-[4px_4px_0px_#facc15]',
-    hoverShadow: 'hover:shadow-[6px_6px_0px_#facc15]',
-    text: 'text-yellow-400',
-  },
-  purple: {
-      base: 'purple-500',
-      border: 'border-purple-500',
-      shadow: 'shadow-[4px_4px_0px_#a855f7]',
-      hoverShadow: 'hover:shadow-[6px_6px_0px_#a855f7]',
-      text: 'text-purple-500',
-  },
-  blue: {
-      base: 'blue-500',
-      border: 'border-blue-500',
-      shadow: 'shadow-[4px_4px_0px_#3b82f6]',
-      hoverShadow: 'hover:shadow-[6px_6px_0px_#3b82f6]',
-      text: 'text-blue-500',
-  }
-};
-
-const featureColors = [
-  neonColors.cyan,
-  neonColors.green,
-  neonColors.pink,
-  neonColors.yellow,
-  neonColors.purple,
-  neonColors.blue,
-];
-
-// 2. ANIMATION VARIANTS
-const cardAnimation = {
-  initial: { opacity: 0, y: 30 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 30 },
-};
-
-// 3. CUSTOM LOADER COMPONENT
-const BrutalLoader = () => {
-  const loadingText = "LOADING_DASHBOARD...".split("");
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white font-mono">
-        <div className="w-24 h-24 mb-6">
-            <motion.div
-                className="w-full h-full bg-cyan-400"
-                animate={{
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 90, 180],
-                    borderRadius: ["20%", "50%", "20%"],
-                }}
-                transition={{
-                    duration: 2.5,
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                    repeatDelay: 0.5
-                }}
-            />
-        </div>
-      <div className="flex items-center justify-center space-x-1">
-        {loadingText.map((char, i) => (
-          <motion.span
-            key={i}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: [0, 1, 0], y: 0 }}
-            transition={{
-              delay: i * 0.08,
-              duration: 1.5,
-              repeat: Infinity,
-              repeatType: "loop",
-              ease: "easeInOut",
-            }}
-            className={`text-xl font-black ${char === '_' ? 'text-green-400' : 'text-gray-400'}`}
-          >
-            {char}
-          </motion.span>
-        ))}
-      </div>
-    </div>
-  );
-};
-
+import ProgressCard from "@/components/dashboard/ProgressCard";
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate(); // Corrected: Using useNavigate
+  const navigate = useNavigate();
   const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/signin'); // Corrected: Using navigate
+      navigate('/signin');
     }
-  }, [user, authLoading, navigate]); // Corrected: Dependency array
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
@@ -156,8 +53,8 @@ const Dashboard = () => {
   }, [user]);
 
   const handleNavigation = useCallback((path: string) => {
-    navigate(path); // Corrected: Using navigate
-  }, [navigate]); // Corrected: Dependency array
+    navigate(path);
+  }, [navigate]);
 
   const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
@@ -177,121 +74,240 @@ const Dashboard = () => {
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
 
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
   const featureCards = [
-    { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", color: featureColors[0] },
-    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", color: featureColors[1] },
-    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", color: featureColors[2] },
-    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", color: featureColors[3] },
-    { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", color: featureColors[4] },
-    { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", color: featureColors[5] }
+    { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: stats?.notes_created || 0 },
+    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: stats?.math_problems_solved || 0 },
+    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: stats?.audio_sessions || 0 },
+    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: stats?.doubts_resolved || 0 },
+    { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", count: stats?.flashcards_created || 0 },
+    { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", count: stats?.quizzes_taken || 0 }
   ];
 
   const quickActions = [
-    { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries", color: neonColors.pink },
-{ 
-      title: "Multi-Doc Session", 
-      desc: "Upload & study multiple documents", 
-      icon: Files, 
-      route: "/multi-doc-session", 
-      color: neonColors.purple 
-    },
-    { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant", color: neonColors.cyan },
-  { 
-      title: "Ai Content Processor", 
-      desc: "Scrape study matrials from url", 
-      icon: Files, 
-      route: "/aicontentprocessor", 
-      color: neonColors.purple 
-    },
+    { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries" },
+    { title: "Multi-Doc Session", desc: "Upload & study multiple documents", icon: Files, route: "/multi-doc-session" },
+    { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant" },
+    { title: "AI Content Processor", desc: "Scrape study materials from URL", icon: Files, route: "/aicontentprocessor" },
   ];
 
   if (authLoading || statsLoading) {
-    return <BrutalLoader />;
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center font-mono ${
+        theme === 'light' ? 'bg-stone-100 text-stone-900' : 'bg-zinc-900 text-zinc-100'
+      }`}>
+        <div className="w-16 h-16 mb-8">
+          <motion.div
+            className="w-full h-full border-4 border-black"
+            style={{ backgroundColor: '#00e6c4' }}
+            animate={{
+              scale: [1, 1.1, 1],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              duration: 2,
+              ease: "easeInOut",
+              repeat: Infinity,
+            }}
+          />
+        </div>
+        <div className="text-xl font-black tracking-wider">LOADING TUTORLY...</div>
+      </div>
+    );
   }
 
   if (!user) {
-    return null; // Or a redirect component
+    return null;
   }
 
+  const themeClasses = theme === 'light' 
+    ? 'bg-stone-100 text-stone-900'
+    : 'bg-zinc-900 text-zinc-100';
+
+  const panelClasses = theme === 'light'
+    ? 'bg-white border-black'
+    : 'bg-zinc-800 border-zinc-300';
+
+  const mutedTextClasses = theme === 'light' 
+    ? 'text-stone-600' 
+    : 'text-zinc-400';
+
   return (
-    <div className="min-h-screen flex flex-col bg-black text-gray-100 font-mono">
+    <div className={`min-h-screen flex flex-col font-mono ${themeClasses}`}>
       <Navbar />
 
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
+      <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         <div className="container max-w-7xl mx-auto">
           
+          {/* Header with theme toggle */}
+          <div className="flex justify-between items-start mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">
+                {getWelcomeMessage()}
+              </h1>
+              <p className={`text-lg ${mutedTextClasses}`}>
+                Let's supercharge your learning today.
+              </p>
+            </motion.div>
+            
+            <button
+              onClick={toggleTheme}
+              className={`p-3 border-4 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+              style={{ 
+                boxShadow: '4px 4px 0px #000',
+                backgroundColor: theme === 'light' ? '#fff' : '#27272a'
+              }}
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+            </button>
+          </div>
+          
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {[
+              { title: "STUDY TIME", value: formatStudyTime(stats?.total_study_time || 0), icon: Clock, trend: `${stats?.sessions_this_month || 0} sessions`, accent: '#00e6c4' },
+              { title: "MILESTONES", value: stats?.learning_milestones || 0, icon: Award, trend: "Total achievements", accent: '#ff5a8f' },
+              { title: "QUIZ SCORE", value: `${stats?.average_quiz_score || 0}%`, icon: CheckCircle, trend: `${stats?.quizzes_taken || 0} completed`, accent: '#00e6c4' },
+              { title: "AI NOTES", value: stats?.notes_created || 0, icon: Sparkles, trend: "Notes generated", accent: '#ff5a8f' }
+            ].map((stat, idx) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: idx * 0.05 }}
+                className={`p-6 border-4 border-black ${panelClasses}`}
+                style={{ 
+                  boxShadow: `6px 6px 0px ${stat.accent}`,
+                }}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <stat.icon className="w-8 h-8" style={{ color: stat.accent }} />
+                  <BarChart3 className={`w-5 h-5 ${mutedTextClasses}`} />
+                </div>
+                <div className="text-3xl font-black mb-1">{stat.value}</div>
+                <div className="text-sm font-bold tracking-wide mb-2">{stat.title}</div>
+                <div className={`text-xs ${mutedTextClasses}`}>{stat.trend}</div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Primary CTA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="mb-10"
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className={`p-8 mb-12 border-4 border-black ${panelClasses}`}
+            style={{ boxShadow: '8px 8px 0px #00e6c4' }}
           >
-            <h1 className="text-4xl md:text-5xl font-black mb-2 text-white">{getWelcomeMessage()}</h1>
-            <p className="text-gray-400 text-lg">Let's supercharge your learning today.</p>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-black mb-2">UPLOAD FIRST MATERIAL</h2>
+                <p className={`text-lg ${mutedTextClasses}`}>
+                  Start by uploading your first study material to this study set.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => handleNavigation('/upload')}
+                  className="px-8 py-4 border-4 border-black font-black text-lg tracking-wide transition-all duration-150 hover:translate-y-[-3px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 flex items-center gap-2"
+                  style={{ 
+                    backgroundColor: '#00e6c4',
+                    color: '#000',
+                    boxShadow: '4px 4px 0px #000'
+                  }}
+                >
+                  <Upload className="w-5 h-5" />
+                  UPLOAD MATERIALS
+                </button>
+                <button
+                  onClick={() => handleNavigation('/generate')}
+                  className={`px-6 py-4 border-4 border-black font-black text-lg tracking-wide transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                  style={{ boxShadow: '4px 4px 0px #000' }}
+                >
+                  GENERATE FROM TOPIC
+                </button>
+              </div>
+            </div>
           </motion.div>
-          
-          {/* --- Stats Cards --- */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <ProgressCard title="Study Time" value={formatStudyTime(stats?.total_study_time || 0)} icon={<Clock className={`h-7 w-7 ${neonColors.blue.text}`} />} trend={`${stats?.sessions_this_month || 0} sessions this month`} className={`bg-gray-900 border-2 rounded-none ${neonColors.blue.border} ${neonColors.blue.shadow}`} />
-            <ProgressCard title="Milestones" value={stats?.learning_milestones || 0} icon={<Award className={`h-7 w-7 ${neonColors.green.text}`} />} trend="Total achievements" className={`bg-gray-900 border-2 rounded-none ${neonColors.green.border} ${neonColors.green.shadow}`} />
-            <ProgressCard title="Quizzes" value={stats?.quizzes_taken || 0} icon={<CheckCircle className={`h-7 w-7 ${neonColors.yellow.text}`} />} trend={`${stats?.average_quiz_score || 0}% avg score`} className={`bg-gray-900 border-2 rounded-none ${neonColors.yellow.border} ${neonColors.yellow.shadow}`} />
-            <ProgressCard title="AI Notes" value={stats?.notes_created || 0} icon={<Sparkles className={`h-7 w-7 ${neonColors.purple.text}`} />} trend="Notes generated" className={`bg-gray-900 border-2 rounded-none ${neonColors.purple.border} ${neonColors.purple.shadow}`} />
-          </div>
 
-          {/* --- Main Feature Cards --- */}
+          {/* Feature Tiles */}
           <div className="mb-12">
-            <h2 className="text-3xl font-black mb-6 text-white">Core Tools</h2>
+            <h2 className="text-2xl md:text-3xl font-black mb-8 tracking-tight">CORE TOOLS</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {featureCards.map((feature, idx) => (
-                <motion.div
+                <motion.button
                   key={feature.title}
-                  variants={cardAnimation}
-                  initial="initial"
-                  animate="animate"
-                  transition={{ duration: 0.4, delay: idx * 0.08, ease: "easeOut" }}
-                  whileHover={{ y: -5 }}
-                  className={`group relative flex flex-col justify-between p-6 cursor-pointer bg-gray-900 border-2 rounded-none transition-all duration-200 ${feature.color.border} ${feature.color.shadow} ${feature.color.hoverShadow}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: idx * 0.05 }}
+                  whileHover={{ y: -3 }}
+                  whileTap={{ y: 1 }}
                   onClick={() => handleNavigation(feature.route)}
-                  style={{ minHeight: "240px" }}
+                  className={`group p-6 text-left border-4 border-black transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                  style={{ 
+                    boxShadow: `4px 4px 0px ${idx % 2 === 0 ? '#ff5a8f' : '#00e6c4'}`,
+                  }}
                 >
-                  <div>
-                    <feature.icon className={`w-10 h-10 mb-4 ${feature.color.text}`} />
-                    <h3 className="font-black text-2xl mb-2 text-white">{feature.title}</h3>
-                    <p className="text-gray-400 font-bold text-base">{feature.desc}</p>
+                  <div className="flex items-start justify-between mb-4">
+                    <feature.icon 
+                      className="w-8 h-8" 
+                      style={{ color: idx % 2 === 0 ? '#ff5a8f' : '#00e6c4' }} 
+                    />
+                    <div 
+                      className="px-3 py-1 border-2 border-black font-black text-sm"
+                      style={{ 
+                        backgroundColor: idx % 2 === 0 ? '#ff5a8f' : '#00e6c4',
+                        color: '#000'
+                      }}
+                    >
+                      {feature.count}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-end font-bold text-sm text-gray-400 group-hover:text-white transition-colors">
-                    <span>EXPLORE</span>
-                    <ArrowRight className="w-4 h-4 ml-2 transform transition-transform group-hover:translate-x-1" />
+                  <h3 className="font-black text-xl mb-2 tracking-wide">{feature.title}</h3>
+                  <p className={`${mutedTextClasses} font-bold mb-4`}>{feature.desc}</p>
+                  <div className="flex items-center justify-end text-sm font-black tracking-wider group-hover:translate-x-1 transition-transform">
+                    EXPLORE <ArrowRight className="w-4 h-4 ml-2" />
                   </div>
-                </motion.div>
+                </motion.button>
               ))}
             </div>
           </div>
 
-          {/* --- Quick Actions --- */}
+          {/* Quick Actions */}
           <div>
-            <h2 className="text-3xl font-black mb-6 flex items-center gap-3 text-white">
-                <Zap className="text-yellow-400 h-7 w-7" />
-                Quick Actions
+            <h2 className="text-2xl md:text-3xl font-black mb-8 flex items-center gap-3 tracking-tight">
+              <Zap className="w-7 h-7" style={{ color: '#00e6c4' }} />
+              QUICK ACTIONS
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {quickActions.map((action, idx) => (
-                <motion.div
+                <motion.button
                   key={action.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 + 0.3 }}
-                  whileHover={{ y: -5, scale: 1.03 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, delay: idx * 0.05 }}
+                  whileHover={{ x: 3 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleNavigation(action.route)}
-                  className={`group p-5 cursor-pointer bg-gray-900 border-2 rounded-none flex items-center gap-4 transition-all duration-200 ${action.color.border} ${action.color.shadow} ${action.color.hoverShadow}`}
+                  className={`group p-5 text-left border-4 border-black flex items-center gap-4 transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                  style={{ 
+                    boxShadow: '3px 3px 0px #000',
+                  }}
                 >
-                  <action.icon className={`w-8 h-8 flex-shrink-0 ${action.color.text}`} />
+                  <action.icon className="w-6 h-6 flex-shrink-0" style={{ color: '#ff5a8f' }} />
                   <div>
-                      <h3 className="font-black text-lg text-white">{action.title}</h3>
-                      <p className="font-bold text-sm text-gray-400">{action.desc}</p>
+                    <h3 className="font-black text-lg tracking-wide">{action.title}</h3>
+                    <p className={`${mutedTextClasses} font-bold text-sm`}>{action.desc}</p>
                   </div>
-                </motion.div>
+                </motion.button>
               ))}
             </div>
           </div>
