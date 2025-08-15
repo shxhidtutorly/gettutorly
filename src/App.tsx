@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import BookLoader from "@/components/ui/BookLoader";
+import { Analytics } from '@vercel/analytics/react';
 import NotFoundPage from "@/components/ui/page-not-found";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -9,6 +10,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -119,6 +121,8 @@ const App = () => {
                 <Route path="/doubt-bookmarks" element={<ProtectedRoute><DoubtBookmarks /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/youtube-summarizer" element={<ProtectedRoute><YouTubeSummarizer /></ProtectedRoute>} />
+                 <Route path="/multi-doc-session" element={<ProtectedRoute><MultiDocSession /></ProtectedRoute>} />
+
                 <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
                 <Route path="*" element={<NotFound />} />
@@ -126,6 +130,7 @@ const App = () => {
             </ErrorBoundary>
             <Toaster />
             <Sonner />
+          <Analytics />
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>
