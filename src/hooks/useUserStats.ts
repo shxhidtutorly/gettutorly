@@ -1,8 +1,14 @@
+// src/hooks/useUserStats.ts
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserDoc, getUserDocs, safeSetDoc } from '@/lib/firebase-helpers';
-import { getDoc, Timestamp } from 'firebase/firestore';
-import { getUserStats, updateUserStats } from '@/lib/firebase-firestore';
+import { Timestamp } from 'firebase/firestore';
+// Updated imports: All firestore functions now come from a single file for clarity.
+import {
+  subscribeToUserStats,
+  updateUserStats,
+  getUserDocs
+} from '@/lib/firebase-firestore';
 
 export interface UserStats {
   total_study_time: number;
@@ -16,134 +22,129 @@ export interface UserStats {
   lastUpdated?: Timestamp;
 }
 
+/**
+ * A hook to provide real-time user statistics for the dashboard.
+ *
+ * This hook subscribes to a pre-calculated 'stats' document in Firestore.
+ * It shows cached data instantly and updates in real-time.
+ * If the cached data is older than one hour, it triggers a full recalculation
+ * in the background to ensure data accuracy without blocking the UI.
+ */
 export const useUserStats = () => {
   const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // This function performs the expensive recalculation of all stats from raw data.
+  // It should only be called when the cached stats are considered stale.
+  const recalculateAndSaveStats = async (uid: string) => {
+    console.log("Cached stats are stale. Recalculating from source...");
+    try {
+      // Fetch all underlying data collections in parallel.
+      // Note: This is an expensive operation and should not be run frequently.
+      const [
+        userActivity,
+        notesHistory,
+        summaryHistory,
+        flashcards,
+        quizzes,
+        aiSessions
+      ] = await Promise.all([
+        getUserDocs(uid, 'userActivity'),
+        getUserDocs(uid, 'notes_history'),
+        getUserDocs(uid, 'summary_sessions'),
+        getUserDocs(uid, 'flashcards'),
+        getUserDocs(uid, 'quizzes'),
+        getUserDocs(uid, 'ai_sessions')
+      ]);
+
+      // --- Perform Calculations ---
+
+      const totalStudyTime = userActivity.reduce((sum: number, session: any) => {
+        return sum + (typeof session.duration === 'number' ? session.duration : 0);
+      }, 0);
+
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const sessionsThisMonth = userActivity.filter((session: any) => {
+        if (!session.timestamp) return false;
+        // Handle both Firestore Timestamp and string/number date formats
+        const sessionDate = session.timestamp?.toDate ? session.timestamp.toDate() : new Date(session.timestamp);
+        return sessionDate >= monthStart;
+      }).length;
+
+      const quizzesTaken = quizzes.length;
+      const quizScores = quizzes.map((q: any) => q.score).filter((score: any) => typeof score === 'number');
+      const averageQuizScore = quizScores.length > 0
+        ? Math.round(quizScores.reduce((a: number, b: number) => a + b, 0) / quizScores.length)
+        : 0;
+
+      const learningMilestones = notesHistory.length + summaryHistory.length + flashcards.length + quizzesTaken + aiSessions.length;
+
+      // Note: I've updated 'materials_created' to also include flashcards.
+      const materialsCreated = notesHistory.length + summaryHistory.length + flashcards.length;
+
+      const newStats: UserStats = {
+        total_study_time: totalStudyTime,
+        materials_created: materialsCreated,
+        notes_created: notesHistory.length,
+        quizzes_taken: quizzesTaken,
+        flashcards_created: flashcards.length,
+        average_quiz_score: averageQuizScore,
+        sessions_this_month: sessionsThisMonth,
+        learning_milestones: learningMilestones,
+        lastUpdated: Timestamp.now()
+      };
+
+      // Save the newly calculated stats back to Firestore.
+      // The real-time listener will automatically pick up this update.
+      await updateUserStats(uid, newStats);
+      console.log("Successfully recalculated and saved new stats:", newStats);
+
+    } catch (error) {
+      console.error('Error recalculating user stats:', error);
+    }
+  };
+
   useEffect(() => {
-    if (authLoading) return;
-    
+    // If auth is loading or there's no user, do nothing.
+    if (authLoading) {
+      return;
+    }
     if (!user) {
+      setStats(null);
       setLoading(false);
       return;
     }
 
-    const loadStats = async () => {
-      setLoading(true);
-      try {
-        const uid = user.uid;
-        
-        // FIXED: Use the corrected getUserStats function
-        const cachedStats = await getUserStats(uid);
-        
-        if (cachedStats && cachedStats.lastUpdated) {
-          const lastUpdated = cachedStats.lastUpdated?.toDate ? cachedStats.lastUpdated.toDate() : new Date(0);
-          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    setLoading(true);
+    const uid = user.uid;
 
-          if (lastUpdated > oneHourAgo) {
-            setStats(cachedStats as UserStats);
-            setLoading(false);
-            console.log("Loaded user stats from cache.");
-            return;
-          }
+    // Subscribe to the user's stats document for real-time updates.
+    const unsubscribe = subscribeToUserStats(uid, (liveStats) => {
+      if (liveStats) {
+        const statsData = liveStats as UserStats;
+        setStats(statsData);
+
+        // Check if the stats are stale (older than 1 hour).
+        const lastUpdated = statsData.lastUpdated?.toDate ? statsData.lastUpdated.toDate() : new Date(0);
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+        if (lastUpdated < oneHourAgo) {
+          // Trigger a background recalculation. The UI will show stale data
+          // until the update comes through the real-time listener.
+          recalculateAndSaveStats(uid);
         }
-
-        // Calculate fresh stats
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        
-        const [
-          userActivity,
-          notesHistory,
-          mathHistory,
-          summaryHistory,
-          flashcards,
-          quizzes,
-          aiSessions
-        ] = await Promise.all([
-          getUserDocs(uid, 'userActivity'),
-          getUserDocs(uid, 'notes_history'),
-          getUserDocs(uid, 'math_chat_history'),
-          getUserDocs(uid, 'summary_sessions'),
-          getUserDocs(uid, 'flashcards'),
-          getUserDocs(uid, 'quizzes'),
-          getUserDocs(uid, 'ai_sessions')
-        ]);
-
-        // Calculate total study time (in minutes)
-        const totalStudyTime = userActivity.reduce((sum: number, session: any) => {
-          return sum + (typeof session.duration === 'number' ? session.duration : 0);
-        }, 0);
-
-        // Calculate sessions this month
-        const sessionsThisMonth = userActivity.filter((session: any) => {
-          let sessionDate;
-          if (session.timestamp?.toDate) {
-            sessionDate = session.timestamp.toDate();
-          } else if (session.timestamp) {
-            try {
-              sessionDate = new Date(session.timestamp);
-            } catch (e) {
-              sessionDate = new Date(0);
-            }
-          } else {
-            sessionDate = new Date(0);
-          }
-          return sessionDate >= monthStart;
-        }).length;
-
-        // Calculate average quiz score and total quizzes taken
-        const quizzesTaken = quizzes.length;
-        const quizScores = quizzes.map((q: any) => q.score).filter((score: any) => typeof score === 'number');
-        const averageQuizScore = quizScores.length > 0
-          ? Math.round(quizScores.reduce((a: number, b: number) => a + b, 0) / quizScores.length)
-          : 0;
-
-        // Calculate learning milestones
-        const learningMilestones = notesHistory.length + summaryHistory.length + 
-          flashcards.length + quizzesTaken + aiSessions.length;
-
-        const calculatedStats: UserStats = {
-          total_study_time: totalStudyTime,
-          materials_created: notesHistory.length + summaryHistory.length,
-          notes_created: notesHistory.length,
-          quizzes_taken: quizzesTaken,
-          flashcards_created: flashcards.length,
-          average_quiz_score: averageQuizScore,
-          sessions_this_month: sessionsThisMonth,
-          learning_milestones: learningMilestones,
-          lastUpdated: Timestamp.now()
-        };
-
-        setStats(calculatedStats);
-        console.log("Calculated and set new user stats:", calculatedStats);
-
-        // FIXED: Use the corrected updateUserStats function
-        await updateUserStats(uid, calculatedStats);
-
-      } catch (error) {
-        console.error('Error loading user stats:', error);
-        // Set default stats on error
-        const defaultStats: UserStats = {
-          total_study_time: 0,
-          materials_created: 0,
-          notes_created: 0,
-          quizzes_taken: 0,
-          flashcards_created: 0,
-          average_quiz_score: 0,
-          sessions_this_month: 0,
-          learning_milestones: 0,
-          lastUpdated: Timestamp.now()
-        };
-        setStats(defaultStats);
-      } finally {
-        setLoading(false);
       }
-    };
+      // If liveStats is null (e.g., doc doesn't exist yet), the subscription
+      // in firebase-firestore.ts will create it, triggering this callback again.
+      setLoading(false);
+    });
 
-    loadStats();
+    // Clean up the subscription when the component unmounts or the user changes.
+    return () => unsubscribe();
   }, [user, authLoading]);
 
+  // Return the latest stats and the combined loading state.
   return { stats, loading: loading || authLoading };
 };
