@@ -289,7 +289,7 @@ const AINotesGenerator = () => {
                                URL.revokeObjectURL(url);
                              }}
                            >
-                             <Download className="mr-2"/> Download Notes
+                             <Download className="w-full h-14 text-lg bg-transparent border-2 border-red-400 text-red-400 hover:bg-red-400 hover:text-black rounded-none font-bold transition-all duration-200"/> Download Notes
                            </Button>
                         </div>
                         <div className="mt-auto pt-4">
