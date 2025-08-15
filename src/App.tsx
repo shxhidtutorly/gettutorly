@@ -40,7 +40,7 @@ import PricingPage from "./pages/Pricing";
 import DoubtChain from "./pages/DoubtChain";
 import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
-import YouTubeSummarizer from "./pages/AiContentProcessor";
+import AiContentProcessor from "./pages/AiContentProcessor";
 import MultiDocSession from "./pages/MultiDocSession";
 
 // Feature pages (import with unique names)
