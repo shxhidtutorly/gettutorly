@@ -33,7 +33,10 @@ const Dashboard = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
 
-
+const toggleTheme = useCallback(() => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  }, []);
+  
   // FIXED: Added the missing handleNavigation function
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
