@@ -19,7 +19,6 @@ const Navbar = () => (
     <header className="bg-black border-b-2 border-[#181818] p-4">
         <div className="container mx-auto flex justify-between items-center">
             <h1 className="text-xl font-black text-white">TUTORLY</h1>
-            {/* You can add user profile icon here */}
         </div>
     </header>
 );
@@ -40,8 +39,6 @@ const BottomNav = () => (
     </div>
 );
 
-// --- BUG FIX ---
-// Correctly implemented AnimatedCounter using useTransform
 const AnimatedCounter = ({ value }: { value: number }) => {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true });
@@ -57,28 +54,35 @@ const AnimatedCounter = ({ value }: { value: number }) => {
     return <motion.span ref={ref}>{display}</motion.span>;
 };
 
-// Brutalist Card Wrapper - Themed to match screenshot
+// --- MAJOR FIX & REFACTOR ---
+// This component is now written correctly to avoid the crash.
 const BrutalistCard = ({ children, className = '', color = 'cyan' }: { children: React.ReactNode; className?: string; color?: 'cyan' | 'pink' | 'yellow' | 'green' }) => {
+    // Define explicit CSS values instead of Tailwind classes for animation
     const colorStyles = {
-        cyan: { border: 'border-[#00f7ff]', shadow: 'shadow-[4px_4px_0px_#00f7ff]' },
-        pink: { border: 'border-[#f40099]', shadow: 'shadow-[4px_4px_0px_#f40099]' },
-        yellow: { border: 'border-yellow-400', shadow: 'shadow-[4px_4px_0px_#facc15]' },
-        green: { border: 'border-green-400', shadow: 'shadow-[4px_4px_0px_#22c55e]' },
+        cyan:   { borderColor: '#00f7ff', boxShadow: '4px 4px 0px #00f7ff' },
+        pink:   { borderColor: '#f40099', boxShadow: '4px 4px 0px #f40099' },
+        yellow: { borderColor: '#facc15', boxShadow: '4px 4px 0px #facc15' },
+        green:  { borderColor: '#22c55e', boxShadow: '4px 4px 0px #22c55e' },
     };
     
+    const styles = colorStyles[color];
+
     return (
         <motion.div
-            initial={{ ...colorStyles[color].shadow }}
-            whileHover={{ boxShadow: '0px 0px 0px #000' }} // "Pushes in" on hover
+            initial={{ boxShadow: styles.boxShadow }}
+            whileHover={{ boxShadow: '0px 0px 0px #00000000' }} // Animate to a transparent shadow
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={`bg-[#181818] border-2 border-black p-4 sm:p-6 ${colorStyles[color].border} ${className}`}
+            // Use inline styles for dynamic properties
+            style={{ borderColor: styles.borderColor }}
+            // Static classes remain in className
+            className={`bg-[#181818] border-2 p-4 sm:p-6 ${className}`}
         >
             {children}
         </motion.div>
     );
 };
 
-// Stat Card - Themed to match screenshot layout
+
 const ProgressStatCard = ({ title, value, icon, color, unit = '' }: { title: string; value: number; icon: React.ReactNode; color: 'cyan' | 'pink' | 'yellow' | 'green'; unit?: string; }) => {
     const colorClasses = {
         cyan: 'text-[#00f7ff]',
@@ -102,7 +106,6 @@ const ProgressStatCard = ({ title, value, icon, color, unit = '' }: { title: str
     );
 };
 
-// The rest of the components are styled to match
 const AnimatedProgressBar = ({ progress, color }: { progress: number; color: 'cyan' | 'pink' | 'yellow' | 'green' }) => {
     const colorClasses = {
       cyan: 'bg-[#00f7ff]',
@@ -148,8 +151,7 @@ const SimulatedBarChart = ({ data, color, title, dataKey, labelKey }: { data: an
     );
 };
 
-// --- END: BUILT-IN COMPONENTS ---
-
+// --- Main Progress Component (No changes needed here) ---
 
 const Progress = () => {
     const [user, authLoading] = useAuthState(auth);
