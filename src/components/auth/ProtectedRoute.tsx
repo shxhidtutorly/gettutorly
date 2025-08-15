@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useUnifiedAuth } from "@/contexts/UnifiedAuthContext";
+import { useEffect } from "react";
+import { cleanupWebGLContexts } from "@/lib/webgl-cleanup";
+import { useUser } from "@/hooks/useUser";
 import { useSubscription } from "@/hooks/useSubscription";
 
 interface ProtectedRouteProps {
@@ -7,23 +9,37 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, isLoaded } = useUnifiedAuth();
+  const { user, isLoaded, loading: authLoading } = useUser();
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const location = useLocation();
 
-  // Single loading check - wait for auth to be fully loaded
-  if (!isLoaded) {
-    return null;
+  // Global WebGL cleanup on route changes
+  useEffect(() => {
+    const handleRouteChange = () => {
+      cleanupWebGLContexts();
+    };
+
+    handleRouteChange();
+    return () => {
+      cleanupWebGLContexts();
+    };
+  }, [location.pathname]);
+
+  // Show unified loading until both auth and subscription are ready
+  if (!isLoaded || authLoading || subLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
-  // If no user, redirect to signin
+  // Not authenticated
   if (!user) {
     return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
-  }
-
-  // Wait for subscription loading to complete
-  if (subLoading) {
-    return null;
   }
 
   // Subscription check disabled for development
@@ -31,7 +47,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   //   return <Navigate to="/pricing" state={{ from: location.pathname }} replace />;
   // }
 
-  // If a user exists and all checks pass, render the children.
   return <>{children}</>;
 };
 

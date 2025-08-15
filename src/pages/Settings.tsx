@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/hooks/useUser";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { db } from "@/lib/firebase"; // make sure you have this exported
-import { doc, getDoc } from "firebase/firestore";
 import { 
   Crown, 
   Calendar, 
@@ -18,41 +18,13 @@ import {
   User,
   LogOut
 } from "lucide-react";
+import { toast } from "sonner";
 
 const SettingsPage = () => {
   const { user, isLoaded } = useUser();
   const { signOut } = useFirebaseAuth();
+  const { subscription, loading } = useSubscription();
   const navigate = useNavigate();
-  const [subscription, setSubscription] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSub = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const subRef = doc(db, `users/${user.id}/subscription/current`);
-        const snap = await getDoc(subRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          // Map Firestore fields to UI expected fields
-          setSubscription({
-            plan_name: data.plan || data.raw?.items?.[0]?.price?.name || "Unknown Plan",
-            status: data.status || data.raw?.status || "unknown",
-            trial_end_date: data.raw?.trial_end || null,
-            subscription_end_date: data.raw?.billing_period?.ends_at || null,
-            is_trial: (data.raw?.status || "").toLowerCase() === "trialing",
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching subscription:", err);
-      }
-      setLoading(false);
-    };
-    fetchSub();
-  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -65,7 +37,6 @@ const SettingsPage = () => {
         return 'bg-green-500';
       case 'trialing':
         return 'bg-blue-500';
-      case 'canceled':
       case 'cancelled':
         return 'bg-red-500';
       default:
@@ -92,6 +63,7 @@ const SettingsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-950 dark:via-blue-950 dark:to-indigo-950">
       <Navbar />
+      
       <main className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -122,7 +94,11 @@ const SettingsPage = () => {
                 <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
                 <p className="text-lg text-gray-900 dark:text-white">{user?.email}</p>
               </div>
-              <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+                className="flex items-center gap-2"
+              >
                 <LogOut className="w-4 h-4" />
                 Sign Out
               </Button>
@@ -178,7 +154,10 @@ const SettingsPage = () => {
                   )}
 
                   <div className="flex gap-3">
-                    <Button onClick={() => navigate('/pricing')} className="flex items-center gap-2">
+                    <Button
+                      onClick={() => navigate('/pricing')}
+                      className="flex items-center gap-2"
+                    >
                       <CreditCard className="w-4 h-4" />
                       Change Plan
                     </Button>
@@ -193,13 +172,16 @@ const SettingsPage = () => {
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
                     Subscribe to unlock all features
                   </p>
-                  <Button onClick={() => navigate('/pricing')}>View Plans</Button>
+                  <Button onClick={() => navigate('/pricing')}>
+                    View Plans
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
         </motion.div>
       </main>
+
       <Footer />
     </div>
   );

@@ -6,12 +6,11 @@ interface ProgressCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  color?: string;
+  color: string;
   trend?: string;
-  className?: string;
 }
 
-const ProgressCard = ({ title, value, icon, color = "blue", trend, className }: ProgressCardProps) => {
+const ProgressCard = ({ title, value, icon, color, trend }: ProgressCardProps) => {
   const getColorClasses = (color: string) => {
     const colors = {
       blue: "hover:shadow-blue-500/20 hover:border-blue-500/50",
@@ -30,7 +29,7 @@ const ProgressCard = ({ title, value, icon, color = "blue", trend, className }: 
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
     >
-      <Card className={`bg-[#121212] border-slate-700 transition-all duration-300 ${getColorClasses(color)} group cursor-pointer ${className || ''}`}>
+      <Card className={`bg-[#121212] border-slate-700 transition-all duration-300 ${getColorClasses(color)} group cursor-pointer`}>
         <CardContent className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="group-hover:scale-110 transition-transform duration-300">

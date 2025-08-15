@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Corrected: Using useNavigate
+import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import {
@@ -14,17 +15,19 @@ import {
   StickyNote,
   Clock,
   Award,
-  Files,
   CheckCircle,
   ArrowRight,
   Youtube
 } from "lucide-react";
-import { useUnifiedAuth } from "@/contexts/UnifiedAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import ProgressCard from "@/components/dashboard/ProgressCard";
-// Removed BrutalLoader import - loader is defined inline
+import { useUserStats } from "@/hooks/useUserStats";
+import ProgressCard from "@/components/dashboard/ProgressCard"; // Assuming this component exists and is styled
 
 // --- Neon Brutalist UI Configuration ---
+
+// 1. NEON COLOR PALETTE
+// A vibrant, high-contrast palette that pops against the black background.
 const neonColors = {
   cyan: {
     base: 'cyan-400',
@@ -86,34 +89,77 @@ const cardAnimation = {
   exit: { opacity: 0, y: 30 },
 };
 
+// 3. CUSTOM LOADER COMPONENT
+const BrutalLoader = () => {
+  const loadingText = "LOADING_DASHBOARD...".split("");
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white font-mono">
+        <div className="w-24 h-24 mb-6">
+            <motion.div
+                className="w-full h-full bg-cyan-400"
+                animate={{
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 90, 180],
+                    borderRadius: ["20%", "50%", "20%"],
+                }}
+                transition={{
+                    duration: 2.5,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                    repeatDelay: 0.5
+                }}
+            />
+        </div>
+      <div className="flex items-center justify-center space-x-1">
+        {loadingText.map((char, i) => (
+          <motion.span
+            key={i}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: [0, 1, 0], y: 0 }}
+            transition={{
+              delay: i * 0.08,
+              duration: 1.5,
+              repeat: Infinity,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+            className={`text-xl font-black ${char === '_' ? 'text-green-400' : 'text-gray-400'}`}
+          >
+            {char}
+          </motion.span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+
 const Dashboard = () => {
-  const { user, firebaseUser, isLoaded } = useUnifiedAuth();
-  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate(); // Corrected: Using useNavigate
+  const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
   const [isNewUser, setIsNewUser] = useState(false);
 
-  // Remove duplicate auth check - ProtectedRoute already handles this
-  // useEffect(() => {
-  //   if (!isLoaded) return;
-  //   
-  //   if (!user) {
-  //     navigate('/signin');
-  //   }
-  // }, [user, isLoaded, navigate]);
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/signin'); // Corrected: Using navigate
+    }
+  }, [user, authLoading, navigate]); // Corrected: Dependency array
 
   useEffect(() => {
-    if (firebaseUser?.metadata?.creationTime && firebaseUser?.metadata?.lastSignInTime) {
-      const creationTime = new Date(firebaseUser.metadata.creationTime).getTime();
-      const lastSignInTime = new Date(firebaseUser.metadata.lastSignInTime).getTime();
+    if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
+      const creationTime = new Date(user.metadata.creationTime).getTime();
+      const lastSignInTime = new Date(user.metadata.lastSignInTime).getTime();
       setIsNewUser(Math.abs(lastSignInTime - creationTime) < 5 * 60 * 1000);
     }
-  }, [firebaseUser]);
+  }, [user]);
 
   const handleNavigation = useCallback((path: string) => {
-    navigate(path);
-  }, [navigate]);
+    navigate(path); // Corrected: Using navigate
+  }, [navigate]); // Corrected: Dependency array
 
   const getUserDisplayName = useCallback(() => {
-    if (user?.fullName) return user.fullName;
+    if (user?.displayName) return user.displayName;
     if (user?.email) return user.email.split('@')[0];
     return "User";
   }, [user]);
@@ -122,50 +168,12 @@ const Dashboard = () => {
     const name = getUserDisplayName();
     return isNewUser ? `Welcome, ${name}! 🎉` : `Welcome back, ${name}! 👋`;
   }, [getUserDisplayName, isNewUser]);
-
-  // The `BrutalLoader` component should be defined outside the main component to avoid re-creation
-  // or you can just return it here for simplicity.
-  const BrutalLoader = () => {
-    const loadingText = "LOADING_DASHBOARD...".split("");
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white font-mono">
-        <div className="w-24 h-24 mb-6">
-          <motion.div
-            className="w-full h-full bg-cyan-400"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 90, 180],
-              borderRadius: ["20%", "50%", "20%"],
-            }}
-            transition={{
-              duration: 2.5,
-              ease: "easeInOut",
-              repeat: Infinity,
-              repeatDelay: 0.5
-            }}
-          />
-        </div>
-        <div className="flex items-center justify-center space-x-1">
-          {loadingText.map((char, i) => (
-            <motion.span
-              key={i}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: [0, 1, 0], y: 0 }}
-              transition={{
-                delay: i * 0.08,
-                duration: 1.5,
-                repeat: Infinity,
-                repeatType: "loop",
-                ease: "easeInOut",
-              }}
-              className={`text-xl font-black ${char === '_' ? 'text-green-400' : 'text-gray-400'}`}
-            >
-              {char}
-            </motion.span>
-          ))}
-        </div>
-      </div>
-    );
+  
+  const formatStudyTime = (minutes: number) => {
+    if (minutes < 60) return `${minutes}min`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
 
   const featureCards = [
@@ -179,30 +187,26 @@ const Dashboard = () => {
 
   const quickActions = [
     { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries", color: neonColors.pink },
-    { 
-      title: "Multi-Doc Session", 
-      desc: "Upload & study multiple documents", 
-      icon: Files, 
-      route: "/multi-doc-session", 
-      color: neonColors.purple 
-    },
+    { title: "Library", desc: "Browse your materials", icon: BookOpen, route: "/library", color: neonColors.blue },
     { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant", color: neonColors.cyan },
     { title: "YouTube Summarizer", desc: "Summarize YouTube videos", icon: Youtube, route: "/youtube-summarizer", color: neonColors.yellow },
   ];
 
-  if (!isLoaded) {
+  if (authLoading || statsLoading) {
     return <BrutalLoader />;
   }
 
   if (!user) {
-    return null; // ProtectedRoute handles redirect
+    return null; // Or a redirect component
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-gray-100 font-mono">
+      <Navbar />
 
       <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         <div className="container max-w-7xl mx-auto">
+          
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -212,12 +216,16 @@ const Dashboard = () => {
             <h1 className="text-4xl md:text-5xl font-black mb-2 text-white">{getWelcomeMessage()}</h1>
             <p className="text-gray-400 text-lg">Let's supercharge your learning today.</p>
           </motion.div>
+          
+          {/* --- Stats Cards --- */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <ProgressCard title="Study Time" value="--" icon={<Clock className={`h-7 w-7 ${neonColors.blue.text}`} />} trend="-- sessions this month" className={`bg-gray-900 border-2 rounded-none ${neonColors.blue.border} ${neonColors.blue.shadow}`} />
-            <ProgressCard title="Milestones" value="--" icon={<Award className={`h-7 w-7 ${neonColors.green.text}`} />} trend="Total achievements" className={`bg-gray-900 border-2 rounded-none ${neonColors.green.border} ${neonColors.green.shadow}`} />
-            <ProgressCard title="Quizzes" value="--" icon={<CheckCircle className={`h-7 w-7 ${neonColors.yellow.text}`} />} trend="--% avg score" className={`bg-gray-900 border-2 rounded-none ${neonColors.yellow.border} ${neonColors.yellow.shadow}`} />
-            <ProgressCard title="AI Notes" value="--" icon={<Sparkles className={`h-7 w-7 ${neonColors.purple.text}`} />} trend="Notes generated" className={`bg-gray-900 border-2 rounded-none ${neonColors.purple.border} ${neonColors.purple.shadow}`} />
+            <ProgressCard title="Study Time" value={formatStudyTime(stats?.total_study_time || 0)} icon={<Clock className={`h-7 w-7 ${neonColors.blue.text}`} />} trend={`${stats?.sessions_this_month || 0} sessions this month`} className={`bg-gray-900 border-2 rounded-none ${neonColors.blue.border} ${neonColors.blue.shadow}`} />
+            <ProgressCard title="Milestones" value={stats?.learning_milestones || 0} icon={<Award className={`h-7 w-7 ${neonColors.green.text}`} />} trend="Total achievements" className={`bg-gray-900 border-2 rounded-none ${neonColors.green.border} ${neonColors.green.shadow}`} />
+            <ProgressCard title="Quizzes" value={stats?.quizzes_taken || 0} icon={<CheckCircle className={`h-7 w-7 ${neonColors.yellow.text}`} />} trend={`${stats?.average_quiz_score || 0}% avg score`} className={`bg-gray-900 border-2 rounded-none ${neonColors.yellow.border} ${neonColors.yellow.shadow}`} />
+            <ProgressCard title="AI Notes" value={stats?.notes_created || 0} icon={<Sparkles className={`h-7 w-7 ${neonColors.purple.text}`} />} trend="Notes generated" className={`bg-gray-900 border-2 rounded-none ${neonColors.purple.border} ${neonColors.purple.shadow}`} />
           </div>
+
+          {/* --- Main Feature Cards --- */}
           <div className="mb-12">
             <h2 className="text-3xl font-black mb-6 text-white">Core Tools</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -246,6 +254,8 @@ const Dashboard = () => {
               ))}
             </div>
           </div>
+
+          {/* --- Quick Actions --- */}
           <div>
             <h2 className="text-3xl font-black mb-6 flex items-center gap-3 text-white">
                 <Zap className="text-yellow-400 h-7 w-7" />
@@ -274,6 +284,7 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+
       <Footer />
       <BottomNav />
     </div>

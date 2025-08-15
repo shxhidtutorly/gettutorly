@@ -14,36 +14,29 @@ export const useSubscription = () => {
       return;
     }
 
-    // Listen to Firestore subscription document
-    let unsub: any;
-    (async () => {
+    const fetchSubscription = async () => {
       try {
         setLoading(true);
-        const { db } = await import("@/lib/firebase");
-        const { doc, onSnapshot } = await import("firebase/firestore");
-        const ref = doc(db, "users", user.id, "subscription", "current");
-        unsub = onSnapshot(ref, (snap) => {
-          if (snap.exists()) {
-            setSubscription(snap.data());
-          } else {
+        const res = await fetch(`/api/subscription?userId=${user.id}`);
+        if (!res.ok) {
+          if (res.status === 404) {
             setSubscription(null);
+            return;
           }
-          setLoading(false);
-        }, (err) => {
-          console.error("[Subscription] Firestore error:", err);
-          setSubscription(null);
-          setLoading(false);
-        });
+          throw new Error("Failed to fetch subscription");
+        }
+        const data = await res.json();
+        setSubscription(data);
       } catch (error) {
         console.error("[Subscription] Unexpected error:", error);
         setSubscription(null);
+      } finally {
         setLoading(false);
       }
-    })();
+    };
 
-    return () => unsub && unsub();
+    fetchSubscription();
   }, [user, isLoaded]);
-
 
   const createTrialSubscription = async (planName: string) => {
     if (!user) return false;
