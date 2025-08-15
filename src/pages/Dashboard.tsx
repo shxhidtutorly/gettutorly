@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -21,7 +21,7 @@ import {
   Files,
   Brain,
   Upload,
-  BarChart3
+  BarChart3,
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -32,24 +32,41 @@ const Dashboard = () => {
   const [isNewUser, setIsNewUser] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
+  // --- START OF MOCK DATA SNIPPET ---
+  const [useMockData, setUseMockData] = useState(true);
 
-const toggleTheme = useCallback(() => {
+  const mockStats = useMemo(() => ({
+    total_study_time: 125, // Mock: 2 hours and 5 minutes
+    learning_milestones: 7,
+    average_quiz_score: 88,
+    notes_created: 12,
+    sessions_this_month: 5,
+    flashcards_created: 21,
+    quizzes_taken: 3,
+    math_chat_sessions: 8,
+    audio_recaps_created: 2,
+    doubt_chains_used: 4,
+  }), []);
+
+  const displayedStats = useMockData ? mockStats : stats;
+
+  const toggleMockData = () => setUseMockData(!useMockData);
+  // --- END OF MOCK DATA SNIPPET ---
+
+  const toggleTheme = useCallback(() => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   }, []);
   
-  // FIXED: Added the missing handleNavigation function
   const handleNavigation = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);
 
-  // Effect to redirect non-authenticated users
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/signin');
     }
   }, [user, authLoading, navigate]);
 
-  // Effect to determine if it's the user's first session
   useEffect(() => {
     if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
       const creationTime = new Date(user.metadata.creationTime).getTime();
@@ -76,9 +93,6 @@ const toggleTheme = useCallback(() => {
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
 
-  // --- RENDER LOGIC ---
-
-  // FIXED: Combined auth and stats loading into a single, primary loader
   if (authLoading || statsLoading) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center font-mono ${
@@ -105,18 +119,16 @@ const toggleTheme = useCallback(() => {
   }
 
   if (!user) {
-    return null; // Redirect is handled by useEffect
+    return null;
   }
   
-  // NOTE: The counts for Math Chat, Audio Recap, etc., are placeholders.
-  // To track them, you must update the `useUserStats` hook to fetch and calculate their data.
   const featureCards = [
-    { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: stats?.notes_created || 0 },
-    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: 0 },
-    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: 0 },
-    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: 0 },
-    { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", count: stats?.flashcards_created || 0 },
-    { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", count: stats?.quizzes_taken || 0 }
+    { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: displayedStats?.notes_created || 0 },
+    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: displayedStats?.math_chat_sessions || 0 },
+    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: displayedStats?.audio_recaps_created || 0 },
+    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: displayedStats?.doubt_chains_used || 0 },
+    { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", count: displayedStats?.flashcards_created || 0 },
+    { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", count: displayedStats?.quizzes_taken || 0 }
   ];
 
   const quickActions = [
@@ -137,7 +149,6 @@ const toggleTheme = useCallback(() => {
       <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         <div className="container max-w-7xl mx-auto">
           
-          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -150,15 +161,20 @@ const toggleTheme = useCallback(() => {
             <p className={`text-lg ${mutedTextClasses}`}>
               Let's supercharge your learning today.
             </p>
+            <button
+              onClick={toggleMockData}
+              className={`px-4 py-2 mt-4 rounded-full text-xs font-bold transition-colors ${theme === 'light' ? 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300' : 'bg-zinc-700 text-zinc-200 hover:bg-zinc-600'}`}
+            >
+              {useMockData ? "Using Mock Data" : "Using Live Data"}
+            </button>
           </motion.div>
           
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {[
-              { title: "STUDY TIME", value: formatStudyTime(stats?.total_study_time || 0), icon: Clock, trend: `${stats?.sessions_this_month || 0} sessions`, accent: '#00e6c4' },
-              { title: "MILESTONES", value: stats?.learning_milestones || 0, icon: Award, trend: "Total achievements", accent: '#ff5a8f' },
-              { title: "QUIZ SCORE", value: `${stats?.average_quiz_score || 0}%`, icon: CheckCircle, trend: `${stats?.quizzes_taken || 0} completed`, accent: '#00e6c4' },
-              { title: "AI NOTES", value: stats?.notes_created || 0, icon: Sparkles, trend: "Notes generated", accent: '#ff5a8f' }
+              { title: "STUDY TIME", value: formatStudyTime(displayedStats?.total_study_time || 0), icon: Clock, trend: `${displayedStats?.sessions_this_month || 0} sessions`, accent: '#00e6c4' },
+              { title: "MILESTONES", value: displayedStats?.learning_milestones || 0, icon: Award, trend: "Total achievements", accent: '#ff5a8f' },
+              { title: "QUIZ SCORE", value: `${displayedStats?.average_quiz_score || 0}%`, icon: CheckCircle, trend: `${displayedStats?.quizzes_taken || 0} completed`, accent: '#00e6c4' },
+              { title: "AI NOTES", value: displayedStats?.notes_created || 0, icon: Sparkles, trend: "Notes generated", accent: '#ff5a8f' }
             ].map((stat, idx) => (
               <motion.div
                 key={stat.title}
@@ -181,7 +197,6 @@ const toggleTheme = useCallback(() => {
             ))}
           </div>
 
-          {/* Primary CTA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -220,7 +235,6 @@ const toggleTheme = useCallback(() => {
             </div>
           </motion.div>
 
-          {/* Feature Tiles */}
           <div className="mb-12">
             <h2 className="text-2xl md:text-3xl font-black mb-8 tracking-tight">CORE TOOLS</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -263,7 +277,6 @@ const toggleTheme = useCallback(() => {
             </div>
           </div>
 
-          {/* Quick Actions */}
           <div>
             <h2 className="text-2xl md:text-3xl font-black mb-8 flex items-center gap-3 tracking-tight">
               <Zap className="w-7 h-7" style={{ color: '#00e6c4' }} />
