@@ -22,58 +22,92 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { useUserStats } from "@/hooks/useUserStats";
+import { UserStats } from "@/hooks/useUserStats"; 
 import ProgressCard from "@/components/dashboard/ProgressCard";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { stats, loading: statsLoading } = useUserStats(user?.uid || null);
+
+  // FIX: Called useUserStats without arguments, as it gets the user from context internally.
+  const { stats, loading: statsLoading } = useUserStats();
+
   const [isNewUser, setIsNewUser] = useState(false);
+  // NOTE: 'theme' state is defined but not used in this snippet. You can wire it up to a theme toggle.
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
+  // Effect to redirect non-authenticated users
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/signin');
     }
   }, [user, authLoading, navigate]);
 
+  // Effect to determine if it's the user's first session
   useEffect(() => {
     if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
       const creationTime = new Date(user.metadata.creationTime).getTime();
       const lastSignInTime = new Date(user.metadata.lastSignInTime).getTime();
+      // Checks if the last sign-in is within 5 minutes of account creation
       setIsNewUser(Math.abs(lastSignInTime - creationTime) < 5 * 60 * 1000);
     }
   }, [user]);
 
-  const handleNavigation = useCallback((path: string) => {
-    navigate(path);
-  }, [navigate]);
-
+  // Memoized function to get the user's display name
   const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
     if (user?.email) return user.email.split('@')[0];
     return "User";
   }, [user]);
 
+  // Memoized function to generate a welcome message
   const getWelcomeMessage = useCallback(() => {
     const name = getUserDisplayName();
     return isNewUser ? `Welcome, ${name}! 🎉` : `Welcome back, ${name}! 👋`;
   }, [getUserDisplayName, isNewUser]);
-  
-  const formatStudyTime = (minutes: number) => {
+
+  // Helper function to format study time from minutes to a readable format
+  const formatStudyTime = (minutes: number | undefined) => {
+    if (minutes === undefined) return '0min';
     if (minutes < 60) return `${minutes}min`;
     const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+    const remainingMinutes = Math.round(minutes % 60);
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  // --- RENDER LOGIC ---
 
+  // Show a full-page loader while authenticating
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Loading Dashboard...</p>
+      </div>
+    );
+  }
+  
+  // If authentication is done and there's still no user, don't render anything
+  // as the useEffect above will handle the redirect.
+  if (!user) {
+    return null;
+  }
+
+  // Data for the progress cards
+  const statsData = [
+    { title: "Total Study Time", value: formatStudyTime(stats?.total_study_time) },
+    { title: "Materials Created", value: stats?.materials_created ?? 0 },
+    { title: "Quizzes Taken", value: stats?.quizzes_taken ?? 0 },
+    { title: "Avg. Quiz Score", value: `${stats?.average_quiz_score ?? 0}%` },
+    { title: "Notes Created", value: stats?.notes_created ?? 0 },
+    { title: "Flashcards Created", value: stats?.flashcards_created ?? 0 },
+  ];
   const featureCards = [
     { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: stats?.notes_created || 0 },
     { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: stats?.math_problems_solved || 0 },
