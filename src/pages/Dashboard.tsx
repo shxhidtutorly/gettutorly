@@ -17,7 +17,7 @@ import {
   Award,
   CheckCircle,
   ArrowRight,
-  Youtube
+  files,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -189,7 +189,7 @@ const Dashboard = () => {
     { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries", color: neonColors.pink },
  { 
       title: "Ai Content Processor", 
-      desc: "Upload & study multiple documents", 
+      desc: "Scrape study matrials from url", 
       icon: Files, 
       route: "/aicontentprocessor", 
       color: neonColors.purple 
