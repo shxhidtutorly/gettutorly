@@ -67,12 +67,17 @@ export default async function handler(req, res) {
 
   // Attempt v2 SDK verification — but guard heavily to avoid .split errors
   if (sigHeader && typeof sigHeader === "string" && sigHeader.includes("=") && process.env.PADDLE_PUBLIC_KEY) {
-    // log small debug (won't include keys) so you can inspect during failures
     console.info("Paddle signature header (trimmed):", sigHeader.slice(0, 200));
 
     try {
-      // Wrap in try/catch to capture any SDK internal errors (including split on undefined)
-      parsed = await (async () => paddle.webhooks.unmarshal(raw, { signature: sigHeader }))();
+      // The Paddle SDK's `unmarshal` method can be sensitive.
+      // We'll wrap the signature string in a way that the SDK expects.
+      // The error suggests that something inside the SDK's parsing of the signature is failing.
+      const signature = {
+        signature: sigHeader,
+      };
+
+      parsed = await paddle.webhooks.unmarshal(raw, signature);
       verifiedBySdk = true;
       console.info("✅ Paddle SDK v2 verification succeeded");
     } catch (err) {
