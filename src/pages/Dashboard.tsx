@@ -1,9 +1,6 @@
-// FILE: src/pages/Dashboard.tsx
-import { useState, useEffect, useCallback } from "react";
+/import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
 import {
   BookOpen,
   Sparkles,
@@ -20,9 +17,6 @@ import {
   ArrowRight,
   Files,
   Youtube,
-  Sun,
-  Moon,
-  Plus,
   Upload,
   BarChart3
 } from "lucide-react";
@@ -30,6 +24,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { useUserStats } from "@/hooks/useUserStats";
 import ProgressCard from "@/components/dashboard/ProgressCard";
+import Navbar from "@/components/layout/Navbar";
+import BottomNav from "@/components/layout/BottomNav";
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -137,38 +133,25 @@ const Dashboard = () => {
 
   return (
     <div className={`min-h-screen flex flex-col font-mono ${themeClasses}`}>
-      <Navbar />
+      <Navbar theme={theme} toggleTheme={toggleTheme} />
 
       <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         <div className="container max-w-7xl mx-auto">
           
-          {/* Header with theme toggle */}
-          <div className="flex justify-between items-start mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">
-                {getWelcomeMessage()}
-              </h1>
-              <p className={`text-lg ${mutedTextClasses}`}>
-                Let's supercharge your learning today.
-              </p>
-            </motion.div>
-            
-            <button
-              onClick={toggleTheme}
-              className={`p-3 border-4 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
-              style={{ 
-                boxShadow: '4px 4px 0px #000',
-                backgroundColor: theme === 'light' ? '#fff' : '#27272a'
-              }}
-              aria-label="Toggle theme"
-            >
-              {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
-            </button>
-          </div>
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-8"
+          >
+            <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">
+              {getWelcomeMessage()}
+            </h1>
+            <p className={`text-lg ${mutedTextClasses}`}>
+              Let's supercharge your learning today.
+            </p>
+          </motion.div>
           
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -315,7 +298,7 @@ const Dashboard = () => {
       </main>
 
       <Footer />
-      <BottomNav />
+      <BottomNav theme={theme} />
     </div>
   );
 };
