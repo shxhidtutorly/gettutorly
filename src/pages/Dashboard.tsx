@@ -188,10 +188,10 @@ const Dashboard = () => {
   const quickActions = [
     { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries", color: neonColors.pink },
  { 
-      title: "Multi-Doc Session", 
+      title: "Ai Content Processor", 
       desc: "Upload & study multiple documents", 
       icon: Files, 
-      route: "/multi-doc-session", 
+      route: "/aicontentprocessor", 
       color: neonColors.purple 
     },
     { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant", color: neonColors.cyan },
