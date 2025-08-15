@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion } from "framer-motion";
+import { useUserStats } from "@/hooks/useUserStats";
+import Navbar from "@/components/layout/Navbar";
+import BottomNav from "@/components/layout/BottomNav";
 import Footer from "@/components/layout/Footer";
 import {
   BookOpen,
@@ -8,40 +13,31 @@ import {
   Users,
   HelpCircle,
   Zap,
-  TrendingUp,
-  Brain,
   StickyNote,
   Clock,
   Award,
   CheckCircle,
   ArrowRight,
   Files,
-  Youtube,
+  Brain,
   Upload,
   BarChart3
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { motion } from "framer-motion";
-import { UserStats } from "@/hooks/useUserStats"; 
-import ProgressCard from "@/components/dashboard/ProgressCard";
-import Navbar from "@/components/layout/Navbar";
-import BottomNav from "@/components/layout/BottomNav";
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-
-  // FIX: Called useUserStats without arguments, as it gets the user from context internally.
   const { stats, loading: statsLoading } = useUserStats();
 
   const [isNewUser, setIsNewUser] = useState(false);
-  // NOTE: 'theme' state is defined but not used in this snippet. You can wire it up to a theme toggle.
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+
+
+  // FIXED: Added the missing handleNavigation function
+  const handleNavigation = useCallback((path: string) => {
+    navigate(path);
+  }, [navigate]);
 
   // Effect to redirect non-authenticated users
   useEffect(() => {
@@ -55,27 +51,22 @@ const Dashboard = () => {
     if (user?.metadata?.creationTime && user?.metadata?.lastSignInTime) {
       const creationTime = new Date(user.metadata.creationTime).getTime();
       const lastSignInTime = new Date(user.metadata.lastSignInTime).getTime();
-      // Checks if the last sign-in is within 5 minutes of account creation
       setIsNewUser(Math.abs(lastSignInTime - creationTime) < 5 * 60 * 1000);
     }
   }, [user]);
 
-  // Memoized function to get the user's display name
   const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
     if (user?.email) return user.email.split('@')[0];
     return "User";
   }, [user]);
 
-  // Memoized function to generate a welcome message
   const getWelcomeMessage = useCallback(() => {
     const name = getUserDisplayName();
     return isNewUser ? `Welcome, ${name}! 🎉` : `Welcome back, ${name}! 👋`;
   }, [getUserDisplayName, isNewUser]);
 
-  // Helper function to format study time from minutes to a readable format
-  const formatStudyTime = (minutes: number | undefined) => {
-    if (minutes === undefined) return '0min';
+  const formatStudyTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}min`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = Math.round(minutes % 60);
@@ -84,46 +75,7 @@ const Dashboard = () => {
 
   // --- RENDER LOGIC ---
 
-  // Show a full-page loader while authenticating
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Loading Dashboard...</p>
-      </div>
-    );
-  }
-  
-  // If authentication is done and there's still no user, don't render anything
-  // as the useEffect above will handle the redirect.
-  if (!user) {
-    return null;
-  }
-
-  // Data for the progress cards
-  const statsData = [
-    { title: "Total Study Time", value: formatStudyTime(stats?.total_study_time) },
-    { title: "Materials Created", value: stats?.materials_created ?? 0 },
-    { title: "Quizzes Taken", value: stats?.quizzes_taken ?? 0 },
-    { title: "Avg. Quiz Score", value: `${stats?.average_quiz_score ?? 0}%` },
-    { title: "Notes Created", value: stats?.notes_created ?? 0 },
-    { title: "Flashcards Created", value: stats?.flashcards_created ?? 0 },
-  ];
-  const featureCards = [
-    { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: stats?.notes_created || 0 },
-    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: stats?.math_problems_solved || 0 },
-    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: stats?.audio_sessions || 0 },
-    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: stats?.doubts_resolved || 0 },
-    { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", count: stats?.flashcards_created || 0 },
-    { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", count: stats?.quizzes_taken || 0 }
-  ];
-
-  const quickActions = [
-    { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries" },
-    { title: "Multi-Doc Session", desc: "Upload & study multiple documents", icon: Files, route: "/multi-doc-session" },
-    { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant" },
-    { title: "AI Content Processor", desc: "Scrape study materials from URL", icon: Files, route: "/aicontentprocessor" },
-  ];
-
+  // FIXED: Combined auth and stats loading into a single, primary loader
   if (authLoading || statsLoading) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center font-mono ${
@@ -150,20 +102,30 @@ const Dashboard = () => {
   }
 
   if (!user) {
-    return null;
+    return null; // Redirect is handled by useEffect
   }
+  
+  // NOTE: The counts for Math Chat, Audio Recap, etc., are placeholders.
+  // To track them, you must update the `useUserStats` hook to fetch and calculate their data.
+  const featureCards = [
+    { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: stats?.notes_created || 0 },
+    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: stats?.math_problems_solved || 0 },
+    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: stats?.audio_sessions || 0 },
+    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: stats?.doubts_resolved || 0 },
+    { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", count: stats?.flashcards_created || 0 },
+    { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", count: stats?.quizzes_taken || 0 }
+  ];
 
-  const themeClasses = theme === 'light' 
-    ? 'bg-stone-100 text-stone-900'
-    : 'bg-zinc-900 text-zinc-100';
+  const quickActions = [
+    { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries" },
+    { title: "Multi-Doc Session", desc: "Upload & study multiple documents", icon: Files, route: "/multi-doc-session" },
+    { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant" },
+    { title: "AI Content Processor", desc: "Scrape study materials from URL", icon: Files, route: "/aicontentprocessor" },
+  ];
 
-  const panelClasses = theme === 'light'
-    ? 'bg-white border-black'
-    : 'bg-zinc-800 border-zinc-300';
-
-  const mutedTextClasses = theme === 'light' 
-    ? 'text-stone-600' 
-    : 'text-zinc-400';
+  const themeClasses = theme === 'light' ? 'bg-stone-100 text-stone-900' : 'bg-zinc-900 text-zinc-100';
+  const panelClasses = theme === 'light' ? 'bg-white border-black' : 'bg-zinc-800 border-zinc-300';
+  const mutedTextClasses = theme === 'light' ? 'text-stone-600' : 'text-zinc-400';
 
   return (
     <div className={`min-h-screen flex flex-col font-mono ${themeClasses}`}>
