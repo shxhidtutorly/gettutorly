@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,22 +12,30 @@ import {
   CalendarDays,
   BarChart3,
   User,
-  BookOpenIcon,
+  Brain,
   Settings,
-  Brain
+  Sun,
+  Moon,
+  Sparkles,
+  MessageCircle,
+  Users,
+  HelpCircle,
+  Zap,
+  BookOpen,
+  StickyNote,
+  Files
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
-import SearchDropdown from "@/components/search/SearchDropdown";
 
 const navbarLinks = [
   { href: "/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
-  { href: "/study-plans", icon: <CalendarDays className="h-4 w-4" />, label: "Study Plans" },
-  { href: "/progress", icon: <BarChart3 className="h-4 w-4" />, label: "Progress" },
-  { href: "/study-techniques", icon: <Brain className="h-4 w-4" />, label: "Study Techniques" },
+  { href: "/ai-notes", icon: <Sparkles className="h-4 w-4" />, label: "AI Notes" },
+  { href: "/flashcards", icon: <Zap className="h-4 w-4" />, label: "Flashcards" },
+  { href: "/quiz", icon: <BookOpen className="h-4 w-4" />, label: "Quizzes" },
+  { href: "/multi-doc-session", icon: <Files className="h-4 w-4" />, label: "Multi-Doc" },
 ];
 
 // Paths where the navbar should show auth buttons instead of user nav
@@ -38,7 +45,7 @@ function isPublicPage(pathname: string) {
   return PUBLIC_PATHS.includes(pathname);
 }
 
-const Navbar = () => {
+const Navbar = ({ theme, toggleTheme }: { theme: 'light' | 'dark', toggleTheme: () => void }) => {
   const [user, loading] = useAuthState(auth);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -50,6 +57,14 @@ const Navbar = () => {
 
   const isPublic = isPublicPage(location.pathname);
   const showUserNav = !loading && user && !isPublic;
+
+  const themeClasses = theme === 'light' 
+    ? 'bg-stone-100 text-stone-900 border-black'
+    : 'bg-zinc-900 text-zinc-100 border-zinc-700';
+
+  const panelClasses = theme === 'light'
+    ? 'bg-white border-black'
+    : 'bg-zinc-800 border-zinc-300';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -69,14 +84,18 @@ const Navbar = () => {
       "cards": "/flashcards",
       "summarize": "/summaries",
       "summary": "/summaries",
+      "math chat": "/math-chat",
       "math": "/math-chat",
+      "audio recap": "/audio-notes",
       "audio": "/audio-notes",
+      "doubt chain": "/doubt-chain",
       "doubt": "/doubt-chain",
       "assistant": "/ai-assistant",
       "progress": "/progress",
-      "plans": "/study-plans",
       "dashboard": "/dashboard",
-      "library": "/library"
+      "multi doc": "/multi-doc-session",
+      "content processor": "/aicontentprocessor",
+      "processor": "/aicontentprocessor"
     };
 
     const lowerQuery = query.toLowerCase();
@@ -92,120 +111,146 @@ const Navbar = () => {
 
   return (
     <header
-      className={`border-b border-gray-800 sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? "backdrop-blur-lg bg-[#0A0A0A]/90" : "bg-[#0A0A0A]"
-      }`}
+      className={`border-b-4 sticky top-0 z-50 transition-all duration-200 font-mono ${themeClasses}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <BookOpenIcon className="h-6 w-6 text-purple-500" />
-            <span className="text-xl font-bold text-white">Tutorly</span>
+        <div className="flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="relative">
+              <Brain 
+                className="h-8 w-8 border-2 border-black p-1" 
+                style={{ backgroundColor: '#00e6c4', color: '#000' }} 
+              />
+            </div>
+            <span className="text-2xl font-black tracking-tight">TUTORLY</span>
           </Link>
           
           {showUserNav && (
-            <nav className="hidden md:flex items-center gap-6 ml-6">
+            <nav className="hidden md:flex items-center gap-2 ml-4">
               {navbarLinks.map(({ href, icon, label }) => (
                 <Link
                   key={href}
                   to={href}
-                  className={`group flex items-center gap-2 text-sm font-medium transition-all duration-200 relative px-3 py-2 rounded-lg hover:bg-gray-800/50 ${
+                  className={`group flex items-center gap-2 text-sm font-black px-4 py-2 border-2 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] ${
                     location.pathname === href 
-                      ? 'text-purple-400 bg-gray-800/30' 
-                      : 'text-gray-300 hover:text-white'
+                      ? panelClasses
+                      : `${panelClasses} hover:bg-opacity-80`
                   }`}
+                  style={{ 
+                    boxShadow: location.pathname === href 
+                      ? '3px 3px 0px #ff5a8f' 
+                      : '2px 2px 0px #000'
+                  }}
                 >
                   {icon}
-                  <span>{label}</span>
-                  {location.pathname === href && (
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-purple-500 rounded-full"></div>
-                  )}
+                  <span className="tracking-wide">{label}</span>
                 </Link>
               ))}
             </nav>
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-3">
           {showUserNav ? (
             <>
               {/* Search */}
               <div className="relative hidden sm:block">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#ff5a8f' }} />
+                  <input
                     type="text"
-                    placeholder="Search features..."
+                    placeholder="SEARCH FEATURES..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setShowSearch(true)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                    className="pl-10 pr-4 py-2 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-purple-500 w-48 lg:w-64"
+                    className={`pl-10 pr-4 py-2 border-2 border-black font-black text-sm placeholder-opacity-60 focus:outline-none focus:ring-4 focus:ring-blue-400 w-48 lg:w-64 ${panelClasses}`}
+                    style={{ boxShadow: '2px 2px 0px #000' }}
                   />
                 </div>
-                <SearchDropdown 
-                  show={showSearch && searchQuery.length > 0}
-                  query={searchQuery}
-                  onSelect={handleSearch}
-                  onClose={() => setShowSearch(false)}
-                />
               </div>
 
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className={`p-2 border-2 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                style={{ boxShadow: '2px 2px 0px #000' }}
+                aria-label="Toggle theme"
+              >
+                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
+
               {/* Notifications */}
-              <NotificationPanel />
+              <button
+                className={`p-2 border-2 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                style={{ boxShadow: '2px 2px 0px #000' }}
+              >
+                <BellIcon className="h-4 w-4" />
+              </button>
 
               {/* User Avatar */}
               <Link to="/profile">
-                <Avatar className="h-8 w-8 hover:opacity-80 transition-opacity border border-gray-700 hover:border-purple-500">
-                  <AvatarImage src={user?.photoURL || ""} />
-                  <AvatarFallback className="bg-purple-600 text-white text-sm">
+                <div 
+                  className={`p-1 border-2 border-black hover:translate-y-[-2px] transition-all duration-150 ${panelClasses}`}
+                  style={{ boxShadow: '2px 2px 0px #00e6c4' }}
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-600 border-2 border-black flex items-center justify-center font-black text-white text-sm">
                     {user?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}
-                  </AvatarFallback>
-                </Avatar>
+                  </div>
+                </div>
               </Link>
 
               {/* Mobile Menu Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden text-gray-300 hover:text-white hover:bg-gray-800"
+              <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`md:hidden p-2 border-2 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                style={{ boxShadow: '2px 2px 0px #000' }}
               >
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
-              </Button>
+              </button>
             </>
           ) : (
             /* Public page auth buttons */
             <div className="flex items-center gap-3">
               <Link to="/signin">
-                <Button variant="ghost" className="text-gray-300 hover:text-white transition-colors">
-                  Sign In
-                </Button>
+                <button className={`px-4 py-2 border-2 border-black font-black text-sm transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                  style={{ boxShadow: '2px 2px 0px #000' }}
+                >
+                  SIGN IN
+                </button>
               </Link>
               <Link to="/signup">
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 shadow-lg transition-all duration-200 hover:scale-105">
-                  Get Started
-                </Button>
+                <button 
+                  className="px-6 py-2 border-2 border-black font-black text-sm transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400"
+                  style={{ 
+                    backgroundColor: '#00e6c4',
+                    color: '#000',
+                    boxShadow: '3px 3px 0px #000'
+                  }}
+                >
+                  GET STARTED
+                </button>
               </Link>
             </div>
           )}
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Dropdown Menu */}
       {showUserNav && mobileMenuOpen && (
-        <div className="md:hidden bg-[#0A0A0A] border-t border-gray-800">
-          <div className="px-4 py-4 space-y-2">
+        <div className={`md:hidden border-t-4 border-black ${themeClasses}`}>
+          <div className="px-4 py-4 space-y-3">
             {/* Mobile Search */}
             <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#ff5a8f' }} />
+              <input
                 type="text"
-                placeholder="Search features..."
+                placeholder="SEARCH FEATURES..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400"
+                className={`pl-10 pr-4 py-2 w-full border-2 border-black font-black text-sm placeholder-opacity-60 ${panelClasses}`}
+                style={{ boxShadow: '2px 2px 0px #000' }}
               />
             </div>
 
@@ -214,25 +259,31 @@ const Navbar = () => {
               <Link
                 key={href}
                 to={href}
-                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3 border-2 border-black font-black transition-all duration-150 hover:translate-y-[-1px] active:translate-y-[1px] ${
                   location.pathname === href
-                    ? 'bg-purple-600/20 text-purple-400'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? panelClasses
+                    : `${panelClasses} hover:bg-opacity-80`
                 }`}
+                style={{ 
+                  boxShadow: location.pathname === href 
+                    ? '3px 3px 0px #ff5a8f' 
+                    : '2px 2px 0px #000'
+                }}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {icon}
-                <span className="font-medium">{label}</span>
+                <span className="tracking-wide">{label}</span>
               </Link>
             ))}
 
             <Link
               to="/profile"
-              className="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+              className={`flex items-center gap-3 px-4 py-3 border-2 border-black font-black transition-all duration-150 hover:translate-y-[-1px] active:translate-y-[1px] ${panelClasses}`}
+              style={{ boxShadow: '2px 2px 0px #000' }}
               onClick={() => setMobileMenuOpen(false)}
             >
               <User className="h-4 w-4" />
-              <span className="font-medium">Profile</span>
+              <span className="tracking-wide">PROFILE</span>
             </Link>
           </div>
         </div>
