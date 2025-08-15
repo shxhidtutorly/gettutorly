@@ -16,8 +16,9 @@ import {
   Clock,
   Award,
   CheckCircle,
-  ArrowRight,
-  files,
+ ArrowRight,
+  Files, 
+  Youtube 
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
