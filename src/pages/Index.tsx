@@ -17,7 +17,6 @@ import {
   CreditCard,
 } from "lucide-react"
 import { useState, useEffect } from "react"
-import { Check } from "lucide-react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 

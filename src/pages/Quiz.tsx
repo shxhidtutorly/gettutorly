@@ -40,7 +40,7 @@ const Quiz = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { trackQuizCompletion, endSession, startSession } = useStudyTracking();
+  const { trackQuizCompleted, endSession, startSession } = useStudyTracking();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -151,7 +151,7 @@ const Quiz = () => {
     }
 
     setShowResults(true);
-    trackQuizCompletion();
+    trackQuizCompleted();
     endSession("quiz", quiz.title, true);
 
     toast({

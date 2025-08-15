@@ -112,9 +112,9 @@ const toggleTheme = useCallback(() => {
   // To track them, you must update the `useUserStats` hook to fetch and calculate their data.
   const featureCards = [
     { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: stats?.notes_created || 0 },
-    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: stats?.math_problems_solved || 0 },
-    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: stats?.audio_sessions || 0 },
-    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: stats?.doubts_resolved || 0 },
+    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: 0 },
+    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: 0 },
+    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: 0 },
     { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", count: stats?.flashcards_created || 0 },
     { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", count: stats?.quizzes_taken || 0 }
   ];

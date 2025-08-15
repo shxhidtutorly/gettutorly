@@ -5,6 +5,12 @@ export interface AINote {
   content: string;
   timestamp: string;
   filename: string;
+  flashcards?: Flashcard[];
+  quiz?: Array<{
+    question: string;
+    options: string[];
+    correct: number;
+  }>;
 }
 
 export interface Flashcard {
@@ -13,7 +19,7 @@ export interface Flashcard {
   answer: string;
 }
 
-export async function generateNotesAI(text: string, filename: string): Promise<AINote> {
+export async function generateNotesAI(text: string, filename: string, userId?: string): Promise<AINote> {
   // Structured prompt for detailed Markdown notes
   const prompt = `You are a top-tier AI study assistant. Your task is to generate **detailed and well-structured study notes** from the given content.
 

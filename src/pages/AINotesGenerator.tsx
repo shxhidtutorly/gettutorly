@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -26,7 +26,7 @@ import {
 import { ExtractionResult, extractTextFromFile } from "@/lib/fileExtractor";
 import FileUploader from "@/components/features/FileUploader";
 import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
-import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
+import { generateNotesAI, generateFlashcardsAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { useHistory } from "@/hooks/useHistory";
 import { Input } from "@/components/ui/input"; 
@@ -40,12 +40,18 @@ interface ChatMessage {
   content: string;
 }
 
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct: number;
+}
+
 // --- Main Component ---
 const AINotesGenerator = () => {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { trackNotesCreation, endSession, startSession } = useStudyTracking();
+  const { trackNoteCreated, endSession, startSession } = useStudyTracking();
   const { addHistoryEntry } = useHistory('notes');
 
   // --- State Management ---
@@ -60,6 +66,11 @@ const AINotesGenerator = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+
+  // Additional loading states
+  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
 
   // --- Handlers ---
   const handleFileProcessed = async (result: ExtractionResult) => {
@@ -89,7 +100,7 @@ const AINotesGenerator = () => {
       setProgress(100);
 
       await addHistoryEntry(`Source: ${filename}`, generatedNote.content, { title: generatedNote.title, type: 'notes_generation' });
-      trackNotesCreation();
+      trackNoteCreated();
       endSession("notes", generatedNote.title, true);
 
       toast({ title: "Notes Generated Successfully! 🎉" });
@@ -120,7 +131,7 @@ const AINotesGenerator = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt: `Based on these notes: "${note.content}"\n\nUser question: ${currentInput}`,
-          model: 'groq' // Or your preferred model
+          model: 'groq'
         })
       });
       if (!response.ok) throw new Error('Failed to get AI response');
@@ -137,19 +148,69 @@ const AINotesGenerator = () => {
     }
   };
 
-  const createFlashcards = () => {
+  const createFlashcards = async () => {
     if (!note) return;
-    localStorage.setItem('flashcards', JSON.stringify((note as any).flashcards));
-    localStorage.setItem('flashcards-source', note.title);
-    toast({ title: "Flashcards Ready! 📚", description: "Navigating you to the flashcards page." });
-    navigate('/flashcards');
+    setIsGeneratingFlashcards(true);
+    
+    try {
+      const flashcards = await generateFlashcardsAI(note.content);
+      localStorage.setItem('flashcards', JSON.stringify(flashcards));
+      localStorage.setItem('flashcards-source', note.title);
+      toast({ title: "Flashcards Ready! 📚", description: "Navigating you to the flashcards page." });
+      navigate('/flashcards');
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error creating flashcards", description: "Please try again." });
+    } finally {
+      setIsGeneratingFlashcards(false);
+    }
   };
 
-  const createQuiz = () => {
+  const createQuiz = async () => {
     if (!note) return;
-    localStorage.setItem('generatedQuiz', JSON.stringify({ title: note.title, questions: note.quiz }));
-    toast({ title: "Quiz Ready! 📝", description: "Navigating you to the quiz page." });
-    navigate('/quiz?source=generated');
+    setIsGeneratingQuiz(true);
+    
+    try {
+      // Generate quiz questions from notes
+      const quizPrompt = `Create a quiz with 5-10 multiple choice questions from these notes. Format as JSON:
+      [{"question": "...", "options": ["A", "B", "C", "D"], "correct": 0}]
+      
+      Notes: ${note.content}`;
+      
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: quizPrompt, model: 'gemini' })
+      });
+      
+      if (!response.ok) throw new Error('Failed to generate quiz');
+      const data = await response.json();
+      
+      // Parse quiz questions
+      let questions: QuizQuestion[] = [];
+      try {
+        const jsonMatch = data.response.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          questions = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        // Fallback: create simple questions
+        questions = [
+          {
+            question: "What is the main topic of these notes?",
+            options: ["A) Primary concept", "B) Secondary topic", "C) Related subject", "D) Additional information"],
+            correct: 0
+          }
+        ];
+      }
+      
+      localStorage.setItem('generatedQuiz', JSON.stringify({ title: note.title, questions }));
+      toast({ title: "Quiz Ready! 📝", description: "Navigating you to the quiz page." });
+      navigate('/quiz?source=generated');
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error creating quiz", description: "Please try again." });
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
   };
 
   const startOver = () => {
@@ -159,12 +220,13 @@ const AINotesGenerator = () => {
     setProgress(0);
     setChatMessages([]);
     setInputType('upload');
+    setShowChat(false);
   };
 
   // --- UI Components & Styles ---
   const neonColors = {
     green: 'border-green-400 text-green-400 shadow-[4px_4px_0px_#22c55e]',
-    pink: 'border-pink-500 text-pink-500 shadow-[4px_4px_0px_#ec4899]',
+    cyan: 'border-cyan-400 text-cyan-400 shadow-[4px_4px_0px_#00f7ff]',
   };
 
   const BrutalistButton = ({ children, onClick, disabled, className = '' }: { children: React.ReactNode, onClick?: () => void, disabled?: boolean, className?: string }) => (
@@ -195,9 +257,40 @@ const AINotesGenerator = () => {
                      <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
                         <h2 className="text-2xl font-black text-white mb-4">Actions</h2>
                         <div className="space-y-4">
-                           <BrutalistButton onClick={createQuiz} className={`w-full h-14 text-lg ${neonColors.green}`}><HelpCircle className="mr-2"/> Create Quiz</BrutalistButton>
-                           <BrutalistButton onClick={createFlashcards} className={`w-full h-14 text-lg ${neonColors.pink}`}><Zap className="mr-2"/> Create Flashcards</BrutalistButton>
-                           <DownloadNotesButton content={note.content} filename={note.title} />
+                           <BrutalistButton 
+                             onClick={createQuiz} 
+                             disabled={isGeneratingQuiz}
+                             className={`w-full h-14 text-lg ${neonColors.green}`}
+                           >
+                             {isGeneratingQuiz ? <Loader2 className="mr-2 animate-spin"/> : <HelpCircle className="mr-2"/>} Create Quiz
+                           </BrutalistButton>
+                           <BrutalistButton 
+                             onClick={createFlashcards} 
+                             disabled={isGeneratingFlashcards}
+                             className={`w-full h-14 text-lg ${neonColors.cyan}`}
+                           >
+                             {isGeneratingFlashcards ? <Loader2 className="mr-2 animate-spin"/> : <Zap className="mr-2"/>} Create Flashcards
+                           </BrutalistButton>
+                           <Button
+                             onClick={() => setShowChat(!showChat)}
+                             className={`w-full h-14 text-lg bg-transparent border-2 border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black rounded-none font-bold transition-all duration-200`}
+                           >
+                             <MessageCircle className="mr-2"/> Chat with Notes
+                           </Button>
+                           <Button
+                             className="w-full h-14 text-lg bg-white text-black border-2 border-white hover:bg-gray-200 rounded-none font-bold transition-all duration-200"
+                             onClick={() => {
+                               const blob = new Blob([note.content], { type: 'text/plain' });
+                               const url = URL.createObjectURL(blob);
+                               const a = document.createElement('a');
+                               a.href = url;
+                               a.download = `${note.title}.txt`;
+                               a.click();
+                               URL.revokeObjectURL(url);
+                             }}
+                           >
+                             <Download className="mr-2"/> Download Notes
+                           </Button>
                         </div>
                         <div className="mt-auto pt-4">
                            <Button onClick={startOver} className="w-full bg-gray-800 text-white border-2 border-gray-600 hover:bg-gray-700 rounded-none font-bold h-12">
@@ -229,7 +322,7 @@ const AINotesGenerator = () => {
 
             {/* --- RIGHT PANEL: OUTPUT --- */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-               <div className={`bg-gray-900 border-2 rounded-none p-6 min-h-[60vh] flex flex-col ${note ? neonColors.pink : 'border-gray-700'}`}>
+               <div className={`bg-gray-900 border-2 rounded-none p-6 min-h-[60vh] flex flex-col ${note ? neonColors.cyan : 'border-gray-700'}`}>
                   <AnimatePresence mode="wait">
                      {isLoading ? (
                         <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full">
@@ -242,17 +335,28 @@ const AINotesGenerator = () => {
                         <motion.div key="notes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
                            <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-2"><BookOpen/> {note.title}</h2>
                            <p className="text-sm text-gray-500 mb-4">Source: {sourceFilename}</p>
-                           <div className="flex-grow overflow-y-auto pr-2">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-invert max-w-none">
+                           <div className="flex-grow overflow-y-auto pr-2 max-h-[40vh] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-invert max-w-none text-sm">
                                  {note.content}
                               </ReactMarkdown>
                            </div>
-                           <div className="mt-4 pt-4 border-t-2 border-gray-700">
+                           
+                           {/* Chat Section */}
+                           {showChat && (
+                             <div className="mt-4 pt-4 border-t-2 border-gray-700">
+                               <div className="mb-4 max-h-32 overflow-y-auto space-y-2">
+                                 {chatMessages.map((msg, idx) => (
+                                   <div key={idx} className={`p-2 rounded text-xs ${msg.role === 'user' ? 'bg-orange-900/50 text-orange-200' : 'bg-gray-700/50 text-gray-200'}`}>
+                                     <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
+                                   </div>
+                                 ))}
+                               </div>
                                <div className="flex gap-2">
-                                   <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()} placeholder="Chat with your notes..." className="bg-black border-2 border-gray-600 rounded-none h-12 focus:border-pink-500"/>
-                                   <Button onClick={handleChatSubmit} disabled={isChatLoading} className="bg-pink-500 text-black border-2 border-pink-400 hover:bg-pink-400 rounded-none font-black h-12 px-5"><Send/></Button>
+                                   <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()} placeholder="Chat with your notes..." className="bg-black border-2 border-gray-600 rounded-none h-10 focus:border-orange-400 text-sm"/>
+                                   <Button onClick={handleChatSubmit} disabled={isChatLoading} className="bg-orange-500 text-black border-2 border-orange-400 hover:bg-orange-400 rounded-none font-black h-10 px-4 text-sm"><Send className="w-3 h-3"/></Button>
                                </div>
                            </div>
+                           )}
                         </motion.div>
                      ) : (
                         <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full text-center text-gray-600">

@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useMemo } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
@@ -40,7 +39,6 @@ export const useStudyTracking = () => {
       const userStatsDoc = await getDoc(userStatsRef);
       
       if (!userStatsDoc.exists()) {
-        // Initialize stats document
         const initialStats: UserStats = {
           quizzes_taken: 0,
           summaries_created: 0,
@@ -95,7 +93,6 @@ export const useStudyTracking = () => {
     try {
       setIsLoading(true);
       
-      // Save session to Firestore
       const sessionData = {
         ...session,
         endTime,
@@ -106,7 +103,6 @@ export const useStudyTracking = () => {
       const sessionRef = doc(db, 'study_sessions', `${userId}_${Date.now()}`);
       await setDoc(sessionRef, sessionData);
 
-      // Update total study time
       if (duration > 0) {
         await updateUserStats('total_study_time', duration);
       }
@@ -119,56 +115,27 @@ export const useStudyTracking = () => {
     }
   }, [currentSession, userId, updateUserStats]);
 
-  const trackQuizCompleted = useCallback(() => {
-    updateUserStats('quizzes_taken');
-  }, [updateUserStats]);
+  // Core tracking functions
+  const trackQuizCompleted = useCallback(() => updateUserStats('quizzes_taken'), [updateUserStats]);
+  const trackSummaryCreated = useCallback(() => updateUserStats('summaries_created'), [updateUserStats]);
+  const trackNoteCreated = useCallback(() => updateUserStats('notes_created'), [updateUserStats]);
+  const trackMathProblemSolved = useCallback(() => updateUserStats('math_problems_solved'), [updateUserStats]);
+  const trackDoubtResolved = useCallback(() => updateUserStats('doubts_resolved'), [updateUserStats]);
 
-  const trackSummaryCreated = useCallback(() => {
-    updateUserStats('summaries_created');
-  }, [updateUserStats]);
-
-  const trackNoteCreated = useCallback(() => {
-    updateUserStats('notes_created');
-  }, [updateUserStats]);
-
-  const trackMathProblemSolved = useCallback(() => {
-    updateUserStats('math_problems_solved');
-  }, [updateUserStats]);
-
-  const trackDoubtResolved = useCallback(() => {
-    updateUserStats('doubts_resolved');
-  }, [updateUserStats]);
-
-  // Add aliases for backwards compatibility
-  const trackQuizCompletion = trackQuizCompleted;
-  const trackSummaryGeneration = trackSummaryCreated;
-  const trackNotesCreation = trackNoteCreated;
-  const trackActivity = useCallback((activityType: string, data?: any) => {
-    // Generic activity tracker
+  const trackActivity = useCallback((activityType: string) => {
     switch(activityType) {
-      case 'quiz_completed':
-        trackQuizCompleted();
-        break;
-      case 'summary_generated':
-        trackSummaryCreated();
-        break;
-      case 'note_created':
-        trackNoteCreated();
-        break;
-      case 'math_problem_solved':
-        trackMathProblemSolved();
-        break;
-      case 'doubt_resolved':
-        trackDoubtResolved();
-        break;
-      default:
-        console.log('Activity tracked:', activityType, data);
+      case 'quiz_completed': trackQuizCompleted(); break;
+      case 'summary_generated': trackSummaryCreated(); break;
+      case 'note_created': trackNoteCreated(); break;
+      case 'math_problem_solved': trackMathProblemSolved(); break;
+      case 'doubt_resolved': trackDoubtResolved(); break;
     }
   }, [trackQuizCompleted, trackSummaryCreated, trackNoteCreated, trackMathProblemSolved, trackDoubtResolved]);
 
   return {
     currentSession,
     isLoading,
+    isSessionActive: !!currentSession,
     startSession,
     endSession,
     trackQuizCompleted,
@@ -177,9 +144,9 @@ export const useStudyTracking = () => {
     trackMathProblemSolved,
     trackDoubtResolved,
     // Aliases for backwards compatibility
-    trackQuizCompletion,
-    trackSummaryGeneration,
-    trackNotesCreation,
+    trackQuizCompletion: trackQuizCompleted,
+    trackSummaryGeneration: trackSummaryCreated,
+    trackNotesCreation: trackNoteCreated,
     trackActivity,
   };
 };

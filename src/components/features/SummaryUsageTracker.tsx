@@ -2,15 +2,15 @@
 import { useStudyTracking } from '@/hooks/useStudyTracking';
 
 const SummaryUsageTracker = () => {
-  const { trackSummaryGeneration } = useStudyTracking();
+  const { trackSummaryCreated } = useStudyTracking();
 
   // Function to track summary generation
   const triggerSummaryTracking = () => {
-    trackSummaryGeneration();
+    trackSummaryCreated();
   };
 
   // Export this function so other components can use it
-  (window as any).trackSummaryGeneration = trackSummaryGeneration;
+  (window as any).trackSummaryGeneration = triggerSummaryTracking;
 
   return null; // This is a utility component
 };
