@@ -176,7 +176,7 @@ ${text}
     };
 
     return note;
-  } catch (error) {
+  } throw new (error) {
     console.error('Error generating notes:', error);
     throw new Error('Failed to generate AI notes. Please try again.');
   }
