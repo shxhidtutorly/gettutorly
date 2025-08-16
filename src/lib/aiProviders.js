@@ -122,7 +122,7 @@ class AIProviderManager {
       'gemini': 'gemini',
       'gemini-2.5-flash': 'gemini',
       'llama-3.1-8b-instant': 'groq',
-      'llama-3-8b-chat-hf': 'together',
+      'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': 'together',
       'claude-3-5-sonnet-20241022': 'claude',
       'deepseek/deepseek-r1-0528-qwen3-8b:free': 'openrouter',
       'microsoft/DialoGPT-medium': 'huggingface',
@@ -270,7 +270,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 800,
+        max_tokens: 4000,
         temperature: 0.3
       })
     });
@@ -340,7 +340,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'deepseek/deepseek-r1-0528-qwen3-8b:free', // Using the model specified in your original code
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2000,
+        max_tokens: 20000,
         temperature: 0.3
       })
     });
@@ -409,7 +409,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', // Using the model specified in your original code
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 4096,
+        max_tokens: 40096,
         temperature: 0.3
       })
     });
