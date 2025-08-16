@@ -3,17 +3,6 @@ import crypto from "crypto";
 import fetch from "node-fetch"; // node >=18 has global fetch; keep this for environments without it
 import admin from "firebase-admin";
 
-/**
- * NOTES:
- * - Expects FIREBASE_SERVICE_ACCOUNT env var (stringified JSON service account).
- * - Expects OPENROUTER_API_KEY env var.
- * - This file:
- *    - initializes Firebase Admin (only once),
- *    - checks Firestore cache (collection: translations),
- *    - chunks input (preserving code fences),
- *    - tries a list of models in order with fallback per chunk,
- *    - stores successful translations into Firestore cache.
- */
 
 /* ---------------------- Firebase Admin init ---------------------- */
 function initFirebaseAdmin() {
@@ -149,53 +138,135 @@ const parseOpenRouterOutput = (data) => {
   return JSON.stringify(data);
 };
 
+/* ---------- replace callOpenRouter and translateChunkWithFallback with this block ---------- */
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Try calling OpenRouter with retries for transient errors.
+ * On DNS/network errors (ENOTFOUND / EAI_AGAIN / ECONNREFUSED / ETIMEDOUT), throw an Error with code 'NETWORK'.
+ * On non-OK status, throw an Error with code 'API'.
+ */
 const callOpenRouter = async (model, prompt, max_output_tokens = 2000) => {
   if (!OPENROUTER_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
-  const payload = {
-    model,
-    input: prompt,
-    temperature: 0,
-    max_output_tokens,
-  };
-
+  // allow override host if needed (useful for testing or enterprise)
+  const baseUrl = process.env.OPENROUTER_API_HOST?.trim() || OPENROUTER_API;
+  const payload = { model, input: prompt, temperature: 0, max_output_tokens };
   const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${OPENROUTER_KEY}`,
+    Authorization: `Bearer ${OPENROUTER_KEY}`
   };
-  // Provide referer if possible (some providers require)
   if (process.env.VERCEL_URL) headers["HTTP-Referer"] = process.env.VERCEL_URL;
 
-  const resp = await fetch(OPENROUTER_API, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
+  const maxRetries = 2;
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      const resp = await fetch(baseUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        // optional timeout handling: Node 18+ doesn't have built-in timeout; you can use AbortController if desired
+      });
 
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => "");
-    const msg = `OpenRouter ${resp.status} - ${txt}`;
-    const err = new Error(msg);
-    err.status = resp.status;
-    throw err;
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => "");
+        const msg = `OpenRouter ${resp.status} - ${txt}`;
+        const err = new Error(msg);
+        err.code = "API";
+        throw err;
+      }
+
+      const data = await resp.json().catch(() => null);
+      const parsed = parseOpenRouterOutput(data);
+      return parsed;
+    } catch (err) {
+      // Network / DNS errors usually contain ENOTFOUND, EAI_AGAIN, ECONNREFUSED, ETIMEDOUT in message
+      const msg = String(err?.message || err);
+      const isNetwork = /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|ENETUNREACH/i.test(msg);
+
+      if (isNetwork) {
+        // Mark error for caller to detect network problem
+        const netErr = new Error("Network/DNS error when calling OpenRouter: " + msg);
+        netErr.code = "NETWORK";
+        throw netErr;
+      }
+
+      // For API errors, we might retry a bit (rate limits / transient server errors)
+      attempt++;
+      if (attempt > maxRetries) {
+        err.code = err.code || "API";
+        throw err;
+      }
+      // exponential backoff
+      const wait = 300 * Math.pow(2, attempt);
+      console.warn(`OpenRouter API request failed (attempt ${attempt}), retrying in ${wait}ms: ${msg}`);
+      await sleep(wait);
+    }
   }
-
-  const data = await resp.json();
-  const raw = parseOpenRouterOutput(data);
-  return raw;
 };
 
-/* ---------------------- translateChunk with fallback ---------------------- */
+/**
+ * Fallback translators:
+ * 1) LibreTranslate (public instance) - free, no key required but rate-limited.
+ * 2) Google Translate API (if GOOGLE_TRANSLATE_API_KEY available) - paid but robust.
+ */
+const callLibreTranslate = async (text, source, target) => {
+  try {
+    const resp = await fetch("https://libretranslate.com/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q: text, source: source === "auto" ? "auto" : source, target, format: "text" })
+    });
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      throw new Error(`LibreTranslate ${resp.status} - ${txt}`);
+    }
+    const data = await resp.json();
+    return data?.translatedText || "";
+  } catch (err) {
+    throw new Error("LibreTranslate failed: " + (err.message || err));
+  }
+};
+
+const callGoogleTranslateAPI = async (text, target) => {
+  const key = process.env.GOOGLE_TRANSLATE_API_KEY;
+  if (!key) throw new Error("Google Translate API key missing");
+  try {
+    const url = `https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(key)}`;
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q: text, target })
+    });
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      throw new Error(`Google Translate ${resp.status} - ${txt}`);
+    }
+    const data = await resp.json();
+    if (data?.data?.translations && data.data.translations.length > 0) {
+      return data.data.translations.map(t => t.translatedText).join("\n\n");
+    }
+    throw new Error("No translation returned from Google");
+  } catch (err) {
+    throw new Error("Google Translate failed: " + (err.message || err));
+  }
+};
+
+/**
+ * Try modelCandidates using OpenRouter, but if network/DNS error occurs for OpenRouter,
+ * fall back immediately to LibreTranslate and/or Google Translate.
+ */
 const translateChunkWithFallback = async (chunk, targetLang, sourceLang, modelCandidates) => {
-  const results = { translatedText: chunk, modelUsed: "none", errors: [] };
+  const errors = [];
+  let aggregatedResult = { translatedText: chunk, modelUsed: "none", errors: [] };
 
-  // compute a safe max_output_tokens based on chunk length (chars -> tokens approx /4)
-  const estTokens = Math.max(256, Math.ceil(chunk.length / 4) + 200);
-  const maxOutputTokens = Math.min(estTokens, 120_000); // conservative cap
-
-  for (let idx = 0; idx < modelCandidates.length; idx++) {
-    const model = modelCandidates[idx];
+  // Try OpenRouter models first (modelCandidates is an array of model strings)
+  for (const model of modelCandidates) {
     try {
+      const estTokens = Math.max(256, Math.ceil(chunk.length / 4) + 200);
+      const maxOutputTokens = Math.min(estTokens, 120_000);
       const prompt = `You are an expert translator. Translate the following text to ${targetLang}.
 Requirements:
 - Preserve formatting: headings, bullet lists, numbered lists, tables, and code blocks (\`\`\`).
@@ -207,130 +278,55 @@ Source language: ${sourceLang}
 ${chunk}`;
 
       const translated = await callOpenRouter(model, prompt, maxOutputTokens);
-      if (translated && translated.trim().length > 0) {
-        results.translatedText = String(translated).trim();
-        results.modelUsed = model;
-        return results;
+      if (translated && String(translated).trim().length > 0) {
+        aggregatedResult.translatedText = String(translated).trim();
+        aggregatedResult.modelUsed = model;
+        return aggregatedResult;
       } else {
-        results.errors.push({ model, reason: "empty result" });
+        errors.push({ model, reason: "empty result" });
       }
     } catch (err) {
-      console.error(`translateChunk: model ${model} failed:`, err.message || err);
-      results.errors.push({ model, error: err.message || String(err) });
-      // continue to next model
-    }
-  }
-
-  // all models failed — return original text with modelUsed 'none'
-  return results;
-};
-
-/* ---------------------- Firestore cache helpers ---------------------- */
-const getCachedTranslation = async (hash) => {
-  if (!firestore) return null;
-  try {
-    const doc = await firestore.collection("translations").doc(hash).get();
-    if (!doc.exists) return null;
-    return doc.data();
-  } catch (err) {
-    console.warn("Firestore read error:", err.message || err);
-    return null;
-  }
-};
-
-const setCachedTranslation = async (hash, payload) => {
-  if (!firestore) return;
-  try {
-    await firestore.collection("translations").doc(hash).set(payload, { merge: true });
-  } catch (err) {
-    console.warn("Firestore write error:", err.message || err);
-  }
-};
-
-/* ---------------------- Handler ---------------------- */
-export default async function handler(req, res) {
-  // CORS preflight / headers (adjust to your needs)
-  res.setHeader("Content-Type", "application/json");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-
-  try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const { text, targetLang, sourceLang = "auto", contextType = "general" } = body ?? {};
-
-    if (!text || !targetLang) {
-      return res.status(400).json({ error: "Missing required fields: text, targetLang" });
-    }
-
-    // If sourceLang provided and equals targetLang, nothing to do
-    if (sourceLang && sourceLang !== "auto" && sourceLang === targetLang) {
-      return res.json({ translatedText: text, cached: false, modelUsed: "none" });
-    }
-
-    // Compute cache hash
-    const hash = generateHash(text, targetLang);
-
-    // Firestore cache check
-    const cached = await getCachedTranslation(hash);
-    if (cached && cached.translatedText) {
-      console.log("Translation cache hit:", hash);
-      return res.status(200).json({
-        translatedText: cached.translatedText,
-        cached: true,
-        modelUsed: cached.modelUsed || "cached"
-      });
-    }
-
-    // Prepare chunking
-    const chunks = splitIntoChunks(text, 100000);
-    console.log(`Translating text in ${chunks.length} chunk(s) -> target: ${targetLang}`);
-
-    // Build model candidate list starting at selected model
-    const initialModel = selectModel(text.length);
-    const startIndex = MODELS.indexOf(initialModel);
-    const modelCandidates = MODELS.slice(startIndex).concat(MODELS.slice(0, startIndex)); // try selected then others
-
-    const translatedChunks = [];
-    const modelUses = new Set();
-
-    for (const chunk of chunks) {
-      const { translatedText, modelUsed, errors } = await translateChunkWithFallback(chunk, targetLang, sourceLang, modelCandidates);
-      translatedChunks.push(translatedText);
-      if (modelUsed && modelUsed !== "none") modelUses.add(modelUsed);
-      if (errors && errors.length) {
-        console.debug("Chunk translation errors:", errors);
+      const code = err.code || "";
+      errors.push({ model, error: err.message || String(err), code });
+      // If this was a NETWORK error (DNS/outbound blocked) -> break and fallback to other translator
+      if (code === "NETWORK") {
+        console.warn("OpenRouter network error detected, will fallback to LibreTranslate/Google Translate:", err.message);
+        break; // break out of model loop to try fallback translators
       }
+      // For API errors continue to next model
+      continue;
     }
-
-    const finalTranslation = translatedChunks.join("\n\n");
-    const finalModelUsed = modelUses.size ? Array.from(modelUses).join(",") : "none";
-
-    // Cache in Firestore
-    await setCachedTranslation(hash, {
-      hash,
-      sourceLang,
-      targetLang,
-      originalText: text,
-      translatedText: finalTranslation,
-      modelUsed: finalModelUsed,
-      createdAt: admin.firestore ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
-    });
-
-    return res.status(200).json({
-      translatedText: finalTranslation,
-      cached: false,
-      modelUsed: finalModelUsed
-    });
-
-  } catch (err) {
-    console.error("Translation handler error:", err);
-    return res.status(500).json({
-      error: "Translation failed",
-      details: err?.message || String(err)
-    });
   }
-}
+
+  // If we reached here, either OpenRouter models exhausted OR a network error occurred.
+  // Try LibreTranslate first (free public service).
+  try {
+    const lib = await callLibreTranslate(chunk, sourceLang, targetLang);
+    if (lib && lib.trim().length > 0) {
+      aggregatedResult.translatedText = String(lib).trim();
+      aggregatedResult.modelUsed = "libretranslate";
+      aggregatedResult.errors = errors;
+      return aggregatedResult;
+    }
+  } catch (libErr) {
+    errors.push({ libretranslate: libErr.message || String(libErr) });
+  }
+
+  // Next fallback: Google Cloud Translate (if API key present)
+  try {
+    const google = await callGoogleTranslateAPI(chunk, targetLang);
+    if (google && google.trim().length > 0) {
+      aggregatedResult.translatedText = String(google).trim();
+      aggregatedResult.modelUsed = "google-translate";
+      aggregatedResult.errors = errors;
+      return aggregatedResult;
+    }
+  } catch (gErr) {
+    errors.push({ google: gErr.message || String(gErr) });
+  }
+
+  // All fallbacks failed, return original chunk and note errors
+  aggregatedResult.errors = errors;
+  aggregatedResult.modelUsed = "none";
+  return aggregatedResult;
+};
