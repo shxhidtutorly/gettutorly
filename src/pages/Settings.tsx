@@ -24,8 +24,16 @@ import { Badge } from "@/components/ui/badge";
 // This list remains the same
 const SUPPORTED_LANGUAGES = [
     { code: 'en', name: 'English', nativeName: 'English' },
-    { code: 'es', name: 'Spanish', nativeName: 'Español' },
-    // ... other languages
+  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe' },
+   { code: 'hi', name: 'Hindi', nativeName: 'हिंदी' },
 ];
 
 // Helper to get flag emoji remains the same
