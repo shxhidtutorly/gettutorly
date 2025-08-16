@@ -52,7 +52,7 @@
     "@types/uuid": "^10.0.0",
     "@uploadthing/react": "^5.0.2",
     "@vercel/node": "^5.1.16",
-"react-d3-tree": "^3.6.6"
+"react-d3-tree": "^3.6.6",
     "aos": "^2.3.4",
     "busboy": "^1.6.0",
     "canvas-confetti": "^1.6.0",
