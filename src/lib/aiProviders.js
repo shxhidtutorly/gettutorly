@@ -438,145 +438,92 @@ class AIProviderManager {
     return this.removeMarkdownFormatting(message || '');
   }
 
-  
-     
-async function callMistral(prompt, apiKey, options={}) {
-  // env: MISTRAL_API_URL (e.g. https://api.mistral.ai/v1)
-  // env: MISTRAL_MODEL (e.g. 'mistral-large' or exact id from your account)
-  const base = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1';
-  const model = options.model || process.env.MISTRAL_MODEL || 'mistral-large';
-  const url = `${base}/chat/completions`; // /chat/completions is Mistral chat endpoint
+async callMistral(prompt, apiKey, model, options = {}) {
+    // env: MISTRAL_API_URL (e.g. https://api.mistral.ai/v1)
+    // env: MISTRAL_MODEL (e.g. 'mistral-large-latest')
+    const base = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1';
+    const finalModel = model || process.env.MISTRAL_MODEL || 'mistral-large-latest';
+    const url = `${base}/chat/completions`;
 
-  const body = {
-    model,
-    messages: [
-      { role: 'system', content: options.system || 'You are an assistant.' },
-      { role: 'user', content: prompt }
-    ],
-    temperature: options.temperature ?? 0.3,
-    max_tokens: options.maxTokens ?? 1024
-  };
+    const body = {
+      model: finalModel,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: options.temperature ?? 0.3,
+      max_tokens: options.maxTokens ?? 1024
+    };
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify(body)
-  });
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(body)
+    });
 
-  const data = await resp.json().catch(() => null);
-  if (!resp.ok) {
-    // helpful debug: list models if invalid-model style error detected
-    if (data && /model/i.test(JSON.stringify(data))) {
-      throw new Error(`Mistral API error: ${resp.status} - ${JSON.stringify(data)}`);
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      throw new Error(`Mistral API error: ${resp.status} - ${data?.message || JSON.stringify(data)}`);
     }
-    throw new Error(`Mistral HTTP ${resp.status} - ${JSON.stringify(data)}`);
+
+    const text = data?.choices?.[0]?.message?.content || '';
+    return this.removeMarkdownFormatting(text);
   }
 
-  // Expect OpenAI-like 'choices' or 'output' depending on their response shape
-  const text =
-    data?.choices?.[0]?.message?.content ||
-    data?.choices?.[0]?.text ||
-    data?.output?.[0]?.content ||
-    data?.result ||
-    (typeof data === 'string' ? data : JSON.stringify(data));
+  async callCerebras(prompt, apiKey, model, options = {}) {
+    // env: CEREBRAS_API_BASE (e.g. https://api.cerebras.net/v1)
+    // env: CEREBRAS_MODEL (e.g. 'gpt-oss-120b')
+    const base = process.env.CEREBRAS_API_BASE || process.env.CEREBRAS_API_URL || 'https://api.cerebras.net/v1';
+    const finalModel = model || process.env.CEREBRAS_MODEL || 'gpt-oss-120b';
+    const url = `${base}/chat/completions`;
 
-  return String(text);
-}
+    const body = {
+      model: finalModel,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: options.temperature ?? 0.3,
+      max_tokens: options.maxTokens ?? 1024
+    };
 
-  /* ----------------------------
-     NEW: Cerebras (direct) - replace CEREBRAS_API_URL / CEREBRAS_MODEL in env if needed
-     ---------------------------- */
-  // callCerebras.js
-async function callCerebras(prompt, apiKey, options={}) {
-  // env: CEREBRAS_API_BASE (e.g. https://inference.cerebras.ai or https://api.cerebras.net/v1)
-  // env: CEREBRAS_MODEL (e.g. 'gpt-oss-120b' or the exact model id from their API)
-  const base = process.env.CEREBRAS_API_BASE || process.env.CEREBRAS_API_URL || 'https://api.cerebras.net/v1';
-  const model = options.model || process.env.CEREBRAS_MODEL || 'gpt-oss-120b';
-  const url = `${base}/chat/completions`; // or /v1/chat/completions depending on their instance
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(body)
+    });
 
-  const body = {
-    model,
-    messages: [
-      { role: 'system', content: options.system || 'You are an assistant.' },
-      { role: 'user', content: prompt }
-    ],
-    temperature: options.temperature ?? 0.3,
-    max_tokens: options.maxTokens ?? 1024
-  };
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      throw new Error(`Cerebras HTTP ${resp.status} - ${JSON.stringify(data)}`);
+    }
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify(body)
-  });
-
-  const data = await resp.json().catch(() => null);
-  if (!resp.ok) {
-    throw new Error(`Cerebras HTTP ${resp.status} - ${JSON.stringify(data)}`);
+    const text = data?.choices?.[0]?.message?.content || '';
+    return this.removeMarkdownFormatting(text);
   }
 
-  const text =
-    data?.choices?.[0]?.message?.content ||
-    data?.choices?.[0]?.text ||
-    data?.result ||
-    data?.output?.[0]?.content ||
-    JSON.stringify(data).slice(0, 2000);
+  async callNvidia(prompt, apiKey, model, options = {}) {
+    // env: NVIDIA_NIM_BASE (e.g. https://integrate.api.nvidia.com/v1)
+    // env: NVIDIA_MODEL (e.g. 'nvidia/nemotron-4-340b-reward')
+    const base = process.env.NVIDIA_NIM_BASE || 'https://integrate.api.nvidia.com/v1';
+    const finalModel = model || process.env.NVIDIA_MODEL || 'nvidia/nemotron-4-340b-reward';
+    const url = `${base}/chat/completions`;
 
-  return String(text);
-}
+    const body = {
+      model: finalModel,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: options.temperature ?? 0.3,
+      max_tokens: options.maxTokens ?? 1024
+    };
 
-  /* ----------------------------
-     NEW: NVIDIA (direct) - replace NVIDIA_API_URL / NVIDIA_MODEL in env if needed
-     ---------------------------- */
- // callNvidiaNim.js
-async function callNvidiaNim(prompt, apiKey, options={}) {
-  // env: NVIDIA_NIM_BASE (e.g. https://integrate.api.nvidia.com/v1 or your NIM_PROXY_BASE_URL)
-  // env: NVIDIA_MODEL (model id listed in /v1/models on your NIM instance)
-  const base = process.env.NVIDIA_NIM_BASE || 'https://integrate.api.nvidia.com/v1';
-  const model = options.model || process.env.NVIDIA_MODEL || 'nvidia-nim-default';
-  const url = `${base}/chat/completions`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(body)
+    });
 
-  const body = {
-    model,
-    messages: [
-      { role: 'system', content: options.system || 'You are an assistant.' },
-      { role: 'user', content: prompt }
-    ],
-    temperature: options.temperature ?? 0.3,
-    max_tokens: options.maxTokens ?? 1024
-  };
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      throw new Error(`NVIDIA NIM HTTP ${resp.status} - ${JSON.stringify(data)}`);
+    }
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify(body)
-  });
-
-  const data = await resp.json().catch(() => null);
-  if (!resp.ok) {
-    // If the API returns invalid model, recommend listing models (see helper below).
-    throw new Error(`NIM HTTP ${resp.status} - ${JSON.stringify(data)}`);
+    const text = data?.choices?.[0]?.message?.content || '';
+    return this.removeMarkdownFormatting(text);
   }
-
-  // Example shapes: OpenAI-compatible choices
-  const text =
-    data?.choices?.[0]?.message?.content ||
-    data?.choices?.[0]?.text ||
-    data?.result ||
-    data?.output?.[0]?.content ||
-    JSON.stringify(data).slice(0, 5000);
-
-  return String(text);
-}
-
-// Helper to list models on your NIM base URL
-async function nimListModels(apiKey, baseUrl = process.env.NVIDIA_NIM_BASE || 'https://integrate.api.nvidia.com/v1') {
-  const resp = await fetch(`${baseUrl}/models`, {
-    headers: { 'Authorization': `Bearer ${apiKey}` }
-  });
-  if (!resp.ok) throw new Error(`Failed to list NIM models: ${resp.status}`);
-  return await resp.json();
-}
 }
 
 export { AIProviderManager };
