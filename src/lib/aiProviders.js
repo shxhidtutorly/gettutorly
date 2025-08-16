@@ -340,7 +340,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'deepseek/deepseek-r1-0528-qwen3-8b:free', // Using the model specified in your original code
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 20000,
+        max_tokens: 6000,
         temperature: 0.3
       })
     });
@@ -409,7 +409,7 @@ class AIProviderManager {
       body: JSON.stringify({
         model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', // Using the model specified in your original code
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 40096,
+        max_tokens: 5006,
         temperature: 0.3
       })
     });
