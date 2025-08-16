@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { useUserStats } from "@/hooks/useUserStats";
+import { useTranslation } from "react-i18next";
+import { useUserLanguage } from "@/hooks/useUserLanguage";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import Footer from "@/components/layout/Footer";
+import TranslationToggle from "@/components/TranslationToggle";
 import {
   BookOpen,
   Sparkles,
@@ -28,6 +31,8 @@ const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { stats, loading: statsLoading } = useUserStats();
+  const { t } = useTranslation();
+  const { language: userLanguage } = useUserLanguage();
 
   const [isNewUser, setIsNewUser] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -83,14 +88,14 @@ const Dashboard = () => {
 
   const getWelcomeMessage = useCallback(() => {
     const name = getUserDisplayName();
-    return isNewUser ? `Welcome, ${name}! 🎉` : `Welcome back, ${name}! 👋`;
-  }, [getUserDisplayName, isNewUser]);
+    return isNewUser ? `${t('dashboard.welcomeNew', { name })} 🎉` : `${t('dashboard.welcomeBack', { name })} 👋`;
+  }, [getUserDisplayName, isNewUser, t]);
 
   const formatStudyTime = (minutes: number) => {
-    if (minutes < 60) return `${minutes}min`;
+    if (minutes < 60) return `${minutes}${t('dashboard.min')}`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = Math.round(minutes % 60);
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    return remainingMinutes > 0 ? `${hours}${t('dashboard.h')} ${remainingMinutes}${t('dashboard.m')}` : `${hours}${t('dashboard.h')}`;
   };
 
   if (authLoading || statsLoading) {
@@ -113,7 +118,7 @@ const Dashboard = () => {
             }}
           />
         </div>
-        <div className="text-xl font-black tracking-wider">LOADING TUTORLY...</div>
+        <div className="text-xl font-black tracking-wider">{t('common.loading')} TUTORLY...</div>
       </div>
     );
   }
@@ -123,19 +128,55 @@ const Dashboard = () => {
   }
   
   const featureCards = [
-    { icon: Sparkles, title: "AI NOTES", desc: "Smart note generation from any content", route: "/ai-notes", count: displayedStats?.notes_created || 0 },
-    { icon: MessageCircle, title: "MATH CHAT", desc: "Solve problems with step-by-step help", route: "/math-chat", count: displayedStats?.math_chat_sessions || 0 },
-    { icon: Users, title: "AUDIO RECAP", desc: "Convert lectures to organized notes", route: "/audio-notes", count: displayedStats?.audio_recaps_created || 0 },
-    { icon: HelpCircle, title: "DOUBT CHAIN", desc: "Break down complex concepts easily", route: "/doubt-chain", count: displayedStats?.doubt_chains_used || 0 },
-    { icon: Zap, title: "SMART FLASHCARDS", desc: "Adaptive cards that evolve with you", route: "/flashcards", count: displayedStats?.flashcards_created || 0 },
-    { icon: BookOpen, title: "INSTANT QUIZZES", desc: "Auto-generate tests from materials", route: "/quiz", count: displayedStats?.quizzes_taken || 0 }
+    { 
+      icon: Sparkles, 
+      title: t('navigation.aiNotes'), 
+      desc: t('dashboard.aiNotesDesc'), 
+      route: "/ai-notes", 
+      count: displayedStats?.notes_created || 0 
+    },
+    { 
+      icon: MessageCircle, 
+      title: t('navigation.mathChat'), 
+      desc: t('dashboard.mathChatDesc'), 
+      route: "/math-chat", 
+      count: displayedStats?.math_chat_sessions || 0 
+    },
+    { 
+      icon: Users, 
+      title: t('navigation.audioRecap'), 
+      desc: t('dashboard.audioRecapDesc'), 
+      route: "/audio-notes", 
+      count: displayedStats?.audio_recaps_created || 0 
+    },
+    { 
+      icon: HelpCircle, 
+      title: t('navigation.doubtChain'), 
+      desc: t('dashboard.doubtChainDesc'), 
+      route: "/doubt-chain", 
+      count: displayedStats?.doubt_chains_used || 0 
+    },
+    { 
+      icon: Zap, 
+      title: t('navigation.flashcards'), 
+      desc: t('dashboard.flashcardsDesc'), 
+      route: "/flashcards", 
+      count: displayedStats?.flashcards_created || 0 
+    },
+    { 
+      icon: BookOpen, 
+      title: t('navigation.quiz'), 
+      desc: t('dashboard.quizDesc'), 
+      route: "/quiz", 
+      count: displayedStats?.quizzes_taken || 0 
+    }
   ];
 
   const quickActions = [
-    { title: "Summarize", desc: "Quickly summarize text", icon: StickyNote, route: "/summaries" },
-    { title: "Multi-Doc Session", desc: "Upload & study multiple documents", icon: Files, route: "/multi-doc-session" },
-    { title: "AI Assistant", desc: "Get personalized help", icon: Brain, route: "/ai-assistant" },
-    { title: "AI Content Processor", desc: "Scrape study materials from URL", icon: Files, route: "/aicontentprocessor" },
+    { title: t('dashboard.summarize'), desc: t('dashboard.summarizeDesc'), icon: StickyNote, route: "/summaries" },
+    { title: t('dashboard.multiDoc'), desc: t('dashboard.multiDocDesc'), icon: Files, route: "/multi-doc-session" },
+    { title: t('dashboard.aiAssistant'), desc: t('dashboard.aiAssistantDesc'), icon: Brain, route: "/ai-assistant" },
+    { title: t('dashboard.contentProcessor'), desc: t('dashboard.contentProcessorDesc'), icon: Files, route: "/aicontentprocessor" },
   ];
 
   const themeClasses = theme === 'light' ? 'bg-stone-100 text-stone-900' : 'bg-zinc-900 text-zinc-100';
@@ -155,26 +196,60 @@ const Dashboard = () => {
             transition={{ duration: 0.3 }}
             className="mb-8"
           >
-            <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">
-              {getWelcomeMessage()}
-            </h1>
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight">
+                {getWelcomeMessage()}
+              </h1>
+              <TranslationToggle
+                originalText="Let's supercharge your learning today."
+                onTranslationChange={(translatedText, isTranslated) => {
+                  // This will be handled by the component internally
+                }}
+                contextType="general"
+                className="hidden md:flex"
+              />
+            </div>
             <p className={`text-lg ${mutedTextClasses}`}>
-              Let's supercharge your learning today.
+              {t('dashboard.subtitle')}
             </p>
             <button
               onClick={toggleMockData}
               className={`px-4 py-2 mt-4 rounded-full text-xs font-bold transition-colors ${theme === 'light' ? 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300' : 'bg-zinc-700 text-zinc-200 hover:bg-zinc-600'}`}
             >
-              {useMockData ? "Using Mock Data" : "Using Live Data"}
+              {useMockData ? t('dashboard.usingMockData') : t('dashboard.usingLiveData')}
             </button>
           </motion.div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {[
-              { title: "STUDY TIME", value: formatStudyTime(displayedStats?.total_study_time || 0), icon: Clock, trend: `${displayedStats?.sessions_this_month || 0} sessions`, accent: '#00e6c4' },
-              { title: "MILESTONES", value: displayedStats?.learning_milestones || 0, icon: Award, trend: "Total achievements", accent: '#ff5a8f' },
-              { title: "QUIZ SCORE", value: `${displayedStats?.average_quiz_score || 0}%`, icon: CheckCircle, trend: `${displayedStats?.quizzes_taken || 0} completed`, accent: '#00e6c4' },
-              { title: "AI NOTES", value: displayedStats?.notes_created || 0, icon: Sparkles, trend: "Notes generated", accent: '#ff5a8f' }
+              { 
+                title: t('dashboard.studyTime'), 
+                value: formatStudyTime(displayedStats?.total_study_time || 0), 
+                icon: Clock, 
+                trend: `${displayedStats?.sessions_this_month || 0} ${t('dashboard.sessions')}`, 
+                accent: '#00e6c4' 
+              },
+              { 
+                title: t('dashboard.milestones'), 
+                value: displayedStats?.learning_milestones || 0, 
+                icon: Award, 
+                trend: t('dashboard.totalAchievements'), 
+                accent: '#ff5a8f' 
+              },
+              { 
+                title: t('dashboard.quizScore'), 
+                value: `${displayedStats?.average_quiz_score || 0}%`, 
+                icon: CheckCircle, 
+                trend: `${displayedStats?.quizzes_taken || 0} ${t('dashboard.completed')}`, 
+                accent: '#00e6c4' 
+              },
+              { 
+                title: t('dashboard.aiNotes'), 
+                value: displayedStats?.notes_created || 0, 
+                icon: Sparkles, 
+                trend: t('dashboard.notesGenerated'), 
+                accent: '#ff5a8f' 
+              }
             ].map((stat, idx) => (
               <motion.div
                 key={stat.title}
@@ -206,9 +281,9 @@ const Dashboard = () => {
           >
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
-                <h2 className="text-2xl md:text-3xl font-black mb-2">UPLOAD FIRST MATERIAL</h2>
+                <h2 className="text-2xl md:text-3xl font-black mb-2">{t('dashboard.uploadFirstMaterial')}</h2>
                 <p className={`text-lg ${mutedTextClasses}`}>
-                  Start by uploading your first study material to this study set.
+                  {t('dashboard.uploadFirstMaterialDesc')}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -222,21 +297,21 @@ const Dashboard = () => {
                   }}
                 >
                   <Upload className="w-5 h-5" />
-                  UPLOAD MATERIALS
+                  {t('dashboard.uploadMaterials')}
                 </button>
                 <button
                   onClick={() => handleNavigation('/generate')}
                   className={`px-6 py-4 border-4 border-black font-black text-lg tracking-wide transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
                   style={{ boxShadow: '4px 4px 0px #000' }}
                 >
-                  GENERATE FROM TOPIC
+                  {t('dashboard.generateFromTopic')}
                 </button>
               </div>
             </div>
           </motion.div>
 
           <div className="mb-12">
-            <h2 className="text-2xl md:text-3xl font-black mb-8 tracking-tight">CORE TOOLS</h2>
+            <h2 className="text-2xl md:text-3xl font-black mb-8 tracking-tight">{t('dashboard.coreTools')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {featureCards.map((feature, idx) => (
                 <motion.button
@@ -270,7 +345,7 @@ const Dashboard = () => {
                   <h3 className="font-black text-xl mb-2 tracking-wide">{feature.title}</h3>
                   <p className={`${mutedTextClasses} font-bold mb-4`}>{feature.desc}</p>
                   <div className="flex items-center justify-end text-sm font-black tracking-wider group-hover:translate-x-1 transition-transform">
-                    EXPLORE <ArrowRight className="w-4 h-4 ml-2" />
+                    {t('dashboard.explore')} <ArrowRight className="w-4 h-4 ml-2" />
                   </div>
                 </motion.button>
               ))}
@@ -280,7 +355,7 @@ const Dashboard = () => {
           <div>
             <h2 className="text-2xl md:text-3xl font-black mb-8 flex items-center gap-3 tracking-tight">
               <Zap className="w-7 h-7" style={{ color: '#00e6c4' }} />
-              QUICK ACTIONS
+              {t('dashboard.quickActions')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {quickActions.map((action, idx) => (
