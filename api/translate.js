@@ -1,65 +1,202 @@
-import crypto from 'crypto';
+// api/translate.js
+import crypto from "crypto";
+import fetch from "node-fetch"; // node >=18 has global fetch; keep this for environments without it
+import admin from "firebase-admin";
 
-// Mock Firestore functions for caching (replace with actual Firebase Admin SDK)
-const mockCache = new Map();
+/**
+ * NOTES:
+ * - Expects FIREBASE_SERVICE_ACCOUNT env var (stringified JSON service account).
+ * - Expects OPENROUTER_API_KEY env var.
+ * - This file:
+ *    - initializes Firebase Admin (only once),
+ *    - checks Firestore cache (collection: translations),
+ *    - chunks input (preserving code fences),
+ *    - tries a list of models in order with fallback per chunk,
+ *    - stores successful translations into Firestore cache.
+ */
 
-const generateHash = (text, targetLang) => {
-  return crypto.createHash('sha256').update(text + ':' + targetLang).digest('hex');
-};
+/* ---------------------- Firebase Admin init ---------------------- */
+function initFirebaseAdmin() {
+  if (admin.apps?.length) return admin.app();
+  const svc = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!svc) {
+    console.warn("FIREBASE_SERVICE_ACCOUNT not set — caching disabled.");
+    return null;
+  }
+  let cred;
+  try {
+    cred = JSON.parse(svc);
+  } catch (err) {
+    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT:", err.message);
+    return null;
+  }
 
+  try {
+    return admin.initializeApp({
+      credential: admin.credential.cert(cred),
+    });
+  } catch (err) {
+    // In many serverless envs re-initialization throws; fallback to existing app
+    if (admin.apps?.length) return admin.app();
+    throw err;
+  }
+}
+
+const firebaseApp = initFirebaseAdmin();
+const firestore = firebaseApp ? admin.firestore() : null;
+
+/* ---------------------- Helpers ---------------------- */
+const generateHash = (text, targetLang) =>
+  crypto.createHash("sha256").update(text + ":" + targetLang).digest("hex");
+
+// list of fallback models (ordered). Prioritize free/generous context where possible.
 const MODELS = [
-  'google/gemini-2.5-pro-exp-03-25',
-  'qwen/qwen3-coder:free', 
-  'mistralai/mistral-small-3.2-24b-instruct:free',
-  'google/gemma-3n-e2b-it:free',
-  'mistralai/mistral-7b-instruct:free'
+  "google/gemini-2.5-pro-exp-03-25",
+  "qwen/qwen3-coder:free",
+  "openai/gpt-oss-20b:free",
+  "deepseek/deepseek-chat-v3-0324:free",
+  "mistralai/mistral-small-3.2-24b-instruct:free",
+  "google/gemma-3n-e2b-it:free",
+  "mistralai/mistral-7b-instruct:free"
 ];
 
 const selectModel = (textLength) => {
-  if (textLength > 600000) return MODELS[0];
-  if (textLength > 150000) return MODELS[1];
-  if (textLength > 40000) return MODELS[2];
-  if (textLength > 8000) return MODELS[3];
-  return MODELS[4];
+  if (textLength > 600_000) return MODELS[0];
+  if (textLength > 150_000) return MODELS[1];
+  if (textLength > 40_000) return MODELS[2];
+  if (textLength > 8_000) return MODELS[3];
+  return MODELS[MODELS.length - 1];
 };
 
-const splitIntoChunks = (text, maxChunkSize = 100000) => {
-  const chunks = [];
+/**
+ * Chunker that tries to respect paragraph boundaries and code fences.
+ * - Splits by double-newline paragraphs, but keeps code fences intact.
+ * - maxChunkChars default 100k characters (tuneable).
+ */
+const splitIntoChunks = (text, maxChunkChars = 100000) => {
+  if (!text) return [];
   const paragraphs = text.split(/\n\n+/);
-  let currentChunk = '';
-  
-  for (const paragraph of paragraphs) {
-    // Check if this paragraph contains code fences
-    const hasCodeFences = paragraph.includes('```');
-    
-    if (hasCodeFences || (currentChunk + paragraph).length <= maxChunkSize) {
-      currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
-    } else {
-      if (currentChunk) {
-        chunks.push(currentChunk);
-        currentChunk = paragraph;
+  const chunks = [];
+  let current = "";
+  let openFence = false;
+
+  const fenceCount = (s) => (s.match(/```/g) || []).length;
+
+  for (const p of paragraphs) {
+    const fenceInPara = fenceCount(p);
+    // Toggle openFence if odd number of fences in paragraph
+    if (fenceInPara % 2 === 1) {
+      openFence = !openFence;
+    }
+
+    // If adding paragraph would exceed size and not inside code block, flush
+    if (!openFence && (current.length + p.length + 2) > maxChunkChars) {
+      if (current) {
+        chunks.push(current);
+        current = p;
       } else {
-        // Single paragraph is too large, but we need to keep it intact
-        chunks.push(paragraph);
+        // paragraph itself is bigger than chunk size; push it as-is
+        chunks.push(p);
+        current = "";
       }
+    } else {
+      current += (current ? "\n\n" : "") + p;
     }
   }
-  
-  if (currentChunk) {
-    chunks.push(currentChunk);
-  }
-  
+  if (current) chunks.push(current);
   return chunks;
 };
 
-const translateWithOpenRouter = async (text, targetLang, sourceLang, model) => {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY not configured');
+/* ---------------------- OpenRouter call + parsing ---------------------- */
+const OPENROUTER_API = "https://api.openrouter.ai/v1/responses"; // recommended
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+
+if (!OPENROUTER_KEY) {
+  console.warn("Warning: OPENROUTER_API_KEY not set — OpenRouter calls will fail.");
+}
+
+const parseOpenRouterOutput = (data) => {
+  // OpenRouter responses vary by client; try common shapes:
+  // 1) data.output_text
+  if (data?.output_text) return data.output_text;
+  // 2) data.output (array) -> find text fields
+  if (Array.isArray(data?.output)) {
+    // outputs often contain objects with 'content' or 'text'
+    const texts = data.output.map((o) => {
+      if (typeof o === "string") return o;
+      if (o?.content) {
+        if (typeof o.content === "string") return o.content;
+        if (Array.isArray(o.content)) {
+          return o.content.map((c) => (c?.text || c?.content || "")).join("");
+        }
+      }
+      if (o?.text) return o.text;
+      return "";
+    });
+    return texts.filter(Boolean).join("\n\n");
+  }
+  // 3) data?.generations or data?.choices style
+  if (data?.generations && Array.isArray(data.generations)) {
+    return data.generations.map((g) => g.text || g?.output || "").join("\n\n");
+  }
+  if (data?.choices && Array.isArray(data.choices)) {
+    const c = data.choices[0];
+    if (c?.message?.content) return c.message.content;
+    if (c?.message?.text) return c.message.text;
+    if (c?.text) return c.text;
+  }
+  // fallback: stringify
+  return JSON.stringify(data);
+};
+
+const callOpenRouter = async (model, prompt, max_output_tokens = 2000) => {
+  if (!OPENROUTER_KEY) throw new Error("OPENROUTER_API_KEY not configured");
+
+  const payload = {
+    model,
+    input: prompt,
+    temperature: 0,
+    max_output_tokens,
+  };
+
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${OPENROUTER_KEY}`,
+  };
+  // Provide referer if possible (some providers require)
+  if (process.env.VERCEL_URL) headers["HTTP-Referer"] = process.env.VERCEL_URL;
+
+  const resp = await fetch(OPENROUTER_API, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => "");
+    const msg = `OpenRouter ${resp.status} - ${txt}`;
+    const err = new Error(msg);
+    err.status = resp.status;
+    throw err;
   }
 
-  const prompt = `You are an expert translator. Translate the following text to ${targetLang}.
+  const data = await resp.json();
+  const raw = parseOpenRouterOutput(data);
+  return raw;
+};
+
+/* ---------------------- translateChunk with fallback ---------------------- */
+const translateChunkWithFallback = async (chunk, targetLang, sourceLang, modelCandidates) => {
+  const results = { translatedText: chunk, modelUsed: "none", errors: [] };
+
+  // compute a safe max_output_tokens based on chunk length (chars -> tokens approx /4)
+  const estTokens = Math.max(256, Math.ceil(chunk.length / 4) + 200);
+  const maxOutputTokens = Math.min(estTokens, 120_000); // conservative cap
+
+  for (let idx = 0; idx < modelCandidates.length; idx++) {
+    const model = modelCandidates[idx];
+    try {
+      const prompt = `You are an expert translator. Translate the following text to ${targetLang}.
 Requirements:
 - Preserve formatting: headings, bullet lists, numbered lists, tables, and code blocks (\`\`\`).
 - Keep special markers (e.g., "<<ANSWER: A>>") unchanged.
@@ -67,141 +204,133 @@ Requirements:
 - Do NOT add commentary or explain translations — output only the translated text.
 Source language: ${sourceLang}
 -----
-${text}`;
+${chunk}`;
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.VERCEL_URL || 'http://localhost:3000',
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0,
-      max_tokens: Math.min(8000, Math.floor(text.length * 1.5))
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-    throw new Error('Invalid response from OpenRouter API');
-  }
-
-  return data.choices[0].message.content.trim();
-};
-
-const translateChunk = async (chunk, targetLang, sourceLang, modelList) => {
-  for (let i = 0; i < modelList.length; i++) {
-    const model = modelList[i];
-    
-    try {
-      const translatedText = await translateWithOpenRouter(chunk, targetLang, sourceLang, model);
-      
-      if (translatedText && translatedText.length > 0) {
-        return { translatedText, modelUsed: model };
+      const translated = await callOpenRouter(model, prompt, maxOutputTokens);
+      if (translated && translated.trim().length > 0) {
+        results.translatedText = String(translated).trim();
+        results.modelUsed = model;
+        return results;
+      } else {
+        results.errors.push({ model, reason: "empty result" });
       }
-    } catch (error) {
-      console.error(`Model ${model} failed:`, error.message);
-      
-      // If this is the last model, return original text
-      if (i === modelList.length - 1) {
-        return { translatedText: chunk, modelUsed: 'none' };
-      }
+    } catch (err) {
+      console.error(`translateChunk: model ${model} failed:`, err.message || err);
+      results.errors.push({ model, error: err.message || String(err) });
+      // continue to next model
     }
   }
-  
-  return { translatedText: chunk, modelUsed: 'none' };
+
+  // all models failed — return original text with modelUsed 'none'
+  return results;
 };
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+/* ---------------------- Firestore cache helpers ---------------------- */
+const getCachedTranslation = async (hash) => {
+  if (!firestore) return null;
+  try {
+    const doc = await firestore.collection("translations").doc(hash).get();
+    if (!doc.exists) return null;
+    return doc.data();
+  } catch (err) {
+    console.warn("Firestore read error:", err.message || err);
+    return null;
   }
+};
+
+const setCachedTranslation = async (hash, payload) => {
+  if (!firestore) return;
+  try {
+    await firestore.collection("translations").doc(hash).set(payload, { merge: true });
+  } catch (err) {
+    console.warn("Firestore write error:", err.message || err);
+  }
+};
+
+/* ---------------------- Handler ---------------------- */
+export default async function handler(req, res) {
+  // CORS preflight / headers (adjust to your needs)
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { text, targetLang, sourceLang = 'auto', contextType = 'general' } = req.body;
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const { text, targetLang, sourceLang = "auto", contextType = "general" } = body ?? {};
 
     if (!text || !targetLang) {
-      return res.status(400).json({ error: 'Missing required fields: text, targetLang' });
+      return res.status(400).json({ error: "Missing required fields: text, targetLang" });
     }
 
-    // If target language is same as source or English, return original
-    if (targetLang === 'en' || targetLang === sourceLang) {
-      return res.json({
-        translatedText: text,
-        cached: false,
-        modelUsed: 'none'
-      });
+    // If sourceLang provided and equals targetLang, nothing to do
+    if (sourceLang && sourceLang !== "auto" && sourceLang === targetLang) {
+      return res.json({ translatedText: text, cached: false, modelUsed: "none" });
     }
 
-    // Check cache
+    // Compute cache hash
     const hash = generateHash(text, targetLang);
-    
-    // Mock cache check (replace with actual Firestore query)
-    if (mockCache.has(hash)) {
-      const cached = mockCache.get(hash);
-      return res.json({
+
+    // Firestore cache check
+    const cached = await getCachedTranslation(hash);
+    if (cached && cached.translatedText) {
+      console.log("Translation cache hit:", hash);
+      return res.status(200).json({
         translatedText: cached.translatedText,
         cached: true,
-        modelUsed: cached.modelUsed
+        modelUsed: cached.modelUsed || "cached"
       });
     }
 
-    // Split text into chunks
-    const chunks = splitIntoChunks(text);
-    console.log(`Translating ${chunks.length} chunks to ${targetLang}`);
-    
-    // Select model based on total text length
+    // Prepare chunking
+    const chunks = splitIntoChunks(text, 100000);
+    console.log(`Translating text in ${chunks.length} chunk(s) -> target: ${targetLang}`);
+
+    // Build model candidate list starting at selected model
     const initialModel = selectModel(text.length);
-    const modelIndex = MODELS.indexOf(initialModel);
-    const availableModels = MODELS.slice(modelIndex);
-    
-    // Translate each chunk
+    const startIndex = MODELS.indexOf(initialModel);
+    const modelCandidates = MODELS.slice(startIndex).concat(MODELS.slice(0, startIndex)); // try selected then others
+
     const translatedChunks = [];
-    let finalModelUsed = 'none';
-    
+    const modelUses = new Set();
+
     for (const chunk of chunks) {
-      const result = await translateChunk(chunk, targetLang, sourceLang, availableModels);
-      translatedChunks.push(result.translatedText);
-      
-      if (result.modelUsed !== 'none') {
-        finalModelUsed = result.modelUsed;
+      const { translatedText, modelUsed, errors } = await translateChunkWithFallback(chunk, targetLang, sourceLang, modelCandidates);
+      translatedChunks.push(translatedText);
+      if (modelUsed && modelUsed !== "none") modelUses.add(modelUsed);
+      if (errors && errors.length) {
+        console.debug("Chunk translation errors:", errors);
       }
     }
-    
-    const finalTranslation = translatedChunks.join('\n\n');
-    
-    // Cache the result (mock - replace with actual Firestore)
-    mockCache.set(hash, {
+
+    const finalTranslation = translatedChunks.join("\n\n");
+    const finalModelUsed = modelUses.size ? Array.from(modelUses).join(",") : "none";
+
+    // Cache in Firestore
+    await setCachedTranslation(hash, {
+      hash,
+      sourceLang,
+      targetLang,
+      originalText: text,
       translatedText: finalTranslation,
       modelUsed: finalModelUsed,
-      createdAt: new Date().toISOString()
+      createdAt: admin.firestore ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
     });
-    
-    return res.json({
+
+    return res.status(200).json({
       translatedText: finalTranslation,
       cached: false,
       modelUsed: finalModelUsed
     });
 
-  } catch (error) {
-    console.error('Translation error:', error);
-    return res.status(500).json({ 
-      error: 'Translation failed',
-      details: error.message 
+  } catch (err) {
+    console.error("Translation handler error:", err);
+    return res.status(500).json({
+      error: "Translation failed",
+      details: err?.message || String(err)
     });
   }
 }
