@@ -1,131 +1,133 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
+import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
+import FileUploader from "@/components/features/FileUploader";
+import NotesDisplay from "@/components/features/NotesDisplay";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import {
-  BookOpen,
-  Loader2,
-  Download,
-  Sparkles,
-  RefreshCcw,
-  MessageCircle,
-  Upload,
-  FileText,
-  Send,
-  Trash2,
-  HelpCircle,
-  Zap
-} from "lucide-react";
-import { ExtractionResult, extractTextFromFile } from "@/lib/fileExtractor";
-import FileUploader from "@/components/features/FileUploader";
-import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
-import { generateNotesAI, generateFlashcardsAI, AINote, Flashcard } from "@/lib/aiNotesService";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, Loader2, Download, Sparkles, RefreshCcw, MessageCircle, Upload, FileText, Send } from "lucide-react";
+import { ExtractionResult } from "@/lib/fileExtractor";
+import { generateNotesAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { useHistory } from "@/hooks/useHistory";
-import { Input } from "@/components/ui/input"; 
-import { useNavigate } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { DownloadNotesButton } from "@/components/features/DownloadNotesButton";
+import { BackToDashboardButton } from "@/components/features/BackToDashboardButton";
+import { QuizFromNotesButton } from "@/components/features/QuizFromNotesButton";
 
-// --- Interfaces ---
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  timestamp: Date;
 }
 
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  correct: number;
-}
-
-// --- Main Component ---
 const AINotesGenerator = () => {
   const [user] = useAuthState(auth);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { trackNoteCreated, endSession, startSession } = useStudyTracking();
-  const { addHistoryEntry } = useHistory('notes');
-
-  // --- State Management ---
-  const [inputType, setInputType] = useState<'upload' | 'text'>('upload');
-  const [sourceText, setSourceText] = useState("");
-  const [sourceFilename, setSourceFilename] = useState("Pasted Text");
+  const [extractedFile, setExtractedFile] = useState<ExtractionResult | null>(null);
   const [note, setNote] = useState<AINote | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  
-  // Chat State
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const [notesProgress, setNotesProgress] = useState(0);
+  const [textInput, setTextInput] = useState("");
+  const [activeTab, setActiveTab] = useState("upload");
+  const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+  const { trackNotesCreation, endSession, startSession } = useStudyTracking();
+  const { addHistoryEntry } = useHistory('notes');
+  const { toast } = useToast();
 
-  // Additional loading states
-  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
-  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
-
-  // --- Handlers ---
   const handleFileProcessed = async (result: ExtractionResult) => {
-    setSourceText(result.text);
-    setSourceFilename(result.filename);
-    await generateNotes(result.text, result.filename);
+    setExtractedFile(result);
+    startSession();
+    await generateNotes(result);
   };
 
   const handleTextSubmit = async () => {
-    if (!sourceText.trim()) {
-      toast({ variant: "destructive", title: "Please enter some text." });
+    if (!textInput.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Please enter some text to generate notes from"
+      });
       return;
     }
-    await generateNotes(sourceText, "Pasted Text");
+
+    const result: ExtractionResult = {
+      text: textInput.trim(),
+      filename: "Text Input",
+      fileType: "text"
+    };
+
+    setExtractedFile(result);
+    startSession();
+    await generateNotes(result);
   };
 
-  const generateNotes = async (text: string, filename: string) => {
-    setIsLoading(true);
-    setProgress(10);
-    startSession();
+  const generateNotes = async (fileResult: ExtractionResult) => {
+    setIsGeneratingNotes(true);
+    setNotesProgress(10);
 
     try {
-      setProgress(30);
-      const generatedNote = await generateNotesAI(text, filename, user?.uid || "");
-      setProgress(80);
-      setNote(generatedNote);
-      setProgress(100);
+      setNotesProgress(30);
+      const generatedNote = await generateNotesAI(fileResult.text, fileResult.filename, user?.uid || "");
+      setNotesProgress(80);
 
-      await addHistoryEntry(`Source: ${filename}`, generatedNote.content, { title: generatedNote.title, type: 'notes_generation' });
-      trackNoteCreated();
+      setNote(generatedNote);
+      setNotesProgress(100);
+
+      // Add to history
+      await addHistoryEntry(
+        `Source: ${fileResult.filename}`,
+        generatedNote.content,
+        { title: generatedNote.title, type: 'notes_generation' }
+      );
+
+      trackNotesCreation();
       endSession("notes", generatedNote.title, true);
 
-      toast({ title: "Notes Generated Successfully! 🎉" });
-      setTimeout(() => setProgress(0), 1000);
+      setTimeout(() => setNotesProgress(0), 1000);
+
+      toast({
+        title: "Notes generated successfully! 🎉",
+        description: "Your AI-powered study notes are ready.",
+      });
     } catch (error) {
       console.error("Error generating notes:", error);
-      endSession("notes", filename, false);
-      toast({ variant: "destructive", title: "Error Generating Notes", description: error instanceof Error ? error.message : "Please try again." });
-      setProgress(0);
+      setNotesProgress(0);
+      endSession("notes", fileResult.filename, false);
+      toast({
+        variant: "destructive",
+        title: "Error generating notes",
+        description: error instanceof Error ? error.message : "Please try again",
+      });
     } finally {
-      setIsLoading(false);
+      setIsGeneratingNotes(false);
     }
   };
-  
+
   const handleChatSubmit = async () => {
     if (!chatInput.trim() || !note) return;
 
-    const newUserMessage: ChatMessage = { role: 'user', content: chatInput.trim() };
-    const currentChatHistory = [...chatMessages, newUserMessage];
-    setChatMessages(currentChatHistory);
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: chatInput.trim(),
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
     const currentInput = chatInput.trim();
     setChatInput("");
     setIsChatLoading(true);
 
     try {
+      // Simulate AI response - in production, you'd call your AI service
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,245 +136,352 @@ const AINotesGenerator = () => {
           model: 'groq'
         })
       });
+
       if (!response.ok) throw new Error('Failed to get AI response');
       const data = await response.json();
       
-      const aiMessage: ChatMessage = { role: 'assistant', content: data.response };
-      setChatMessages([...currentChatHistory, aiMessage]);
+      const aiMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.response || data.message || 'I apologize, but I had trouble processing your question.',
+        timestamp: new Date()
+      };
+
+      setChatMessages(prev => [...prev, aiMessage]);
+
+      // Add chat to history
+      await addHistoryEntry(
+        currentInput,
+        aiMessage.content,
+        { type: 'notes_chat', notesTitle: note.title }
+      );
+
     } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage: ChatMessage = { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' };
-      setChatMessages([...currentChatHistory, errorMessage]);
+      console.error('Error in chat:', error);
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: 'I apologize, but I had trouble processing your question. Please try again.',
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsChatLoading(false);
     }
   };
 
-  const createFlashcards = async () => {
-    if (!note) return;
-    setIsGeneratingFlashcards(true);
-    
-    try {
-      const flashcards = await generateFlashcardsAI(note.content);
-      localStorage.setItem('flashcards', JSON.stringify(flashcards));
-      localStorage.setItem('flashcards-source', note.title);
-      toast({ title: "Flashcards Ready! 📚", description: "Navigating you to the flashcards page." });
-      navigate('/flashcards');
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error creating flashcards", description: "Please try again." });
-    } finally {
-      setIsGeneratingFlashcards(false);
-    }
-  };
+  const generateFlashcardsFromChat = async () => {
+    if (chatMessages.length === 0) return;
 
-  const createQuiz = async () => {
-    if (!note) return;
-    setIsGeneratingQuiz(true);
-    
-    try {
-      // Generate quiz questions from notes
-      const quizPrompt = `Create a quiz with 5-10 multiple choice questions from these notes. Format as JSON:
-      [{"question": "...", "options": ["A", "B", "C", "D"], "correct": 0}]
-      
-      Notes: ${note.content}`;
-      
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: quizPrompt, model: 'gemini' })
+    const flashcards: Flashcard[] = chatMessages
+      .filter(msg => msg.role === 'user')
+      .slice(-5) // Last 5 user questions
+      .map((msg, idx) => {
+        const aiResponse = chatMessages.find((aiMsg, aiIdx) => 
+          aiMsg.role === 'assistant' && 
+          chatMessages.indexOf(aiMsg) > chatMessages.indexOf(msg)
+        );
+        
+        return {
+          id: `chat-${idx}`,
+          front: msg.content,
+          back: aiResponse?.content || 'No response available'
+        };
       });
-      
-      if (!response.ok) throw new Error('Failed to generate quiz');
-      const data = await response.json();
-      
-      // Parse quiz questions
-      let questions: QuizQuestion[] = [];
-      try {
-        const jsonMatch = data.response.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          questions = JSON.parse(jsonMatch[0]);
-        }
-      } catch {
-        // Fallback: create simple questions
-        questions = [
-          {
-            question: "What is the main topic of these notes?",
-            options: ["A) Primary concept", "B) Secondary topic", "C) Related subject", "D) Additional information"],
-            correct: 0
-          }
-        ];
-      }
-      
-      localStorage.setItem('generatedQuiz', JSON.stringify({ title: note.title, questions }));
-      toast({ title: "Quiz Ready! 📝", description: "Navigating you to the quiz page." });
-      navigate('/quiz?source=generated');
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error creating quiz", description: "Please try again." });
-    } finally {
-      setIsGeneratingQuiz(false);
-    }
+
+    // Save flashcards to localStorage for the flashcards page
+    localStorage.setItem('flashcards', JSON.stringify(flashcards));
+    localStorage.setItem('flashcards-source', `Chat: ${note?.title || 'AI Notes'}`);
+
+    toast({
+      title: "Flashcards created! 📚",
+      description: `Generated ${flashcards.length} flashcards from your chat history.`,
+    });
   };
 
   const startOver = () => {
-    setSourceText("");
-    setSourceFilename("Pasted Text");
+    setExtractedFile(null);
     setNote(null);
-    setProgress(0);
-    setChatMessages([]);
-    setInputType('upload');
+    setNotesProgress(0);
+    setTextInput("");
     setShowChat(false);
+    setChatMessages([]);
+    setActiveTab("upload");
   };
-
-  // --- UI Components & Styles ---
-  const neonColors = {
-    green: 'border-green-400 text-green-400 shadow-[4px_4px_0px_#22c55e]',
-    cyan: 'border-cyan-400 text-cyan-400 shadow-[4px_4px_0px_#00f7ff]',
-  };
-
-  const BrutalistButton = ({ children, onClick, disabled, className = '' }: { children: React.ReactNode, onClick?: () => void, disabled?: boolean, className?: string }) => (
-    <Button onClick={onClick} disabled={disabled} className={`bg-transparent border-2 hover:bg-gray-800 rounded-none font-bold transition-all duration-200 ${className}`}>
-      {children}
-    </Button>
-  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white font-mono">
+    <div
+      className="min-h-screen flex flex-col text-white relative"
+      style={{
+        background: "linear-gradient(135deg, #232946 0%, #18122B 100%)",
+        transition: "background 0.5s",
+      }}
+    >
       <Navbar />
-      <main className="flex-1 py-8 px-4">
-        <div className="container max-w-7xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-black text-white flex items-center justify-center gap-3">
-              <Sparkles className="w-10 h-10 text-green-400"/>
-              AI Notes Generator
-            </h1>
-            <p className="text-gray-400 mt-2">Generate notes, flashcards, and quizzes from any document or text.</p>
-          </motion.div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* --- LEFT PANEL: INPUT --- */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-              <div className={`bg-gray-900 border-2 rounded-none p-6 min-h-[60vh] ${note ? 'border-gray-700' : neonColors.green}`}>
-                <AnimatePresence mode="wait">
-                  {note ? (
-                     <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
-                        <h2 className="text-2xl font-black text-white mb-4">Actions</h2>
-                        <div className="space-y-4">
-                           <BrutalistButton 
-                             onClick={createQuiz} 
-                             disabled={isGeneratingQuiz}
-                             className={`w-full h-14 text-lg ${neonColors.green}`}
-                           >
-                             {isGeneratingQuiz ? <Loader2 className="mr-2 animate-spin"/> : <HelpCircle className="mr-2"/>} Create Quiz
-                           </BrutalistButton>
-                           <BrutalistButton 
-                             onClick={createFlashcards} 
-                             disabled={isGeneratingFlashcards}
-                             className={`w-full h-14 text-lg ${neonColors.cyan}`}
-                           >
-                             {isGeneratingFlashcards ? <Loader2 className="mr-2 animate-spin"/> : <Zap className="mr-2"/>} Create Flashcards
-                           </BrutalistButton>
-                           <Button
-                             onClick={() => setShowChat(!showChat)}
-                             className={`w-full h-14 text-lg bg-transparent border-2 border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black rounded-none font-bold transition-all duration-200`}
-                           >
-                             <MessageCircle className="mr-2"/> Chat with Notes
-                           </Button>
-                           <Button
-                             className="w-full h-14 text-lg bg-white text-black border-2 border-white hover:bg-gray-200 rounded-none font-bold transition-all duration-200"
-                             onClick={() => {
-                               const blob = new Blob([note.content], { type: 'text/plain' });
-                               const url = URL.createObjectURL(blob);
-                               const a = document.createElement('a');
-                               a.href = url;
-                               a.download = `${note.title}.txt`;
-                               a.click();
-                               URL.revokeObjectURL(url);
-                             }}
-                           >
-                             <Download className="w-full h-14 text-lg bg-transparent border-2 border-red-400 text-red-400 hover:bg-red-400 hover:text-black rounded-none font-bold transition-all duration-200"/> Download Notes
-                           </Button>
-                        </div>
-                        <div className="mt-auto pt-4">
-                           <Button onClick={startOver} className="w-full bg-gray-800 text-white border-2 border-gray-600 hover:bg-gray-700 rounded-none font-bold h-12">
-                              <RefreshCcw className="mr-2"/> Generate New Notes
-                           </Button>
-                        </div>
-                     </motion.div>
-                  ) : (
-                    <motion.div key="input-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                      <div className="flex justify-center gap-2 mb-6 p-1 bg-black border-2 border-gray-700 rounded-none w-fit mx-auto">
-                        <Button onClick={() => setInputType('upload')} className={`rounded-none font-bold ${inputType === 'upload' ? 'bg-green-500 text-black' : 'bg-transparent text-white'}`}><Upload className="w-4 h-4 mr-2"/> Upload</Button>
-                        <Button onClick={() => setInputType('text')} className={`rounded-none font-bold ${inputType === 'text' ? 'bg-green-500 text-black' : 'bg-transparent text-white'}`}><FileText className="w-4 h-4 mr-2"/> Paste Text</Button>
-                      </div>
-                      
-                      {inputType === 'upload' ? (
-                        <FileUploader onFileProcessed={handleFileProcessed} isProcessing={isLoading} />
-                      ) : (
-                        <Textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} placeholder="Paste your text here..." className="w-full h-48 bg-black border-2 border-gray-600 rounded-none text-white p-4 focus:border-green-400 focus:ring-0 resize-none"/>
-                      )}
-                      
-                      <Button onClick={inputType === 'upload' ? () => {} : handleTextSubmit} disabled={isLoading || (inputType === 'text' && !sourceText.trim())} className="w-full mt-6 bg-green-500 text-black border-2 border-green-400 hover:bg-green-400 rounded-none font-black text-lg h-14">
-                        {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Sparkles className="w-6 h-6 mr-2"/> Generate Notes </>}
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-
-            {/* --- RIGHT PANEL: OUTPUT --- */}
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-               <div className={`bg-gray-900 border-2 rounded-none p-6 min-h-[60vh] flex flex-col ${note ? neonColors.cyan : 'border-gray-700'}`}>
-                  <AnimatePresence mode="wait">
-                     {isLoading ? (
-                        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full">
-                           <Loader2 className="w-12 h-12 animate-spin text-green-400 mb-4"/>
-                           <h3 className="text-xl font-bold">Generating AI Notes...</h3>
-                           <p className="text-gray-400">This might take a moment.</p>
-                           <Progress value={progress} className="w-full max-w-xs mt-4 h-2 bg-black border-2 border-green-400 rounded-none p-0" />
-                        </motion.div>
-                     ) : note ? (
-                        <motion.div key="notes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
-                           <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-2"><BookOpen/> {note.title}</h2>
-                           <p className="text-sm text-gray-500 mb-4">Source: {sourceFilename}</p>
-                           <div className="flex-grow overflow-y-auto pr-2 max-h-[40vh] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-invert max-w-none text-sm">
-                                 {note.content}
-                              </ReactMarkdown>
-                           </div>
-                           
-                           {/* Chat Section */}
-                           {showChat && (
-                             <div className="mt-4 pt-4 border-t-2 border-gray-700">
-                               <div className="mb-4 max-h-32 overflow-y-auto space-y-2">
-                                 {chatMessages.map((msg, idx) => (
-                                   <div key={idx} className={`p-2 rounded text-xs ${msg.role === 'user' ? 'bg-orange-900/50 text-orange-200' : 'bg-gray-700/50 text-gray-200'}`}>
-                                     <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
-                                   </div>
-                                 ))}
-                               </div>
-                               <div className="flex gap-2">
-                                   <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()} placeholder="Chat with your notes..." className="bg-black border-2 border-gray-600 rounded-none h-10 focus:border-orange-400 text-sm"/>
-                                   <Button onClick={handleChatSubmit} disabled={isChatLoading} className="bg-orange-500 text-black border-2 border-orange-400 hover:bg-orange-400 rounded-none font-black h-10 px-4 text-sm"><Send className="w-3 h-3"/></Button>
-                               </div>
-                           </div>
-                           )}
-                        </motion.div>
-                     ) : (
-                        <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full text-center text-gray-600">
-                           <Sparkles className="w-16 h-16 mb-4"/>
-                           <h3 className="text-2xl font-black text-gray-500">Your Notes Will Appear Here</h3>
-                           <p>Upload a file or paste text to get started.</p>
-                        </motion.div>
-                     )}
-                  </AnimatePresence>
-               </div>
-            </motion.div>
+      <main className="flex-1 py-4 md:py-8 px-4 pb-20 md:pb-8">
+        <div className="container max-w-6xl mx-auto">
+          {/* Back button */}
+          <div className="mb-4 flex items-center">
+            <BackToDashboardButton />
           </div>
+
+          <div className="text-center mb-6 md:mb-8 animate-fadeInDown transition-all duration-300">
+            <div className="flex items-center justify-center mb-4">
+              <span className="text-2xl md:text-3xl mr-2" role="img" aria-label="sparkles">✨</span>
+              <BookOpen className="h-6 w-6 md:h-8 md:w-8 mr-3 text-primary" />
+              <h1 className="text-2xl md:text-3xl font-black text-white drop-shadow-sm tracking-wide">
+                AI Notes Generator
+              </h1>
+              <span className="text-2xl md:text-3xl ml-2" role="img" aria-label="books">📚</span>
+            </div>
+            <p className="max-w-2xl mx-auto text-sm md:text-base font-medium text-white/80">
+              Turn any study file or text into detailed AI-powered notes, flashcards, and quizzes — all in one place.
+            </p>
+          </div>
+
+          {!extractedFile && !note && (
+            <div
+              className="animate-fadeInUp mb-6 md:mb-8"
+              style={{
+                boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.25)",
+                borderRadius: "1.25rem",
+                background: "rgba(255,255,255,0.01)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 bg-black/20">
+                  <TabsTrigger value="upload" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden sm:inline">Upload File</span>
+                    <span className="sm:hidden">Upload</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="text" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Paste Text</span>
+                    <span className="sm:hidden">Text</span>
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="upload">
+                  <FileUploader
+                    onFileProcessed={handleFileProcessed}
+                    isProcessing={isGeneratingNotes}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="text" className="space-y-4">
+                  <Card className="bg-black/20 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Paste Your Text
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Textarea
+                        value={textInput}
+                        onChange={(e) => setTextInput(e.target.value)}
+                        placeholder="Paste your study material, lecture notes, or any text content here..."
+                        className="min-h-[200px] resize-none bg-black/30 border-slate-600 text-white"
+                        disabled={isGeneratingNotes}
+                      />
+                      <Button
+                        onClick={handleTextSubmit}
+                        disabled={isGeneratingNotes || !textInput.trim()}
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      >
+                        {isGeneratingNotes ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate AI Notes
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+
+          {isGeneratingNotes && (
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="text-center mb-4">
+                <Loader2 className="w-8 h-8 md:w-12 md:h-12 animate-spin mx-auto mb-2 text-yellow-400" />
+                <h3 className="text-lg md:text-xl font-bold tracking-wide">
+                  Creating AI Notes... <span role="img" aria-label="robot">🤖</span>
+                </h3>
+                <p className="text-white/70 text-sm md:text-base">
+                  {notesProgress < 30
+                    ? "Thinking... 🤔"
+                    : notesProgress < 80
+                    ? "Structuring Notes... 📝"
+                    : "Generating with AI... 🚀"}
+                </p>
+              </div>
+              <Progress value={notesProgress} className="h-3 bg-gradient-to-r from-yellow-400 to-pink-500" />
+            </div>
+          )}
+
+          {note && (
+            <div className="space-y-6 md:space-y-8 animate-fadeInUp">
+              <div className="flex flex-col md:flex-row gap-4 justify-center items-center flex-wrap">
+                <DownloadNotesButton
+                  content={note.content}
+                  filename={note.title}
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Download Notes</span>
+                  <span className="sm:hidden">Download</span>
+                </DownloadNotesButton>
+                
+                <Button
+                  onClick={() => setShowChat(!showChat)}
+                  variant="outline"
+                  className="flex items-center gap-2 border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Chat With Notes</span>
+                  <span className="sm:hidden">Chat</span>
+                </Button>
+                
+                <QuizFromNotesButton
+                  notesContent={note.content}
+                  notesTitle={note.title}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden sm:inline">Generate Quiz</span>
+                  <span className="sm:hidden">Quiz</span>
+                </QuizFromNotesButton>
+                
+                <Button
+                  onClick={startOver}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  <span className="hidden sm:inline">Upload Another</span>
+                  <span className="sm:hidden">New</span>
+                </Button>
+              </div>
+
+              {/* Chat Section */}
+              {showChat && (
+                <Card className="bg-black/20 border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-white flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-5 w-5 text-blue-400" />
+                        Chat With Your Notes
+                      </div>
+                      {chatMessages.some(msg => msg.role === 'user') && (
+                        <Button
+                          onClick={generateFlashcardsFromChat}
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          <span className="hidden sm:inline">Create Flashcards</span>
+                          <span className="sm:hidden">Cards</span>
+                        </Button>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Chat Messages */}
+                    <div className="max-h-64 md:max-h-80 overflow-y-auto space-y-3 mb-4">
+                      {chatMessages.length === 0 ? (
+                        <div className="text-center text-gray-400 py-8">
+                          <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm md:text-base">Ask questions about your notes to start a conversation!</p>
+                        </div>
+                      ) : (
+                        chatMessages.map((message, idx) => (
+                          <div
+                            key={idx}
+                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[80%] p-3 rounded-lg text-sm md:text-base ${
+                                message.role === 'user'
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-gray-700 text-gray-100'
+                              }`}
+                            >
+                              {message.content}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      {isChatLoading && (
+                        <div className="flex justify-start">
+                          <div className="bg-gray-700 p-3 rounded-lg flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">AI is thinking...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="flex gap-2">
+                      <Textarea
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask a question about your notes..."
+                        className="flex-1 min-h-[60px] resize-none bg-black/30 border-slate-600 text-white text-sm md:text-base"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleChatSubmit();
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={handleChatSubmit}
+                        disabled={!chatInput.trim() || isChatLoading}
+                        className="bg-blue-600 hover:bg-blue-700 px-4"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <NotesDisplay
+                note={note}
+                onFlashcardsGenerated={() => {}}
+              />
+            </div>
+          )}
         </div>
       </main>
+
       <Footer />
       <BottomNav />
+
+      <style>{`
+        @keyframes fadeInDown {
+          0% { opacity: 0; transform: translateY(-32px);}
+          100% { opacity: 1; transform: translateY(0);}
+        }
+        @keyframes fadeInUp {
+          0% { opacity: 0; transform: translateY(32px);}
+          100% { opacity: 1; transform: translateY(0);}
+        }
+        .animate-fadeInDown {
+          animation: fadeInDown 0.85s;
+        }
+        .animate-fadeInUp {
+          animation: fadeInUp 0.85s;
+        }
+      `}</style>
     </div>
   );
 };
