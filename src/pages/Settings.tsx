@@ -16,19 +16,49 @@ import {
   CreditCard, 
   Settings as SettingsIcon,
   User,
-  LogOut
+  LogOut,
+  Globe
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { useUserLanguage } from "@/hooks/useUserLanguage";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'kn', name: 'Kannada' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'de', name: 'German' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'it', name: 'Italian' },
+  { code: 'ru', name: 'Russian' },
+  { code: 'zh', name: 'Chinese Simplified' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'ko', name: 'Korean' }
+];
 
 const SettingsPage = () => {
   const { user, isLoaded } = useUser();
   const { signOut } = useFirebaseAuth();
   const { subscription, loading } = useSubscription();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { language, updateLanguage, loading: languageLoading } = useUserLanguage();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleLanguageChange = async (newLanguage: string) => {
+    try {
+      await updateLanguage(newLanguage);
+      toast.success('Language updated successfully');
+    } catch (error) {
+      toast.error('Failed to update language');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -74,19 +104,56 @@ const SettingsPage = () => {
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-center gap-2">
               <SettingsIcon className="w-8 h-8" />
-              Account Settings
+              {t('settings.title')}
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400">
-              Manage your account and subscription
+              {t('settings.subtitle')}
             </p>
           </div>
+
+          {/* Language & Translation Settings */}
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                {t('settings.language')} & Translation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                  {t('settings.languageDescription')}
+                </label>
+                <Select 
+                  value={language} 
+                  onValueChange={handleLanguageChange}
+                  disabled={languageLoading}
+                >
+                  <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 z-50">
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <SelectItem 
+                        key={lang.code} 
+                        value={lang.code}
+                        className="hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* User Profile */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="w-5 h-5" />
-                Profile Information
+                {t('settings.profile')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -100,7 +167,7 @@ const SettingsPage = () => {
                 className="flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
-                Sign Out
+                {t('common.logout')}
               </Button>
             </CardContent>
           </Card>
@@ -110,7 +177,7 @@ const SettingsPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="w-5 h-5" />
-                Subscription Details
+                {t('settings.subscription')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -1,0 +1,99 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "download": "Download",
+    "upload": "Upload",
+    "search": "Search",
+    "filter": "Filter",
+    "settings": "Settings",
+    "profile": "Profile",
+    "logout": "Sign Out"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "notes": "Notes",
+    "quiz": "Quiz",
+    "flashcards": "Flashcards",
+    "chat": "AI Chat",
+    "progress": "Progress",
+    "library": "Library",
+    "pricing": "Pricing"
+  },
+  "dashboard": {
+    "title": "Welcome to Tutorly",
+    "subtitle": "Your AI-powered learning companion",
+    "studyTime": "Study Time",
+    "notesCreated": "Notes Created",
+    "quizzesTaken": "Quizzes Taken",
+    "flashcardsCreated": "Flashcards Created",
+    "recentActivity": "Recent Activity",
+    "learningInsights": "Learning Insights"
+  },
+  "settings": {
+    "title": "Account Settings",
+    "subtitle": "Manage your account and subscription",
+    "language": "Language",
+    "languageDescription": "Choose your preferred language for the interface",
+    "profile": "Profile Information",
+    "subscription": "Subscription Details",
+    "preferences": "Preferences"
+  },
+  "aiNotes": {
+    "title": "AI Notes Generator",
+    "subtitle": "Upload documents and generate intelligent notes",
+    "uploadDocument": "Upload Document",
+    "generateNotes": "Generate Notes",
+    "createQuiz": "Create Quiz",
+    "createFlashcards": "Create Flashcards",
+    "chatWithNotes": "Chat with Notes",
+    "downloadNotes": "Download Notes",
+    "translating": "Translating...",
+    "translation": {
+      "showOriginal": "Show Original",
+      "showTranslated": "Show Translated",
+      "translateNow": "Translate Now",
+      "autoTranslate": "Auto Translate"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "startQuiz": "Start Quiz",
+    "submitAnswer": "Submit Answer",
+    "nextQuestion": "Next Question",
+    "previousQuestion": "Previous Question",
+    "results": "Results",
+    "score": "Score",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "retakeQuiz": "Retake Quiz"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "networkError": "Network error. Please check your connection.",
+    "translationError": "Translation failed. Showing original content.",
+    "fileUploadError": "Failed to upload file. Please try again."
+  },
+  "languages": {
+    "en": "English",
+    "hi": "Hindi",
+    "kn": "Kannada",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "pt": "Portuguese",
+    "it": "Italian",
+    "ru": "Russian",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean"
+  }
+}

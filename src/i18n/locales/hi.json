@@ -1,0 +1,99 @@
+{
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "save": "सेव करें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "close": "बंद करें",
+    "confirm": "पुष्टि करें",
+    "back": "वापस",
+    "next": "अगला",
+    "submit": "जमा करें",
+    "download": "डाउनलोड",
+    "upload": "अपलोड",
+    "search": "खोजें",
+    "filter": "फिल्टर",
+    "settings": "सेटिंग्स",
+    "profile": "प्रोफाइल",
+    "logout": "साइन आउट"
+  },
+  "navigation": {
+    "dashboard": "डैशबोर्ड",
+    "notes": "नोट्स",
+    "quiz": "क्विज़",
+    "flashcards": "फ्लैशकार्ड",
+    "chat": "AI चैट",
+    "progress": "प्रगति",
+    "library": "लाइब्रेरी",
+    "pricing": "मूल्य निर्धारण"
+  },
+  "dashboard": {
+    "title": "Tutorly में आपका स्वागत है",
+    "subtitle": "आपका AI-संचालित शिक्षण साथी",
+    "studyTime": "अध्ययन समय",
+    "notesCreated": "नोट्स बनाए गए",
+    "quizzesTaken": "क्विज़ लिए गए",
+    "flashcardsCreated": "फ्लैशकार्ड बनाए गए",
+    "recentActivity": "हाल की गतिविधि",
+    "learningInsights": "शिक्षण अंतर्दृष्टि"
+  },
+  "settings": {
+    "title": "खाता सेटिंग्स",
+    "subtitle": "अपना खाता और सदस्यता प्रबंधित करें",
+    "language": "भाषा",
+    "languageDescription": "इंटरफेस के लिए अपनी पसंदीदा भाषा चुनें",
+    "profile": "प्रोफाइल जानकारी",
+    "subscription": "सदस्यता विवरण",
+    "preferences": "प्राथमिकताएं"
+  },
+  "aiNotes": {
+    "title": "AI नोट्स जेनरेटर",
+    "subtitle": "दस्तावेज़ अपलोड करें और बुद्धिमान नोट्स जेनरेट करें",
+    "uploadDocument": "दस्तावेज़ अपलोड करें",
+    "generateNotes": "नोट्स जेनरेट करें",
+    "createQuiz": "क्विज़ बनाएं",
+    "createFlashcards": "फ्लैशकार्ड बनाएं",
+    "chatWithNotes": "नोट्स के साथ चैट करें",
+    "downloadNotes": "नोट्स डाउनलोड करें",
+    "translating": "अनुवाद हो रहा है...",
+    "translation": {
+      "showOriginal": "मूल दिखाएं",
+      "showTranslated": "अनुवादित दिखाएं",
+      "translateNow": "अब अनुवाद करें",
+      "autoTranslate": "स्वचालित अनुवाद"
+    }
+  },
+  "quiz": {
+    "title": "क्विज़",
+    "startQuiz": "क्विज़ शुरू करें",
+    "submitAnswer": "उत्तर जमा करें",
+    "nextQuestion": "अगला प्रश्न",
+    "previousQuestion": "पिछला प्रश्न",
+    "results": "परिणाम",
+    "score": "स्कोर",
+    "correct": "सही",
+    "incorrect": "गलत",
+    "retakeQuiz": "क्विज़ फिर से लें"
+  },
+  "errors": {
+    "generic": "कुछ गलत हो गया। कृपया फिर से कोशिश करें।",
+    "networkError": "नेटवर्क त्रुटि। कृपया अपना कनेक्शन जांचें।",
+    "translationError": "अनुवाद असफल। मूल सामग्री दिखाई जा रही है।",
+    "fileUploadError": "फ़ाइल अपलोड करने में असफल। कृपया फिर से कोशिश करें।"
+  },
+  "languages": {
+    "en": "अंग्रेजी",
+    "hi": "हिंदी",
+    "kn": "कन्नड़",
+    "es": "स्पेनिश",
+    "fr": "फ्रेंच",
+    "de": "जर्मन",
+    "pt": "पुर्तगाली",
+    "it": "इतालवी",
+    "ru": "रूसी",
+    "zh": "चीनी",
+    "ja": "जापानी",
+    "ko": "कोरियाई"
+  }
+}

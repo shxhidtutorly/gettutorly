@@ -1,0 +1,99 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Soumettre",
+    "download": "Télécharger",
+    "upload": "Téléverser",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "settings": "Paramètres",
+    "profile": "Profil",
+    "logout": "Se déconnecter"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "notes": "Notes",
+    "quiz": "Quiz",
+    "flashcards": "Cartes mémoire",
+    "chat": "Chat IA",
+    "progress": "Progrès",
+    "library": "Bibliothèque",
+    "pricing": "Tarifs"
+  },
+  "dashboard": {
+    "title": "Bienvenue sur Tutorly",
+    "subtitle": "Votre compagnon d'apprentissage IA",
+    "studyTime": "Temps d'étude",
+    "notesCreated": "Notes créées",
+    "quizzesTaken": "Quiz réalisés",
+    "flashcardsCreated": "Cartes créées",
+    "recentActivity": "Activité récente",
+    "learningInsights": "Insights d'apprentissage"
+  },
+  "settings": {
+    "title": "Paramètres du compte",
+    "subtitle": "Gérez votre compte et votre abonnement",
+    "language": "Langue",
+    "languageDescription": "Choisissez votre langue préférée pour l'interface",
+    "profile": "Informations du profil",
+    "subscription": "Détails de l'abonnement",
+    "preferences": "Préférences"
+  },
+  "aiNotes": {
+    "title": "Générateur de Notes IA",
+    "subtitle": "Téléversez des documents et générez des notes intelligentes",
+    "uploadDocument": "Téléverser un document",
+    "generateNotes": "Générer des notes",
+    "createQuiz": "Créer un quiz",
+    "createFlashcards": "Créer des cartes",
+    "chatWithNotes": "Discuter avec les notes",
+    "downloadNotes": "Télécharger les notes",
+    "translating": "Traduction en cours...",
+    "translation": {
+      "showOriginal": "Afficher l'original",
+      "showTranslated": "Afficher la traduction",
+      "translateNow": "Traduire maintenant",
+      "autoTranslate": "Traduction automatique"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "startQuiz": "Commencer le quiz",
+    "submitAnswer": "Soumettre la réponse",
+    "nextQuestion": "Question suivante",
+    "previousQuestion": "Question précédente",
+    "results": "Résultats",
+    "score": "Score",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "retakeQuiz": "Refaire le quiz"
+  },
+  "errors": {
+    "generic": "Quelque chose s'est mal passé. Veuillez réessayer.",
+    "networkError": "Erreur de réseau. Veuillez vérifier votre connexion.",
+    "translationError": "Échec de la traduction. Affichage du contenu original.",
+    "fileUploadError": "Échec du téléversement du fichier. Veuillez réessayer."
+  },
+  "languages": {
+    "en": "Anglais",
+    "hi": "Hindi",
+    "kn": "Kannada",
+    "es": "Espagnol",
+    "fr": "Français",
+    "de": "Allemand",
+    "pt": "Portugais",
+    "it": "Italien",
+    "ru": "Russe",
+    "zh": "Chinois",
+    "ja": "Japonais",
+    "ko": "Coréen"
+  }
+}

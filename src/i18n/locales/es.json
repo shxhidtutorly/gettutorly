@@ -1,0 +1,99 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "submit": "Enviar",
+    "download": "Descargar",
+    "upload": "Subir",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "settings": "Configuración",
+    "profile": "Perfil",
+    "logout": "Cerrar sesión"
+  },
+  "navigation": {
+    "dashboard": "Panel",
+    "notes": "Notas",
+    "quiz": "Quiz",
+    "flashcards": "Tarjetas",
+    "chat": "Chat AI",
+    "progress": "Progreso",
+    "library": "Biblioteca",
+    "pricing": "Precios"
+  },
+  "dashboard": {
+    "title": "Bienvenido a Tutorly",
+    "subtitle": "Tu compañero de aprendizaje con IA",
+    "studyTime": "Tiempo de estudio",
+    "notesCreated": "Notas creadas",
+    "quizzesTaken": "Quizzes realizados",
+    "flashcardsCreated": "Tarjetas creadas",
+    "recentActivity": "Actividad reciente",
+    "learningInsights": "Insights de aprendizaje"
+  },
+  "settings": {
+    "title": "Configuración de cuenta",
+    "subtitle": "Gestiona tu cuenta y suscripción",
+    "language": "Idioma",
+    "languageDescription": "Elige tu idioma preferido para la interfaz",
+    "profile": "Información del perfil",
+    "subscription": "Detalles de suscripción",
+    "preferences": "Preferencias"
+  },
+  "aiNotes": {
+    "title": "Generador de Notas IA",
+    "subtitle": "Sube documentos y genera notas inteligentes",
+    "uploadDocument": "Subir documento",
+    "generateNotes": "Generar notas",
+    "createQuiz": "Crear quiz",
+    "createFlashcards": "Crear tarjetas",
+    "chatWithNotes": "Chatear con notas",
+    "downloadNotes": "Descargar notas",
+    "translating": "Traduciendo...",
+    "translation": {
+      "showOriginal": "Mostrar original",
+      "showTranslated": "Mostrar traducido",
+      "translateNow": "Traducir ahora",
+      "autoTranslate": "Traducir automáticamente"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "startQuiz": "Comenzar quiz",
+    "submitAnswer": "Enviar respuesta",
+    "nextQuestion": "Siguiente pregunta",
+    "previousQuestion": "Pregunta anterior",
+    "results": "Resultados",
+    "score": "Puntuación",
+    "correct": "Correcto",
+    "incorrect": "Incorrecto",
+    "retakeQuiz": "Repetir quiz"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Por favor intenta de nuevo.",
+    "networkError": "Error de red. Por favor verifica tu conexión.",
+    "translationError": "Falló la traducción. Mostrando contenido original.",
+    "fileUploadError": "Falló la subida del archivo. Por favor intenta de nuevo."
+  },
+  "languages": {
+    "en": "Inglés",
+    "hi": "Hindi",
+    "kn": "Kannada",
+    "es": "Español",
+    "fr": "Francés",
+    "de": "Alemán",
+    "pt": "Portugués",
+    "it": "Italiano",
+    "ru": "Ruso",
+    "zh": "Chino",
+    "ja": "Japonés",
+    "ko": "Coreano"
+  }
+}
