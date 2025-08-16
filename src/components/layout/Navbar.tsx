@@ -171,14 +171,14 @@ const Navbar = ({ theme, toggleTheme }: { theme: 'light' | 'dark', toggleTheme: 
               </div>
 
               {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className={`p-2 border-2 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
-                style={{ boxShadow: '2px 2px 0px #000' }}
-                aria-label="Toggle theme"
-              >
-                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-              </button>
+            <Link
+  to="/settings"
+  className={`p-2 border-2 border-black transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+  style={{ boxShadow: "2px 2px 0px #000" }}
+  aria-label="Go to Settings"
+>
+  <Settings className="w-4 h-4" />
+</Link>
 
               {/* Notifications */}
               <button
