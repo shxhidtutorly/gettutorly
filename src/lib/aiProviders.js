@@ -12,37 +12,35 @@ class AIProviderManager {
       'groq',
       'claude',
       'openrouter',
-      'ministral',
+      'mistral',   // correct spelling used here
       'cerebras',
-      'nvidia',
-      'huggingface'
+      'nvidia'
     ];
 
     // Map of environment var names to provider keys
+    // Note: accept both spelling variants of Mistral env var to be robust
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
       claude: this.getKeysFromEnv('CLAUDE_API_KEY'),
       openrouter: this.getKeysFromEnv('OPENROUTER_API_KEY'),
-      huggingface: this.getKeysFromEnv('HUGGINGFACE_API_KEY'),
       together: this.getKeysFromEnv('TOGETHER_API_KEY'),
-      ministral: this.getKeysFromEnv('MINISTRAL_API_KEY'),
-      nvidia: this.getKeysFromEnv('NVIDA_API_KEY'), // note: env name kept as supplied by user (NVIDA)
+      mistral: this.getKeysFromEnv('MISTRAL_API_KEY') // if you used MINISTRAL_API_KEY upstream, add it to env as MISTRAL_API_KEY
+        .concat(this.getKeysFromEnv('MINISTRAL_API_KEY')),
+      nvidia: this.getKeysFromEnv('NVIDIA_API_KEY').concat(this.getKeysFromEnv('NVIDA_API_KEY')), // accept both env names
       cerebras: this.getKeysFromEnv('CEREBRAS_API_KEY'),
     };
 
     // Provider max context/token capacity defaults (can be overridden with env vars MAX_TOKENS_{PROVIDER})
-    // Values are conservative defaults; if you need exact numbers replace with env vars.
     this.defaultProviderMaxTokens = {
       together: 8193,
       gemini: 8192,
       groq: 16384,
       claude: 9000,
       openrouter: 32768,
-      ministral: 8192,
+      mistral: 8192,
       cerebras: 65536,
-      nvidia: 65536,
-      huggingface: 8192
+      nvidia: 65536
     };
 
     // Load effective max tokens (allow override via env var name MAX_TOKENS_{PROVIDER})
@@ -54,7 +52,7 @@ class AIProviderManager {
     });
 
     Object.entries(this.apiKeys).forEach(([provider, keys]) => {
-      console.log(`🔑 ${provider}: ${keys.length} keys available`);
+      console.log(`🔑 ${provider}: ${Array.isArray(keys) ? keys.length : 0} keys available`);
     });
     console.log('ℹ️ Provider max tokens:', this.providerMaxTokens);
   }
@@ -62,7 +60,6 @@ class AIProviderManager {
   getKeysFromEnv(envVar) {
     const keys = process.env[envVar];
     if (!keys) {
-      console.log(`⚠️ No keys found for ${envVar}`);
       return [];
     }
     return keys.split(',').map(k => k.trim()).filter(Boolean);
@@ -72,47 +69,40 @@ class AIProviderManager {
      Utilities: token estimation & error checks
      ---------------------------- */
 
-  // Very simple token estimator: fallback when no tokenizer available.
-  // Approximate: 1 token ~ 4 characters (rough estimate). Adjust multiplier if you want.
   estimateTokens(text) {
     if (!text) return 0;
     if (typeof text !== 'string') text = String(text);
     return Math.ceil(text.length / 4);
   }
 
-  getProviderMaxTokens(provider, model) {
-    // Allow specific per-model overrides if needed in the future.
+  getProviderMaxTokens(provider) {
     return this.providerMaxTokens[provider] || 8192;
   }
 
-  // Compute safe max tokens to request given provider limit and prompt size.
   getSafeMaxOutputTokens(provider, promptText, desiredMax) {
     const providerLimit = this.getProviderMaxTokens(provider);
     const promptTokens = this.estimateTokens(promptText);
-    const safe = Math.max(16, Math.min(desiredMax, providerLimit - promptTokens - 16)); // leave a buffer
+    const safe = Math.max(16, Math.min(desiredMax, providerLimit - promptTokens - 16));
     return safe;
   }
 
   isTokenLimitError(err) {
     if (!err) return false;
-    const msg = (err.message || '').toLowerCase();
-    // Common token error markers
+    const msg = (err.message || String(err)).toLowerCase();
     return (
-      msg.includes('tokens') && msg.includes('must be') ||
-      msg.includes('max_tokens') && msg.includes('exceeded') ||
-      msg.includes('input validation error') && msg.includes('tokens') ||
-      msg.includes('max_tokens') && msg.includes('must be') ||
-      msg.includes('max tokens') ||
-      msg.includes('max_output_tokens') ||
-      msg.includes('max_output_tokens') ||
+      (msg.includes('tokens') && msg.includes('must')) ||
+      msg.includes('max_tokens') && (msg.includes('exceed') || msg.includes('must be')) ||
       msg.includes('max_new_tokens') ||
-      msg.includes('finishreason') && msg.includes('max_tokens')
+      msg.includes('max_output_tokens') ||
+      msg.includes('finishreason') && msg.includes('max') ||
+      msg.includes('max tokens') ||
+      msg.includes('input validation error')
     );
   }
 
   removeMarkdownFormatting(text) {
     if (typeof text !== 'string') {
-      return String(text);
+      return String(text || '');
     }
     text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '$1$2');
     text = text.replace(/\*(.*?)\*|_(.*?)_/g, '$1$2');
@@ -133,12 +123,9 @@ class AIProviderManager {
      ---------------------------- */
 
   async getAIResponse(prompt, model, options = {}) {
-    // model can be either provider or explicit model string
     const requestedProvider = this.getProviderForModel(model);
-    // Build fallback list: requested first, then providerOrder (without duplicates)
     const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
 
-    // convert prompt to a string for token estimation (preserve files as separate)
     let promptTextForEstimate = '';
     if (typeof prompt === 'string') {
       promptTextForEstimate = prompt;
@@ -148,9 +135,8 @@ class AIProviderManager {
       promptTextForEstimate = JSON.stringify(prompt || '');
     }
 
-    // Desired maximum output tokens default (you set max tokens on top-level)
-    const desiredMaxOutput = options.maxOutputTokens || 40000; // your earlier 40k
-    // Attempt providers in order
+    const desiredMaxOutput = options.maxOutputTokens || 40000;
+
     for (const provider of fallbackProviders) {
       const keys = this.apiKeys[provider];
       if (!keys || keys.length === 0) {
@@ -158,17 +144,15 @@ class AIProviderManager {
         continue;
       }
 
-      // For each provider try each key in rotation
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
-        // We'll attempt a sequence of decreasing max_token values for robustness
         const attemptMaxList = [
           this.getSafeMaxOutputTokens(provider, promptTextForEstimate, desiredMaxOutput),
           Math.max(16, Math.floor(desiredMaxOutput / 2)),
           Math.max(16, Math.floor(desiredMaxOutput / 4)),
           128,
           32
-        ].filter((v, idx, arr) => v > 0 && arr.indexOf(v) === idx); // unique and >0
+        ].filter((v, idx, arr) => v > 0 && arr.indexOf(v) === idx);
 
         let lastError = null;
 
@@ -181,7 +165,6 @@ class AIProviderManager {
           } catch (error) {
             lastError = error;
             console.log(`❌ Failed with ${provider} key ${i + 1} (max_tokens=${attemptMax}): ${error.message}`);
-            // if it's a token-limit error, try next reduced attemptMax; if not, break to try next key/provider
             if (!this.isTokenLimitError(error)) {
               console.log('ℹ️ Error not related to token limits - moving to next key/provider.');
               break;
@@ -189,17 +172,13 @@ class AIProviderManager {
               console.log('⚠️ Token-limit related error — will retry with smaller max_tokens if attempts remain.');
             }
           }
-        } // end attemptMaxList loop
+        }
 
-        // if all attemptMaxList exhausted and lastError was token-limit -> try next provider/key
         if (lastError) {
-          // continue to next key/provider
           continue;
         }
-      } // end keys loop
-
-      // try next provider
-    } // end provider loop
+      }
+    }
 
     throw new Error('All API keys failed for all providers. Please check your API keys and network connection.');
   }
@@ -208,7 +187,6 @@ class AIProviderManager {
      Model -> provider mapping
      ---------------------------- */
   getProviderForModel(model) {
-    // Map common models to their provider
     const modelProviderMap = {
       'gemini': 'gemini',
       'gemini-2.5-flash': 'gemini',
@@ -216,16 +194,19 @@ class AIProviderManager {
       'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': 'together',
       'claude-3-5-sonnet-20241022': 'claude',
       'deepseek/deepseek-r1-0528-qwen3-8b:free': 'openrouter',
-      'microsoft/DialoGPT-medium': 'huggingface',
-      // New models requested
-      'ministral-8b-2410': 'ministral',
+      'microsoft/DialoGPT-medium': 'groq',
+      // New models/providers - accept both names users might send
+      'ministral-8b-2410': 'mistral',
+      'mistral-8b': 'mistral',
       'gpt-oss-120b': 'cerebras',
       'nvidia-nim': 'nvidia',
+      'nvidia': 'nvidia',
+      'mistral': 'mistral',
+      'cerebras': 'cerebras',
       'together': 'together',
-      'openrouter': 'openrouter',
-      'huggingface': 'huggingface'
+      'openrouter': 'openrouter'
     };
-    return modelProviderMap[model] || model; // treat unknown model as provider name
+    return modelProviderMap[model] || model;
   }
 
   /* ----------------------------
@@ -233,8 +214,6 @@ class AIProviderManager {
      ---------------------------- */
   async callProvider(provider, prompt, apiKey, model, options = {}) {
     let finalPromptForAPI = prompt;
-
-    // Normalize prompt for non-Gemini providers: extract prompt.text if it's an object.
     if (typeof prompt === 'object' && prompt !== null) {
       if (provider !== 'gemini') {
         if (prompt.text !== undefined) {
@@ -244,7 +223,6 @@ class AIProviderManager {
           finalPromptForAPI = JSON.stringify(prompt);
         }
       }
-      // If provider is 'gemini', finalPromptForAPI remains the original object (supports files)
     } else if (typeof prompt !== 'string') {
       console.warn(`⚠️ Non-string/non-object prompt (${typeof prompt}) provided to ${provider}. Converting to string.`);
       finalPromptForAPI = String(prompt);
@@ -262,16 +240,14 @@ class AIProviderManager {
         return await this.callClaude(finalPromptForAPI, apiKey, options);
       case 'openrouter':
         return await this.callOpenRouter(finalPromptForAPI, apiKey, model, options);
-      case 'huggingface':
-        return await this.callHuggingFace(finalPromptForAPI, apiKey, options);
       case 'together':
         return await this.callTogether(finalPromptForAPI, apiKey, options);
-      case 'ministral':
-        return await this.callHuggingFaceModel('mest/ministral-8b-2410', finalPromptForAPI, apiKey, options); // placeholder model path
+      case 'mistral':
+        return await this.callMistral(finalPromptForAPI, apiKey, model, options);
       case 'cerebras':
-        return await this.callHuggingFaceModel('cerebras/gpt-oss-120b', finalPromptForAPI, apiKey, options); // placeholder
+        return await this.callCerebras(finalPromptForAPI, apiKey, model, options);
       case 'nvidia':
-        return await this.callHuggingFaceModel('nvidia/nim-model', finalPromptForAPI, apiKey, options); // placeholder
+        return await this.callNvidia(finalPromptForAPI, apiKey, model, options);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -279,16 +255,12 @@ class AIProviderManager {
 
   /* ----------------------------
      Provider-specific implementations
-     Each function accepts prompt (string or object), apiKey, and options { maxTokens }
      ---------------------------- */
 
   // Gemini (Generative Language API)
   async callGemini(promptObj, apiKey, options = {}) {
-    // promptObj: { text: "...", files?: [{ type, base64 }, ...] }
     const parts = [];
-
     if (promptObj.text) parts.push({ text: promptObj.text });
-
     if (promptObj.files) {
       for (const file of promptObj.files) {
         parts.push({
@@ -300,46 +272,38 @@ class AIProviderManager {
       }
     }
 
-    // use options.maxTokens to compute gemini max output tokens
     const requestedMax = options.maxTokens || 1800;
-    // ensure we don't exceed provider's model cap
     const safeMax = Math.min(requestedMax, this.getProviderMaxTokens('gemini'));
 
     const body = {
       contents: [{ parts }],
       generationConfig: {
-        temperature: 0.3,
+        temperature: options.temperature ?? 0.3,
         topK: 20,
         topP: 0.8,
         maxOutputTokens: safeMax
       }
     };
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const url = `${process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'}?key=${apiKey}`;
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
 
     const data = await response.json();
-
     if (!response.ok || data.error) {
       console.error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`, data);
       throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
     }
 
     let geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
     if (!geminiTextResponse) {
       console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
-      if (data.promptFeedback?.blockReason) {
-        console.warn(`Gemini blocked response due to: ${data.promptFeedback.blockReason}`);
-      }
-      if (data.candidates?.[0]?.finishReason) {
-        console.warn(`Gemini finished with reason: ${data.candidates[0].finishReason}`);
-        if (String(data.candidates[0].finishReason).toUpperCase().includes('MAX')) {
-          throw new Error('Gemini finished due to MAX_TOKENS');
-        }
+      if (data.candidates?.[0]?.finishReason && String(data.candidates[0].finishReason).toUpperCase().includes('MAX')) {
+        throw new Error('Gemini finished due to MAX_TOKENS');
       }
       return 'No response from Gemini (see server logs for details).';
     }
@@ -348,22 +312,22 @@ class AIProviderManager {
     return geminiTextResponse;
   }
 
-  // Groq (OpenAI-like chat completions)
+  // Groq
   async callGroq(prompt, apiKey, options = {}) {
     const max_tokens = options.maxTokens || 4000;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('groq'));
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch(process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: safeMax,
-        temperature: 0.3
+        temperature: options.temperature ?? 0.3
       })
     });
 
@@ -377,12 +341,12 @@ class AIProviderManager {
     return groqResponse;
   }
 
-  // Claude (Anthropic)
+  // Claude
   async callClaude(prompt, apiKey, options = {}) {
     const max_tokens = options.maxTokens || 800;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('claude'));
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(process.env.CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -390,10 +354,10 @@ class AIProviderManager {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022',
         max_tokens_to_sample: safeMax,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3
+        temperature: options.temperature ?? 0.3
       })
     });
 
@@ -412,7 +376,7 @@ class AIProviderManager {
     const max_tokens = options.maxTokens || 6000;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('openrouter'));
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch(process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -421,10 +385,10 @@ class AIProviderManager {
         'X-Title': 'AI Provider Manager'
       },
       body: JSON.stringify({
-        model: model || 'deepseek/deepseek-r1-0528-qwen3-8b:free',
+        model: model || process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1-0528-qwen3-8b:free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: safeMax,
-        temperature: 0.3
+        temperature: options.temperature ?? 0.3
       })
     });
 
@@ -438,97 +402,159 @@ class AIProviderManager {
     return openRouterResponse;
   }
 
-  // Hugging Face generic (example: DialoGPT)
-  async callHuggingFace(prompt, apiKey, options = {}) {
-    const modelPath = 'microsoft/DialoGPT-medium';
-    return this.callHuggingFaceModel(modelPath, prompt, apiKey, options);
-  }
-
-  // Generic HF model call for ministral/cerebras/nvidia etc.
-  async callHuggingFaceModel(modelPath, prompt, apiKey, options = {}) {
-    const hfApiKey = apiKey || (this.apiKeys.huggingface?.[0]);
-    if (!hfApiKey) {
-      throw new Error('No Hugging Face API key provided for this model call.');
-    }
-
-    const max_new_tokens = options.maxTokens || 900;
-    const safeMax = Math.min(max_new_tokens, this.getProviderMaxTokens('huggingface'));
-
-    const url = `https://api-inference.huggingface.co/models/${modelPath}`;
-    const body = {
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: safeMax,
-        temperature: 0.3
-      }
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText} - ${data.error || JSON.stringify(data)}`);
-    }
-
-    // Hugging Face response shapes vary (array or object)
-    let huggingFaceResponse = null;
-    if (Array.isArray(data)) {
-      huggingFaceResponse = data[0]?.generated_text || JSON.stringify(data);
-    } else if (data.generated_text) {
-      huggingFaceResponse = data.generated_text;
-    } else if (data.error) {
-      throw new Error(`Hugging Face model error: ${data.error}`);
-    } else {
-      huggingFaceResponse = JSON.stringify(data);
-    }
-
-    huggingFaceResponse = this.removeMarkdownFormatting(huggingFaceResponse);
-    return huggingFaceResponse;
-  }
-
   // Together.ai
   async callTogether(prompt, apiKey, options = {}) {
     const max_tokens = options.maxTokens || 5006;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('together'));
 
-    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+    const response = await fetch(process.env.TOGETHER_API_URL || 'https://api.together.xyz/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: safeMax,
-        temperature: 0.3
+        temperature: options.temperature ?? 0.3
       })
     });
 
     const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
+    }
 
     console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
     const message = data.choices?.[0]?.message?.content;
     const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
     console.log(`📌 Together finish reason: ${finishReason}`);
 
-    if (!response.ok) {
-      // If the error is token-related, throw an error that will be detected by isTokenLimitError
-      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
-    }
-
     if (!message || message.length < 20) {
       console.warn('⚠️ Short or missing response from Together:', message);
     }
 
     return this.removeMarkdownFormatting(message || '');
+  }
+
+  /* ----------------------------
+     NEW: Mistral (direct) - replace MISTRAL_API_URL / MISTRAL_MODEL in env if needed
+     ---------------------------- */
+  async callMistral(prompt, apiKey, model, options = {}) {
+    // Default endpoint / model — override these via env variables in production
+    const url = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1/chat/completions';
+    const modelName = model || process.env.MISTRAL_MODEL || 'mistral-large';
+
+    const max_tokens = options.maxTokens || 2000;
+    const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('mistral'));
+
+    const body = {
+      model: modelName,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: safeMax,
+      temperature: options.temperature ?? 0.3
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Mistral API error: ${response.status} ${response.statusText} - ${JSON.stringify(data)}`);
+    }
+
+    // Expect OpenAI-like shape; adjust parsing if provider returns different structure
+    const text = data?.choices?.[0]?.message?.content || data?.result || data?.output?.[0]?.content || data?.text;
+    if (!text) {
+      throw new Error(`Mistral returned no text: ${JSON.stringify(data).slice(0, 300)}`);
+    }
+
+    return this.removeMarkdownFormatting(typeof text === 'string' ? text : (text?.toString() || JSON.stringify(text)));
+  }
+
+  /* ----------------------------
+     NEW: Cerebras (direct) - replace CEREBRAS_API_URL / CEREBRAS_MODEL in env if needed
+     ---------------------------- */
+  async callCerebras(prompt, apiKey, model, options = {}) {
+    const url = process.env.CEREBRAS_API_URL || 'https://api.cerebras.net/v1/chat/completions';
+    const modelName = model || process.env.CEREBRAS_MODEL || 'cerebras-gpt-120b';
+
+    const max_tokens = options.maxTokens || 4000;
+    const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('cerebras'));
+
+    const body = {
+      model: modelName,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: safeMax,
+      temperature: options.temperature ?? 0.3
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Cerebras API error: ${response.status} ${response.statusText} - ${JSON.stringify(data)}`);
+    }
+
+    const text = data?.choices?.[0]?.message?.content || data?.result || data?.output?.[0]?.content || data?.text;
+    if (!text) {
+      throw new Error(`Cerebras returned no text: ${JSON.stringify(data).slice(0, 300)}`);
+    }
+
+    return this.removeMarkdownFormatting(typeof text === 'string' ? text : (text?.toString() || JSON.stringify(text)));
+  }
+
+  /* ----------------------------
+     NEW: NVIDIA (direct) - replace NVIDIA_API_URL / NVIDIA_MODEL in env if needed
+     ---------------------------- */
+  async callNvidia(prompt, apiKey, model, options = {}) {
+    const url = process.env.NVIDIA_API_URL || 'https://api.nvidia.com/v1/chat/completions';
+    const modelName = model || process.env.NVIDIA_MODEL || 'nvidia-nim';
+
+    const max_tokens = options.maxTokens || 4000;
+    const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('nvidia'));
+
+    const body = {
+      model: modelName,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: safeMax,
+      temperature: options.temperature ?? 0.3
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`NVIDIA API error: ${response.status} ${response.statusText} - ${JSON.stringify(data)}`);
+    }
+
+    const text = data?.choices?.[0]?.message?.content || data?.result || data?.output?.[0]?.content || data?.text;
+    if (!text) {
+      throw new Error(`NVIDIA returned no text: ${JSON.stringify(data).slice(0, 300)}`);
+    }
+
+    return this.removeMarkdownFormatting(typeof text === 'string' ? text : (text?.toString() || JSON.stringify(text)));
   }
 } // end class
 
