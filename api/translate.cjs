@@ -1,4 +1,4 @@
-// api/translate.js (CommonJS - drop into your serverless functions folder)
+// api/translate.js (CommonJS - drop into your serverless functions folder)make sure to add meta-llama/Llama-Vision-Free with together ai api
 const crypto = require("crypto");
 
 let fetchFn;
