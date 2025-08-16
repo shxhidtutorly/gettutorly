@@ -1,4 +1,4 @@
-
+// src/lib/aiNotesService.ts
 export interface AINote {
   id: string;
   title: string;
@@ -19,8 +19,121 @@ export interface Flashcard {
   answer: string;
 }
 
+/**
+ * Small helper to perform fetch with timeout.
+ */
+async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, timeoutMs = 60_000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+/**
+ * Attempts the configured providers in order until one returns a usable result.
+ * No HuggingFace here — only direct providers as requested.
+ */
+async function callAIProviders(prompt: string, userId?: string, timeoutMs = 60000): Promise<string> {
+  const providers = [
+    { model: 'nvidia' },
+    { model: 'mistral' },
+    { model: 'cerebras' },
+    { model: 'together' },
+    { model: 'openrouter' },
+    { model: 'groq' },
+    { model: 'claude' },
+    { model: 'gemini' }
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const provider of providers) {
+    const body = {
+      prompt,
+      model: provider.model,
+      userId
+    };
+
+    try {
+      console.log(`🛰️ Trying provider: ${provider.model}`);
+      const resp = await fetchWithTimeout('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }, timeoutMs);
+
+      if (!resp.ok) {
+        // try parse error message for debugging
+        let errText = '';
+        try {
+          const errJson = await resp.json();
+          errText = JSON.stringify(errJson).slice(0, 1000);
+        } catch {
+          errText = await resp.text().catch(() => `HTTP ${resp.status}`);
+        }
+        const e = new Error(`${provider.model} returned HTTP ${resp.status}: ${errText}`);
+        console.warn('❌', e.message);
+        lastError = e;
+        continue; // next provider
+      }
+
+      // Parse body
+      const data = await resp.json().catch(() => null);
+      // Accept multiple response shapes
+      const possible = (data && (
+        data.result ||
+        data.response ||
+        data.summary ||
+        data.output ||
+        data.text ||
+        (typeof data === 'string' ? data : undefined)
+      )) ?? null;
+
+      if (!possible) {
+        // If provider response is present but doesn't contain main text, attempt to stringify useful parts
+        const fallback = data ? JSON.stringify(data).slice(0, 2000) : null;
+        const e = new Error(`${provider.model} returned no usable payload. Raw: ${fallback}`);
+        console.warn('⚠️', e.message);
+        lastError = e;
+        continue;
+      }
+
+      // Got something usable
+      const resultText = typeof possible === 'string' ? possible : String(possible);
+      // minimal sanity: require > 20 chars
+      if (resultText.trim().length < 20) {
+        const e = new Error(`${provider.model} returned too-short response`);
+        console.warn('⚠️', e.message);
+        lastError = e;
+        continue;
+      }
+
+      console.log(`✅ Success from ${provider.model}`);
+      return resultText;
+    } catch (err: any) {
+      // network / timeout / abort / parse error
+      const msg = (err && err.message) ? err.message : String(err);
+      console.warn(`❌ Provider ${provider.model} failed: ${msg}`);
+      lastError = err instanceof Error ? err : new Error(msg);
+      // continue to next provider
+    }
+  }
+
+  throw lastError ?? new Error('All providers failed');
+}
+
+/**
+ * Generate highly-structured markdown notes using your original long prompt.
+ */
 export async function generateNotesAI(text: string, filename: string, userId?: string): Promise<AINote> {
-  // Structured prompt for detailed Markdown notes
+  // Keep the prompt exactly as you provided (unchanged).
   const prompt = `You are a top-tier AI study assistant. Your job is to convert the provided source material into **complete, exam-ready, highly-structured study notes**. The consumer of these notes is a serious student preparing for exams and deep revision. Use up to **MaxTokens: 40000** to produce exhaustive, high-quality output.
 
 MANDATES (read carefully):
@@ -119,168 +232,148 @@ Output begins below this line. Convert the provided content into notes now :
 ${text}
 `;
 
-  async function callAI(prompt: string) {
-  const providers = [
-    { model: "groq" },
-    { model: "openrouter" },
-    { model: "claude" },
-    { model: "together" },
-    { model: "huggingface" },
-    { model: "gemini" },
-  ];
-
-  let lastError: any;
-
-  for (const provider of providers) {
-    try {
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          model: provider.model,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Provider ${provider.model} failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data && data.result) {
-        console.log(`✅ Success with ${provider.model}`);
-        return data.result;
-      }
-    } catch (error) {
-      console.warn(`❌ ${provider.model} failed, trying next...`, error);
-      lastError = error;
-    }
-  }
-
-  throw new Error(`All providers failed. Last error: ${lastError?.message}`);
-}
-
-    if (!response.ok) {
-      throw new Error('Failed to generate notes');
-    }
-
-    const data = await response.json();
-    // DO NOT CLEAN MARKDOWN! Render as Markdown in your UI for structure
-
+  try {
+    const aiResponse = await callAIProviders(prompt, userId, 60_000);
+    // use aiResponse directly as markdown content
     const note: AINote = {
       id: Date.now().toString(),
       title: `Notes from ${filename}`,
-      content: data.response || data.summary || 'Notes generated successfully',
+      content: aiResponse,
       timestamp: new Date().toISOString(),
       filename
     };
-
     return note;
-  } throw new (error) {
+  } catch (error) {
     console.error('Error generating notes:', error);
     throw new Error('Failed to generate AI notes. Please try again.');
   }
 }
-export async function generateFlashcardsAI(notesText: string): Promise<Flashcard[]> {
-  const prompt = `Create 10-15 study flashcards from these notes. 
-  Each flashcard should have a clear question and a concise answer.
-  Format as JSON array with objects containing "question" and "answer" fields:
 
-  ${notesText}`;
+/**
+ * Create flashcards from notes via AI; fallback to parsing locally if all providers fail.
+ */
+export async function generateFlashcardsAI(notesText: string, userId?: string): Promise<Flashcard[]> {
+  const prompt = `Create 10-15 study flashcards from these notes. 
+Each flashcard should have a clear question and a concise answer.
+Format as JSON array with objects containing "question" and "answer" fields:
+
+${notesText}`;
 
   try {
-    let response;
+    let aiText: string;
     try {
-      response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model: 'gemini' })
-      });
-    } catch (error) {
-      // Create flashcards from the notes text directly
+      aiText = await callAIProviders(prompt, userId, 45_000);
+    } catch (err) {
+      console.warn('AI flashcards generation failed, falling back to local parser:', err);
       return parseFlashcardsFromText(notesText);
     }
 
-    if (!response.ok) {
-      throw new Error('Failed to generate flashcards');
-    }
-
-    const data = await response.json();
-    
-    // Try to parse JSON from the response
-    let flashcards;
-    try {
-      const jsonMatch = data.response.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        flashcards = JSON.parse(jsonMatch[0]);
-      } else {
-        // Fallback: parse line by line
-        flashcards = parseFlashcardsFromText(data.response);
+    // Try to extract JSON array from AI response
+    let parsedJson: any = null;
+    const jsonArrayMatch = aiText.match(/\[[\s\S]*\]/);
+    if (jsonArrayMatch) {
+      try {
+        parsedJson = JSON.parse(jsonArrayMatch[0]);
+      } catch (e) {
+        // ignore parse error and fall through to text parsing
+        parsedJson = null;
       }
-    } catch {
-      flashcards = parseFlashcardsFromText(data.response);
     }
 
-    return flashcards.map((card: any, index: number) => ({
-      id: (Date.now() + index).toString(),
-      question: card.question || card.q || '',
-      answer: card.answer || card.a || ''
-    })).filter((card: Flashcard) => card.question && card.answer);
+    let flashcardsRaw: Array<{ question?: string; answer?: string }> = [];
 
+    if (Array.isArray(parsedJson)) {
+      flashcardsRaw = parsedJson;
+    } else {
+      // Attempt to parse if AI returned "Q: ... A: ..." text
+      try {
+        flashcardsRaw = parseFlashcardsFromText(aiText).map(f => ({ question: f.question, answer: f.answer }));
+        if (flashcardsRaw.length === 0) {
+          // fallback: parse from original notes if AI didn't give Q/A
+          flashcardsRaw = parseFlashcardsFromText(notesText).map(f => ({ question: f.question, answer: f.answer }));
+        }
+      } catch {
+        flashcardsRaw = parseFlashcardsFromText(notesText).map(f => ({ question: f.question, answer: f.answer }));
+      }
+    }
+
+    // Normalize and assign IDs
+    const flashcards: Flashcard[] = flashcardsRaw
+      .map((c, idx) => ({
+        id: (Date.now() + idx).toString(),
+        question: (c.question || '').toString().trim(),
+        answer: (c.answer || '').toString().trim()
+      }))
+      .filter(fc => fc.question.length > 3 && fc.answer.length > 0)
+      .slice(0, 15);
+
+    // If still empty, try fallback parser once more on notesText
+    if (flashcards.length === 0) {
+      return parseFlashcardsFromText(notesText);
+    }
+
+    return flashcards;
   } catch (error) {
     console.error('Error generating flashcards:', error);
     throw new Error('Failed to generate flashcards. Please try again.');
   }
 }
 
+/**
+ * Best-effort parser for generating flashcards from plain text when AI is unavailable.
+ */
 function parseFlashcardsFromText(text: string): Flashcard[] {
-  const lines = text.split('\n').filter(line => line.trim());
+  if (!text || typeof text !== 'string') return [];
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const flashcards: Flashcard[] = [];
-  
-  // Try to extract Q&A patterns from the text
+
+  // 1) Extract explicit Q/A blocks (Q: / A:)
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Look for question patterns
-    if (line.match(/^(Q:|Question:|What|How|Why|When|Where|Which)/i)) {
-      const question = line.replace(/^(Q:|Question:)\s*/i, '').trim();
-      
-      // Look for the answer in the next few lines
+    const line = lines[i];
+    if (/^(Q:|Question:)/i.test(line) || /^[Ww]hat|[Hh]ow|[Ww]hy|[Ww]hen|[Ww]here|[Ww]hich/.test(line)) {
+      // question
+      const q = line.replace(/^(Q:|Question:)\s*/i, '').trim();
+      // find next answer-like line
       let answer = '';
-      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
-        const nextLine = lines[j].trim();
-        if (nextLine.match(/^(A:|Answer:)/i)) {
-          answer = nextLine.replace(/^(A:|Answer:)\s*/i, '').trim();
+      for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
+        const next = lines[j];
+        if (/^(A:|Answer:)/i.test(next)) {
+          answer = next.replace(/^(A:|Answer:)\s*/i, '').trim();
           break;
-        } else if (nextLine && !nextLine.match(/^(Q:|Question:|What|How|Why|When|Where|Which)/i)) {
-          answer = nextLine;
+        } else if (!/^(Q:|Question:)/i.test(next) && next.length > 5) {
+          answer = next;
           break;
         }
       }
-      
-      if (question && answer) {
-        flashcards.push({
-          id: (Date.now() + flashcards.length).toString(),
-          question,
-          answer
-        });
+      if (q && answer) {
+        flashcards.push({ id: (Date.now() + flashcards.length).toString(), question: q, answer });
       }
     }
+    if (flashcards.length >= 15) break;
   }
-  
-  // If no Q&A patterns found, create flashcards from bullet points or sentences
+
+  // 2) If none found, create Q/A from paired sentences (heuristic)
   if (flashcards.length === 0) {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
-    for (let i = 0; i < Math.min(sentences.length - 1, 10); i += 2) {
-      if (sentences[i] && sentences[i + 1]) {
-        flashcards.push({
-          id: (Date.now() + i).toString(),
-          question: sentences[i].trim() + '?',
-          answer: sentences[i + 1].trim()
-        });
+    const sentences = text.split(/[.!?]\s+/).map(s => s.trim()).filter(s => s.length > 8);
+    for (let i = 0; i < sentences.length - 1 && flashcards.length < 15; i += 2) {
+      const q = sentences[i].replace(/\s+/g, ' ').trim();
+      const a = sentences[i + 1].replace(/\s+/g, ' ').trim();
+      flashcards.push({ id: (Date.now() + flashcards.length).toString(), question: q + '?', answer: a });
+    }
+  }
+
+  // 3) Final fallback: bullet point to Q/A
+  if (flashcards.length === 0) {
+    const bullets = text.split(/[-•\u2022]/).map(s => s.trim()).filter(Boolean);
+    for (let i = 0; i < bullets.length && flashcards.length < 15; i += 2) {
+      const q = bullets[i];
+      const a = bullets[i + 1] || '';
+      if (q && a) {
+        flashcards.push({ id: (Date.now() + flashcards.length).toString(), question: q, answer: a });
       }
     }
   }
-  
-  return flashcards.slice(0, 15); // Limit to 15 flashcards
+
+  return flashcards.slice(0, 15);
 }
