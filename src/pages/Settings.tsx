@@ -284,9 +284,9 @@ function getFlagEmoji(languageCode: string): string {
     'sv': '🇸🇪',
     'da': '🇩🇰',
     'no': '🇳🇴',
-    'fi': '🇫🇮'
+    'fi': '🇫🇮',
     'hi': '🇮🇳',
-    'kn': '🇮🇳',
+    'kn': '🇮🇳'
   };
   
   return flagMap[languageCode] || '🌐';
