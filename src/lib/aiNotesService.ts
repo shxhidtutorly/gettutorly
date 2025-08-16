@@ -119,22 +119,46 @@ Output begins below this line. Convert the provided content into notes now :
 ${text}
 `;
 
-  try {
-    let response;
+  async function callAI(prompt: string) {
+  const providers = [
+    { model: "groq" },
+    { model: "openrouter" },
+    { model: "claude" },
+    { model: "together" },
+    { model: "huggingface" },
+    { model: "gemini" },
+  ];
+
+  let lastError: any;
+
+  for (const provider of providers) {
     try {
-      response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model: 'together' })
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          model: provider.model,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Provider ${provider.model} failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data && data.result) {
+        console.log(`✅ Success with ${provider.model}`);
+        return data.result;
+      }
     } catch (error) {
-      // Fallback to summarize endpoint if ai endpoint is not available
-      response = await fetch('/api/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text })
-      });
+      console.warn(`❌ ${provider.model} failed, trying next...`, error);
+      lastError = error;
     }
+  }
+
+  throw new Error(`All providers failed. Last error: ${lastError?.message}`);
+}
 
     if (!response.ok) {
       throw new Error('Failed to generate notes');
