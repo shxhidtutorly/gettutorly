@@ -1,5 +1,69 @@
+// api/chat-notes.js - Chat with notes using OpenRouter
+import admin from 'firebase-admin';
 
-console.log('🚀 Starting Chat Notes API...');
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+const db = admin.firestore();
+
+/**
+ * Get user language preference from Firestore
+ */
+async function getUserLanguage(userId) {
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      return userData.preferences?.language || 'en';
+    }
+    return 'en';
+  } catch (error) {
+    console.error('Error fetching user language:', error);
+    return 'en';
+  }
+}
+
+/**
+ * Translate text using the translation API
+ */
+async function translateText(text, targetLang, sourceLang = 'en') {
+  if (targetLang === 'en' || targetLang === sourceLang) {
+    return text;
+  }
+
+  try {
+    const response = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/translate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        targetLang,
+        sourceLang,
+        contextType: 'chat'
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Translation failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.translatedText;
+  } catch (error) {
+    console.error('Translation error:', error);
+    return text; // Return original text on error
+  }
+}
 
 export default async function handler(req, res) {
   console.log('=== CHAT NOTES API ROUTE START ===');
@@ -8,7 +72,7 @@ export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   // Handle OPTIONS request for CORS
   if (req.method === 'OPTIONS') {
@@ -20,42 +84,66 @@ export default async function handler(req, res) {
     console.log('❌ Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Verify authentication
+  let user;
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ No authorization header');
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'Please provide a valid Firebase ID token'
+      });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    user = decodedToken;
+    console.log('✅ Authenticated user:', user.uid);
+  } catch (error) {
+    console.error('❌ Authentication error:', error);
+    return res.status(401).json({ 
+      error: 'Authentication failed',
+      message: 'Invalid token'
+    });
+  }
   
   try {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
-    const { message, noteContent, chatHistory = [] } = req.body;
+    const { message, notes } = req.body;
     
-    // Validate required fields
-    if (!message || typeof message !== 'string') {
-      console.log('❌ Invalid message:', message);
+    if (!message) {
+      console.log('❌ No message provided');
       return res.status(400).json({ 
-        error: 'Message is required and must be a string' 
+        error: 'Message is required' 
       });
     }
     
-    if (!noteContent || typeof noteContent !== 'string') {
-      console.log('❌ Invalid note content:', noteContent);
-      return res.status(400).json({ 
-        error: 'Note content is required and must be a string' 
-      });
-    }
+    // Get user language preference
+    const userLanguage = await getUserLanguage(user.uid);
+    console.log('🌍 User language preference:', userLanguage);
     
-    console.log('✅ Valid request - Message:', message.substring(0, 50) + '...');
+    // Create context-aware prompt
+    const systemPrompt = `You are an AI tutor helping students understand their notes. 
+Always respond in a helpful, educational manner. 
+If the user's preferred language is not English, respond in their preferred language: ${userLanguage === 'en' ? 'English' : userLanguage.toUpperCase()}.`;
     
-    // Prepare messages for OpenRouter API
+    const userPrompt = `Notes: ${notes || 'No specific notes provided'}
+
+User Question: ${message}
+
+Please provide a helpful response based on the notes and the user's question.`;
+
     const messages = [
       {
         role: 'system',
-        content: `You are an AI tutor. Only answer based on the following notes: ${noteContent}. Don't add unrelated information. Be clear and helpful. Do not use markdown formatting like ## or ** or *. Provide clean, readable text with proper spacing and structure.`
+        content: systemPrompt
       },
-      ...chatHistory.map(msg => ({
-        role: msg.role,
-        content: msg.message
-      })),
       {
         role: 'user',
-        content: message
+        content: userPrompt
       }
     ];
     
@@ -89,42 +177,52 @@ export default async function handler(req, res) {
     const data = await response.json();
     console.log('✅ OpenRouter Response received');
     
-    const aiMessage = data.choices?.[0]?.message?.content;
+    const originalResponse = data.choices?.[0]?.message?.content;
     
-    if (!aiMessage) {
+    if (!originalResponse) {
       throw new Error('No response from AI');
+    }
+    
+    // Translate response if user language is not English and AI didn't respond in the target language
+    let finalResponse = originalResponse;
+    let wasTranslated = false;
+    
+    if (userLanguage !== 'en') {
+      console.log('🌐 Translating response to:', userLanguage);
+      try {
+        finalResponse = await translateText(originalResponse, userLanguage, 'en');
+        wasTranslated = true;
+        console.log('✅ Translation completed');
+      } catch (error) {
+        console.error('❌ Translation failed:', error);
+        // Keep original response if translation fails
+        finalResponse = originalResponse;
+      }
     }
     
     console.log('🎉 Successfully got AI response');
     console.log('=== CHAT NOTES API SUCCESS ===');
     
     return res.status(200).json({
-      response: aiMessage,
-      model: 'deepseek-r1-distill-qwen'
+      response: finalResponse,
+      originalResponse: originalResponse,
+      model: 'deepseek-r1-distill-qwen',
+      userLanguage,
+      wasTranslated,
+      translationInfo: wasTranslated ? {
+        targetLanguage: userLanguage,
+        sourceLanguage: 'en'
+      } : null
     });
     
   } catch (error) {
     console.error('=== CHAT NOTES API ERROR ===');
     console.error('Error details:', error);
-    
-    // Handle specific error types
-    if (error.message?.includes('rate limit')) {
-      return res.status(429).json({ 
-        error: 'Rate limit exceeded. Please try again later.',
-        details: error.message 
-      });
-    }
-    
-    if (error.message?.includes('unauthorized') || error.message?.includes('invalid key')) {
-      return res.status(401).json({ 
-        error: 'Authentication failed. Please check API keys.',
-        details: error.message 
-      });
-    }
-    
-    return res.status(500).json({ 
+    console.error('Error stack:', error.stack);
+
+    return res.status(500).json({
       error: 'Internal server error. Please try again later.',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }

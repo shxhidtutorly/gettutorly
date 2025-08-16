@@ -30,13 +30,13 @@
   },
   "dashboard": {
     "title": "Bienvenue sur Tutorly",
-    "subtitle": "Votre compagnon d'apprentissage IA",
+    "subtitle": "Votre compagnon d'apprentissage alimenté par l'IA",
     "studyTime": "Temps d'étude",
     "notesCreated": "Notes créées",
-    "quizzesTaken": "Quiz réalisés",
-    "flashcardsCreated": "Cartes créées",
+    "quizzesTaken": "Quiz effectués",
+    "flashcardsCreated": "Cartes mémoire créées",
     "recentActivity": "Activité récente",
-    "learningInsights": "Insights d'apprentissage"
+    "learningInsights": "Aperçus d'apprentissage"
   },
   "settings": {
     "title": "Paramètres du compte",
@@ -48,12 +48,12 @@
     "preferences": "Préférences"
   },
   "aiNotes": {
-    "title": "Générateur de Notes IA",
+    "title": "Générateur de notes IA",
     "subtitle": "Téléversez des documents et générez des notes intelligentes",
     "uploadDocument": "Téléverser un document",
     "generateNotes": "Générer des notes",
     "createQuiz": "Créer un quiz",
-    "createFlashcards": "Créer des cartes",
+    "createFlashcards": "Créer des cartes mémoire",
     "chatWithNotes": "Discuter avec les notes",
     "downloadNotes": "Télécharger les notes",
     "translating": "Traduction en cours...",
@@ -78,8 +78,8 @@
   },
   "errors": {
     "generic": "Quelque chose s'est mal passé. Veuillez réessayer.",
-    "networkError": "Erreur de réseau. Veuillez vérifier votre connexion.",
-    "translationError": "Échec de la traduction. Affichage du contenu original.",
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "translationError": "La traduction a échoué. Affichage du contenu original.",
     "fileUploadError": "Échec du téléversement du fichier. Veuillez réessayer."
   },
   "languages": {

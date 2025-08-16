@@ -19,24 +19,24 @@
     "logout": "Cerrar sesión"
   },
   "navigation": {
-    "dashboard": "Panel",
+    "dashboard": "Panel de control",
     "notes": "Notas",
-    "quiz": "Quiz",
-    "flashcards": "Tarjetas",
-    "chat": "Chat AI",
+    "quiz": "Cuestionario",
+    "flashcards": "Tarjetas de memoria",
+    "chat": "Chat IA",
     "progress": "Progreso",
     "library": "Biblioteca",
     "pricing": "Precios"
   },
   "dashboard": {
     "title": "Bienvenido a Tutorly",
-    "subtitle": "Tu compañero de aprendizaje con IA",
+    "subtitle": "Tu compañero de aprendizaje impulsado por IA",
     "studyTime": "Tiempo de estudio",
     "notesCreated": "Notas creadas",
-    "quizzesTaken": "Quizzes realizados",
-    "flashcardsCreated": "Tarjetas creadas",
+    "quizzesTaken": "Cuestionarios realizados",
+    "flashcardsCreated": "Tarjetas de memoria creadas",
     "recentActivity": "Actividad reciente",
-    "learningInsights": "Insights de aprendizaje"
+    "learningInsights": "Perspectivas de aprendizaje"
   },
   "settings": {
     "title": "Configuración de cuenta",
@@ -48,12 +48,12 @@
     "preferences": "Preferencias"
   },
   "aiNotes": {
-    "title": "Generador de Notas IA",
+    "title": "Generador de notas IA",
     "subtitle": "Sube documentos y genera notas inteligentes",
     "uploadDocument": "Subir documento",
     "generateNotes": "Generar notas",
-    "createQuiz": "Crear quiz",
-    "createFlashcards": "Crear tarjetas",
+    "createQuiz": "Crear cuestionario",
+    "createFlashcards": "Crear tarjetas de memoria",
     "chatWithNotes": "Chatear con notas",
     "downloadNotes": "Descargar notas",
     "translating": "Traduciendo...",
@@ -61,12 +61,12 @@
       "showOriginal": "Mostrar original",
       "showTranslated": "Mostrar traducido",
       "translateNow": "Traducir ahora",
-      "autoTranslate": "Traducir automáticamente"
+      "autoTranslate": "Traducción automática"
     }
   },
   "quiz": {
-    "title": "Quiz",
-    "startQuiz": "Comenzar quiz",
+    "title": "Cuestionario",
+    "startQuiz": "Comenzar cuestionario",
     "submitAnswer": "Enviar respuesta",
     "nextQuestion": "Siguiente pregunta",
     "previousQuestion": "Pregunta anterior",
@@ -74,13 +74,13 @@
     "score": "Puntuación",
     "correct": "Correcto",
     "incorrect": "Incorrecto",
-    "retakeQuiz": "Repetir quiz"
+    "retakeQuiz": "Volver a hacer cuestionario"
   },
   "errors": {
-    "generic": "Algo salió mal. Por favor intenta de nuevo.",
-    "networkError": "Error de red. Por favor verifica tu conexión.",
-    "translationError": "Falló la traducción. Mostrando contenido original.",
-    "fileUploadError": "Falló la subida del archivo. Por favor intenta de nuevo."
+    "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+    "networkError": "Error de red. Por favor, verifica tu conexión.",
+    "translationError": "La traducción falló. Mostrando contenido original.",
+    "fileUploadError": "Error al subir archivo. Por favor, inténtalo de nuevo."
   },
   "languages": {
     "en": "Inglés",

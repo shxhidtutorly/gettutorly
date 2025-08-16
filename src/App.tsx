@@ -11,6 +11,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
+// Import i18n for initialization
+import './i18n/i18n';
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";

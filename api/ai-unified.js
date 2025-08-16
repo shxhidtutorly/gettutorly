@@ -9,6 +9,73 @@ console.log('✅ Unified AI API import successful');
 // Import authentication utilities
 import { verifyFirebaseToken } from '../src/lib/firebase-auth-utils.js';
 
+// Import Firebase Admin for user preferences
+import admin from 'firebase-admin';
+
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+const db = admin.firestore();
+
+/**
+ * Get user language preference from Firestore
+ */
+async function getUserLanguage(userId) {
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      return userData.preferences?.language || 'en';
+    }
+    return 'en';
+  } catch (error) {
+    console.error('Error fetching user language:', error);
+    return 'en';
+  }
+}
+
+/**
+ * Translate text using the translation API
+ */
+async function translateText(text, targetLang, sourceLang = 'en') {
+  if (targetLang === 'en' || targetLang === sourceLang) {
+    return text;
+  }
+
+  try {
+    const response = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/translate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        targetLang,
+        sourceLang,
+        contextType: 'chat'
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Translation failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.translatedText;
+  } catch (error) {
+    console.error('Translation error:', error);
+    return text; // Return original text on error
+  }
+}
+
 export default async function handler(req, res) {
   console.log('=== UNIFIED AI API ROUTE START ===');
   console.log('Method:', req.method);
@@ -30,8 +97,9 @@ export default async function handler(req, res) {
   }
 
   // Verify authentication
+  let user;
   try {
-    const user = await verifyFirebaseToken(req);
+    user = await verifyFirebaseToken(req);
     if (!user) {
       console.log('❌ Authentication failed');
       return res.status(401).json({ 
@@ -69,6 +137,10 @@ export default async function handler(req, res) {
     }
     
     console.log('✅ Valid request - Model:', model);
+    
+    // Get user language preference
+    const userLanguage = await getUserLanguage(user.uid);
+    console.log('🌍 User language preference:', userLanguage);
     
     // Initialize Google Generative AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -112,14 +184,39 @@ export default async function handler(req, res) {
       response = await result.response;
     }
     
-    const text = response.text();
-    console.log('✅ AI Response received:', text.substring(0, 100) + '...');
+    const originalText = response.text();
+    console.log('✅ AI Response received:', originalText.substring(0, 100) + '...');
+    
+    // Translate response if user language is not English
+    let finalText = originalText;
+    let wasTranslated = false;
+    
+    if (userLanguage !== 'en') {
+      console.log('🌐 Translating response to:', userLanguage);
+      try {
+        finalText = await translateText(originalText, userLanguage, 'en');
+        wasTranslated = true;
+        console.log('✅ Translation completed');
+      } catch (error) {
+        console.error('❌ Translation failed:', error);
+        // Keep original text if translation fails
+        finalText = originalText;
+      }
+    }
+    
     console.log('=== UNIFIED AI API ROUTE SUCCESS ===');
     
     return res.status(200).json({
-      response: text,
+      response: finalText,
+      originalResponse: originalText,
       provider: 'google',
-      model: 'gemini-pro'
+      model: 'gemini-pro',
+      userLanguage,
+      wasTranslated,
+      translationInfo: wasTranslated ? {
+        targetLanguage: userLanguage,
+        sourceLanguage: 'en'
+      } : null
     });
     
   } catch (error) {

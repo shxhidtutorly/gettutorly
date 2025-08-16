@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { onValue, ref, set } from 'firebase/database';
-import { database } from '@/lib/firebase';
 import { useUser } from '@/hooks/useUser';
 import i18n from '@/i18n/i18n';
 import { toast } from 'sonner';
+import { userPreferencesService } from '@/lib/firebase-user-preferences';
 
 /**
- * A hook to manage and synchronize the user's language preference with Firebase.
+ * A hook to manage and synchronize the user's language preference with Firebase Firestore.
  *
  * @returns An object containing the current language, an update function,
  * and loading states for both initial fetch and subsequent updates.
@@ -17,34 +16,32 @@ export const useUserLanguage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Effect to fetch and listen for language changes from Firebase
+  // Effect to fetch and listen for language changes from Firebase Firestore
   useEffect(() => {
     if (!user?.uid) {
       setIsLoading(false);
       return;
     }
 
-    const languageRef = ref(database, `users/${user.uid}/preferences/language`);
-
-    const unsubscribe = onValue(languageRef, (snapshot) => {
-      const savedLanguage = snapshot.val();
-      const lang = savedLanguage || 'en'; // Default to English if not set
-
-      setLanguage(lang);
-      i18n.changeLanguage(lang);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Firebase onValue error:", error);
-      toast.error("Could not fetch language settings.");
-      setIsLoading(false);
-    });
+    // Set up real-time listener for user preferences
+    const unsubscribe = userPreferencesService.onUserPreferencesChange(
+      user.uid,
+      (preferences) => {
+        const savedLanguage = preferences.language || 'en';
+        setLanguage(savedLanguage);
+        i18n.changeLanguage(savedLanguage);
+        setIsLoading(false);
+      }
+    );
 
     // Cleanup subscription on component unmount
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, [user?.uid]);
 
   /**
-   * Updates the user's language preference in Firebase and locally.
+   * Updates the user's language preference in Firebase Firestore and locally.
    * Implements an optimistic update for a snappy UI response.
    *
    * @param {string} newLanguage - The new language code (e.g., 'en', 'hi').
@@ -60,8 +57,7 @@ export const useUserLanguage = () => {
     i18n.changeLanguage(newLanguage);
 
     try {
-      const languageRef = ref(database, `users/${user.uid}/preferences/language`);
-      await set(languageRef, newLanguage);
+      await userPreferencesService.updateLanguage(user.uid, newLanguage);
       toast.success('Language updated successfully!');
     } catch (error) {
       console.error('Failed to update language:', error);

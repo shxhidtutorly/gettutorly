@@ -2,7 +2,7 @@
   "common": {
     "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     "save": "ಉಳಿಸಿ",
-    "cancel": "ರದ್ದುಗೊಳಿಸಿ",
+    "cancel": "ರದ್ದುಮಾಡಿ",
     "delete": "ಅಳಿಸಿ",
     "edit": "ಸಂಪಾದಿಸಿ",
     "close": "ಮುಚ್ಚಿ",
@@ -10,10 +10,10 @@
     "back": "ಹಿಂದೆ",
     "next": "ಮುಂದೆ",
     "submit": "ಸಲ್ಲಿಸಿ",
-    "download": "ಡೌನ್‌ಲೋಡ್",
-    "upload": "ಅಪ್‌ಲೋಡ್",
+    "download": "ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
+    "upload": "ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
     "search": "ಹುಡುಕಿ",
-    "filter": "ಫಿಲ್ಟರ್",
+    "filter": "ಫಿಲ್ಟರ್ ಮಾಡಿ",
     "settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
     "profile": "ಪ್ರೊಫೈಲ್",
     "logout": "ಸೈನ್ ಔಟ್"
@@ -22,27 +22,27 @@
     "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     "notes": "ಟಿಪ್ಪಣಿಗಳು",
     "quiz": "ಕ್ವಿಜ್",
-    "flashcards": "ಫ್ಲ್ಯಾಷ್‌ಕಾರ್ಡ್‌ಗಳು",
+    "flashcards": "ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳು",
     "chat": "AI ಚಾಟ್",
     "progress": "ಪ್ರಗತಿ",
-    "library": "ಲೈಬ್ರರಿ",
+    "library": "ಗ್ರಂಥಾಲಯ",
     "pricing": "ಬೆಲೆ ನಿರ್ಧಾರ"
   },
   "dashboard": {
-    "title": "Tutorly ಗೆ ಸ್ವಾಗತ",
-    "subtitle": "ನಿಮ್ಮ AI-ಚಾಲಿತ ಕಲಿಕೆಯ ಸಹಾಯಕ",
+    "title": "Tutorly ಗೆ ಸುಸ್ವಾಗತ",
+    "subtitle": "ನಿಮ್ಮ AI-ಚಾಲಿತ ಕಲಿಕೆ ಸಂಗಾತಿ",
     "studyTime": "ಅಧ್ಯಯನ ಸಮಯ",
     "notesCreated": "ಟಿಪ್ಪಣಿಗಳು ರಚಿಸಲಾಗಿದೆ",
     "quizzesTaken": "ಕ್ವಿಜ್‌ಗಳು ತೆಗೆದುಕೊಳ್ಳಲಾಗಿದೆ",
-    "flashcardsCreated": "ಫ್ಲ್ಯಾಷ್‌ಕಾರ್ಡ್‌ಗಳು ರಚಿಸಲಾಗಿದೆ",
+    "flashcardsCreated": "ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳು ರಚಿಸಲಾಗಿದೆ",
     "recentActivity": "ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ",
-    "learningInsights": "ಕಲಿಕೆಯ ಒಳನೋಟಗಳು"
+    "learningInsights": "ಕಲಿಕೆ ಒಳನೋಟಗಳು"
   },
   "settings": {
     "title": "ಖಾತೆ ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
     "subtitle": "ನಿಮ್ಮ ಖಾತೆ ಮತ್ತು ಚಂದಾದಾರಿಕೆಯನ್ನು ನಿರ್ವಹಿಸಿ",
     "language": "ಭಾಷೆ",
-    "languageDescription": "ಇಂಟರ್‌ಫೇಸ್‌ಗೆ ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆರಿಸಿ",
+    "languageDescription": "ಇಂಟರ್ಫೇಸ್‌ಗಾಗಿ ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
     "profile": "ಪ್ರೊಫೈಲ್ ಮಾಹಿತಿ",
     "subscription": "ಚಂದಾದಾರಿಕೆ ವಿವರಗಳು",
     "preferences": "ಆದ್ಯತೆಗಳು"
@@ -53,15 +53,15 @@
     "uploadDocument": "ದಾಖಲೆ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
     "generateNotes": "ಟಿಪ್ಪಣಿಗಳನ್ನು ರಚಿಸಿ",
     "createQuiz": "ಕ್ವಿಜ್ ರಚಿಸಿ",
-    "createFlashcards": "ಫ್ಲ್ಯಾಷ್‌ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ",
+    "createFlashcards": "ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ",
     "chatWithNotes": "ಟಿಪ್ಪಣಿಗಳೊಂದಿಗೆ ಚಾಟ್ ಮಾಡಿ",
     "downloadNotes": "ಟಿಪ್ಪಣಿಗಳನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
-    "translating": "ಭಾಷಾಂತರಿಸುತ್ತಿದೆ...",
+    "translating": "ಅನುವಾದಿಸಲಾಗುತ್ತಿದೆ...",
     "translation": {
       "showOriginal": "ಮೂಲ ತೋರಿಸಿ",
-      "showTranslated": "ಭಾಷಾಂತರಿತ ತೋರಿಸಿ",
-      "translateNow": "ಈಗ ಭಾಷಾಂತರಿಸಿ",
-      "autoTranslate": "ಸ್ವಯಂ ಭಾಷಾಂತರ"
+      "showTranslated": "ಅನುವಾದಿತ ತೋರಿಸಿ",
+      "translateNow": "ಈಗ ಅನುವಾದಿಸಿ",
+      "autoTranslate": "ಸ್ವಯಂಚಾಲಿತ ಅನುವಾದ"
     }
   },
   "quiz": {
@@ -71,16 +71,16 @@
     "nextQuestion": "ಮುಂದಿನ ಪ್ರಶ್ನೆ",
     "previousQuestion": "ಹಿಂದಿನ ಪ್ರಶ್ನೆ",
     "results": "ಫಲಿತಾಂಶಗಳು",
-    "score": "ಅಂಕ",
+    "score": "ಸ್ಕೋರ್",
     "correct": "ಸರಿ",
     "incorrect": "ತಪ್ಪು",
-    "retakeQuiz": "ಕ್ವಿಜ್ ಮರುತೆಗೆದುಕೊಳ್ಳಿ"
+    "retakeQuiz": "ಕ್ವಿಜ್ ಮತ್ತೆ ತೆಗೆದುಕೊಳ್ಳಿ"
   },
   "errors": {
     "generic": "ಏನೋ ತಪ್ಪಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     "networkError": "ನೆಟ್‌ವರ್ಕ್ ದೋಷ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ.",
-    "translationError": "ಭಾಷಾಂತರ ವಿಫಲವಾಗಿದೆ. ಮೂಲ ವಿಷಯವನ್ನು ತೋರಿಸಲಾಗುತ್ತಿದೆ.",
-    "fileUploadError": "ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+    "translationError": "ಅನುವಾದ ವಿಫಲವಾಗಿದೆ. ಮೂಲ ವಿಷಯವನ್ನು ತೋರಿಸಲಾಗುತ್ತಿದೆ.",
+    "fileUploadError": "ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
   },
   "languages": {
     "en": "ಇಂಗ್ಲಿಷ್",
