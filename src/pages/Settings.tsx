@@ -23,12 +23,11 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useUserLanguage } from "@/hooks/useUserLanguage";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 // Comprehensive list of supported languages
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिंदी' },
-  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
   { code: 'es', name: 'Spanish', nativeName: 'Español' },
   { code: 'fr', name: 'French', nativeName: 'Français' },
   { code: 'de', name: 'German', nativeName: 'Deutsch' },
@@ -41,6 +40,8 @@ const SUPPORTED_LANGUAGES = [
   { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe' },
   { code: 'nl', name: 'Dutch', nativeName: 'Nederlands' },
+   { code: 'hi', name: 'Hindi', nativeName: 'हिंदी' },
+  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
   { code: 'pl', name: 'Polish', nativeName: 'Polski' },
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska' },
   { code: 'da', name: 'Danish', nativeName: 'Dansk' },
@@ -55,6 +56,11 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { language, updateLanguage, isLoading: languageLoading, isUpdating: languageUpdating } = useUserLanguage();
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -96,7 +102,7 @@ const SettingsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-950 dark:via-blue-950 dark:to-indigo-950">
-      <Navbar />
+      <Navbar theme={theme} toggleTheme={toggleTheme} />
 
       <main className="container mx-auto px-4 py-8">
         <motion.div
@@ -262,8 +268,6 @@ const SettingsPage = () => {
 function getFlagEmoji(languageCode: string): string {
   const flagMap: { [key: string]: string } = {
     'en': '🇺🇸',
-    'hi': '🇮🇳',
-    'kn': '🇮🇳',
     'es': '🇪🇸',
     'fr': '🇫🇷',
     'de': '🇩🇪',
@@ -281,6 +285,8 @@ function getFlagEmoji(languageCode: string): string {
     'da': '🇩🇰',
     'no': '🇳🇴',
     'fi': '🇫🇮'
+    'hi': '🇮🇳',
+    'kn': '🇮🇳',
   };
   
   return flagMap[languageCode] || '🌐';
