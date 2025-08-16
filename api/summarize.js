@@ -92,7 +92,7 @@ export default async function handler(req, res) {
               { role: 'user', content: userPrompt }
             ],
             temperature: 0.3,
-            max_tokens: 1000
+            max_tokens: 10000
           };
           break;
 
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
             model: provider.model,
             messages: [{ role: 'user', content: `${systemPrompt}\n\n${userPrompt}` }],
             temperature: 0.3,
-            max_tokens: 1000
+            max_tokens: 10000
           };
           break;
 
