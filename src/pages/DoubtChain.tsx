@@ -473,23 +473,55 @@ const DoubtChain = () => {
               Break down complex concepts into fundamental, digestible parts.
             </p>
           </motion.div>
-         {/* Stats Dashboard */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10"
-            >
-                {/* ... your Card components ... */}
-                <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim}>
-                    <Card className="dark:bg-black p-0 border-2 border-white rounded-none">
-                        <CardContent className="p-4 flex flex-col items-center justify-center">
-                            <Award className="h-6 w-6 text-yellow-300 mb-2" />
-                            <p className="text-2xl font-bold">{stats.conceptsUnderstood}</p>
-                            <p className="text-xs text-white">CONCEPTS</p>
-                        </CardContent>
-                    </Card>
-                </motion.div>
+      {/* Stats Dashboard */}
+        <motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.2 }}
+  className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10"
+>
+  <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim}>
+    <Card className="dark:bg-black p-0 border-2 border-white rounded-none">
+      <CardContent className="p-4 flex flex-col items-center justify-center">
+        <Award className="h-6 w-6 text-yellow-300 mb-2" />
+        <p className="text-2xl font-bold">{stats.conceptsUnderstood}</p>
+        <p className="text-xs text-white">CONCEPTS</p>
+      </CardContent>
+    </Card>
+  </motion.div>
+  <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim}>
+    <Card className="dark:bg-black p-0 border-2 border-white rounded-none">
+      <CardContent className="p-4 flex flex-col items-center justify-center">
+        <Zap className="h-6 w-6 text-blue-400 mb-2" />
+        <p className="text-2xl font-bold">{stats.chainsCompleted}</p>
+        <p className="text-xs text-white">CHAINS</p>
+      </CardContent>
+    </Card>
+  </motion.div>
+  <motion.div whileHover="hover" whileTap="tap" variants={buttonAnim} className="col-span-2">
+    <Card className="dark:bg-black p-4 border-2 border-white rounded-none">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-2 mb-2">
+          <Target className="h-5 w-5 text-purple-400" />
+          <p className="text-xs text-white">WEEKLY GOAL</p>
+        </div>
+        <div className="w-full bg-gray-800 border-2 border-white h-4 rounded-full">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{
+              width: `${Math.min((stats.currentWeekConcepts / stats.weeklyGoal) * 100, 100)}%`,
+            }}
+            transition={{ duration: 0.5 }}
+            className="bg-purple-400 h-full rounded-full transition-all"
+          />
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          {stats.currentWeekConcepts}/{stats.weeklyGoal} concepts this week
+        </p>
+      </CardContent>
+    </Card>
+  </motion.div>
+</motion.div>
           {/* Input Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
