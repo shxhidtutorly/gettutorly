@@ -820,16 +820,16 @@ export default function LandingPage() {
       </section>
 
       {/* Text Gradient Scroll Section */}
-      <section className="bg-gray-50 py-32">
-        <div className="max-w-4xl mx-auto px-4">
-          <TextGradientScroll
-            text="Tutorly is your all-in-one AI-powered study assistant, built to make learning smarter and more efficient. Upload your notes, lectures, or readings, and instantly receive well-structured summaries that save you hours of review. With just one click, Tutorly transforms key concepts into interactive flashcards and personalized quizzes, helping you practice smarter and retain knowledge longer. Unlike traditional study tools, Tutorly adapts to your learning style, ensuring that every session is focused, productive, and stress-free. From simplifying complex topics to keeping you exam-ready, Tutorly is designed to give students the confidence and tools they need to succeed."
-            className="text-3xl md:text-4xl lg:text-5xl font-black text-center leading-relaxed"
-            type="word"
-            textOpacity="soft"
-          />
-        </div>
-      </section>
+      <section className="bg-black py-32">
+  <div className="max-w-4xl mx-auto px-4">
+    <TextGradientScroll
+      text="Tutorly is your all-in-one AI-powered study assistant, built to make learning smarter and more efficient. Upload your notes, lectures, or readings, and instantly receive well-structured summaries that save you hours of review. With just one click, Tutorly transforms key concepts into interactive flashcards and personalized quizzes, helping you practice smarter and retain knowledge longer. Unlike traditional study tools, Tutorly adapts to your learning style, ensuring that every session is focused, productive, and stress-free. From simplifying complex topics to keeping you exam-ready, Tutorly is designed to give students the confidence and tools they need to succeed."
+      className="text-3xl md:text-4xl lg:text-5xl font-black text-center leading-relaxed bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent"
+      type="word"
+      textOpacity="soft"
+    />
+  </div>
+</section>
 
       {/* Animated Card with AI Models */}
       <section className="bg-white py-20">
