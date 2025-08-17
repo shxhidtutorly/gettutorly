@@ -119,8 +119,136 @@ export default async function handler(req, res) {
   try {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
-    const { messages, model = 'gemini', prompt } = req.body;
+    const { messages, model = 'gemini', prompt, mode, topic } = req.body;
     
+    // Handle mind map generation mode
+    if (mode === 'mindmap') {
+      console.log('🧠 Mind map generation mode detected');
+      
+      if (!topic) {
+        console.log('❌ No topic provided for mind map');
+        return res.status(400).json({ 
+          error: 'Topic is required for mind map generation' 
+        });
+      }
+      
+      // Get user language preference
+      const userLanguage = await getUserLanguage(user.uid);
+      console.log('🌍 User language preference:', userLanguage);
+      
+      // Initialize Google Generative AI
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const genModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+      
+      // Create mind map prompt
+      const mindMapPrompt = `Create a comprehensive mind map for the topic "${topic}". 
+
+Please respond with ONLY a valid JSON object in this exact format:
+{
+  "title": "Root Node Title",
+  "children": [
+    {
+      "title": "Child Node 1",
+      "children": [
+        {
+          "title": "Grandchild Node 1.1",
+          "children": []
+        },
+        {
+          "title": "Grandchild Node 1.2", 
+          "children": []
+        }
+      ]
+    },
+    {
+      "title": "Child Node 2",
+      "children": []
+    }
+  ]
+}
+
+Requirements:
+- Create 4-6 main child nodes from the root
+- Each child node should have 2-4 sub-nodes
+- Use clear, concise titles (2-4 words each)
+- Focus on key concepts, definitions, examples, and applications
+- Ensure the JSON is valid and properly formatted
+- Do not include any explanatory text, only the JSON object
+
+Topic: ${topic}`;
+      
+      console.log('🔄 Generating mind map for topic:', topic);
+      const result = await genModel.generateContent(mindMapPrompt);
+      const response = await result.response;
+      const originalText = response.text();
+      
+      console.log('✅ Mind map response received:', originalText.substring(0, 200) + '...');
+      
+      // Try to parse the JSON response
+      let mindMapData;
+      try {
+        // Extract JSON from the response (in case AI adds extra text)
+        const jsonMatch = originalText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          mindMapData = JSON.parse(jsonMatch[0]);
+        } else {
+          mindMapData = JSON.parse(originalText);
+        }
+        
+        // Validate the structure
+        if (!mindMapData.title || !Array.isArray(mindMapData.children)) {
+          throw new Error('Invalid mind map structure');
+        }
+        
+        console.log('✅ Mind map JSON parsed successfully');
+        
+        // Translate node titles if user language is not English
+        if (userLanguage !== 'en') {
+          console.log('🌐 Translating mind map to:', userLanguage);
+          mindMapData = await translateMindMap(mindMapData, userLanguage);
+        }
+        
+        return res.status(200).json({
+          response: mindMapData,
+          originalResponse: mindMapData,
+          provider: 'google',
+          model: 'gemini-pro',
+          userLanguage,
+          wasTranslated: userLanguage !== 'en',
+          translationInfo: userLanguage !== 'en' ? {
+            targetLanguage: userLanguage,
+            sourceLanguage: 'en'
+          } : null
+        });
+        
+      } catch (parseError) {
+        console.error('❌ Failed to parse mind map JSON:', parseError);
+        console.error('Raw response:', originalText);
+        
+        // Return a fallback mind map structure
+        const fallbackMindMap = {
+          title: topic,
+          children: [
+            { title: "Key Concepts", children: [] },
+            { title: "Definitions", children: [] },
+            { title: "Examples", children: [] },
+            { title: "Applications", children: [] }
+          ]
+        };
+        
+        return res.status(200).json({
+          response: fallbackMindMap,
+          originalResponse: fallbackMindMap,
+          provider: 'google',
+          model: 'gemini-pro',
+          userLanguage,
+          wasTranslated: false,
+          error: 'Failed to parse AI response, using fallback structure'
+        });
+      }
+    }
+    
+    // Regular chat/response mode
     // Validate required fields - support both message array format and single prompt format
     if (!messages && !prompt) {
       console.log('❌ No messages or prompt provided');
@@ -249,4 +377,27 @@ export default async function handler(req, res) {
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+}
+
+/**
+ * Recursively translate mind map node titles
+ */
+async function translateMindMap(mindMapData, targetLanguage) {
+  const translatedData = { ...mindMapData };
+  
+  // Translate the root title
+  if (translatedData.title) {
+    translatedData.title = await translateText(translatedData.title, targetLanguage, 'en');
+  }
+  
+  // Recursively translate children
+  if (translatedData.children && Array.isArray(translatedData.children)) {
+    translatedData.children = await Promise.all(
+      translatedData.children.map(async (child) => {
+        return await translateMindMap(child, targetLanguage);
+      })
+    );
+  }
+  
+  return translatedData;
 }
