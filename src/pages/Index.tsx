@@ -999,23 +999,26 @@ export default function LandingPage() {
         </div>
       </section>
       
-    {/* FAQ Section */}
+{/* FAQ Section */}
 <section id="faq" className="bg-black py-20">
   <div className="max-w-4xl mx-auto px-4">
+    {/* Section Title */}
     <div className="text-center mb-16 scroll-fade-in">
       <h2 className="text-4xl md:text-6xl font-extrabold mb-6 text-white">FAQs</h2>
       <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
     </div>
 
-    <div className="space-y-4">
+    {/* FAQ List */}
+    <div className="space-y-6">
       {faqData.map((faq, index) => (
         <div
           key={index}
-          className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] scroll-fade-in"
+          className="bg-gray-100 border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] scroll-fade-in"
           style={{ animationDelay: `${index * 0.1}s` }}
         >
+          {/* Question Button */}
           <button
-            className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-100 transition-colors text-black"
+            className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-200 transition-colors text-black"
             onClick={() => setOpenFaq(openFaq === index ? null : index)}
           >
             {faq.question}
@@ -1027,6 +1030,8 @@ export default function LandingPage() {
               )}
             </div>
           </button>
+
+          {/* Answer */}
           <div
             className={`overflow-hidden transition-all duration-300 ${
               openFaq === index ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
@@ -1041,6 +1046,7 @@ export default function LandingPage() {
     </div>
   </div>
 </section>
+
 
 
       {/* Final CTA */}
