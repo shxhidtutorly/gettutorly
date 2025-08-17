@@ -8,7 +8,6 @@ import { useUserLanguage } from "@/hooks/useUserLanguage";
 import Navbar from "@/components/layout/Navbar";
 import BottomNav from "@/components/layout/BottomNav";
 import Footer from "@/components/layout/Footer";
-import TranslationToggle from "@/components/TranslationToggle";
 import {
   BookOpen,
   Sparkles,
@@ -200,16 +199,7 @@ const Dashboard = () => {
               <h1 className="text-3xl md:text-4xl font-black tracking-tight">
                 {getWelcomeMessage()}
               </h1>
-              <TranslationToggle
-                originalText="Let's supercharge your learning today."
-                onTranslationChange={(translatedText, isTranslated) => {
-                  // This will be handled by the component internally
-                }}
-                contextType="general"
-                className="hidden md:flex"
-              />
-            </div>
-            <p className={`text-lg ${mutedTextClasses}`}>
+              <p className={`text-lg ${mutedTextClasses}`}>
               {t('dashboard.subtitle')}
             </p>
             <button
