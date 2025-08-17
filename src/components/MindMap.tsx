@@ -1,3 +1,4 @@
+// src/components/MindMap.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, PanInfo } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+
 
 interface MindMapNode {
   id: string;
