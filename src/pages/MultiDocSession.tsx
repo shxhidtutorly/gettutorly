@@ -1,16 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import { useUserLanguage } from "@/hooks/useUserLanguage";
-import { useAuth } from "@/contexts/AuthContext";
-import { useUserStats } from "@/hooks/useUserStats";
-import { extractTextFromUrl } from "@/lib/jinaReader";
-import { extractTextFromFile } from "@/lib/fileExtractor";
-import { generateNotesAI, generateFlashcardsAI } from "@/lib/aiNotesService";
 import { 
   Upload, 
   FileText, 
@@ -31,80 +28,35 @@ import {
   Trash2,
   Eye,
   ArrowRight,
-  Check,
-  Download,
-  RotateCcw,
-  Shuffle,
-  BookOpen,
-  PenTool,
-  Settings,
-  HelpCircle,
-  FlipHorizontal,
-  Share2,
-  Archive,
-  Clock,
-  Bookmark,
-  Edit3,
-  Save,
-  Play,
-  Pause,
-  RefreshCw,
-  Confetti
+  Check
 } from "lucide-react";
+import { extractTextFromFile, type ExtractionResult } from "@/lib/fileExtractor";
+import { extractTextFromUrl } from "@/lib/jinaReader";
+import { generateNotesAI, generateFlashcardsAI } from "@/lib/aiNotesService";
+import { QuizCard } from "@/components/quiz/QuizCard";
 
-// Types
+// Local types
 interface SessionDoc {
   id: string;
   name: string;
   type: string;
   text: string;
   selected: boolean;
-  uploadedAt: Date;
 }
 
 interface QuizQuestion { 
   question: string; 
   options: string[]; 
-  correct: number;
-  explanation?: string;
+  correct: number 
 }
 
-interface FlashCard {
-  id: string;
-  question: string;
-  answer: string;
-}
-
-interface StudyTimer {
-  minutes: number;
-  seconds: number;
-  isRunning: boolean;
-  mode: 'study' | 'break';
-}
-
-interface StudySession {
-  id: string;
-  name: string;
-  docs: SessionDoc[];
-  notes: string;
-  summary: string;
-  flashcards: FlashCard[];
-  quiz: QuizQuestion[];
-  createdAt: Date;
-  lastModified: Date;
-}
-
-type ActiveTab = 'notes' | 'quiz' | 'flashcards' | 'edit' | 'original';
+type ActiveTab = 'content' | 'summary' | 'notes' | 'flashcards' | 'quiz';
 
 const MultiDocSession: React.FC = () => {
-  const { t } = useTranslation();
-  const { language } = useUserLanguage();
-  const { user } = useAuth();
-  const { updateStats } = useUserStats();
+  const { toast } = useToast();
 
-  // Core state
+  // Documents state
   const [docs, setDocs] = useState<SessionDoc[]>([]);
-  const [currentSession, setCurrentSession] = useState<StudySession | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -113,139 +65,34 @@ const MultiDocSession: React.FC = () => {
   const [linkUrl, setLinkUrl] = useState("");
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<ActiveTab>('notes');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('content');
 
-  // Content state
+  // Center output state
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [summary, setSummary] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
-  const [editableNotes, setEditableNotes] = useState<string>("");
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [flashcards, setFlashcards] = useState<FlashCard[]>([]);
-  const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
+  const [flashcards, setFlashcards] = useState<{ id: string; question: string; answer: string }[]>([]);
+  const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [quizScore, setQuizScore] = useState(0);
-  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
 
-  // UI state
+  // View state
   const [selectedDocForView, setSelectedDocForView] = useState<string | null>(null);
-  const [selectedDocForEdit, setSelectedDocForEdit] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
-
-  // Timer state
-  const [timer, setTimer] = useState<StudyTimer>({
-    minutes: 25,
-    seconds: 0,
-    isRunning: false,
-    mode: 'study'
-  });
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedDocs = useMemo(() => docs.filter(d => d.selected), [docs]);
-  const combinedText = useMemo(() => 
-    selectedDocs.map(d => `# ${d.name}\n\n${d.text}`).join("\n\n---\n\n"), 
-    [selectedDocs]
-  );
+  const combinedText = useMemo(() => selectedDocs.map(d => `# ${d.name}\n\n${d.text}`).join("\n\n---\n\n"), [selectedDocs]);
 
-  // Load session from localStorage
-  useEffect(() => {
-    const savedSession = localStorage.getItem('currentStudySession');
-    if (savedSession) {
-      try {
-        const session: StudySession = JSON.parse(savedSession);
-        setCurrentSession(session);
-        setDocs(session.docs || []);
-        setNotes(session.notes || '');
-        setEditableNotes(session.notes || '');
-        setSummary(session.summary || '');
-        setFlashcards(session.flashcards || []);
-        setQuiz(session.quiz || []);
-      } catch (error) {
-        console.error('Failed to load session:', error);
-      }
-    }
-  }, []);
-
-  // Save session to localStorage
-  const saveSession = useCallback(() => {
-    if (!currentSession && docs.length === 0) return;
-    
-    const session: StudySession = {
-      id: currentSession?.id || `session-${Date.now()}`,
-      name: currentSession?.name || `Study Session ${new Date().toLocaleDateString()}`,
-      docs,
-      notes,
-      summary,
-      flashcards,
-      quiz,
-      createdAt: currentSession?.createdAt || new Date(),
-      lastModified: new Date()
-    };
-    
-    setCurrentSession(session);
-    localStorage.setItem('currentStudySession', JSON.stringify(session));
-  }, [currentSession, docs, notes, summary, flashcards, quiz]);
-
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(saveSession, 30000);
-    return () => clearInterval(interval);
-  }, [saveSession]);
-
-  // Timer logic
-  useEffect(() => {
-    if (timer.isRunning) {
-      timerRef.current = setInterval(() => {
-        setTimer(prev => {
-          if (prev.seconds === 0 && prev.minutes === 0) {
-            // Timer finished
-            const newMode = prev.mode === 'study' ? 'break' : 'study';
-            const newMinutes = newMode === 'study' ? 25 : 5;
-            return { 
-              minutes: newMinutes, 
-              seconds: 0, 
-              isRunning: false, 
-              mode: newMode 
-            };
-          }
-          
-          if (prev.seconds === 0) {
-            return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-          }
-          
-          return { ...prev, seconds: prev.seconds - 1 };
-        });
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [timer.isRunning]);
-
-  // Helper functions
+  // Helpers
   const addDocs = (newOnes: SessionDoc[]) => {
     setDocs(prev => [...newOnes, ...prev]);
     if (newOnes.length > 0) {
-      setActiveTab('notes');
+      setActiveTab('content');
     }
   };
   
-  const toggleDoc = (id: string) => setDocs(prev => 
-    prev.map(d => d.id === id ? { ...d, selected: !d.selected } : d)
-  );
-  
-  const selectAll = (checked: boolean) => setDocs(prev => 
-    prev.map(d => ({ ...d, selected: checked }))
-  );
-  
+  const toggleDoc = (id: string) => setDocs(prev => prev.map(d => d.id === id ? { ...d, selected: !d.selected } : d));
+  const selectAll = (checked: boolean) => setDocs(prev => prev.map(d => ({ ...d, selected: checked })));
   const removeDoc = (id: string) => setDocs(prev => prev.filter(d => d.id !== id));
 
   // File handlers
@@ -257,34 +104,21 @@ const MultiDocSession: React.FC = () => {
       const results: SessionDoc[] = [];
       for (let i = 0; i < arr.length; i++) {
         const f = arr[i];
-        try {
-          const res = await extractTextFromFile(f);
-          results.push({ 
-            id: `${Date.now()}-${i}-${f.name}`, 
-            name: f.name, 
-            type: res.fileType, 
-            text: res.text, 
-            selected: true,
-            uploadedAt: new Date()
-          });
-        } catch (error) {
-          console.error(`Failed to process ${f.name}:`, error);
-          // Add with placeholder text on error
-          results.push({ 
-            id: `${Date.now()}-${i}-${f.name}`, 
-            name: f.name, 
-            type: f.type || 'unknown', 
-            text: `Failed to extract text from ${f.name}. Please try again.`, 
-            selected: false,
-            uploadedAt: new Date()
-          });
-        }
+        const res: ExtractionResult = await extractTextFromFile(f);
+        results.push({ 
+          id: `${Date.now()}-${i}-${f.name}`, 
+          name: f.name, 
+          type: res.fileType, 
+          text: res.text, 
+          selected: true 
+        });
         setProgress(10 + Math.round(((i + 1) / arr.length) * 50));
       }
       addDocs(results);
-      updateStats('documentsUploaded', results.length);
+      toast({ title: `✅ Added ${results.length} document${results.length > 1 ? 's' : ''}` });
     } catch (e) {
       console.error(e);
+      toast({ variant: "destructive", title: "❌ Failed to process files" });
     } finally {
       setIsLoading(false);
       setTimeout(() => setProgress(0), 600);
@@ -297,7 +131,7 @@ const MultiDocSession: React.FC = () => {
     if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
   };
 
-  // Import functions
+  // Import: Paste Text
   const addPastedText = () => {
     if (!pastedText.trim()) return;
     const id = `${Date.now()}-paste`;
@@ -306,14 +140,18 @@ const MultiDocSession: React.FC = () => {
       name: `Pasted Text ${new Date().toLocaleTimeString()}`, 
       type: 'text', 
       text: pastedText.trim(), 
-      selected: true,
-      uploadedAt: new Date()
+      selected: true 
     }]);
     setPastedText("");
+    toast({ title: "✅ Text added as document" });
   };
 
+  // Import: Link (web page)
   const addLink = async () => {
-    if (!/^https?:\/\//i.test(linkUrl)) return;
+    if (!/^https?:\/\//i.test(linkUrl)) {
+      toast({ variant: "destructive", title: "❌ Enter a valid URL" });
+      return;
+    }
     setIsLoading(true); 
     setProgress(20);
     try {
@@ -325,12 +163,14 @@ const MultiDocSession: React.FC = () => {
           name: res.title || linkUrl, 
           type: 'html', 
           text: res.content, 
-          selected: true,
-          uploadedAt: new Date()
+          selected: true 
         }]);
+        toast({ title: "✅ Imported content from link" });
+      } else {
+        toast({ variant: "destructive", title: "❌ Failed to import from link", description: res.error });
       }
     } catch (e) {
-      console.error('Failed to import from link:', e);
+      toast({ variant: "destructive", title: "❌ Failed to import from link" });
     } finally {
       setIsLoading(false); 
       setProgress(0); 
@@ -338,51 +178,73 @@ const MultiDocSession: React.FC = () => {
     }
   };
 
-  // AI Generation functions
-  const generateNotes = async () => {
-    if (!combinedText.trim()) return;
-    setIsLoading(true);
-    setProgress(60);
-    
+  // AI Actions
+  const runSummary = async () => {
+    if (!combinedText.trim()) { 
+      toast({ variant: "destructive", title: "❌ Select at least one document" }); 
+      return; 
+    }
+    setIsLoading(true); 
+    setProgress(70);
     try {
-      const prompt = `Create comprehensive, well-structured study notes from the following content. Format with clear headers, bullet points, and key concepts highlighted:
-
-# STUDY NOTES
-
-## Key Concepts
-[Extract main concepts with clear definitions]
-
-## Important Details
-[Organize important facts and details]
-
-## Summary Points
-[Provide concise summary points for review]
-
-## Study Tips
-[Add relevant study tips and mnemonics if applicable]
-
-Content to analyze:
-${combinedText}`;
-
-      const note = await generateNotesAI(prompt, 'Multi-Document Study Notes');
-      setNotes(note.content);
-      setEditableNotes(note.content);
-      setActiveTab('notes');
-      updateStats('notesGenerated', 1);
+      const resp = await fetch('/api/summarize', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ text: combinedText, filename: 'Multi-Doc Session' }) 
+      });
+      const data = await resp.json();
+      setSummary(data.summary || data.response || 'Summary generated.');
+      setActiveTab('summary');
+      toast({ title: "✅ Summary ready!" });
     } catch (e) {
-      console.error('Failed to generate notes:', e);
+      // Fallback to Together model through /api/ai
+      const resp = await fetch('/api/ai', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          prompt: `Summarize clearly and concisely:\n\n${combinedText}`, 
+          model: 'together' 
+        }) 
+      });
+      const data = await resp.json();
+      setSummary(data.response || 'Summary generated.');
+      setActiveTab('summary');
+      toast({ title: "✅ Summary ready!" });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); 
       setProgress(0);
     }
   };
 
-  const generateFlashcards = async (count: number = 10) => {
-    if (!combinedText.trim()) return;
-    setIsLoading(true);
+  const runNotes = async () => {
+    if (!combinedText.trim()) { 
+      toast({ variant: "destructive", title: "❌ Select at least one document" }); 
+      return; 
+    }
+    setIsLoading(true); 
     setProgress(60);
-    
     try {
+      const note = await generateNotesAI(combinedText, 'Multi-Doc Session');
+      setNotes(note.content);
+      setActiveTab('notes');
+      toast({ title: "✅ AI Notes generated!" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "❌ Failed to generate notes" });
+    } finally { 
+      setIsLoading(false); 
+      setProgress(0); 
+    }
+  };
+
+  const runFlashcards = async (count: number) => {
+    if (!combinedText.trim()) { 
+      toast({ variant: "destructive", title: "❌ Select at least one document" }); 
+      return; 
+    }
+    setIsLoading(true); 
+    setProgress(60);
+    try {
+      // Use combined text directly for flashcards to avoid double processing
       const cards = await generateFlashcardsAI(combinedText);
       const formattedCards = cards.slice(0, count).map((card, i) => ({
         id: `flashcard-${Date.now()}-${i}`,
@@ -391,714 +253,509 @@ ${combinedText}`;
       }));
       setFlashcards(formattedCards);
       setActiveTab('flashcards');
-      setCurrentFlashcardIndex(0);
-      setIsFlipped(false);
-      updateStats('flashcardsGenerated', formattedCards.length);
+      toast({ title: `✅ Generated ${formattedCards.length} flashcards` });
     } catch (e) {
-      console.error('Failed to generate flashcards:', e);
-    } finally {
-      setIsLoading(false);
-      setProgress(0);
+      console.error(e);
+      toast({ variant: "destructive", title: "❌ Failed to generate flashcards" });
+    } finally { 
+      setIsLoading(false); 
+      setProgress(0); 
     }
   };
 
-  const generateQuiz = async () => {
-    if (!combinedText.trim()) return;
-    setIsLoading(true);
+  const runQuiz = async () => {
+    if (!combinedText.trim()) { 
+      toast({ variant: "destructive", title: "❌ Select at least one document" }); 
+      return; 
+    }
+    setIsLoading(true); 
     setProgress(60);
-    
     try {
-      const prompt = `Create a comprehensive multiple-choice quiz from this study material. Generate exactly 10 questions with 4 options each. Return valid JSON only:
-
-{
-  "questions": [
-    {
-      "question": "Question text here",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correct": 0,
-      "explanation": "Brief explanation of the correct answer"
-    }
-  ]
-}
-
-Study Material:
-${combinedText}`;
-
-      // Mock API call - replace with your actual API
-      const response = await new Promise<{ questions: QuizQuestion[] }>((resolve) => {
-        setTimeout(() => {
-          resolve({
-            questions: [
-              {
-                question: "What is the main concept discussed in the material?",
-                options: ["Option A", "Option B", "Option C", "Option D"],
-                correct: 1,
-                explanation: "This is the correct answer because..."
-              }
-            ]
-          });
-        }, 2000);
+      const prompt = `Create a multiple-choice quiz (10 questions) from this study material. Return strict JSON with an array named questions where each item has: question (string), options (array of 4 strings), correct (number index of correct option). No extra text.\n\n${combinedText}`;
+      const resp = await fetch('/api/ai', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ prompt, model: 'together' }) 
       });
-
-      setQuiz(response.questions);
+      const data = await resp.json();
+      let parsed: { questions: QuizQuestion[] } | null = null;
+      const match = (data.response || '').match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]); 
+      else parsed = JSON.parse(data.response);
+      setQuiz(parsed.questions);
       setQuizIndex(0);
-      setQuizAnswers(new Array(response.questions.length).fill(-1));
-      setQuizCompleted(false);
-      setQuizScore(0);
+      setQuizAnswers(new Array(parsed.questions.length).fill(-1));
       setActiveTab('quiz');
-      updateStats('quizzesGenerated', 1);
+      toast({ title: "✅ Quiz generated!" });
     } catch (e) {
-      console.error('Failed to generate quiz:', e);
-    } finally {
-      setIsLoading(false);
-      setProgress(0);
+      console.error(e);
+      toast({ variant: "destructive", title: "❌ Failed to generate quiz" });
+    } finally { 
+      setIsLoading(false); 
+      setProgress(0); 
     }
   };
 
-  // Quiz functions
-  const selectAnswer = (answerIndex: number) => {
-    const newAnswers = [...quizAnswers];
-    newAnswers[quizIndex] = answerIndex;
-    setQuizAnswers(newAnswers);
-  };
+  const quizCurrent = quiz ? quiz[quizIndex] : null;
+  const selectAnswer = (i: number) => setQuizAnswers(prev => { 
+    const next = [...prev]; 
+    next[quizIndex] = i; 
+    return next; 
+  });
 
-  const nextQuestion = () => {
-    if (quizIndex < quiz.length - 1) {
-      setQuizIndex(quizIndex + 1);
-    } else {
-      // Quiz completed
-      const score = quizAnswers.reduce((acc, answer, index) => {
-        return acc + (answer === quiz[index].correct ? 1 : 0);
-      }, 0);
-      setQuizScore(score);
-      setQuizCompleted(true);
-      updateStats('quizzesCompleted', 1);
-    }
-  };
-
-  const prevQuestion = () => {
-    if (quizIndex > 0) {
-      setQuizIndex(quizIndex - 1);
-    }
-  };
-
-  const resetQuiz = () => {
-    setQuizIndex(0);
-    setQuizAnswers(new Array(quiz.length).fill(-1));
-    setQuizCompleted(false);
-    setQuizScore(0);
-  };
-
-  // Flashcard functions
-  const nextFlashcard = () => {
-    setCurrentFlashcardIndex((prev) => (prev + 1) % flashcards.length);
-    setIsFlipped(false);
-  };
-
-  const prevFlashcard = () => {
-    setCurrentFlashcardIndex((prev) => (prev - 1 + flashcards.length) % flashcards.length);
-    setIsFlipped(false);
-  };
-
-  const flipCard = () => {
-    setIsFlipped(!isFlipped);
-  };
-
-  // Timer functions
-  const startTimer = () => {
-    setTimer(prev => ({ ...prev, isRunning: true }));
-  };
-
-  const pauseTimer = () => {
-    setTimer(prev => ({ ...prev, isRunning: false }));
-  };
-
-  const resetTimer = () => {
-    setTimer({
-      minutes: timer.mode === 'study' ? 25 : 5,
-      seconds: 0,
-      isRunning: false,
-      mode: timer.mode
-    });
-  };
-
-  // Download functions
-  const downloadContent = (content: string, filename: string, type: string = 'text/plain') => {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadNotes = () => downloadContent(notes, 'study-notes.md', 'text/markdown');
-  const downloadFlashcards = () => {
-    const content = flashcards.map(card => `Q: ${card.question}\nA: ${card.answer}\n---`).join('\n');
-    downloadContent(content, 'flashcards.txt');
-  };
-
-  // Edit functions
-  const saveEditedNotes = () => {
-    setNotes(editableNotes);
-    setIsEditingNotes(false);
-    saveSession();
-  };
-
-  const startNewSession = () => {
-    if (window.confirm(t('Are you sure you want to start a new session? Current progress will be saved.'))) {
-      saveSession();
-      setDocs([]);
-      setNotes('');
-      setEditableNotes('');
-      setSummary('');
-      setFlashcards([]);
-      setQuiz([]);
-      setCurrentSession(null);
-      setActiveTab('notes');
-      localStorage.removeItem('currentStudySession');
-    }
-  };
-
+  const docsEmpty = docs.length === 0;
   const hasSelectedDocs = selectedDocs.length > 0;
-  const currentFlashcard = flashcards[currentFlashcardIndex];
+
+  const tabs = [
+    { id: 'content' as ActiveTab, label: 'Original Content', icon: FileText, color: 'yellow' },
+    { id: 'summary' as ActiveTab, label: 'AI Summary', icon: Zap, color: 'blue' },
+    { id: 'notes' as ActiveTab, label: 'AI Notes', icon: FileCheck, color: 'green' },
+    { id: 'flashcards' as ActiveTab, label: 'AI Flashcards', icon: Brain, color: 'pink' },
+    { id: 'quiz' as ActiveTab, label: 'AI Quizzes', icon: CheckSquare, color: 'purple' },
+  ];
+
+  const getColorClasses = (color: string, isActive: boolean = false) => {
+    const colors = {
+      yellow: isActive ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-black',
+      blue: isActive ? 'bg-blue-400 text-black border-blue-400' : 'bg-black text-blue-400 border-blue-400 hover:bg-blue-400 hover:text-black',
+      green: isActive ? 'bg-green-400 text-black border-green-400' : 'bg-black text-green-400 border-green-400 hover:bg-green-400 hover:text-black',
+      pink: isActive ? 'bg-pink-400 text-black border-pink-400' : 'bg-black text-pink-400 border-pink-400 hover:bg-pink-400 hover:text-black',
+      purple: isActive ? 'bg-purple-400 text-black border-purple-400' : 'bg-black text-purple-400 border-purple-400 hover:bg-purple-400 hover:text-black',
+      cyan: isActive ? 'bg-cyan-400 text-black border-cyan-400' : 'bg-black text-cyan-400 border-cyan-400 hover:bg-cyan-400 hover:text-black',
+    };
+    return colors[color as keyof typeof colors] || colors.yellow;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Header */}
-      <header className="bg-white border-b-2 border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="bg-blue-600 text-white px-4 py-2 font-bold text-xl rounded-lg">
-                StudyAI
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {t('Multi-Document Study Session')}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  {docs.length > 0 ? `${docs.length} documents • ${selectedDocs.length} selected` : t('Upload documents to start')}
-                </p>
-              </div>
+    <div className="min-h-screen bg-black text-white font-mono">
+      <Navbar />
+      
+      <main className="container max-w-7xl mx-auto px-4 py-6">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="text-center mb-6">
+            <div className="inline-block bg-yellow-400 text-black px-6 py-2 font-black text-2xl mb-4 transform -rotate-1 shadow-[8px_8px_0px_#fbbf24]">
+              CORE TOOLS
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={() => setShowChat(!showChat)}
-                variant={showChat ? "default" : "outline"}
-                className="font-medium"
-              >
-                <MessageCircle size={16} className="mr-2" />
-                {t('AI Tutor')}
-              </Button>
-              <Button
-                onClick={() => setShowSidebar(!showSidebar)}
-                variant="outline"
-                className="font-medium"
-              >
-                <Settings size={16} className="mr-2" />
-                {showSidebar ? t('Hide Tools') : t('Show Tools')}
-              </Button>
-              <Button
-                onClick={startNewSession}
-                variant="outline"
-                className="font-medium"
-              >
-                <RefreshCw size={16} className="mr-2" />
-                {t('New Session')}
-              </Button>
-            </div>
+            <h1 className="text-4xl font-black text-white mb-2">
+              MULTI-DOCUMENT STUDY SESSION
+            </h1>
+            <p className="text-gray-400 font-bold">UPLOAD • ANALYZE • LEARN</p>
           </div>
 
           {/* Progress Bar */}
           <AnimatePresence>
             {progress > 0 && (
               <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-4"
+                initial={{ opacity: 0, scaleX: 0 }}
+                animate={{ opacity: 1, scaleX: 1 }}
+                exit={{ opacity: 0, scaleX: 0 }}
+                className="mb-6"
               >
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-gray-900 border-4 border-yellow-400 p-4 shadow-[8px_8px_0px_#fbbf24]">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-blue-700 font-medium">{t('Processing...')}</span>
-                    <span className="text-blue-600 font-bold">{progress}%</span>
+                    <span className="text-yellow-400 font-black">PROCESSING...</span>
+                    <span className="text-white font-black">{progress}%</span>
                   </div>
-                  <Progress value={progress} className="w-full h-2" />
+                  <div className="w-full bg-black border-2 border-yellow-400 h-4">
+                    <motion.div 
+                      className="h-full bg-yellow-400"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </header>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex space-x-8">
-            {[
-              { id: 'notes' as ActiveTab, label: t('AI Notes'), icon: BookOpen },
-              { id: 'quiz' as ActiveTab, label: t('Quiz'), icon: CheckSquare },
-              { id: 'flashcards' as ActiveTab, label: t('Flashcards'), icon: Brain },
-              { id: 'edit' as ActiveTab, label: t('Edit'), icon: Edit3 },
-              { id: 'original' as ActiveTab, label: t('Original'), icon: FileText },
-            ].map((tab) => {
+          {/* Tabs */}
+          <div className="flex flex-wrap gap-2 justify-center mb-6">
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
-                <button
+                <motion.button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    flex items-center space-x-2 px-4 py-4 border-b-2 font-medium text-sm transition-colors
-                    ${isActive 
-                      ? 'border-blue-500 text-blue-600' 
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }
+                    flex items-center gap-2 px-4 py-3 border-4 font-black text-sm transition-all duration-200 transform hover:scale-105 hover:-rotate-1
+                    ${getColorClasses(tab.color, isActive)}
+                    ${isActive ? 'shadow-[6px_6px_0px_rgba(255,255,255,0.2)]' : 'shadow-[4px_4px_0px_rgba(255,255,255,0.1)]'}
                   `}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Icon size={18} />
-                  <span>{tab.label}</span>
-                </button>
+                  {tab.label}
+                </motion.button>
               );
             })}
-          </nav>
-        </div>
-      </div>
+          </div>
+        </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Sidebar */}
-          <AnimatePresence>
-            {showSidebar && (
-              <motion.aside
-                initial={{ x: -300, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -300, opacity: 0 }}
-                className="w-80 space-y-6"
-              >
-                {/* Upload Section */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h3 className="font-bold text-lg text-gray-900 mb-4">{t('Import Content')}</h3>
-                  
-                  <div className="space-y-4">
-                    <Button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <Upload size={16} className="mr-2" />
-                      {t('Upload Files')}
-                    </Button>
-                    
-                    <div className="flex gap-2">
-                      <Input
-                        value={linkUrl}
-                        onChange={(e) => setLinkUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="flex-1"
-                      />
-                      <Button onClick={addLink} disabled={!linkUrl.trim()}>
-                        <LinkIcon size={16} />
-                      </Button>
-                    </div>
-
-                    <Textarea
-                      value={pastedText}
-                      onChange={(e) => setPastedText(e.target.value)}
-                      placeholder={t('Paste text here...')}
-                      rows={4}
-                    />
-                    <Button
-                      onClick={addPastedText}
-                      disabled={!pastedText.trim()}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      {t('Add Text')}
-                    </Button>
-                  </div>
-
-                  <input 
-                    ref={fileInputRef} 
-                    type="file" 
-                    multiple 
-                    accept=".pdf,.docx,.txt,.md,.html" 
-                    className="hidden" 
-                    onChange={(e) => e.target.files && handleFiles(e.target.files)} 
-                  />
-                </div>
-
-                {/* Documents List */}
-                {docs.length > 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-lg text-gray-900">
-                        {t('Documents')} ({docs.length})
-                      </h3>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => selectAll(true)} variant="outline">
-                          {t('All')}
-                        </Button>
-                        <Button size="sm" onClick={() => selectAll(false)} variant="outline">
-                          {t('None')}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {docs.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className={`
-                            flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all
-                            ${doc.selected 
-                              ? 'bg-blue-50 border-blue-200' 
-                              : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                            }
-                          `}
-                          onClick={() => toggleDoc(doc.id)}
-                        >
-                          <div className="text-blue-600">
-                            {doc.selected ? <CheckSquare size={16} /> : <Square size={16} />}
-                          </div>
-                          <File size={14} className="text-gray-400" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate text-gray-900">{doc.name}</p>
-                            <p className="text-xs text-gray-500 uppercase">{doc.type}</p>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id);
-                              }}
-                            >
-                              <Eye size={14} />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeDoc(doc.id);
-                              }}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Actions */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h3 className="font-bold text-lg text-gray-900 mb-4">{t('AI Tools')}</h3>
-                  
-                  <div className="space-y-3">
-                    <Button
-                      onClick={generateNotes}
-                      disabled={isLoading || !hasSelectedDocs}
-                      className="w-full justify-start"
-                    >
-                      <Sparkles size={16} className="mr-2" />
-                      {t('Generate Notes')}
-                    </Button>
-                    <Button
-                      onClick={() => generateFlashcards(10)}
-                      disabled={isLoading || !hasSelectedDocs}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <Brain size={16} className="mr-2" />
-                      {t('Create Flashcards')}
-                    </Button>
-                    <Button
-                      onClick={generateQuiz}
-                      disabled={isLoading || !hasSelectedDocs}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <CheckSquare size={16} className="mr-2" />
-                      {t('Generate Quiz')}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Study Timer */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h3 className="font-bold text-lg text-gray-900 mb-4">
-                    {t('Study Timer')} 
-                    <span className="ml-2 text-sm font-normal text-gray-600">
-                      ({timer.mode === 'study' ? t('Study') : t('Break')})
-                    </span>
-                  </h3>
-                  
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-gray-900 mb-4 font-mono">
-                      {String(timer.minutes).padStart(2, '0')}:{String(timer.seconds).padStart(2, '0')}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={timer.isRunning ? pauseTimer : startTimer}
-                        className="flex-1"
-                        variant={timer.isRunning ? "outline" : "default"}
-                      >
-                        {timer.isRunning ? <Pause size={16} /> : <Play size={16} />}
-                      </Button>
-                      <Button
-                        onClick={resetTimer}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <RotateCcw size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </motion.aside>
-            )}
-          </AnimatePresence>
-
-          {/* Main Content */}
-          <div className="flex-1">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                className="bg-white rounded-lg border border-gray-200 p-6 min-h-[600px]"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+                className="bg-gray-900 border-4 border-white p-6 shadow-[12px_12px_0px_rgba(255,255,255,0.1)]"
               >
-                {/* AI Notes Tab */}
-                {activeTab === 'notes' && (
+                {/* Original Content Tab */}
+                {activeTab === 'content' && (
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <BookOpen size={28} className="text-blue-600" />
-                        {t('AI Study Notes')}
-                      </h2>
-                      {notes && (
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => {
-                              setIsEditingNotes(!isEditingNotes);
-                              setEditableNotes(notes);
-                            }}
-                            variant="outline"
-                          >
-                            <Edit3 className="mr-2" size={16} />
-                            {t('Edit')}
-                          </Button>
-                          <Button onClick={downloadNotes}>
-                            <Download className="mr-2" size={16} />
-                            {t('Download')}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                    {docsEmpty ? (
+                      // Upload Interface when no documents
+                      <div>
+                        <h2 className="text-3xl font-black text-center mb-8">IMPORT CONTENT</h2>
+                        <p className="text-center text-gray-400 font-bold mb-8">
+                          Select the type of content you'd like to import to a new session.
+                        </p>
 
-                    {notes ? (
-                      <div className="prose prose-gray max-w-none">
-                        {isEditingNotes ? (
-                          <div className="space-y-4">
+                        {/* Import Options Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                          <motion.div
+                            whileHover={{ scale: 1.02, rotate: -1 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="bg-purple-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#a855f7] hover:shadow-[12px_12px_0px_#a855f7] transition-all"
+                          >
+                            <div className="w-12 h-12 bg-black text-purple-400 flex items-center justify-center mb-4 border-2 border-black">
+                              <File size={24} />
+                            </div>
+                            <h3 className="font-black text-xl mb-2">FILE</h3>
+                            <p className="font-bold text-sm">Import Files</p>
+                          </motion.div>
+
+                          <motion.div
+                            whileHover={{ scale: 1.02, rotate: 1 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => document.getElementById('link-input')?.focus()}
+                            className="bg-cyan-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22d3ee] hover:shadow-[12px_12px_0px_#22d3ee] transition-all"
+                          >
+                            <div className="w-12 h-12 bg-black text-cyan-400 flex items-center justify-center mb-4 border-2 border-black">
+                              <LinkIcon size={24} />
+                            </div>
+                            <h3 className="font-black text-xl mb-2">LINK</h3>
+                            <p className="font-bold text-sm">Import URL</p>
+                          </motion.div>
+
+                          <motion.div
+                            whileHover={{ scale: 1.02, rotate: -1 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => document.getElementById('text-input')?.focus()}
+                            className="bg-green-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22c55e] hover:shadow-[12px_12px_0px_#22c55e] transition-all"
+                          >
+                            <div className="w-12 h-12 bg-black text-green-400 flex items-center justify-center mb-4 border-2 border-black">
+                              <FileText size={24} />
+                            </div>
+                            <h3 className="font-black text-xl mb-2">TEXT</h3>
+                            <p className="font-bold text-sm">Copy & Paste</p>
+                          </motion.div>
+                        </div>
+
+                        {/* Upload Area */}
+                        <div 
+                          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                          onDragLeave={() => setDragActive(false)}
+                          onDrop={onDrop}
+                          className={`
+                            border-4 border-dashed p-12 text-center transition-all duration-300 mb-6
+                            ${dragActive 
+                              ? 'border-yellow-400 bg-yellow-400/10 shadow-[8px_8px_0px_#fbbf24]' 
+                              : 'border-gray-600 hover:border-white'
+                            }
+                          `}
+                        >
+                          <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                          <p className="text-xl font-black mb-2">DRAG & DROP FILES HERE</p>
+                          <p className="text-gray-400 font-bold">PDF, DOCX, PPT, Images, Videos</p>
+                        </div>
+
+                        <input 
+                          ref={fileInputRef} 
+                          type="file" 
+                          multiple 
+                          accept=".pdf,.docx,.txt,.md,.html" 
+                          className="hidden" 
+                          onChange={(e) => e.target.files && handleFiles(e.target.files)} 
+                        />
+
+                        {/* Text Input Areas */}
+                        <div className="space-y-4">
+                          <div>
                             <Textarea
-                              value={editableNotes}
-                              onChange={(e) => setEditableNotes(e.target.value)}
-                              className="min-h-96 font-mono"
+                              id="text-input"
+                              value={pastedText}
+                              onChange={(e) => setPastedText(e.target.value)}
+                              placeholder="Paste your text content here..."
+                              className="bg-black border-4 border-green-400 focus:border-green-400 text-white p-4 font-mono min-h-[120px] shadow-[4px_4px_0px_#22c55e]"
                             />
-                            <div className="flex gap-2">
-                              <Button onClick={saveEditedNotes}>
-                                <Save className="mr-2" size={16} />
-                                {t('Save Changes')}
-                              </Button>
+                            <Button
+                              onClick={addPastedText}
+                              disabled={!pastedText.trim()}
+                              className="mt-2 bg-green-400 text-black border-4 border-black font-black hover:bg-green-500 shadow-[4px_4px_0px_#22c55e]"
+                            >
+                              ADD TEXT
+                            </Button>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Input
+                              id="link-input"
+                              value={linkUrl}
+                              onChange={(e) => setLinkUrl(e.target.value)}
+                              placeholder="https://example.com/article"
+                              className="bg-black border-4 border-cyan-400 focus:border-cyan-400 text-white font-mono shadow-[4px_4px_0px_#22d3ee]"
+                            />
+                            <Button
+                              onClick={addLink}
+                              disabled={!linkUrl.trim()}
+                              className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee]"
+                            >
+                              IMPORT
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Documents Interface when documents exist
+                      <div>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                          <h2 className="text-2xl font-black">DOCUMENTS ({docs.length})</h2>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              onClick={() => selectAll(true)}
+                              className="bg-yellow-400 text-black border-4 border-black font-black hover:bg-yellow-500 shadow-[4px_4px_0px_#fbbf24]"
+                            >
+                              SELECT ALL
+                            </Button>
+                            <Button
+                              onClick={() => selectAll(false)}
+                              className="bg-gray-400 text-black border-4 border-black font-black hover:bg-gray-500 shadow-[4px_4px_0px_#9ca3af]"
+                            >
+                              DESELECT ALL
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Documents List */}
+                        <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
+                          {docs.map((doc, index) => (
+                            <motion.div
+                              key={doc.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className={`
+                                flex items-center gap-4 p-4 border-4 transition-all duration-200 cursor-pointer
+                                ${doc.selected 
+                                  ? 'bg-yellow-400 text-black border-black shadow-[6px_6px_0px_#fbbf24]' 
+                                  : 'bg-black text-white border-gray-600 hover:border-white'
+                                }
+                              `}
+                              onClick={() => toggleDoc(doc.id)}
+                            >
+                              <div className={`${doc.selected ? 'text-black' : 'text-yellow-400'}`}>
+                                {doc.selected ? <CheckSquare size={20} /> : <Square size={20} />}
+                              </div>
+                              <File className={doc.selected ? 'text-black' : 'text-gray-400'} size={18} />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-black truncate">{doc.name}</p>
+                                <p className={`text-xs font-bold uppercase ${doc.selected ? 'text-black/70' : 'text-gray-500'}`}>
+                                  {doc.type}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id);
+                                  }}
+                                  size="sm"
+                                  className={`${getColorClasses('blue')} p-2`}
+                                >
+                                  <Eye size={16} />
+                                </Button>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeDoc(doc.id);
+                                  }}
+                                  size="sm"
+                                  className="bg-red-400 text-black border-2 border-black hover:bg-red-500 p-2"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+
+                        {/* Document Viewer */}
+                        {selectedDocForView && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mb-6 bg-black border-4 border-blue-400 p-4 shadow-[6px_6px_0px_#60a5fa]"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="font-black text-blue-400">
+                                VIEWING: {docs.find(d => d.id === selectedDocForView)?.name}
+                              </h3>
                               <Button
-                                variant="outline"
-                                onClick={() => setIsEditingNotes(false)}
+                                onClick={() => setSelectedDocForView(null)}
+                                size="sm"
+                                className="bg-red-400 text-black border-2 border-black hover:bg-red-500"
                               >
-                                {t('Cancel')}
+                                <X size={16} />
+                              </Button>
+                            </div>
+                            <div className="max-h-64 overflow-y-auto bg-gray-900 p-4 border-2 border-blue-400">
+                              <pre className="whitespace-pre-wrap text-gray-300 font-mono text-sm">
+                                {docs.find(d => d.id === selectedDocForView)?.text}
+                              </pre>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="bg-gray-900 border-4 border-white p-6 shadow-[8px_8px_0px_rgba(255,255,255,0.1)]">
+                          <h3 className="font-black text-white mb-4">
+                            GENERATE AI CONTENT ({hasSelectedDocs ? selectedDocs.length : 0} DOCS SELECTED)
+                          </h3>
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            <Button
+                              onClick={runSummary}
+                              disabled={isLoading || !hasSelectedDocs}
+                              className={`${getColorClasses('blue')} font-black shadow-[4px_4px_0px_#60a5fa] hover:shadow-[6px_6px_0px_#60a5fa] transition-all`}
+                            >
+                              <Zap className="mr-2" size={16} />
+                              SUMMARY
+                            </Button>
+                            <Button
+                              onClick={runNotes}
+                              disabled={isLoading || !hasSelectedDocs}
+                              className={`${getColorClasses('green')} font-black shadow-[4px_4px_0px_#22c55e] hover:shadow-[6px_6px_0px_#22c55e] transition-all`}
+                            >
+                              <FileCheck className="mr-2" size={16} />
+                              NOTES
+                            </Button>
+                            <Button
+                              onClick={() => runFlashcards(10)}
+                              disabled={isLoading || !hasSelectedDocs}
+                              className={`${getColorClasses('pink')} font-black shadow-[4px_4px_0px_#ec4899] hover:shadow-[6px_6px_0px_#ec4899] transition-all`}
+                            >
+                              <Brain className="mr-2" size={16} />
+                              FLASHCARDS
+                            </Button>
+                            <Button
+                              onClick={runQuiz}
+                              disabled={isLoading || !hasSelectedDocs}
+                              className={`${getColorClasses('purple')} font-black shadow-[4px_4px_0px_#a855f7] hover:shadow-[6px_6px_0px_#a855f7] transition-all`}
+                            >
+                              <CheckSquare className="mr-2" size={16} />
+                              QUIZ
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Quick Add More */}
+                        <div className="bg-black border-4 border-yellow-400 p-4 shadow-[6px_6px_0px_#fbbf24]">
+                          <h4 className="font-black text-yellow-400 mb-3">ADD MORE CONTENT</h4>
+                          <div className="flex flex-col md:flex-row gap-3">
+                            <Button
+                              onClick={() => fileInputRef.current?.click()}
+                              className={`${getColorClasses('purple')} font-black flex-1`}
+                            >
+                              <Plus className="mr-2" size={16} />
+                              ADD FILES
+                            </Button>
+                            <div className="flex gap-2 flex-1">
+                              <Input
+                                value={linkUrl}
+                                onChange={(e) => setLinkUrl(e.target.value)}
+                                placeholder="Add URL..."
+                                className="bg-black border-2 border-cyan-400 text-white font-mono"
+                              />
+                              <Button
+                                onClick={addLink}
+                                disabled={!linkUrl.trim()}
+                                className={`${getColorClasses('cyan')} font-black`}
+                              >
+                                ADD
                               </Button>
                             </div>
                           </div>
-                        ) : (
-                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                            <pre className="whitespace-pre-wrap font-sans leading-relaxed text-gray-800">
-                              {notes}
-                            </pre>
-                          </div>
-                        )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* AI Summary Tab */}
+                {activeTab === 'summary' && (
+                  <div>
+                    <h2 className="text-3xl font-black text-blue-400 mb-6">AI SUMMARY</h2>
+                    {summary ? (
+                      <div className="bg-black border-4 border-blue-400 p-6 shadow-[8px_8px_0px_#60a5fa]">
+                        <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono">
+                          {summary}
+                        </pre>
                       </div>
                     ) : (
                       <div className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
-                          <PenTool className="w-12 h-12 text-blue-600" />
+                        <div className="bg-blue-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#60a5fa]">
+                          <Zap className="w-12 h-12 text-black" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Notes Generated')}</h3>
-                        <p className="text-gray-600 mb-6">{t('Select documents and generate AI-powered study notes')}</p>
+                        <p className="text-xl font-black mb-4">NO SUMMARY YET</p>
+                        <p className="text-gray-400 font-bold mb-8">Select documents and generate summary</p>
                         <Button
-                          onClick={generateNotes}
-                          disabled={!hasSelectedDocs || isLoading}
-                          size="lg"
+                          onClick={runSummary}
+                          disabled={isLoading || !hasSelectedDocs}
+                          className={`${getColorClasses('blue')} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#60a5fa]`}
                         >
-                          <Sparkles className="mr-2" size={20} />
-                          {t('Generate Notes')}
+                          GENERATE SUMMARY
                         </Button>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Quiz Tab */}
-                {activeTab === 'quiz' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <CheckSquare size={28} className="text-purple-600" />
-                        {t('Interactive Quiz')}
-                      </h2>
-                      {quiz.length > 0 && !quizCompleted && (
-                        <div className="flex gap-2">
-                          <Button onClick={resetQuiz} variant="outline">
-                            <RotateCcw className="mr-2" size={16} />
-                            {t('Reset')}
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              const shuffled = [...quiz].sort(() => Math.random() - 0.5);
-                              setQuiz(shuffled);
-                              resetQuiz();
-                            }}
-                            variant="outline"
-                          >
-                            <Shuffle className="mr-2" size={16} />
-                            {t('Shuffle')}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {quizCompleted ? (
-                      <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-center py-12"
-                      >
-                        <div className="w-32 h-32 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-                          <Check className="w-16 h-16 text-green-600" />
-                        </div>
-                        <h3 className="text-3xl font-bold text-gray-900 mb-2">{t('Quiz Completed!')}</h3>
-                        <p className="text-xl text-gray-600 mb-6">
-                          {t('Your score')}: {quizScore}/{quiz.length} ({Math.round((quizScore/quiz.length)*100)}%)
-                        </p>
-                        <div className="flex gap-4 justify-center">
-                          <Button onClick={resetQuiz} size="lg">
-                            <RotateCcw className="mr-2" size={20} />
-                            {t('Try Again')}
-                          </Button>
-                          <Button onClick={generateQuiz} variant="outline" size="lg">
-                            <Sparkles className="mr-2" size={20} />
-                            {t('New Quiz')}
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ) : quiz.length > 0 ? (
-                      <div className="space-y-6">
-                        <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-                          <div className="flex items-center justify-between mb-6">
-                            <span className="font-bold text-lg text-purple-600">
-                              {t('Question')} {quizIndex + 1} {t('of')} {quiz.length}
-                            </span>
-                            <div className="flex gap-1">
-                              {quiz.map((_, index) => (
-                                <div
-                                  key={index}
-                                  className={`w-4 h-4 rounded-full ${
-                                    index === quizIndex ? 'bg-purple-500' : 
-                                    quizAnswers[index] !== -1 ? 'bg-green-400' : 'bg-gray-300'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <h3 className="text-xl font-semibold text-gray-900 leading-tight">
-                              {quiz[quizIndex]?.question}
-                            </h3>
-
-                            <div className="space-y-3">
-                              {quiz[quizIndex]?.options.map((option, optionIndex) => (
-                                <motion.button
-                                  key={optionIndex}
-                                  onClick={() => selectAnswer(optionIndex)}
-                                  className={`
-                                    w-full p-4 text-left border-2 rounded-lg font-medium transition-all
-                                    ${quizAnswers[quizIndex] === optionIndex
-                                      ? 'bg-blue-50 border-blue-500 text-blue-700'
-                                      : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                                    }
-                                  `}
-                                  whileHover={{ x: 4 }}
-                                  whileTap={{ scale: 0.98 }}
-                                >
-                                  <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-700 rounded-full text-sm font-bold mr-4">
-                                    {String.fromCharCode(65 + optionIndex)}
-                                  </span>
-                                  {option}
-                                </motion.button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <Button
-                            onClick={prevQuestion}
-                            disabled={quizIndex === 0}
-                            variant="outline"
-                          >
-                            <ChevronLeft size={16} className="mr-2" />
-                            {t('Previous')}
-                          </Button>
-
-                          <div className="text-center">
-                            <div className="text-sm text-gray-600">
-                              {quizAnswers.filter(a => a !== -1).length} / {quiz.length} {t('answered')}
-                            </div>
-                          </div>
-
-                          <Button
-                            onClick={nextQuestion}
-                            disabled={quizAnswers[quizIndex] === -1}
-                          >
-                            {quizIndex === quiz.length - 1 ? t('Finish') : t('Next')}
-                            <ChevronRight size={16} className="ml-2" />
-                          </Button>
-                        </div>
+                {/* AI Notes Tab */}
+                {activeTab === 'notes' && (
+                  <div>
+                    <h2 className="text-3xl font-black text-green-400 mb-6">AI NOTES</h2>
+                    {notes ? (
+                      <div className="bg-black border-4 border-green-400 p-6 shadow-[8px_8px_0px_#22c55e]">
+                        <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono">
+                          {notes}
+                        </pre>
                       </div>
                     ) : (
                       <div className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 bg-purple-100 rounded-full flex items-center justify-center">
-                          <HelpCircle className="w-12 h-12 text-purple-600" />
+                        <div className="bg-green-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#22c55e]">
+                          <FileCheck className="w-12 h-12 text-black" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Quiz Available')}</h3>
-                        <p className="text-gray-600 mb-6">{t('Generate quiz questions from your documents')}</p>
+                        <p className="text-xl font-black mb-4">NO NOTES YET</p>
+                        <p className="text-gray-400 font-bold mb-8">Select documents and generate AI notes</p>
                         <Button
-                          onClick={generateQuiz}
-                          disabled={!hasSelectedDocs || isLoading}
-                          size="lg"
+                          onClick={runNotes}
+                          disabled={isLoading || !hasSelectedDocs}
+                          className={`${getColorClasses('green')} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#22c55e]`}
                         >
-                          <CheckSquare className="mr-2" size={20} />
-                          {t('Generate Quiz')}
+                          GENERATE NOTES
                         </Button>
                       </div>
                     )}
@@ -1107,309 +764,143 @@ ${combinedText}`;
 
                 {/* Flashcards Tab */}
                 {activeTab === 'flashcards' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <Brain size={28} className="text-pink-600" />
-                        {t('Flashcards')}
-                      </h2>
+                  <div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                      <h2 className="text-3xl font-black text-pink-400">FLASHCARDS</h2>
                       {flashcards.length > 0 && (
                         <div className="flex gap-2">
-                          <Button onClick={downloadFlashcards} variant="outline">
-                            <Download className="mr-2" size={16} />
-                            {t('Download')}
+                          <Button
+                            onClick={() => runFlashcards(5)}
+                            className="bg-pink-400 text-black border-2 border-black font-black hover:bg-pink-500"
+                          >
+                            5 CARDS
                           </Button>
                           <Button
-                            onClick={() => {
-                              setCurrentFlashcardIndex(0);
-                              setIsFlipped(false);
-                            }}
-                            variant="outline"
+                            onClick={() => runFlashcards(10)}
+                            className="bg-pink-400 text-black border-2 border-black font-black hover:bg-pink-500"
                           >
-                            <RotateCcw className="mr-2" size={16} />
-                            {t('Restart')}
+                            10 CARDS
+                          </Button>
+                          <Button
+                            onClick={() => runFlashcards(20)}
+                            className="bg-pink-400 text-black border-2 border-black font-black hover:bg-pink-500"
+                          >
+                            20 CARDS
                           </Button>
                         </div>
                       )}
                     </div>
-
-                    {flashcards.length > 0 && currentFlashcard ? (
-                      <div className="space-y-8">
-                        <div className="flex justify-center">
-                          <div className="relative w-full max-w-2xl h-80">
-                            <motion.div
-                              className="w-full h-full cursor-pointer"
-                              onClick={flipCard}
-                              animate={{ rotateY: isFlipped ? 180 : 0 }}
-                              transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-                              style={{ transformStyle: 'preserve-3d' }}
-                            >
-                              {/* Front - Question */}
-                              <div 
-                                className="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-xl p-8 flex flex-col justify-center shadow-lg"
-                                style={{ backfaceVisibility: 'hidden' }}
-                              >
-                                <div className="text-center">
-                                  <div className="bg-white text-pink-600 px-4 py-2 font-bold text-sm mb-6 inline-block rounded-lg">
-                                    {t('QUESTION')}
-                                  </div>
-                                  <p className="font-semibold text-xl leading-tight mb-8">{currentFlashcard.question}</p>
-                                  <div className="flex items-center justify-center gap-2 text-sm font-medium opacity-80">
-                                    <FlipHorizontal size={16} />
-                                    {t('Click to reveal answer')}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              {/* Back - Answer */}
-                              <div 
-                                className="absolute inset-0 w-full h-full bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-8 flex flex-col justify-center shadow-lg"
-                                style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                              >
-                                <div className="text-center">
-                                  <div className="bg-white text-green-600 px-4 py-2 font-bold text-sm mb-6 inline-block rounded-lg">
-                                    {t('ANSWER')}
-                                  </div>
-                                  <p className="font-semibold text-xl leading-tight mb-8">{currentFlashcard.answer}</p>
-                                  <div className="flex items-center justify-center gap-2 text-sm font-medium opacity-80">
-                                    <FlipHorizontal size={16} />
-                                    {t('Click to show question')}
-                                  </div>
-                                </div>
-                              </div>
-                            </motion.div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <Button onClick={prevFlashcard} variant="outline" size="lg">
-                            <ChevronLeft size={20} className="mr-2" />
-                            {t('Previous')}
-                          </Button>
-
-                          <div className="text-center">
-                            <div className="text-xl font-bold mb-2">
-                              {currentFlashcardIndex + 1} / {flashcards.length}
-                            </div>
-                            <div className="flex gap-1 justify-center">
-                              {flashcards.map((_, index) => (
-                                <div
-                                  key={index}
-                                  className={`w-2 h-2 rounded-full ${
-                                    index === currentFlashcardIndex ? 'bg-pink-500' : 'bg-gray-300'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-
-                          <Button onClick={nextFlashcard} variant="outline" size="lg">
-                            {t('Next')}
-                            <ChevronRight size={20} className="ml-2" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 bg-pink-100 rounded-full flex items-center justify-center">
-                          <Bookmark className="w-12 h-12 text-pink-600" />
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Flashcards Created')}</h3>
-                        <p className="text-gray-600 mb-6">{t('Generate flashcards from your study materials')}</p>
-                        <div className="flex gap-4 justify-center">
-                          <Button
-                            onClick={() => generateFlashcards(5)}
-                            disabled={!hasSelectedDocs || isLoading}
-                            variant="outline"
-                          >
-                            <Brain className="mr-2" size={16} />
-                            {t('5 Cards')}
-                          </Button>
-                          <Button
-                            onClick={() => generateFlashcards(10)}
-                            disabled={!hasSelectedDocs || isLoading}
-                          >
-                            <Brain className="mr-2" size={16} />
-                            {t('10 Cards')}
-                          </Button>
-                          <Button
-                            onClick={() => generateFlashcards(20)}
-                            disabled={!hasSelectedDocs || isLoading}
-                            variant="outline"
-                          >
-                            <Brain className="mr-2" size={16} />
-                            {t('20 Cards')}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Edit Tab */}
-                {activeTab === 'edit' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <Edit3 size={28} className="text-orange-600" />
-                        {t('Edit Content')}
-                      </h2>
-                    </div>
-
-                    {docs.length > 0 ? (
-                      <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <p className="text-blue-800 font-medium mb-2">{t('Select a document to edit:')}</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {docs.map((doc) => (
-                              <button
-                                key={doc.id}
-                                onClick={() => setSelectedDocForEdit(doc.id)}
-                                className={`
-                                  flex items-center gap-3 p-3 rounded-lg text-left transition-all
-                                  ${selectedDocForEdit === doc.id
-                                    ? 'bg-blue-200 border-2 border-blue-500'
-                                    : 'bg-white border-2 border-gray-200 hover:border-blue-300'
-                                  }
-                                `}
-                              >
-                                <File size={16} className="text-blue-600" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm truncate">{doc.name}</p>
-                                  <p className="text-xs text-gray-500">{doc.type}</p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {selectedDocForEdit && (
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="font-semibold text-lg">
-                                {t('Editing')}: {docs.find(d => d.id === selectedDocForEdit)?.name}
-                              </h3>
-                              <Button
-                                onClick={() => {
-                                  const doc = docs.find(d => d.id === selectedDocForEdit);
-                                  if (doc) {
-                                    const updatedDoc = { ...doc, text: editableNotes };
-                                    setDocs(prev => prev.map(d => d.id === selectedDocForEdit ? updatedDoc : d));
-                                    saveSession();
-                                  }
-                                }}
-                              >
-                                <Save className="mr-2" size={16} />
-                                {t('Save Changes')}
-                              </Button>
-                            </div>
-                            <Textarea
-                              value={docs.find(d => d.id === selectedDocForEdit)?.text || ''}
-                              onChange={(e) => {
-                                setDocs(prev => prev.map(d => 
-                                  d.id === selectedDocForEdit 
-                                    ? { ...d, text: e.target.value }
-                                    : d
-                                ));
-                              }}
-                              className="min-h-96 font-mono"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 bg-orange-100 rounded-full flex items-center justify-center">
-                          <Edit3 className="w-12 h-12 text-orange-600" />
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Documents to Edit')}</h3>
-                        <p className="text-gray-600 mb-6">{t('Upload documents first to enable editing')}</p>
-                        <Button
-                          onClick={() => fileInputRef.current?.click()}
-                          size="lg"
-                        >
-                          <Upload className="mr-2" size={20} />
-                          {t('Upload Documents')}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Original Content Tab */}
-                {activeTab === 'original' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <FileText size={28} className="text-green-600" />
-                        {t('Original Content')}
-                      </h2>
-                    </div>
-
-                    {docs.length > 0 ? (
-                      <div className="space-y-4">
-                        {docs.map((doc) => (
-                          <div key={doc.id} className="border border-gray-200 rounded-lg">
-                            <div 
-                              className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
-                              onClick={() => setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <File size={16} className="text-green-600" />
-                                <div>
-                                  <p className="font-medium">{doc.name}</p>
-                                  <p className="text-sm text-gray-500">{doc.type} • {new Date(doc.uploadedAt).toLocaleDateString()}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {doc.selected && (
-                                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                    {t('Selected')}
-                                  </span>
-                                )}
-                                <ChevronRight 
-                                  size={16} 
-                                  className={`transform transition-transform ${
-                                    selectedDocForView === doc.id ? 'rotate-90' : ''
-                                  }`} 
-                                />
-                              </div>
-                            </div>
-                            
-                            <AnimatePresence>
-                              {selectedDocForView === doc.id && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="border-t border-gray-200"
-                                >
-                                  <div className="p-4 bg-gray-50">
-                                    <div className="max-h-64 overflow-y-auto">
-                                      <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
-                                        {doc.text}
-                                      </pre>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
+                    
+                    {flashcards.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {flashcards.map((card, index) => (
+                          <FlashcardComponent key={card.id} card={card} index={index} />
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-                          <FileCheck className="w-12 h-12 text-green-600" />
+                        <div className="bg-pink-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#ec4899]">
+                          <Brain className="w-12 h-12 text-black" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Documents Uploaded')}</h3>
-                        <p className="text-gray-600 mb-6">{t('Upload documents to view their original content')}</p>
+                        <p className="text-xl font-black mb-4">NO FLASHCARDS YET</p>
+                        <p className="text-gray-400 font-bold mb-8">Select documents and generate flashcards</p>
+                        <div className="flex flex-wrap gap-3 justify-center">
+                          <Button
+                            onClick={() => runFlashcards(5)}
+                            disabled={isLoading || !hasSelectedDocs}
+                            className={`${getColorClasses('pink')} font-black shadow-[6px_6px_0px_#ec4899]`}
+                          >
+                            5 CARDS
+                          </Button>
+                          <Button
+                            onClick={() => runFlashcards(10)}
+                            disabled={isLoading || !hasSelectedDocs}
+                            className={`${getColorClasses('pink')} font-black shadow-[6px_6px_0px_#ec4899]`}
+                          >
+                            10 CARDS
+                          </Button>
+                          <Button
+                            onClick={() => runFlashcards(20)}
+                            disabled={isLoading || !hasSelectedDocs}
+                            className={`${getColorClasses('pink')} font-black shadow-[6px_6px_0px_#ec4899]`}
+                          >
+                            20 CARDS
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Quiz Tab */}
+                {activeTab === 'quiz' && (
+                  <div>
+                    <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
+                    
+                    {quiz && quizCurrent ? (
+                      <div className="space-y-6">
+                        <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="font-black text-purple-400">
+                                QUESTION {quizIndex + 1} OF {quiz.length}
+                              </span>
+                              <div className="flex gap-1">
+                                {quiz.map((_, index) => (
+                                  <div
+                                    key={index}
+                                    className={`w-4 h-4 border-2 border-black ${
+                                      index === quizIndex ? 'bg-purple-400' : 
+                                      quizAnswers[index] !== -1 ? 'bg-green-400' : 'bg-gray-600'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <QuizCard
+                              question={quizCurrent.question}
+                              options={quizCurrent.options}
+                              questionNumber={quizIndex + 1}
+                              totalQuestions={quiz.length}
+                              selectedAnswer={quizAnswers[quizIndex] ?? null}
+                              onAnswerSelect={selectAnswer}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <Button
+                            disabled={quizIndex === 0}
+                            onClick={() => setQuizIndex(i => Math.max(0, i-1))}
+                            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
+                          >
+                            <ChevronLeft size={16} className="mr-2" />
+                            PREV
+                          </Button>
+                          
+                          <Button
+                            disabled={quizIndex >= quiz.length - 1}
+                            onClick={() => setQuizIndex(i => Math.min(quiz.length - 1, i+1))}
+                            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
+                          >
+                            NEXT
+                            <ChevronRight size={16} className="ml-2" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-16">
+                        <div className="bg-purple-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#a855f7]">
+                          <CheckSquare className="w-12 h-12 text-black" />
+                        </div>
+                        <p className="text-xl font-black mb-4">NO QUIZ YET</p>
+                        <p className="text-gray-400 font-bold mb-8">Select documents and generate quiz</p>
                         <Button
-                          onClick={() => fileInputRef.current?.click()}
-                          size="lg"
+                          onClick={runQuiz}
+                          disabled={isLoading || !hasSelectedDocs}
+                          className={`${getColorClasses('purple')} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#a855f7]`}
                         >
-                          <Upload className="mr-2" size={20} />
-                          {t('Upload Documents')}
+                          GENERATE QUIZ
                         </Button>
                       </div>
                     )}
@@ -1420,69 +911,89 @@ ${combinedText}`;
           </div>
 
           {/* AI Chat Sidebar */}
-          <AnimatePresence>
-            {showChat && (
-              <motion.aside
-                initial={{ x: 300, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 300, opacity: 0 }}
-                className="w-80"
-              >
-                <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center">
-                        <MessageCircle className="w-6 h-6 text-cyan-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg text-gray-900">{t('AI Tutor')}</h3>
-                        <p className="text-sm text-gray-600">{t('Ask questions')}</p>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => setShowChat(false)}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <X size={16} />
-                    </Button>
-                  </div>
-                  
-                  <ChatBox contextText={combinedText} />
+          <div className="lg:col-span-1">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-gray-900 border-4 border-cyan-400 p-6 shadow-[8px_8px_0px_#22d3ee] sticky top-8"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-16 h-16 bg-cyan-400 text-black flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_#22d3ee]">
+                  <MessageCircle className="w-8 h-8" />
                 </div>
-              </motion.aside>
-            )}
-          </AnimatePresence>
+                <div>
+                  <h3 className="text-xl font-black text-cyan-400">AI TUTOR</h3>
+                  <p className="text-gray-400 font-bold text-sm">ASK QUESTIONS</p>
+                </div>
+              </div>
+              
+              <ChatBox contextText={combinedText} />
+            </motion.div>
+          </div>
         </div>
-      </div>
-
-      {/* Drag and Drop Overlay */}
-      <AnimatePresence>
-        {dragActive && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
-            onDragOver={(e) => e.preventDefault()}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={onDrop}
-          >
-            <div className="bg-white rounded-xl p-12 text-center shadow-2xl">
-              <Upload className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('Drop Files Here')}</h3>
-              <p className="text-gray-600">{t('Release to upload documents')}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </main>
+      
+      <Footer />
+      <BottomNav />
     </div>
   );
 };
 
-// Enhanced Chat Box Component
+// Enhanced Brutalist Flashcard Component
+const FlashcardComponent: React.FC<{ 
+  card: { id: string; question: string; answer: string }; 
+  index: number 
+}> = ({ card, index }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="h-48 cursor-pointer"
+      onClick={() => setIsFlipped(!isFlipped)}
+    >
+      <motion.div
+        className="w-full h-full relative"
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ duration: 0.6 }}
+        style={{ transformStyle: 'preserve-3d' }}
+      >
+        {/* Front - Question */}
+        <div 
+          className="absolute inset-0 w-full h-full bg-pink-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#ec4899]"
+          style={{ backfaceVisibility: 'hidden' }}
+        >
+          <div className="text-center">
+            <div className="bg-black text-pink-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-pink-400">
+              QUESTION
+            </div>
+            <p className="font-bold text-lg leading-tight">{card.question}</p>
+            <div className="text-xs font-bold mt-4 opacity-70">CLICK TO REVEAL</div>
+          </div>
+        </div>
+        
+        {/* Back - Answer */}
+        <div 
+          className="absolute inset-0 w-full h-full bg-green-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#22c55e]"
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+        >
+          <div className="text-center">
+            <div className="bg-black text-green-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-green-400">
+              ANSWER
+            </div>
+            <p className="font-bold text-lg leading-tight">{card.answer}</p>
+            <div className="text-xs font-bold mt-4 opacity-70">CLICK FOR QUESTION</div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Enhanced Brutalist Chat Box Component
 const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
-  const { t } = useTranslation();
   const [messages, setMessages] = useState<{ role: 'user'|'assistant'; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1504,22 +1015,20 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
     setLoading(true);
     
     try {
-      // Mock AI response for demonstration - replace with your actual API
-      const response = await new Promise<string>((resolve) => {
-        setTimeout(() => {
-          if (contextText.trim()) {
-            resolve(`Based on your study materials, here's what I found: ${q.includes('fragment') ? 'Android Fragments are modular sections of an activity that have their own lifecycle.' : 'I can help you understand this topic better. Could you be more specific about what you\'d like to know?'}`);
-          } else {
-            resolve("Please upload and select some documents first so I can help you with your studies.");
-          }
-        }, 1000);
+      const resp = await fetch('/api/ai', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          prompt: `Use the following study materials to answer concisely.\n\n<materials>\n${contextText}\n</materials>\n\nQuestion: ${q}`, 
+          model: 'groq' 
+        }) 
       });
-      
-      setMessages(m => [...m, { role: 'assistant', content: response }]);
+      const data = await resp.json();
+      setMessages(m => [...m, { role: 'assistant', content: data.response || 'No response' }]);
     } catch (e) {
-      setMessages(m => [...m, { role: 'assistant', content: t('Error fetching answer.') }]);
-    } finally {
-      setLoading(false);
+      setMessages(m => [...m, { role: 'assistant', content: 'Error fetching answer.' }]);
+    } finally { 
+      setLoading(false); 
     }
   };
 
@@ -1531,35 +1040,35 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
   };
 
   const suggestedQuestions = [
-    t('What are the main topics?'),
-    t('Explain key concepts'),
-    t('Create a study plan'),
-    t('Summarize important points')
+    "What are the main topics?",
+    "Summarize key points",
+    "Create a study plan",
+    "Explain difficult concepts"
   ];
 
   return (
-    <div className="flex flex-col h-96">
+    <div className="flex flex-col h-80">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
         {messages.length === 0 && !contextText ? (
           <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <MessageCircle className="w-8 h-8 text-gray-400" />
+            <div className="bg-gray-600 w-16 h-16 mx-auto mb-4 flex items-center justify-center border-4 border-black">
+              <MessageCircle className="w-8 h-8 text-white" />
             </div>
-            <p className="font-medium text-gray-500 mb-4">{t('No Documents Selected')}</p>
-            <p className="text-xs text-gray-400">{t('Upload and select documents to chat')}</p>
+            <p className="font-black text-gray-400 mb-4">NO DOCUMENTS SELECTED</p>
+            <p className="text-xs text-gray-500 font-bold">Upload and select documents to chat</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="space-y-3">
-            <p className="font-medium text-cyan-600 text-center mb-4">{t('Suggested Questions')}</p>
+            <p className="font-black text-cyan-400 text-center mb-4">ASK AI ASSISTANT</p>
             {suggestedQuestions.map((question, index) => (
               <motion.button
                 key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => setInput(question)}
-                className="block w-full text-left bg-gray-50 border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 px-3 py-3 rounded-lg text-sm transition-all"
+                className="block w-full text-left bg-black border-2 border-gray-600 hover:border-cyan-400 px-3 py-2 text-xs font-bold transition-all hover:shadow-[4px_4px_0px_#22d3ee]"
               >
                 💡 {question}
               </motion.button>
@@ -1572,19 +1081,19 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`
-                p-4 rounded-lg text-sm
+                p-3 border-4 text-sm font-bold
                 ${message.role === 'user' 
-                  ? 'bg-cyan-500 text-white ml-8' 
-                  : 'bg-gray-100 text-gray-800 mr-8'
+                  ? 'bg-cyan-400 text-black border-black ml-4 shadow-[4px_4px_0px_#22d3ee]' 
+                  : 'bg-black text-white border-cyan-400 mr-4 shadow-[4px_4px_0px_#22d3ee]'
                 }
               `}
             >
-              <div className={`text-xs font-medium mb-1 ${
-                message.role === 'user' ? 'text-cyan-100' : 'text-gray-500'
+              <div className={`text-xs font-black mb-1 ${
+                message.role === 'user' ? 'text-black/70' : 'text-cyan-400'
               }`}>
-                {message.role === 'user' ? t('You') : t('AI Tutor')}
+                {message.role === 'user' ? 'YOU' : 'AI TUTOR'}
               </div>
-              <div className="whitespace-pre-wrap leading-relaxed">
+              <div className="whitespace-pre-wrap">
                 {message.content}
               </div>
             </motion.div>
@@ -1595,16 +1104,16 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-gray-100 text-gray-800 p-4 rounded-lg mr-8"
+            className="bg-black text-white border-4 border-cyan-400 p-3 mr-4 shadow-[4px_4px_0px_#22d3ee]"
           >
-            <div className="text-xs font-medium text-gray-500 mb-1">{t('AI Tutor')}</div>
-            <div className="flex items-center gap-3">
+            <div className="text-xs font-black text-cyan-400 mb-1">AI TUTOR</div>
+            <div className="flex items-center gap-2">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                <div className="w-2 h-2 bg-cyan-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
+                <div className="w-2 h-2 bg-cyan-400 animate-bounce" style={{animationDelay: '150ms'}}></div>
+                <div className="w-2 h-2 bg-cyan-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
               </div>
-              <span className="text-sm">{t('Thinking...')}</span>
+              <span className="text-xs font-bold">THINKING...</span>
             </div>
           </motion.div>
         )}
@@ -1617,17 +1126,17 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={t('Ask AI assistant...')}
-          className="flex-1"
+          placeholder="Ask AI assistant..."
+          className="bg-black border-2 border-cyan-400 text-white font-mono text-sm font-bold focus:border-cyan-400 shadow-[2px_2px_0px_#22d3ee]"
           disabled={loading || !contextText}
         />
         <Button
           onClick={ask}
           disabled={loading || !input.trim() || !contextText}
-          size="sm"
+          className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee] px-4"
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
           ) : (
             <ArrowRight size={16} />
           )}
