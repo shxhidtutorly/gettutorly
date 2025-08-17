@@ -577,12 +577,13 @@ export default function LandingPage() {
       <nav className={`nav-sticky ${stickyNav ? "visible" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-purple-500 brutal-border flex items-center justify-center">
-                <Brain className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-black">TUTORLY</span>
-            </a>
+           <a href="/" className="flex items-center space-x-3">
+  <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+    <Brain className="w-5 h-5 text-white" />
+  </div>
+  <span className="font-extrabold text-lg tracking-wide">TUTORLY</span>
+</a>
+
             <div className="flex items-center space-x-6">
               <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm">
                 HOME
@@ -590,10 +591,10 @@ export default function LandingPage() {
               <a href="/features" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FEATURES
               </a>
-              <a href="#pricing" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="/pricing" className="font-black hover:text-purple-500 transition-colors text-sm">
                 PRICING
               </a>
-              <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="/faq" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FAQ
               </a>
               <a href="/signin" className="font-black hover:text-purple-500 transition-colors text-sm">
@@ -843,7 +844,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Powered by Leading AI Models</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
-            <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
+            <p className="text-xl font-bold text-black-700 max-w-3xl mx-auto">
               Built with the most advanced AI technologies for unmatched learning experience
             </p>
           </div>
@@ -883,7 +884,7 @@ export default function LandingPage() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">What Students Are Saying</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">What Students Are Saying</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
@@ -998,40 +999,49 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* FAQ Section */}
-      <section id="faq" className="bg-gray-50 py-20">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">FAQs</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
-          </div>
+    {/* FAQ Section */}
+<section id="faq" className="bg-black py-20">
+  <div className="max-w-4xl mx-auto px-4">
+    <div className="text-center mb-16 scroll-fade-in">
+      <h2 className="text-4xl md:text-6xl font-extrabold mb-6 text-white">FAQs</h2>
+      <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+    </div>
 
-          <div className="space-y-4">
-            {faqData.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] scroll-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <button
-                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-50 transition-colors text-black"
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                >
-                  {faq.question}
-                  <div className={`transition-transform duration-300 ${openFaq === index ? "rotate-45" : ""}`}>
-                    {openFaq === index ? <Minus className="w-6 h-6 text-black" /> : <Plus className="w-6 h-6 text-black" />}
-                  </div>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${openFaq === index ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
-                  <div className="px-6 pb-6 border-t-2 border-black">
-                    <p className="font-bold text-black pt-4">{faq.answer}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+    <div className="space-y-4">
+      {faqData.map((faq, index) => (
+        <div
+          key={index}
+          className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] scroll-fade-in"
+          style={{ animationDelay: `${index * 0.1}s` }}
+        >
+          <button
+            className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-100 transition-colors text-black"
+            onClick={() => setOpenFaq(openFaq === index ? null : index)}
+          >
+            {faq.question}
+            <div className={`transition-transform duration-300 ${openFaq === index ? "rotate-45" : ""}`}>
+              {openFaq === index ? (
+                <Minus className="w-6 h-6 text-black" />
+              ) : (
+                <Plus className="w-6 h-6 text-black" />
+              )}
+            </div>
+          </button>
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              openFaq === index ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            <div className="px-6 pb-6 border-t-2 border-black">
+              <p className="font-medium text-black pt-4">{faq.answer}</p>
+            </div>
           </div>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
+
 
       {/* Final CTA */}
       <section className="bg-gray-800 text-white py-20 relative">
