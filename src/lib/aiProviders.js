@@ -340,20 +340,31 @@ class AIProviderManager {
 
   // Mistral
   async callMistral(prompt, apiKey, model, options = {}) {
-    // FIX: Use a valid default model. Ignore the 'model' param if it's just the provider name.
-    const finalModel = this.getProviderForModel(model) === 'mistral' ? (process.env.MISTRAL_MODEL || 'mistral-large-latest') : model;
+    // Use a valid, dated model name from the official docs
+    const finalModel = this.getProviderForModel(model) === 'mistral'
+        ? (process.env.MISTRAL_MODEL || 'mistral-medium-2508')
+        : model;
     const url = 'https://api.mistral.ai/v1/chat/completions';
     const body = {
-      model: finalModel,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens
+        model: finalModel,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: options.temperature ?? 0.3,
+        max_tokens: options.maxTokens
     };
-    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(body)
+    });
     const data = await resp.json().catch(() => null);
-    if (!resp.ok) throw new Error(`Mistral API error: ${resp.status} - ${data?.error?.message || JSON.stringify(data)}`);
+    if (!resp.ok) {
+        throw new Error(`Mistral API error: ${resp.status} - ${data?.error?.message || JSON.stringify(data)}`);
+    }
     return this.removeMarkdownFormatting(data?.choices?.[0]?.message?.content || '');
-  }
+}
 
   // Cerebras
   async callCerebras(prompt, apiKey, model, options = {}) {
