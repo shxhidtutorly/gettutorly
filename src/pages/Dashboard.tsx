@@ -33,12 +33,10 @@ const Dashboard = () => {
   const { t } = useTranslation();
   const { language: userLanguage } = useUserLanguage();
 
-  const [isNewUser, setIsNewUser] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
-  // --- MOCK DATA SNIPPET ---
   const mockStats = useMemo(() => ({
-    total_study_time: 125, // Mock: 2 hours and 5 minutes
+    total_study_time: 125,
     learning_milestones: 7,
     average_quiz_score: 88,
     notes_created: 12,
@@ -50,9 +48,7 @@ const Dashboard = () => {
     doubt_chains_used: 4,
   }), []);
 
-  // Use mock data if the user is new and no stats are available
   const displayedStats = (stats && Object.keys(stats).length > 0) ? stats : mockStats;
-  // --- END OF MOCK DATA SNIPPET ---
 
   const toggleTheme = useCallback(() => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
@@ -68,20 +64,6 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    // Check if user has any stats to determine if they are new
-    const hasStats = stats && (stats.total_study_time > 0 ||
-                     stats.learning_milestones > 0 ||
-                     stats.notes_created > 0 ||
-                     stats.quizzes_taken > 0 ||
-                     stats.flashcards_created > 0 ||
-                     stats.math_chat_sessions > 0 ||
-                     stats.audio_recaps_created > 0 ||
-                     stats.doubt_chains_used > 0);
-    
-    setIsNewUser(!hasStats);
-  }, [stats]);
-
   const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
     if (user?.email) return user.email.split('@')[0];
@@ -90,8 +72,8 @@ const Dashboard = () => {
 
   const getWelcomeMessage = useCallback(() => {
     const name = getUserDisplayName();
-    return isNewUser ? `${t('dashboard.welcomeNew', { name })} 🎉` : `${t('dashboard.welcomeBack', { name })} 👋`;
-  }, [getUserDisplayName, isNewUser, t]);
+    return `${t('dashboard.welcomeBack', { name })} 👋`;
+  }, [getUserDisplayName, t]);
 
   const formatStudyTime = (minutes) => {
     if (minutes < 60) return `${minutes}${t('dashboard.min')}`;
@@ -206,172 +188,129 @@ const Dashboard = () => {
             </p>
           </motion.div>
           
-          {isNewUser ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className={`p-8 mb-12 border-4 border-black ${panelClasses}`}
-              style={{ boxShadow: '8px 8px 0px #00e6c4' }}
-            >
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-black mb-2">{t('dashboard.uploadFirstMaterial')}</h2>
-                  <p className={`text-lg ${mutedTextClasses}`}>
-                    {t('dashboard.uploadFirstMaterialDesc')}
-                  </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {[
+              { 
+                title: t('dashboard.studyTime'), 
+                value: formatStudyTime(displayedStats?.total_study_time || 0), 
+                icon: Clock, 
+                trend: `${displayedStats?.sessions_this_month || 0} ${t('dashboard.sessions')}`, 
+                accent: '#00e6c4' 
+              },
+              { 
+                title: t('dashboard.milestones'), 
+                value: displayedStats?.learning_milestones || 0, 
+                icon: Award, 
+                trend: t('dashboard.totalAchievements'), 
+                accent: '#ff5a8f' 
+              },
+              { 
+                title: t('dashboard.quizScore'), 
+                value: `${displayedStats?.average_quiz_score || 0}%`, 
+                icon: CheckCircle, 
+                trend: `${displayedStats?.quizzes_taken || 0} ${t('dashboard.completed')}`, 
+                accent: '#00e6c4' 
+              },
+              { 
+                title: t('dashboard.aiNotes'), 
+                value: displayedStats?.notes_created || 0, 
+                icon: Sparkles, 
+                trend: t('dashboard.notesGenerated'), 
+                accent: '#ff5a8f' 
+              }
+            ].map((stat, idx) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: idx * 0.05 }}
+                className={`p-6 border-4 border-black ${panelClasses}`}
+                style={{ 
+                  boxShadow: `6px 6px 0px ${stat.accent}`,
+                }}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <stat.icon className="w-8 h-8" style={{ color: stat.accent }} />
+                  <BarChart3 className={`w-5 h-5 ${mutedTextClasses}`} />
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button
-                    onClick={() => handleNavigation('/upload')}
-                    className="px-8 py-4 border-4 border-black font-black text-lg tracking-wide transition-all duration-150 hover:translate-y-[-3px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 flex items-center gap-2"
-                    style={{ 
-                      backgroundColor: '#00e6c4',
-                      color: '#000',
-                      boxShadow: '4px 4px 0px #000'
-                    }}
-                  >
-                    <Upload className="w-5 h-5" />
-                    {t('dashboard.uploadMaterials')}
-                  </button>
-                  <button
-                    onClick={() => handleNavigation('/generate')}
-                    className={`px-6 py-4 border-4 border-black font-black text-lg tracking-wide transition-all duration-150 hover:translate-y-[-2px] active:translate-y-[1px] focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
-                    style={{ boxShadow: '4px 4px 0px #000' }}
-                  >
-                    {t('dashboard.generateFromTopic')}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                {[
-                  { 
-                    title: t('dashboard.studyTime'), 
-                    value: formatStudyTime(displayedStats?.total_study_time || 0), 
-                    icon: Clock, 
-                    trend: `${displayedStats?.sessions_this_month || 0} ${t('dashboard.sessions')}`, 
-                    accent: '#00e6c4' 
-                  },
-                  { 
-                    title: t('dashboard.milestones'), 
-                    value: displayedStats?.learning_milestones || 0, 
-                    icon: Award, 
-                    trend: t('dashboard.totalAchievements'), 
-                    accent: '#ff5a8f' 
-                  },
-                  { 
-                    title: t('dashboard.quizScore'), 
-                    value: `${displayedStats?.average_quiz_score || 0}%`, 
-                    icon: CheckCircle, 
-                    trend: `${displayedStats?.quizzes_taken || 0} ${t('dashboard.completed')}`, 
-                    accent: '#00e6c4' 
-                  },
-                  { 
-                    title: t('dashboard.aiNotes'), 
-                    value: displayedStats?.notes_created || 0, 
-                    icon: Sparkles, 
-                    trend: t('dashboard.notesGenerated'), 
-                    accent: '#ff5a8f' 
-                  }
-                ].map((stat, idx) => (
-                  <motion.div
-                    key={stat.title}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: idx * 0.05 }}
-                    className={`p-6 border-4 border-black ${panelClasses}`}
-                    style={{ 
-                      boxShadow: `6px 6px 0px ${stat.accent}`,
-                    }}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <stat.icon className="w-8 h-8" style={{ color: stat.accent }} />
-                      <BarChart3 className={`w-5 h-5 ${mutedTextClasses}`} />
+                <div className="text-3xl font-black mb-1">{stat.value}</div>
+                <div className="text-sm font-bold tracking-wide mb-2">{stat.title}</div>
+                <div className={`text-xs ${mutedTextClasses}`}>{stat.trend}</div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mb-12">
+            <h2 className="text-2xl md:text-3xl font-black mb-8 tracking-tight">{t('dashboard.coreTools')}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featureCards.map((feature, idx) => (
+                <motion.button
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: idx * 0.05 }}
+                  whileHover={{ y: -3 }}
+                  whileTap={{ y: 1 }}
+                  onClick={() => handleNavigation(feature.route)}
+                  className={`group p-6 text-left border-4 border-black transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                  style={{ 
+                    boxShadow: `4px 4px 0px ${idx % 2 === 0 ? '#ff5a8f' : '#00e6c4'}`,
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <feature.icon 
+                      className="w-8 h-8" 
+                      style={{ color: idx % 2 === 0 ? '#ff5a8f' : '#00e6c4' }} 
+                    />
+                    <div 
+                      className="px-3 py-1 border-2 border-black font-black text-sm"
+                      style={{ 
+                        backgroundColor: idx % 2 === 0 ? '#ff5a8f' : '#00e6c4',
+                        color: '#000'
+                      }}
+                    >
+                      {feature.count}
                     </div>
-                    <div className="text-3xl font-black mb-1">{stat.value}</div>
-                    <div className="text-sm font-bold tracking-wide mb-2">{stat.title}</div>
-                    <div className={`text-xs ${mutedTextClasses}`}>{stat.trend}</div>
-                  </motion.div>
-                ))}
-              </div>
+                  </div>
+                  <h3 className="font-black text-xl mb-2 tracking-wide">{feature.title}</h3>
+                  <p className={`${mutedTextClasses} font-bold mb-4`}>{feature.desc}</p>
+                  <div className="flex items-center justify-end text-sm font-black tracking-wider group-hover:translate-x-1 transition-transform">
+                    {t('dashboard.explore')} <ArrowRight className="w-4 h-4 ml-2" />
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
 
-              <div className="mb-12">
-                <h2 className="text-2xl md:text-3xl font-black mb-8 tracking-tight">{t('dashboard.coreTools')}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {featureCards.map((feature, idx) => (
-                    <motion.button
-                      key={feature.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: idx * 0.05 }}
-                      whileHover={{ y: -3 }}
-                      whileTap={{ y: 1 }}
-                      onClick={() => handleNavigation(feature.route)}
-                      className={`group p-6 text-left border-4 border-black transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
-                      style={{ 
-                        boxShadow: `4px 4px 0px ${idx % 2 === 0 ? '#ff5a8f' : '#00e6c4'}`,
-                      }}
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <feature.icon 
-                          className="w-8 h-8" 
-                          style={{ color: idx % 2 === 0 ? '#ff5a8f' : '#00e6c4' }} 
-                        />
-                        <div 
-                          className="px-3 py-1 border-2 border-black font-black text-sm"
-                          style={{ 
-                            backgroundColor: idx % 2 === 0 ? '#ff5a8f' : '#00e6c4',
-                            color: '#000'
-                          }}
-                        >
-                          {feature.count}
-                        </div>
-                      </div>
-                      <h3 className="font-black text-xl mb-2 tracking-wide">{feature.title}</h3>
-                      <p className={`${mutedTextClasses} font-bold mb-4`}>{feature.desc}</p>
-                      <div className="flex items-center justify-end text-sm font-black tracking-wider group-hover:translate-x-1 transition-transform">
-                        {t('dashboard.explore')} <ArrowRight className="w-4 h-4 ml-2" />
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-2xl md:text-3xl font-black mb-8 flex items-center gap-3 tracking-tight">
-                  <Zap className="w-7 h-7" style={{ color: '#00e6c4' }} />
-                  {t('dashboard.quickActions')}
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {quickActions.map((action, idx) => (
-                    <motion.button
-                      key={action.title}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: idx * 0.05 }}
-                      whileHover={{ x: 3 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleNavigation(action.route)}
-                      className={`group p-5 text-left border-4 border-black flex items-center gap-4 transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
-                      style={{ 
-                        boxShadow: '3px 3px 0px #000',
-                      }}
-                    >
-                      <action.icon className="w-6 h-6 flex-shrink-0" style={{ color: '#ff5a8f' }} />
-                      <div>
-                        <h3 className="font-black text-lg tracking-wide">{action.title}</h3>
-                        <p className={`${mutedTextClasses} font-bold text-sm`}>{action.desc}</p>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black mb-8 flex items-center gap-3 tracking-tight">
+              <Zap className="w-7 h-7" style={{ color: '#00e6c4' }} />
+              {t('dashboard.quickActions')}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {quickActions.map((action, idx) => (
+                <motion.button
+                  key={action.title}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, delay: idx * 0.05 }}
+                  whileHover={{ x: 3 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleNavigation(action.route)}
+                  className={`group p-5 text-left border-4 border-black flex items-center gap-4 transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-blue-400 ${panelClasses}`}
+                  style={{ 
+                    boxShadow: '3px 3px 0px #000',
+                  }}
+                >
+                  <action.icon className="w-6 h-6 flex-shrink-0" style={{ color: '#ff5a8f' }} />
+                  <div>
+                    <h3 className="font-black text-lg tracking-wide">{action.title}</h3>
+                    <p className={`${mutedTextClasses} font-bold text-sm`}>{action.desc}</p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
 
