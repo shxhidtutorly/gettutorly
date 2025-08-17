@@ -1,5 +1,6 @@
 "use client"
 
+import React, { useState, useEffect, useRef, createContext, useContext } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -16,7 +17,6 @@ import {
   BookOpen,
   CreditCard,
 } from "lucide-react"
-import { useState, useEffect, useRef, createContext, useContext } from "react"
 import { motion, useScroll, useTransform, MotionValue, animate } from "framer-motion"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
