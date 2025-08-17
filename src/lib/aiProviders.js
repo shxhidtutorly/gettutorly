@@ -28,8 +28,8 @@ class AIProviderManager {
     this.defaultProviderMaxTokens = {
       together: 8192,
       gemini: 8192,
-      groq: 32768, // Llama3.1 on Groq has a larger context
-      claude: 200000, // Sonnet 3.5 has a very large context
+      groq: 32768,
+      claude: 200000,
       openrouter: 128000,
       mistral: 32768,
       cerebras: 8192,
@@ -146,16 +146,17 @@ class AIProviderManager {
 
         for (const attemptMax of attemptMaxList) {
           try {
+            // Pass the original model preference so provider functions can use it if it's specific
             const response = await this.callProvider(provider, prompt, key, model, { maxTokens: attemptMax });
             return { message: response, provider, model, usedKeyIndex: i, usedMaxTokens: attemptMax };
           } catch (error) {
             lastError = error;
+            console.error(`Error with ${provider} (key ${i+1}): ${error.message}`);
             if (!this.isTokenLimitError(error)) {
               break;
             }
           }
         }
-
         if (lastError) {
           continue;
         }
@@ -169,49 +170,32 @@ class AIProviderManager {
      Model -> provider mapping
      ---------------------------- */
   getProviderForModel(model) {
-    // This function maps a specific model name to its provider.
-    // It's designed to be robust if the user passes a provider name directly as a model.
     const modelProviderMap = {
       // Gemini
       'gemini-1.5-flash-latest': 'gemini',
       'gemini-1.5-pro-latest': 'gemini',
-
       // Groq
       'llama3-8b-8192': 'groq',
       'llama-3.1-8b-instant': 'groq',
-      'mixtral-8x7b-32768': 'groq',
-
       // Together
       'meta-llama/Llama-3-70b-chat-hf': 'together',
-      'meta-llama/Llama-3.1-8B-Instruct-Turbo': 'together',
-
       // Claude
       'claude-3-5-sonnet-20240620': 'claude',
-      'claude-3-opus-20240229': 'claude',
-
       // OpenRouter
       'mistralai/mistral-7b-instruct:free': 'openrouter',
-      'google/gemma-7b-it:free': 'openrouter',
-
       // Mistral
-      'open-mistral-nemo-2407': 'mistral',
       'mistral-large-latest': 'mistral',
-
       // Cerebras
-      'cerebras/Cerebras-GPT-13B': 'cerebras',
-
+      'gpt-oss-120b': 'cerebras',
       // Nvidia
       'meta/llama3-70b-instruct': 'nvidia',
-      'nvidia/nemotron-4-340b-instruct': 'nvidia',
     };
-    // If a direct model match is found, return its provider.
-    // Otherwise, assume the 'model' string is actually the provider name itself.
     return modelProviderMap[model] || model;
   }
 
 
   /* ----------------------------
-     callProvider dispatcher (supports optional { maxTokens })
+     callProvider dispatcher
      ---------------------------- */
   async callProvider(provider, prompt, apiKey, model, options = {}) {
     let finalPromptForAPI = prompt;
@@ -220,12 +204,10 @@ class AIProviderManager {
         if (prompt.text !== undefined) {
           finalPromptForAPI = prompt.text;
         } else {
-          console.warn(`⚠️ Unexpected object prompt format for ${provider}. Converting to string.`);
           finalPromptForAPI = JSON.stringify(prompt);
         }
       }
     } else if (typeof prompt !== 'string') {
-      console.warn(`⚠️ Non-string/non-object prompt (${typeof prompt}) provided to ${provider}. Converting to string.`);
       finalPromptForAPI = String(prompt);
     }
 
@@ -236,13 +218,13 @@ class AIProviderManager {
         }
         return await this.callGemini(finalPromptForAPI, apiKey, options);
       case 'groq':
-        return await this.callGroq(finalPromptForAPI, apiKey, options);
+        return await this.callGroq(finalPromptForAPI, apiKey, model, options);
       case 'claude':
-        return await this.callClaude(finalPromptForAPI, apiKey, options);
+        return await this.callClaude(finalPromptForAPI, apiKey, model, options);
       case 'openrouter':
         return await this.callOpenRouter(finalPromptForAPI, apiKey, model, options);
       case 'together':
-        return await this.callTogether(finalPromptForAPI, apiKey, options);
+        return await this.callTogether(finalPromptForAPI, apiKey, model, options);
       case 'mistral':
         return await this.callMistral(finalPromptForAPI, apiKey, model, options);
       case 'cerebras':
@@ -258,262 +240,153 @@ class AIProviderManager {
      Provider-specific implementations
      ---------------------------- */
 
-  // Gemini (Generative Language API)
+  // Gemini
   async callGemini(promptObj, apiKey, options = {}) {
     const parts = [];
     if (promptObj.text) parts.push({ text: promptObj.text });
     if (promptObj.files) {
       for (const file of promptObj.files) {
-        parts.push({
-          inlineData: {
-            mimeType: file.type,
-            data: file.base64
-          }
-        });
+        parts.push({ inlineData: { mimeType: file.type, data: file.base64 } });
       }
     }
-
-    const requestedMax = options.maxTokens || 8190;
-    const safeMax = Math.min(requestedMax, this.getProviderMaxTokens('gemini'));
     const model = (promptObj.files && promptObj.files.length > 0) ? 'gemini-1.5-pro-latest' : 'gemini-1.5-flash-latest';
-
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const body = {
       contents: [{ parts }],
       generationConfig: {
         temperature: options.temperature ?? 0.3,
-        topK: 20,
-        topP: 0.8,
-        maxOutputTokens: safeMax
+        maxOutputTokens: options.maxTokens || 8190
       }
     };
-
-    const url = `${process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/models/'}${model}:generateContent?key=${apiKey}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
+    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await response.json();
-    if (!response.ok || data.error) {
-      console.error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`, data);
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
-    }
-
-    let geminiTextResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!geminiTextResponse) {
-      console.warn('⚠️ Gemini returned no text content. Full response data:', JSON.stringify(data, null, 2));
-      if (data.candidates?.[0]?.finishReason && String(data.candidates[0].finishReason).toUpperCase().includes('MAX')) {
-        throw new Error('Gemini finished due to MAX_TOKENS');
-      }
-      return 'No response from Gemini (see server logs for details).';
-    }
-
-    geminiTextResponse = this.removeMarkdownFormatting(geminiTextResponse);
-    return geminiTextResponse;
+    if (!response.ok || data.error) throw new Error(`Gemini API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
+    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textResponse && data.candidates?.[0]?.finishReason === 'MAX_TOKENS') throw new Error('Gemini finished due to MAX_TOKENS');
+    return this.removeMarkdownFormatting(textResponse || '');
   }
 
   // Groq
-  async callGroq(prompt, apiKey, options = {}) {
-    const max_tokens = options.maxTokens || 8000;
-    const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('groq'));
-
-    const response = await fetch(process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions', {
+  async callGroq(prompt, apiKey, model, options = {}) {
+    const finalModel = this.getProviderForModel(model) === 'groq' ? (process.env.GROQ_MODEL || 'llama3-8b-8192') : model;
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.GROQ_MODEL || 'llama3-8b-8192',
+        model: finalModel,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: safeMax,
+        max_tokens: options.maxTokens,
         temperature: options.temperature ?? 0.3
       })
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
-    }
-
-    let groqResponse = data.choices?.[0]?.message?.content || 'No response from Groq';
-    groqResponse = this.removeMarkdownFormatting(groqResponse);
-    return groqResponse;
+    if (!response.ok) throw new Error(`Groq API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
+    return this.removeMarkdownFormatting(data.choices?.[0]?.message?.content || '');
   }
 
   // Claude
-  async callClaude(prompt, apiKey, options = {}) {
-    const max_tokens = options.maxTokens || 4096;
-    const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('claude'));
-
-    const response = await fetch(process.env.CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages', {
+  async callClaude(prompt, apiKey, model, options = {}) {
+    const finalModel = this.getProviderForModel(model) === 'claude' ? (process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620') : model;
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'x-api-key': apiKey, // Anthropic uses x-api-key header
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01'
-      },
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620',
-        max_tokens: safeMax, // Correct parameter for Messages API
+        model: finalModel,
+        max_tokens: options.maxTokens,
         messages: [{ role: 'user', content: prompt }],
         temperature: options.temperature ?? 0.3
       })
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
-    }
-
-    let claudeResponse = data?.content?.[0]?.text || 'No response from Claude';
-    claudeResponse = this.removeMarkdownFormatting(claudeResponse);
-    return claudeResponse;
+    if (!response.ok) throw new Error(`Claude API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
+    return this.removeMarkdownFormatting(data.content?.[0]?.text || '');
   }
 
   // OpenRouter
   async callOpenRouter(prompt, apiKey, model, options = {}) {
-    const max_tokens = options.maxTokens || 8000;
-    const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('openrouter'));
-
-    const response = await fetch(process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions', {
+    const finalModel = this.getProviderForModel(model) === 'openrouter' ? (process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct:free') : model;
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://gettutorly.com', // Replace with your site
-        'X-Title': 'Tutorly AI' // Replace with your app name
-      },
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: model || process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct:free',
+        model: finalModel,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: safeMax,
+        max_tokens: options.maxTokens,
         temperature: options.temperature ?? 0.3
       })
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
-    }
-
-    let openRouterResponse = data.choices?.[0]?.message?.content || 'No response from OpenRouter';
-    openRouterResponse = this.removeMarkdownFormatting(openRouterResponse);
-    return openRouterResponse;
+    if (!response.ok) throw new Error(`OpenRouter API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
+    return this.removeMarkdownFormatting(data.choices?.[0]?.message?.content || '');
   }
 
   // Together.ai
-  async callTogether(prompt, apiKey, options = {}) {
-    const max_tokens = options.maxTokens || 7000;
-    const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('together'));
-
-    const response = await fetch(process.env.TOGETHER_API_URL || 'https://api.together.xyz/v1/chat/completions', {
+  async callTogether(prompt, apiKey, model, options = {}) {
+    const finalModel = this.getProviderForModel(model) === 'together' ? (process.env.TOGETHER_MODEL || 'meta-llama/Llama-3-70b-chat-hf') : model;
+    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3-70b-chat-hf',
+        model: finalModel,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: safeMax,
+        max_tokens: options.maxTokens,
         temperature: options.temperature ?? 0.3
       })
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
-    }
-
-    const message = data.choices?.[0]?.message?.content;
-    return this.removeMarkdownFormatting(message || '');
+    if (!response.ok) throw new Error(`Together.ai API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
+    return this.removeMarkdownFormatting(data.choices?.[0]?.message?.content || '');
   }
 
   // Mistral
   async callMistral(prompt, apiKey, model, options = {}) {
-    const base = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1';
-    const finalModel = model || process.env.MISTRAL_MODEL || 'open-mistral-nemo-2407';
-    const url = `${base}/chat/completions`;
-
+    // FIX: Use a valid default model. Ignore the 'model' param if it's just the provider name.
+    const finalModel = this.getProviderForModel(model) === 'mistral' ? (process.env.MISTRAL_MODEL || 'mistral-large-latest') : model;
+    const url = 'https://api.mistral.ai/v1/chat/completions';
     const body = {
       model: finalModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens ?? 4096
+      max_tokens: options.maxTokens
     };
-
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify(body)
-    });
-
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
     const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      throw new Error(`Mistral API error: ${resp.status} - ${data?.error?.message || JSON.stringify(data)}`);
-    }
-
-    const text = data?.choices?.[0]?.message?.content || '';
-    return this.removeMarkdownFormatting(text);
+    if (!resp.ok) throw new Error(`Mistral API error: ${resp.status} - ${data?.error?.message || JSON.stringify(data)}`);
+    return this.removeMarkdownFormatting(data?.choices?.[0]?.message?.content || '');
   }
 
   // Cerebras
   async callCerebras(prompt, apiKey, model, options = {}) {
-    const base = process.env.CEREBRAS_API_BASE || 'https://api.cerebras.net/v1';
-    const finalModel = model || process.env.CEREBRAS_MODEL || 'cerebras/Cerebras-GPT-13B';
-    const url = `${base}/chat/completions`;
-
+    // FIX: Use a valid default model from official docs.
+    const finalModel = this.getProviderForModel(model) === 'cerebras' ? (process.env.CEREBRAS_MODEL || 'gpt-oss-120b') : model;
+    const url = 'https://api.cerebras.net/v1/chat/completions';
     const body = {
       model: finalModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens ?? 2048
+      max_tokens: options.maxTokens
     };
-
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify(body)
-    });
-
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
     const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      throw new Error(`Cerebras HTTP ${resp.status} - ${JSON.stringify(data)}`);
-    }
-
-    const text = data?.choices?.[0]?.message?.content || '';
-    return this.removeMarkdownFormatting(text);
+    if (!resp.ok) throw new Error(`Cerebras HTTP ${resp.status} - ${JSON.stringify(data)}`);
+    return this.removeMarkdownFormatting(data?.choices?.[0]?.message?.content || '');
   }
 
   // Nvidia
   async callNvidia(prompt, apiKey, model, options = {}) {
-    const base = process.env.NVIDIA_API_BASE || 'https://integrate.api.nvidia.com/v1';
-    const finalModel = model || process.env.NVIDIA_MODEL || 'meta/llama3-70b-instruct';
-    const url = `${base}/chat/completions`;
-
+    // FIX: Use a valid default model from official docs.
+    const finalModel = this.getProviderForModel(model) === 'nvidia' ? (process.env.NVIDIA_MODEL || 'meta/llama3-70b-instruct') : model;
+    const url = 'https://integrate.api.nvidia.com/v1/chat/completions';
     const body = {
       model: finalModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens ?? 8000
+      max_tokens: options.maxTokens
     };
-
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify(body)
-    });
-
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
     const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      throw new Error(`NVIDIA NIM HTTP ${resp.status} - ${JSON.stringify(data)}`);
-    }
-
-    const text = data?.choices?.[0]?.message?.content || '';
-    return this.removeMarkdownFormatting(text);
+    if (!resp.ok) throw new Error(`NVIDIA NIM HTTP ${resp.status} - ${JSON.stringify(data)}`);
+    return this.removeMarkdownFormatting(data?.choices?.[0]?.message?.content || '');
   }
 }
 
