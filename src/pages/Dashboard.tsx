@@ -24,6 +24,7 @@ import {
   Brain,
   Upload,
   BarChart3,
+  Network,
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -46,6 +47,7 @@ const Dashboard = () => {
     math_chat_sessions: 8,
     audio_recaps_created: 2,
     doubt_chains_used: 4,
+    mind_maps_created: 3,
   }), []);
 
   const displayedStats = (stats && Object.keys(stats).length > 0) ? stats : mockStats;
@@ -139,6 +141,13 @@ const Dashboard = () => {
       desc: t('dashboard.doubtChainDesc'), 
       route: "/doubt-chain", 
       count: displayedStats?.doubt_chains_used || 0 
+    },
+    { 
+      icon: Network, 
+      title: t('navigation.mindMap'), 
+      desc: t('dashboard.mindMapDesc'), 
+      route: "/mindmap", 
+      count: displayedStats?.mind_maps_created || 0 
     },
     { 
       icon: Zap, 
@@ -242,7 +251,7 @@ const Dashboard = () => {
 
           <div className="mb-12">
             <h2 className="text-2xl md:text-3xl font-black mb-8 tracking-tight">{t('dashboard.coreTools')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {featureCards.map((feature, idx) => (
                 <motion.button
                   key={feature.title}
