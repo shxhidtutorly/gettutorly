@@ -44,6 +44,7 @@ import DoubtBookmarks from "./pages/DoubtBookmarks";
 import Settings from "./pages/Settings";
 import AiContentProcessor from "./pages/AiContentProcessor";
 import MultiDocSession from "./pages/MultiDocSession";
+import MindMap from "./pages/MindMap";
 
 // Feature pages (import with unique names)
 import MathChatFeature from "./pages/features/math-chat";
@@ -124,6 +125,7 @@ const App = () => {
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/aicontentprocessor" element={<ProtectedRoute><AiContentProcessor /></ProtectedRoute>} />
                  <Route path="/multi-doc-session" element={<ProtectedRoute><MultiDocSession /></ProtectedRoute>} />
+                 <Route path="/mindmap" element={<ProtectedRoute><MindMap /></ProtectedRoute>} />
 
                 <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
