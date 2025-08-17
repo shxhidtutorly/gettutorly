@@ -356,7 +356,7 @@ const MindMap: React.FC<MindMapProps> = ({ className = '' }) => {
           transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
           transformOrigin: 'center center'
         }}
-        onPan={handlePan}
+        onDrag={(event, info) => handlePan(event, info)}
         drag
         dragMomentum={false}
       >
