@@ -4,6 +4,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { useUserLanguage } from "@/hooks/useUserLanguage";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserStats } from "@/hooks/useUserStats";
+import { extractTextFromUrl } from "@/lib/jinaReader";
+import { extractTextFromFile } from "@/lib/fileExtractor";
+import { generateNotesAI, generateFlashcardsAI } from "@/lib/aiNotesService";
 import { 
   Upload, 
   FileText, 
@@ -36,22 +43,30 @@ import {
   Share2,
   Archive,
   Clock,
-  Bookmark
+  Bookmark,
+  Edit3,
+  Save,
+  Play,
+  Pause,
+  RefreshCw,
+  Confetti
 } from "lucide-react";
 
-// Local types
+// Types
 interface SessionDoc {
   id: string;
   name: string;
   type: string;
   text: string;
   selected: boolean;
+  uploadedAt: Date;
 }
 
 interface QuizQuestion { 
   question: string; 
   options: string[]; 
-  correct: number 
+  correct: number;
+  explanation?: string;
 }
 
 interface FlashCard {
@@ -60,11 +75,36 @@ interface FlashCard {
   answer: string;
 }
 
-type ActiveTab = 'note' | 'quiz' | 'flashcards' | 'transcript';
+interface StudyTimer {
+  minutes: number;
+  seconds: number;
+  isRunning: boolean;
+  mode: 'study' | 'break';
+}
+
+interface StudySession {
+  id: string;
+  name: string;
+  docs: SessionDoc[];
+  notes: string;
+  summary: string;
+  flashcards: FlashCard[];
+  quiz: QuizQuestion[];
+  createdAt: Date;
+  lastModified: Date;
+}
+
+type ActiveTab = 'notes' | 'quiz' | 'flashcards' | 'edit' | 'original';
 
 const MultiDocSession: React.FC = () => {
-  // Documents state
+  const { t } = useTranslation();
+  const { language } = useUserLanguage();
+  const { user } = useAuth();
+  const { updateStats } = useUserStats();
+
+  // Core state
   const [docs, setDocs] = useState<SessionDoc[]>([]);
+  const [currentSession, setCurrentSession] = useState<StudySession | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -73,133 +113,139 @@ const MultiDocSession: React.FC = () => {
   const [linkUrl, setLinkUrl] = useState("");
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<ActiveTab>('note');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('notes');
 
-  // Center output state
+  // Content state
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [summary, setSummary] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [editableNotes, setEditableNotes] = useState<string>("");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [flashcards, setFlashcards] = useState<FlashCard[]>([]);
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [quizScore, setQuizScore] = useState(0);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // View state
+  // UI state
   const [selectedDocForView, setSelectedDocForView] = useState<string | null>(null);
+  const [selectedDocForEdit, setSelectedDocForEdit] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
 
+  // Timer state
+  const [timer, setTimer] = useState<StudyTimer>({
+    minutes: 25,
+    seconds: 0,
+    isRunning: false,
+    mode: 'study'
+  });
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   const selectedDocs = useMemo(() => docs.filter(d => d.selected), [docs]);
-  const combinedText = useMemo(() => selectedDocs.map(d => `# ${d.name}\n\n${d.text}`).join("\n\n---\n\n"), [selectedDocs]);
+  const combinedText = useMemo(() => 
+    selectedDocs.map(d => `# ${d.name}\n\n${d.text}`).join("\n\n---\n\n"), 
+    [selectedDocs]
+  );
 
-  // Mock data for demonstration
+  // Load session from localStorage
   useEffect(() => {
-    if (docs.length === 0) {
-      // Add sample document
-      const sampleDoc: SessionDoc = {
-        id: 'sample-1',
-        name: 'Detailed Overview of Mobile Technologies and Android Applications',
-        type: 'PDF',
-        text: `UNIT 1: INTRODUCTION
-
-5.1 History of Mobile Technology
-Mobile technology has evolved significantly since the introduction of the first mobile phone in 1973. The journey from analog to digital, from voice-only to multimedia-rich smartphones, represents one of the most remarkable technological transformations in human history.
-
-Key Milestones:
-- 1973: First handheld mobile phone by Motorola
-- 1991: First GSM network launched
-- 2007: Introduction of the iPhone
-- 2008: Android OS release
-- Present: 5G networks and IoT integration
-
-Android Fundamentals:
-An Android Fragment is a reusable component that represents a portion of the user interface in an Activity. Fragments have their own lifecycle and can be added or removed while the activity is running. They are essential for creating flexible UI designs that work across different screen sizes.
-
-Key Features of Fragments:
-- Independent lifecycle management
-- Reusable across multiple activities
-- Dynamic addition and removal
-- Communication with parent activities
-- Support for different screen configurations
-
-Application Components:
-Android applications consist of four main components:
-1. Activities - Single screen with user interface
-2. Services - Background operations without UI
-3. Broadcast Receivers - Respond to system-wide announcements
-4. Content Providers - Manage shared application data
-
-The Android Activity lifecycle includes several states: Created, Started, Resumed, Paused, Stopped, and Destroyed. Understanding these states is crucial for proper resource management and user experience.`,
-        selected: true
-      };
-      
-      setDocs([sampleDoc]);
-      
-      // Generate sample content
-      setSummary(`This comprehensive guide covers mobile technology evolution from 1973 to present, focusing on Android development fundamentals including Fragments, Activities, and application components with their lifecycles.`);
-      
-      setNotes(`# Mobile Technology & Android Development Notes
-
-## Key Concepts:
-• **Fragments**: Reusable UI components with independent lifecycles
-• **Activities**: Single screens representing user interfaces
-• **Application Components**: Activities, Services, Broadcast Receivers, Content Providers
-
-## Timeline:
-- 1973: First mobile phone (Motorola)
-- 2007: iPhone launch
-- 2008: Android OS debut
-- Present: 5G & IoT integration
-
-## Fragment Lifecycle:
-1. Created → Started → Resumed
-2. Paused → Stopped → Destroyed
-
-## Best Practices:
-- Proper resource management during lifecycle transitions
-- Fragment communication through parent activities
-- Design for multiple screen configurations`);
-
-      setFlashcards([
-        { id: '1', question: 'What is a Fragment in Android?', answer: 'A reusable component that represents a portion of the user interface in an Activity with its own lifecycle.' },
-        { id: '2', question: 'When was the first mobile phone introduced?', answer: '1973 by Motorola' },
-        { id: '3', question: 'What are the four main Android application components?', answer: 'Activities, Services, Broadcast Receivers, and Content Providers' },
-        { id: '4', question: 'What year was Android OS released?', answer: '2008' },
-        { id: '5', question: 'What is the main purpose of Android Services?', answer: 'To perform background operations without a user interface' }
-      ]);
-
-      setQuiz([
-        {
-          question: 'What is a Fragment in Android?',
-          options: ['A type of activity', 'A part of an activity', 'A background service', 'A notification component'],
-          correct: 1
-        },
-        {
-          question: 'Which company introduced the first handheld mobile phone?',
-          options: ['Nokia', 'Apple', 'Motorola', 'Samsung'],
-          correct: 2
-        },
-        {
-          question: 'In what year was Android OS first released?',
-          options: ['2007', '2008', '2009', '2010'],
-          correct: 1
-        }
-      ]);
-
-      setQuizAnswers(new Array(3).fill(-1));
+    const savedSession = localStorage.getItem('currentStudySession');
+    if (savedSession) {
+      try {
+        const session: StudySession = JSON.parse(savedSession);
+        setCurrentSession(session);
+        setDocs(session.docs || []);
+        setNotes(session.notes || '');
+        setEditableNotes(session.notes || '');
+        setSummary(session.summary || '');
+        setFlashcards(session.flashcards || []);
+        setQuiz(session.quiz || []);
+      } catch (error) {
+        console.error('Failed to load session:', error);
+      }
     }
   }, []);
 
-  // Helpers
+  // Save session to localStorage
+  const saveSession = useCallback(() => {
+    if (!currentSession && docs.length === 0) return;
+    
+    const session: StudySession = {
+      id: currentSession?.id || `session-${Date.now()}`,
+      name: currentSession?.name || `Study Session ${new Date().toLocaleDateString()}`,
+      docs,
+      notes,
+      summary,
+      flashcards,
+      quiz,
+      createdAt: currentSession?.createdAt || new Date(),
+      lastModified: new Date()
+    };
+    
+    setCurrentSession(session);
+    localStorage.setItem('currentStudySession', JSON.stringify(session));
+  }, [currentSession, docs, notes, summary, flashcards, quiz]);
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(saveSession, 30000);
+    return () => clearInterval(interval);
+  }, [saveSession]);
+
+  // Timer logic
+  useEffect(() => {
+    if (timer.isRunning) {
+      timerRef.current = setInterval(() => {
+        setTimer(prev => {
+          if (prev.seconds === 0 && prev.minutes === 0) {
+            // Timer finished
+            const newMode = prev.mode === 'study' ? 'break' : 'study';
+            const newMinutes = newMode === 'study' ? 25 : 5;
+            return { 
+              minutes: newMinutes, 
+              seconds: 0, 
+              isRunning: false, 
+              mode: newMode 
+            };
+          }
+          
+          if (prev.seconds === 0) {
+            return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+          }
+          
+          return { ...prev, seconds: prev.seconds - 1 };
+        });
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [timer.isRunning]);
+
+  // Helper functions
   const addDocs = (newOnes: SessionDoc[]) => {
     setDocs(prev => [...newOnes, ...prev]);
+    if (newOnes.length > 0) {
+      setActiveTab('notes');
+    }
   };
   
-  const toggleDoc = (id: string) => setDocs(prev => prev.map(d => d.id === id ? { ...d, selected: !d.selected } : d));
-  const selectAll = (checked: boolean) => setDocs(prev => prev.map(d => ({ ...d, selected: checked })));
+  const toggleDoc = (id: string) => setDocs(prev => 
+    prev.map(d => d.id === id ? { ...d, selected: !d.selected } : d)
+  );
+  
+  const selectAll = (checked: boolean) => setDocs(prev => 
+    prev.map(d => ({ ...d, selected: checked }))
+  );
+  
   const removeDoc = (id: string) => setDocs(prev => prev.filter(d => d.id !== id));
 
   // File handlers
@@ -211,17 +257,32 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
       const results: SessionDoc[] = [];
       for (let i = 0; i < arr.length; i++) {
         const f = arr[i];
-        // Mock file extraction
-        results.push({ 
-          id: `${Date.now()}-${i}-${f.name}`, 
-          name: f.name, 
-          type: f.type || 'unknown', 
-          text: `Content of ${f.name}...`, 
-          selected: true 
-        });
+        try {
+          const res = await extractTextFromFile(f);
+          results.push({ 
+            id: `${Date.now()}-${i}-${f.name}`, 
+            name: f.name, 
+            type: res.fileType, 
+            text: res.text, 
+            selected: true,
+            uploadedAt: new Date()
+          });
+        } catch (error) {
+          console.error(`Failed to process ${f.name}:`, error);
+          // Add with placeholder text on error
+          results.push({ 
+            id: `${Date.now()}-${i}-${f.name}`, 
+            name: f.name, 
+            type: f.type || 'unknown', 
+            text: `Failed to extract text from ${f.name}. Please try again.`, 
+            selected: false,
+            uploadedAt: new Date()
+          });
+        }
         setProgress(10 + Math.round(((i + 1) / arr.length) * 50));
       }
       addDocs(results);
+      updateStats('documentsUploaded', results.length);
     } catch (e) {
       console.error(e);
     } finally {
@@ -236,6 +297,164 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
     if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
   };
 
+  // Import functions
+  const addPastedText = () => {
+    if (!pastedText.trim()) return;
+    const id = `${Date.now()}-paste`;
+    addDocs([{ 
+      id, 
+      name: `Pasted Text ${new Date().toLocaleTimeString()}`, 
+      type: 'text', 
+      text: pastedText.trim(), 
+      selected: true,
+      uploadedAt: new Date()
+    }]);
+    setPastedText("");
+  };
+
+  const addLink = async () => {
+    if (!/^https?:\/\//i.test(linkUrl)) return;
+    setIsLoading(true); 
+    setProgress(20);
+    try {
+      const res = await extractTextFromUrl(linkUrl);
+      if (res.success && res.content) {
+        const id = `${Date.now()}-url`;
+        addDocs([{ 
+          id, 
+          name: res.title || linkUrl, 
+          type: 'html', 
+          text: res.content, 
+          selected: true,
+          uploadedAt: new Date()
+        }]);
+      }
+    } catch (e) {
+      console.error('Failed to import from link:', e);
+    } finally {
+      setIsLoading(false); 
+      setProgress(0); 
+      setLinkUrl("");
+    }
+  };
+
+  // AI Generation functions
+  const generateNotes = async () => {
+    if (!combinedText.trim()) return;
+    setIsLoading(true);
+    setProgress(60);
+    
+    try {
+      const prompt = `Create comprehensive, well-structured study notes from the following content. Format with clear headers, bullet points, and key concepts highlighted:
+
+# STUDY NOTES
+
+## Key Concepts
+[Extract main concepts with clear definitions]
+
+## Important Details
+[Organize important facts and details]
+
+## Summary Points
+[Provide concise summary points for review]
+
+## Study Tips
+[Add relevant study tips and mnemonics if applicable]
+
+Content to analyze:
+${combinedText}`;
+
+      const note = await generateNotesAI(prompt, 'Multi-Document Study Notes');
+      setNotes(note.content);
+      setEditableNotes(note.content);
+      setActiveTab('notes');
+      updateStats('notesGenerated', 1);
+    } catch (e) {
+      console.error('Failed to generate notes:', e);
+    } finally {
+      setIsLoading(false);
+      setProgress(0);
+    }
+  };
+
+  const generateFlashcards = async (count: number = 10) => {
+    if (!combinedText.trim()) return;
+    setIsLoading(true);
+    setProgress(60);
+    
+    try {
+      const cards = await generateFlashcardsAI(combinedText);
+      const formattedCards = cards.slice(0, count).map((card, i) => ({
+        id: `flashcard-${Date.now()}-${i}`,
+        question: card.question || card.front || 'Question',
+        answer: card.answer || card.back || 'Answer'
+      }));
+      setFlashcards(formattedCards);
+      setActiveTab('flashcards');
+      setCurrentFlashcardIndex(0);
+      setIsFlipped(false);
+      updateStats('flashcardsGenerated', formattedCards.length);
+    } catch (e) {
+      console.error('Failed to generate flashcards:', e);
+    } finally {
+      setIsLoading(false);
+      setProgress(0);
+    }
+  };
+
+  const generateQuiz = async () => {
+    if (!combinedText.trim()) return;
+    setIsLoading(true);
+    setProgress(60);
+    
+    try {
+      const prompt = `Create a comprehensive multiple-choice quiz from this study material. Generate exactly 10 questions with 4 options each. Return valid JSON only:
+
+{
+  "questions": [
+    {
+      "question": "Question text here",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct": 0,
+      "explanation": "Brief explanation of the correct answer"
+    }
+  ]
+}
+
+Study Material:
+${combinedText}`;
+
+      // Mock API call - replace with your actual API
+      const response = await new Promise<{ questions: QuizQuestion[] }>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            questions: [
+              {
+                question: "What is the main concept discussed in the material?",
+                options: ["Option A", "Option B", "Option C", "Option D"],
+                correct: 1,
+                explanation: "This is the correct answer because..."
+              }
+            ]
+          });
+        }, 2000);
+      });
+
+      setQuiz(response.questions);
+      setQuizIndex(0);
+      setQuizAnswers(new Array(response.questions.length).fill(-1));
+      setQuizCompleted(false);
+      setQuizScore(0);
+      setActiveTab('quiz');
+      updateStats('quizzesGenerated', 1);
+    } catch (e) {
+      console.error('Failed to generate quiz:', e);
+    } finally {
+      setIsLoading(false);
+      setProgress(0);
+    }
+  };
+
   // Quiz functions
   const selectAnswer = (answerIndex: number) => {
     const newAnswers = [...quizAnswers];
@@ -246,6 +465,14 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
   const nextQuestion = () => {
     if (quizIndex < quiz.length - 1) {
       setQuizIndex(quizIndex + 1);
+    } else {
+      // Quiz completed
+      const score = quizAnswers.reduce((acc, answer, index) => {
+        return acc + (answer === quiz[index].correct ? 1 : 0);
+      }, 0);
+      setQuizScore(score);
+      setQuizCompleted(true);
+      updateStats('quizzesCompleted', 1);
     }
   };
 
@@ -258,12 +485,8 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
   const resetQuiz = () => {
     setQuizIndex(0);
     setQuizAnswers(new Array(quiz.length).fill(-1));
-  };
-
-  const shuffleQuestions = () => {
-    const shuffled = [...quiz].sort(() => Math.random() - 0.5);
-    setQuiz(shuffled);
-    resetQuiz();
+    setQuizCompleted(false);
+    setQuizScore(0);
   };
 
   // Flashcard functions
@@ -281,6 +504,24 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
     setIsFlipped(!isFlipped);
   };
 
+  // Timer functions
+  const startTimer = () => {
+    setTimer(prev => ({ ...prev, isRunning: true }));
+  };
+
+  const pauseTimer = () => {
+    setTimer(prev => ({ ...prev, isRunning: false }));
+  };
+
+  const resetTimer = () => {
+    setTimer({
+      minutes: timer.mode === 'study' ? 25 : 5,
+      seconds: 0,
+      isRunning: false,
+      mode: timer.mode
+    });
+  };
+
   // Download functions
   const downloadContent = (content: string, filename: string, type: string = 'text/plain') => {
     const blob = new Blob([content], { type });
@@ -295,63 +536,80 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
   };
 
   const downloadNotes = () => downloadContent(notes, 'study-notes.md', 'text/markdown');
-  const downloadSummary = () => downloadContent(summary, 'summary.txt');
   const downloadFlashcards = () => {
     const content = flashcards.map(card => `Q: ${card.question}\nA: ${card.answer}\n---`).join('\n');
     downloadContent(content, 'flashcards.txt');
+  };
+
+  // Edit functions
+  const saveEditedNotes = () => {
+    setNotes(editableNotes);
+    setIsEditingNotes(false);
+    saveSession();
+  };
+
+  const startNewSession = () => {
+    if (window.confirm(t('Are you sure you want to start a new session? Current progress will be saved.'))) {
+      saveSession();
+      setDocs([]);
+      setNotes('');
+      setEditableNotes('');
+      setSummary('');
+      setFlashcards([]);
+      setQuiz([]);
+      setCurrentSession(null);
+      setActiveTab('notes');
+      localStorage.removeItem('currentStudySession');
+    }
   };
 
   const hasSelectedDocs = selectedDocs.length > 0;
   const currentFlashcard = flashcards[currentFlashcardIndex];
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-10 left-10 w-4 h-4 bg-yellow-400 animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-6 h-6 bg-cyan-400 rotate-45 animate-bounce"></div>
-        <div className="absolute bottom-20 left-20 w-8 h-8 border-4 border-pink-400 animate-spin"></div>
-        <div className="absolute bottom-10 right-10 w-3 h-3 bg-green-400 animate-ping"></div>
-      </div>
-
-      {/* Main Header */}
-      <header className="relative z-50 bg-black border-b-8 border-white p-6 shadow-[0_8px_0px_#ffffff]">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-            <div className="text-center lg:text-left">
-              <motion.h1 
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-4xl lg:text-6xl font-black tracking-tight"
-              >
-                <span className="text-white">STUDY</span>
-                <span className="text-yellow-400 ml-4">SESSION</span>
-              </motion.h1>
-              <motion.p 
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-lg font-bold text-gray-400 mt-2"
-              >
-                {docs.length > 0 ? `${docs.length} DOCUMENTS • ${selectedDocs.length} SELECTED` : 'UPLOAD DOCUMENTS TO START'}
-              </motion.p>
+    <div className="min-h-screen bg-gray-50 font-sans">
+      {/* Header */}
+      <header className="bg-white border-b-2 border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-600 text-white px-4 py-2 font-bold text-xl rounded-lg">
+                StudyAI
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {t('Multi-Document Study Session')}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {docs.length > 0 ? `${docs.length} documents • ${selectedDocs.length} selected` : t('Upload documents to start')}
+                </p>
+              </div>
             </div>
             
-            {/* Quick Actions */}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex items-center space-x-3">
               <Button
                 onClick={() => setShowChat(!showChat)}
-                className={`${showChat ? 'bg-cyan-400 text-black' : 'bg-black text-cyan-400'} border-4 border-cyan-400 font-black hover:bg-cyan-400 hover:text-black shadow-[4px_4px_0px_#22d3ee] transition-all`}
+                variant={showChat ? "default" : "outline"}
+                className="font-medium"
               >
                 <MessageCircle size={16} className="mr-2" />
-                AI CHAT
+                {t('AI Tutor')}
               </Button>
               <Button
                 onClick={() => setShowSidebar(!showSidebar)}
-                className="bg-black text-white border-4 border-white font-black hover:bg-white hover:text-black shadow-[4px_4px_0px_#ffffff] transition-all"
+                variant="outline"
+                className="font-medium"
               >
                 <Settings size={16} className="mr-2" />
-                {showSidebar ? 'HIDE' : 'SHOW'} TOOLS
+                {showSidebar ? t('Hide Tools') : t('Show Tools')}
+              </Button>
+              <Button
+                onClick={startNewSession}
+                variant="outline"
+                className="font-medium"
+              >
+                <RefreshCw size={16} className="mr-2" />
+                {t('New Session')}
               </Button>
             </div>
           </div>
@@ -360,24 +618,17 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
           <AnimatePresence>
             {progress > 0 && (
               <motion.div 
-                initial={{ opacity: 0, scaleX: 0 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                exit={{ opacity: 0, scaleX: 0 }}
-                className="mt-6"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4"
               >
-                <div className="bg-gray-900 border-4 border-yellow-400 p-4 shadow-[8px_8px_0px_#fbbf24]">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-yellow-400 font-black">PROCESSING...</span>
-                    <span className="text-white font-black">{progress}%</span>
+                    <span className="text-blue-700 font-medium">{t('Processing...')}</span>
+                    <span className="text-blue-600 font-bold">{progress}%</span>
                   </div>
-                  <div className="w-full bg-black border-2 border-yellow-400 h-4">
-                    <motion.div 
-                      className="h-full bg-yellow-400"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progress}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
+                  <Progress value={progress} className="w-full h-2" />
                 </div>
               </motion.div>
             )}
@@ -386,254 +637,320 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
       </header>
 
       {/* Navigation Tabs */}
-      <div className="relative z-40 bg-gray-900 border-b-4 border-gray-700 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <nav className="flex space-x-8">
             {[
-              { id: 'note' as ActiveTab, label: 'Note', icon: BookOpen, color: 'bg-blue-400' },
-              { id: 'quiz' as ActiveTab, label: 'Quiz', icon: CheckSquare, color: 'bg-purple-400' },
-              { id: 'flashcards' as ActiveTab, label: 'Flashcards', icon: Brain, color: 'bg-pink-400' },
-              { id: 'transcript' as ActiveTab, label: 'Transcript', icon: FileText, color: 'bg-green-400' },
+              { id: 'notes' as ActiveTab, label: t('AI Notes'), icon: BookOpen },
+              { id: 'quiz' as ActiveTab, label: t('Quiz'), icon: CheckSquare },
+              { id: 'flashcards' as ActiveTab, label: t('Flashcards'), icon: Brain },
+              { id: 'edit' as ActiveTab, label: t('Edit'), icon: Edit3 },
+              { id: 'original' as ActiveTab, label: t('Original'), icon: FileText },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
-                <motion.button
+                <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    flex items-center gap-3 px-6 py-4 border-4 border-black font-black text-lg transition-all duration-200 transform hover:scale-105 relative
+                    flex items-center space-x-2 px-4 py-4 border-b-2 font-medium text-sm transition-colors
                     ${isActive 
-                      ? `${tab.color} text-black shadow-[6px_6px_0px_rgba(0,0,0,0.5)]` 
-                      : 'bg-black text-white border-gray-600 hover:border-white shadow-[4px_4px_0px_rgba(255,255,255,0.1)]'
+                      ? 'border-blue-500 text-blue-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }
                   `}
-                  whileTap={{ scale: 0.95 }}
                 >
-                  <Icon size={20} />
-                  {tab.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 border-4 border-white"
-                      initial={false}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                </motion.button>
+                  <Icon size={18} />
+                  <span>{tab.label}</span>
+                </button>
               );
             })}
-          </div>
+          </nav>
         </div>
       </div>
 
-      <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <AnimatePresence>
-          {showSidebar && (
-            <motion.aside
-              initial={{ x: -400, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -400, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="w-96 bg-gray-900 border-r-8 border-white p-6 space-y-6 sticky top-0 h-screen overflow-y-auto"
-            >
-              {/* Document Upload Section */}
-              <div className="bg-black border-4 border-yellow-400 p-4 shadow-[8px_8px_0px_#fbbf24]">
-                <h3 className="text-yellow-400 font-black mb-4 flex items-center gap-2">
-                  <Upload size={20} />
-                  IMPORT CONTENT
-                </h3>
-                
-                <div className="space-y-3">
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full bg-purple-400 text-black border-4 border-black font-black hover:bg-purple-500 shadow-[4px_4px_0px_#a855f7]"
-                  >
-                    <File className="mr-2" size={16} />
-                    UPLOAD FILES
-                  </Button>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex gap-6">
+          {/* Sidebar */}
+          <AnimatePresence>
+            {showSidebar && (
+              <motion.aside
+                initial={{ x: -300, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -300, opacity: 0 }}
+                className="w-80 space-y-6"
+              >
+                {/* Upload Section */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="font-bold text-lg text-gray-900 mb-4">{t('Import Content')}</h3>
                   
-                  <div className="flex gap-2">
-                    <Input
-                      value={linkUrl}
-                      onChange={(e) => setLinkUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="bg-black border-2 border-cyan-400 text-white font-mono"
+                  <div className="space-y-4">
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <Upload size={16} className="mr-2" />
+                      {t('Upload Files')}
+                    </Button>
+                    
+                    <div className="flex gap-2">
+                      <Input
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1"
+                      />
+                      <Button onClick={addLink} disabled={!linkUrl.trim()}>
+                        <LinkIcon size={16} />
+                      </Button>
+                    </div>
+
+                    <Textarea
+                      value={pastedText}
+                      onChange={(e) => setPastedText(e.target.value)}
+                      placeholder={t('Paste text here...')}
+                      rows={4}
                     />
-                    <Button className="bg-cyan-400 text-black border-2 border-black font-black hover:bg-cyan-500">
-                      <LinkIcon size={16} />
+                    <Button
+                      onClick={addPastedText}
+                      disabled={!pastedText.trim()}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {t('Add Text')}
+                    </Button>
+                  </div>
+
+                  <input 
+                    ref={fileInputRef} 
+                    type="file" 
+                    multiple 
+                    accept=".pdf,.docx,.txt,.md,.html" 
+                    className="hidden" 
+                    onChange={(e) => e.target.files && handleFiles(e.target.files)} 
+                  />
+                </div>
+
+                {/* Documents List */}
+                {docs.length > 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-lg text-gray-900">
+                        {t('Documents')} ({docs.length})
+                      </h3>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => selectAll(true)} variant="outline">
+                          {t('All')}
+                        </Button>
+                        <Button size="sm" onClick={() => selectAll(false)} variant="outline">
+                          {t('None')}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {docs.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className={`
+                            flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all
+                            ${doc.selected 
+                              ? 'bg-blue-50 border-blue-200' 
+                              : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                            }
+                          `}
+                          onClick={() => toggleDoc(doc.id)}
+                        >
+                          <div className="text-blue-600">
+                            {doc.selected ? <CheckSquare size={16} /> : <Square size={16} />}
+                          </div>
+                          <File size={14} className="text-gray-400" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate text-gray-900">{doc.name}</p>
+                            <p className="text-xs text-gray-500 uppercase">{doc.type}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id);
+                              }}
+                            >
+                              <Eye size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeDoc(doc.id);
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Actions */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="font-bold text-lg text-gray-900 mb-4">{t('AI Tools')}</h3>
+                  
+                  <div className="space-y-3">
+                    <Button
+                      onClick={generateNotes}
+                      disabled={isLoading || !hasSelectedDocs}
+                      className="w-full justify-start"
+                    >
+                      <Sparkles size={16} className="mr-2" />
+                      {t('Generate Notes')}
+                    </Button>
+                    <Button
+                      onClick={() => generateFlashcards(10)}
+                      disabled={isLoading || !hasSelectedDocs}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <Brain size={16} className="mr-2" />
+                      {t('Create Flashcards')}
+                    </Button>
+                    <Button
+                      onClick={generateQuiz}
+                      disabled={isLoading || !hasSelectedDocs}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <CheckSquare size={16} className="mr-2" />
+                      {t('Generate Quiz')}
                     </Button>
                   </div>
                 </div>
 
-                <input 
-                  ref={fileInputRef} 
-                  type="file" 
-                  multiple 
-                  accept=".pdf,.docx,.txt,.md,.html" 
-                  className="hidden" 
-                  onChange={(e) => e.target.files && handleFiles(e.target.files)} 
-                />
-              </div>
-
-              {/* Documents List */}
-              {docs.length > 0 && (
-                <div className="bg-black border-4 border-white p-4 shadow-[8px_8px_0px_rgba(255,255,255,0.3)]">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white font-black flex items-center gap-2">
-                      <Archive size={20} />
-                      DOCUMENTS ({docs.length})
-                    </h3>
+                {/* Study Timer */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="font-bold text-lg text-gray-900 mb-4">
+                    {t('Study Timer')} 
+                    <span className="ml-2 text-sm font-normal text-gray-600">
+                      ({timer.mode === 'study' ? t('Study') : t('Break')})
+                    </span>
+                  </h3>
+                  
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-gray-900 mb-4 font-mono">
+                      {String(timer.minutes).padStart(2, '0')}:{String(timer.seconds).padStart(2, '0')}
+                    </div>
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => selectAll(true)}
-                        size="sm"
-                        className="bg-green-400 text-black border-2 border-black font-black hover:bg-green-500"
+                        onClick={timer.isRunning ? pauseTimer : startTimer}
+                        className="flex-1"
+                        variant={timer.isRunning ? "outline" : "default"}
                       >
-                        ALL
+                        {timer.isRunning ? <Pause size={16} /> : <Play size={16} />}
                       </Button>
                       <Button
-                        onClick={() => selectAll(false)}
+                        onClick={resetTimer}
+                        variant="outline"
                         size="sm"
-                        className="bg-red-400 text-black border-2 border-black font-black hover:bg-red-500"
                       >
-                        NONE
+                        <RotateCcw size={16} />
                       </Button>
                     </div>
                   </div>
-
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {docs.map((doc) => (
-                      <div
-                        key={doc.id}
-                        onClick={() => toggleDoc(doc.id)}
-                        className={`
-                          flex items-center gap-3 p-3 border-2 cursor-pointer transition-all
-                          ${doc.selected 
-                            ? 'bg-yellow-400 text-black border-black shadow-[4px_4px_0px_#fbbf24]' 
-                            : 'bg-black text-white border-gray-600 hover:border-white'
-                          }
-                        `}
-                      >
-                        <div>
-                          {doc.selected ? <CheckSquare size={16} /> : <Square size={16} />}
-                        </div>
-                        <File size={14} />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm truncate">{doc.name}</p>
-                          <p className="text-xs opacity-70 uppercase">{doc.type}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              )}
+              </motion.aside>
+            )}
+          </AnimatePresence>
 
-              {/* Quick Actions */}
-              <div className="bg-black border-4 border-green-400 p-4 shadow-[8px_8px_0px_#22c55e]">
-                <h3 className="text-green-400 font-black mb-4 flex items-center gap-2">
-                  <Zap size={20} />
-                  QUICK ACTIONS
-                </h3>
-                
-                <div className="space-y-2">
-                  <Button
-                    disabled={!hasSelectedDocs || isLoading}
-                    className="w-full bg-blue-400 text-black border-2 border-black font-black hover:bg-blue-500 disabled:opacity-50"
-                  >
-                    <Sparkles className="mr-2" size={16} />
-                    GENERATE NOTES
-                  </Button>
-                  <Button
-                    disabled={!hasSelectedDocs || isLoading}
-                    className="w-full bg-pink-400 text-black border-2 border-black font-black hover:bg-pink-500 disabled:opacity-50"
-                  >
-                    <Brain className="mr-2" size={16} />
-                    CREATE FLASHCARDS
-                  </Button>
-                  <Button
-                    disabled={!hasSelectedDocs || isLoading}
-                    className="w-full bg-purple-400 text-black border-2 border-black font-black hover:bg-purple-500 disabled:opacity-50"
-                  >
-                    <CheckSquare className="mr-2" size={16} />
-                    GENERATE QUIZ
-                  </Button>
-                </div>
-              </div>
-
-              {/* Study Timer */}
-              <div className="bg-black border-4 border-orange-400 p-4 shadow-[8px_8px_0px_#fb923c]">
-                <h3 className="text-orange-400 font-black mb-4 flex items-center gap-2">
-                  <Clock size={20} />
-                  STUDY TIMER
-                </h3>
-                <div className="text-center">
-                  <div className="text-3xl font-black mb-2">25:00</div>
-                  <div className="flex gap-2">
-                    <Button className="flex-1 bg-green-400 text-black border-2 border-black font-black hover:bg-green-500">
-                      START
-                    </Button>
-                    <Button className="flex-1 bg-red-400 text-black border-2 border-black font-black hover:bg-red-500">
-                      PAUSE
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-
-        {/* Main Content */}
-        <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto">
+          {/* Main Content */}
+          <div className="flex-1">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.3 }}
-                className="bg-gray-900 border-8 border-white p-8 shadow-[16px_16px_0px_rgba(255,255,255,0.2)] min-h-[600px]"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white rounded-lg border border-gray-200 p-6 min-h-[600px]"
               >
-                {/* Note Tab */}
-                {activeTab === 'note' && (
+                {/* AI Notes Tab */}
+                {activeTab === 'notes' && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-4xl font-black text-blue-400 flex items-center gap-3">
-                        <BookOpen size={40} />
-                        STUDY NOTES
+                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <BookOpen size={28} className="text-blue-600" />
+                        {t('AI Study Notes')}
                       </h2>
                       {notes && (
-                        <Button
-                          onClick={downloadNotes}
-                          className="bg-blue-400 text-black border-4 border-black font-black hover:bg-blue-500 shadow-[6px_6px_0px_#60a5fa]"
-                        >
-                          <Download className="mr-2" size={16} />
-                          DOWNLOAD
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => {
+                              setIsEditingNotes(!isEditingNotes);
+                              setEditableNotes(notes);
+                            }}
+                            variant="outline"
+                          >
+                            <Edit3 className="mr-2" size={16} />
+                            {t('Edit')}
+                          </Button>
+                          <Button onClick={downloadNotes}>
+                            <Download className="mr-2" size={16} />
+                            {t('Download')}
+                          </Button>
+                        </div>
                       )}
                     </div>
 
                     {notes ? (
-                      <div className="bg-black border-4 border-blue-400 p-6 shadow-[12px_12px_0px_#60a5fa] max-h-96 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono text-sm">
-                          {notes}
-                        </pre>
+                      <div className="prose prose-gray max-w-none">
+                        {isEditingNotes ? (
+                          <div className="space-y-4">
+                            <Textarea
+                              value={editableNotes}
+                              onChange={(e) => setEditableNotes(e.target.value)}
+                              className="min-h-96 font-mono"
+                            />
+                            <div className="flex gap-2">
+                              <Button onClick={saveEditedNotes}>
+                                <Save className="mr-2" size={16} />
+                                {t('Save Changes')}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => setIsEditingNotes(false)}
+                              >
+                                {t('Cancel')}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <pre className="whitespace-pre-wrap font-sans leading-relaxed text-gray-800">
+                              {notes}
+                            </pre>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-center py-24">
-                        <div className="bg-blue-400 w-32 h-32 mx-auto mb-8 flex items-center justify-center border-8 border-black shadow-[12px_12px_0px_#60a5fa]">
-                          <PenTool className="w-16 h-16 text-black" />
+                      <div className="text-center py-16">
+                        <div className="w-24 h-24 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
+                          <PenTool className="w-12 h-12 text-blue-600" />
                         </div>
-                        <h3 className="text-3xl font-black mb-4">NO NOTES GENERATED</h3>
-                        <p className="text-gray-400 font-bold mb-8 text-lg">Select documents and generate AI-powered study notes</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Notes Generated')}</h3>
+                        <p className="text-gray-600 mb-6">{t('Select documents and generate AI-powered study notes')}</p>
                         <Button
+                          onClick={generateNotes}
                           disabled={!hasSelectedDocs || isLoading}
-                          className="bg-blue-400 text-black border-6 border-black font-black text-xl px-12 py-6 shadow-[8px_8px_0px_#60a5fa] hover:shadow-[12px_12px_0px_#60a5fa] transition-all disabled:opacity-50"
+                          size="lg"
                         >
-                          <Sparkles className="mr-3" size={24} />
-                          GENERATE NOTES
+                          <Sparkles className="mr-2" size={20} />
+                          {t('Generate Notes')}
                         </Button>
                       </div>
                     )}
@@ -643,122 +960,145 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
                 {/* Quiz Tab */}
                 {activeTab === 'quiz' && (
                   <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <h2 className="text-4xl font-black text-purple-400 flex items-center gap-3">
-                        <CheckSquare size={40} />
-                        QUIZ MODE
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <CheckSquare size={28} className="text-purple-600" />
+                        {t('Interactive Quiz')}
                       </h2>
-                      {quiz.length > 0 && (
-                        <div className="flex gap-3">
-                          <Button
-                            onClick={resetQuiz}
-                            className="bg-gray-400 text-black border-4 border-black font-black hover:bg-gray-500 shadow-[4px_4px_0px_#9ca3af]"
-                          >
+                      {quiz.length > 0 && !quizCompleted && (
+                        <div className="flex gap-2">
+                          <Button onClick={resetQuiz} variant="outline">
                             <RotateCcw className="mr-2" size={16} />
-                            RESET
+                            {t('Reset')}
                           </Button>
                           <Button
-                            onClick={shuffleQuestions}
-                            className="bg-orange-400 text-black border-4 border-black font-black hover:bg-orange-500 shadow-[4px_4px_0px_#fb923c]"
+                            onClick={() => {
+                              const shuffled = [...quiz].sort(() => Math.random() - 0.5);
+                              setQuiz(shuffled);
+                              resetQuiz();
+                            }}
+                            variant="outline"
                           >
                             <Shuffle className="mr-2" size={16} />
-                            SHUFFLE
+                            {t('Shuffle')}
                           </Button>
                         </div>
                       )}
                     </div>
 
-                    {quiz.length > 0 ? (
+                    {quizCompleted ? (
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="text-center py-12"
+                      >
+                        <div className="w-32 h-32 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+                          <Check className="w-16 h-16 text-green-600" />
+                        </div>
+                        <h3 className="text-3xl font-bold text-gray-900 mb-2">{t('Quiz Completed!')}</h3>
+                        <p className="text-xl text-gray-600 mb-6">
+                          {t('Your score')}: {quizScore}/{quiz.length} ({Math.round((quizScore/quiz.length)*100)}%)
+                        </p>
+                        <div className="flex gap-4 justify-center">
+                          <Button onClick={resetQuiz} size="lg">
+                            <RotateCcw className="mr-2" size={20} />
+                            {t('Try Again')}
+                          </Button>
+                          <Button onClick={generateQuiz} variant="outline" size="lg">
+                            <Sparkles className="mr-2" size={20} />
+                            {t('New Quiz')}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ) : quiz.length > 0 ? (
                       <div className="space-y-6">
-                        <div className="bg-black border-4 border-purple-400 p-8 shadow-[12px_12px_0px_#a855f7]">
-                          <div className="mb-6">
-                            <div className="flex items-center justify-between mb-4">
-                              <span className="font-black text-purple-400 text-xl">
-                                QUESTION {quizIndex + 1} OF {quiz.length}
-                              </span>
-                              <div className="flex gap-1">
-                                {quiz.map((_, index) => (
-                                  <div
-                                    key={index}
-                                    className={`w-6 h-6 border-4 border-black ${
-                                      index === quizIndex ? 'bg-purple-400' : 
-                                      quizAnswers[index] !== -1 ? 'bg-green-400' : 'bg-gray-600'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
+                        <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+                          <div className="flex items-center justify-between mb-6">
+                            <span className="font-bold text-lg text-purple-600">
+                              {t('Question')} {quizIndex + 1} {t('of')} {quiz.length}
+                            </span>
+                            <div className="flex gap-1">
+                              {quiz.map((_, index) => (
+                                <div
+                                  key={index}
+                                  className={`w-4 h-4 rounded-full ${
+                                    index === quizIndex ? 'bg-purple-500' : 
+                                    quizAnswers[index] !== -1 ? 'bg-green-400' : 'bg-gray-300'
+                                  }`}
+                                />
+                              ))}
                             </div>
+                          </div>
 
-                            <div className="bg-gray-900 border-4 border-white p-6 mb-6">
-                              <h3 className="text-2xl font-black text-white mb-6 leading-tight">
-                                {quiz[quizIndex]?.question}
-                              </h3>
+                          <div className="space-y-4">
+                            <h3 className="text-xl font-semibold text-gray-900 leading-tight">
+                              {quiz[quizIndex]?.question}
+                            </h3>
 
-                              <div className="space-y-3">
-                                {quiz[quizIndex]?.options.map((option, optionIndex) => (
-                                  <motion.button
-                                    key={optionIndex}
-                                    onClick={() => selectAnswer(optionIndex)}
-                                    className={`
-                                      w-full p-4 border-4 font-black text-left transition-all transform hover:scale-102
-                                      ${quizAnswers[quizIndex] === optionIndex
-                                        ? 'bg-yellow-400 text-black border-black shadow-[8px_8px_0px_#fbbf24]'
-                                        : 'bg-black text-white border-gray-600 hover:border-white hover:shadow-[4px_4px_0px_rgba(255,255,255,0.3)]'
-                                      }
-                                    `}
-                                    whileHover={{ x: 4, y: -4 }}
-                                    whileTap={{ scale: 0.98 }}
-                                  >
-                                    <span className="inline-block w-8 h-8 bg-white text-black rounded-full text-center leading-8 font-black mr-4">
-                                      {String.fromCharCode(65 + optionIndex)}
-                                    </span>
-                                    {option}
-                                  </motion.button>
-                                ))}
-                              </div>
+                            <div className="space-y-3">
+                              {quiz[quizIndex]?.options.map((option, optionIndex) => (
+                                <motion.button
+                                  key={optionIndex}
+                                  onClick={() => selectAnswer(optionIndex)}
+                                  className={`
+                                    w-full p-4 text-left border-2 rounded-lg font-medium transition-all
+                                    ${quizAnswers[quizIndex] === optionIndex
+                                      ? 'bg-blue-50 border-blue-500 text-blue-700'
+                                      : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                    }
+                                  `}
+                                  whileHover={{ x: 4 }}
+                                  whileTap={{ scale: 0.98 }}
+                                >
+                                  <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-700 rounded-full text-sm font-bold mr-4">
+                                    {String.fromCharCode(65 + optionIndex)}
+                                  </span>
+                                  {option}
+                                </motion.button>
+                              ))}
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between">
                           <Button
-                            disabled={quizIndex === 0}
                             onClick={prevQuestion}
-                            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[6px_6px_0px_#9ca3af] px-8 py-4 text-lg"
+                            disabled={quizIndex === 0}
+                            variant="outline"
                           >
-                            <ChevronLeft size={20} className="mr-2" />
-                            PREVIOUS
+                            <ChevronLeft size={16} className="mr-2" />
+                            {t('Previous')}
                           </Button>
 
                           <div className="text-center">
-                            <div className="text-lg font-black text-gray-400">
-                              {quizAnswers.filter(a => a !== -1).length} / {quiz.length} ANSWERED
+                            <div className="text-sm text-gray-600">
+                              {quizAnswers.filter(a => a !== -1).length} / {quiz.length} {t('answered')}
                             </div>
                           </div>
 
                           <Button
-                            disabled={quizIndex >= quiz.length - 1}
                             onClick={nextQuestion}
-                            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[6px_6px_0px_#9ca3af] px-8 py-4 text-lg"
+                            disabled={quizAnswers[quizIndex] === -1}
                           >
-                            NEXT
-                            <ChevronRight size={20} className="ml-2" />
+                            {quizIndex === quiz.length - 1 ? t('Finish') : t('Next')}
+                            <ChevronRight size={16} className="ml-2" />
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-24">
-                        <div className="bg-purple-400 w-32 h-32 mx-auto mb-8 flex items-center justify-center border-8 border-black shadow-[12px_12px_0px_#a855f7]">
-                          <HelpCircle className="w-16 h-16 text-black" />
+                      <div className="text-center py-16">
+                        <div className="w-24 h-24 mx-auto mb-6 bg-purple-100 rounded-full flex items-center justify-center">
+                          <HelpCircle className="w-12 h-12 text-purple-600" />
                         </div>
-                        <h3 className="text-3xl font-black mb-4">NO QUIZ AVAILABLE</h3>
-                        <p className="text-gray-400 font-bold mb-8 text-lg">Generate quiz questions from your documents</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Quiz Available')}</h3>
+                        <p className="text-gray-600 mb-6">{t('Generate quiz questions from your documents')}</p>
                         <Button
+                          onClick={generateQuiz}
                           disabled={!hasSelectedDocs || isLoading}
-                          className="bg-purple-400 text-black border-6 border-black font-black text-xl px-12 py-6 shadow-[8px_8px_0px_#a855f7] hover:shadow-[12px_12px_0px_#a855f7] transition-all disabled:opacity-50"
+                          size="lg"
                         >
-                          <CheckSquare className="mr-3" size={24} />
-                          GENERATE QUIZ
+                          <CheckSquare className="mr-2" size={20} />
+                          {t('Generate Quiz')}
                         </Button>
                       </div>
                     )}
@@ -768,26 +1108,26 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
                 {/* Flashcards Tab */}
                 {activeTab === 'flashcards' && (
                   <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <h2 className="text-4xl font-black text-pink-400 flex items-center gap-3">
-                        <Brain size={40} />
-                        FLASHCARDS
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <Brain size={28} className="text-pink-600" />
+                        {t('Flashcards')}
                       </h2>
                       {flashcards.length > 0 && (
-                        <div className="flex gap-3">
-                          <Button
-                            onClick={downloadFlashcards}
-                            className="bg-blue-400 text-black border-4 border-black font-black hover:bg-blue-500 shadow-[4px_4px_0px_#60a5fa]"
-                          >
+                        <div className="flex gap-2">
+                          <Button onClick={downloadFlashcards} variant="outline">
                             <Download className="mr-2" size={16} />
-                            DOWNLOAD
+                            {t('Download')}
                           </Button>
                           <Button
-                            onClick={() => setCurrentFlashcardIndex(0)}
-                            className="bg-gray-400 text-black border-4 border-black font-black hover:bg-gray-500 shadow-[4px_4px_0px_#9ca3af]"
+                            onClick={() => {
+                              setCurrentFlashcardIndex(0);
+                              setIsFlipped(false);
+                            }}
+                            variant="outline"
                           >
                             <RotateCcw className="mr-2" size={16} />
-                            RESTART
+                            {t('Restart')}
                           </Button>
                         </div>
                       )}
@@ -795,7 +1135,6 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
 
                     {flashcards.length > 0 && currentFlashcard ? (
                       <div className="space-y-8">
-                        {/* Flashcard */}
                         <div className="flex justify-center">
                           <div className="relative w-full max-w-2xl h-80">
                             <motion.div
@@ -807,34 +1146,34 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
                             >
                               {/* Front - Question */}
                               <div 
-                                className="absolute inset-0 w-full h-full bg-pink-400 text-black border-8 border-black p-8 flex flex-col justify-center shadow-[16px_16px_0px_#ec4899]"
+                                className="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-xl p-8 flex flex-col justify-center shadow-lg"
                                 style={{ backfaceVisibility: 'hidden' }}
                               >
                                 <div className="text-center">
-                                  <div className="bg-black text-pink-400 px-4 py-2 font-black text-sm mb-6 inline-block border-4 border-pink-400">
-                                    QUESTION
+                                  <div className="bg-white text-pink-600 px-4 py-2 font-bold text-sm mb-6 inline-block rounded-lg">
+                                    {t('QUESTION')}
                                   </div>
-                                  <p className="font-black text-2xl leading-tight mb-8">{currentFlashcard.question}</p>
-                                  <div className="flex items-center justify-center gap-2 text-sm font-bold opacity-70">
+                                  <p className="font-semibold text-xl leading-tight mb-8">{currentFlashcard.question}</p>
+                                  <div className="flex items-center justify-center gap-2 text-sm font-medium opacity-80">
                                     <FlipHorizontal size={16} />
-                                    CLICK TO REVEAL ANSWER
+                                    {t('Click to reveal answer')}
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Back - Answer */}
                               <div 
-                                className="absolute inset-0 w-full h-full bg-green-400 text-black border-8 border-black p-8 flex flex-col justify-center shadow-[16px_16px_0px_#22c55e]"
+                                className="absolute inset-0 w-full h-full bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-8 flex flex-col justify-center shadow-lg"
                                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                               >
                                 <div className="text-center">
-                                  <div className="bg-black text-green-400 px-4 py-2 font-black text-sm mb-6 inline-block border-4 border-green-400">
-                                    ANSWER
+                                  <div className="bg-white text-green-600 px-4 py-2 font-bold text-sm mb-6 inline-block rounded-lg">
+                                    {t('ANSWER')}
                                   </div>
-                                  <p className="font-black text-2xl leading-tight mb-8">{currentFlashcard.answer}</p>
-                                  <div className="flex items-center justify-center gap-2 text-sm font-bold opacity-70">
+                                  <p className="font-semibold text-xl leading-tight mb-8">{currentFlashcard.answer}</p>
+                                  <div className="flex items-center justify-center gap-2 text-sm font-medium opacity-80">
                                     <FlipHorizontal size={16} />
-                                    CLICK TO SHOW QUESTION
+                                    {t('Click to show question')}
                                   </div>
                                 </div>
                               </div>
@@ -842,69 +1181,64 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
                           </div>
                         </div>
 
-                        {/* Navigation */}
                         <div className="flex items-center justify-between">
-                          <Button
-                            onClick={prevFlashcard}
-                            className="bg-gray-400 text-black border-4 border-black font-black shadow-[6px_6px_0px_#9ca3af] px-8 py-4 text-lg"
-                          >
+                          <Button onClick={prevFlashcard} variant="outline" size="lg">
                             <ChevronLeft size={20} className="mr-2" />
-                            PREVIOUS
+                            {t('Previous')}
                           </Button>
 
                           <div className="text-center">
-                            <div className="text-2xl font-black mb-2">
+                            <div className="text-xl font-bold mb-2">
                               {currentFlashcardIndex + 1} / {flashcards.length}
                             </div>
                             <div className="flex gap-1 justify-center">
                               {flashcards.map((_, index) => (
                                 <div
                                   key={index}
-                                  className={`w-3 h-3 border-2 border-black ${
-                                    index === currentFlashcardIndex ? 'bg-pink-400' : 'bg-gray-600'
+                                  className={`w-2 h-2 rounded-full ${
+                                    index === currentFlashcardIndex ? 'bg-pink-500' : 'bg-gray-300'
                                   }`}
                                 />
                               ))}
                             </div>
                           </div>
 
-                          <Button
-                            onClick={nextFlashcard}
-                            className="bg-gray-400 text-black border-4 border-black font-black shadow-[6px_6px_0px_#9ca3af] px-8 py-4 text-lg"
-                          >
-                            NEXT
+                          <Button onClick={nextFlashcard} variant="outline" size="lg">
+                            {t('Next')}
                             <ChevronRight size={20} className="ml-2" />
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-24">
-                        <div className="bg-pink-400 w-32 h-32 mx-auto mb-8 flex items-center justify-center border-8 border-black shadow-[12px_12px_0px_#ec4899]">
-                          <Bookmark className="w-16 h-16 text-black" />
+                      <div className="text-center py-16">
+                        <div className="w-24 h-24 mx-auto mb-6 bg-pink-100 rounded-full flex items-center justify-center">
+                          <Bookmark className="w-12 h-12 text-pink-600" />
                         </div>
-                        <h3 className="text-3xl font-black mb-4">NO FLASHCARDS CREATED</h3>
-                        <p className="text-gray-400 font-bold mb-8 text-lg">Generate flashcards from your study materials</p>
-                        <div className="flex flex-wrap gap-4 justify-center">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Flashcards Created')}</h3>
+                        <p className="text-gray-600 mb-6">{t('Generate flashcards from your study materials')}</p>
+                        <div className="flex gap-4 justify-center">
                           <Button
+                            onClick={() => generateFlashcards(5)}
                             disabled={!hasSelectedDocs || isLoading}
-                            className="bg-pink-400 text-black border-6 border-black font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#ec4899] hover:shadow-[8px_8px_0px_#ec4899] transition-all disabled:opacity-50"
+                            variant="outline"
                           >
-                            <Brain className="mr-2" size={20} />
-                            5 CARDS
+                            <Brain className="mr-2" size={16} />
+                            {t('5 Cards')}
                           </Button>
                           <Button
+                            onClick={() => generateFlashcards(10)}
                             disabled={!hasSelectedDocs || isLoading}
-                            className="bg-pink-400 text-black border-6 border-black font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#ec4899] hover:shadow-[8px_8px_0px_#ec4899] transition-all disabled:opacity-50"
                           >
-                            <Brain className="mr-2" size={20} />
-                            10 CARDS
+                            <Brain className="mr-2" size={16} />
+                            {t('10 Cards')}
                           </Button>
                           <Button
+                            onClick={() => generateFlashcards(20)}
                             disabled={!hasSelectedDocs || isLoading}
-                            className="bg-pink-400 text-black border-6 border-black font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#ec4899] hover:shadow-[8px_8px_0px_#ec4899] transition-all disabled:opacity-50"
+                            variant="outline"
                           >
-                            <Brain className="mr-2" size={20} />
-                            20 CARDS
+                            <Brain className="mr-2" size={16} />
+                            {t('20 Cards')}
                           </Button>
                         </div>
                       </div>
@@ -912,46 +1246,170 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
                   </div>
                 )}
 
-                {/* Transcript Tab */}
-                {activeTab === 'transcript' && (
+                {/* Edit Tab */}
+                {activeTab === 'edit' && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-4xl font-black text-green-400 flex items-center gap-3">
-                        <FileText size={40} />
-                        TRANSCRIPT
+                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <Edit3 size={28} className="text-orange-600" />
+                        {t('Edit Content')}
                       </h2>
-                      {summary && (
-                        <Button
-                          onClick={downloadSummary}
-                          className="bg-green-400 text-black border-4 border-black font-black hover:bg-green-500 shadow-[6px_6px_0px_#22c55e]"
-                        >
-                          <Download className="mr-2" size={16} />
-                          DOWNLOAD
-                        </Button>
-                      )}
                     </div>
 
-                    {summary ? (
-                      <div className="bg-black border-4 border-green-400 p-8 shadow-[12px_12px_0px_#22c55e]">
-                        <div className="bg-gray-900 border-4 border-white p-6 max-h-96 overflow-y-auto">
-                          <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono text-sm">
-                            {summary}
-                          </pre>
+                    {docs.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-blue-800 font-medium mb-2">{t('Select a document to edit:')}</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {docs.map((doc) => (
+                              <button
+                                key={doc.id}
+                                onClick={() => setSelectedDocForEdit(doc.id)}
+                                className={`
+                                  flex items-center gap-3 p-3 rounded-lg text-left transition-all
+                                  ${selectedDocForEdit === doc.id
+                                    ? 'bg-blue-200 border-2 border-blue-500'
+                                    : 'bg-white border-2 border-gray-200 hover:border-blue-300'
+                                  }
+                                `}
+                              >
+                                <File size={16} className="text-blue-600" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{doc.name}</p>
+                                  <p className="text-xs text-gray-500">{doc.type}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
                         </div>
+
+                        {selectedDocForEdit && (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold text-lg">
+                                {t('Editing')}: {docs.find(d => d.id === selectedDocForEdit)?.name}
+                              </h3>
+                              <Button
+                                onClick={() => {
+                                  const doc = docs.find(d => d.id === selectedDocForEdit);
+                                  if (doc) {
+                                    const updatedDoc = { ...doc, text: editableNotes };
+                                    setDocs(prev => prev.map(d => d.id === selectedDocForEdit ? updatedDoc : d));
+                                    saveSession();
+                                  }
+                                }}
+                              >
+                                <Save className="mr-2" size={16} />
+                                {t('Save Changes')}
+                              </Button>
+                            </div>
+                            <Textarea
+                              value={docs.find(d => d.id === selectedDocForEdit)?.text || ''}
+                              onChange={(e) => {
+                                setDocs(prev => prev.map(d => 
+                                  d.id === selectedDocForEdit 
+                                    ? { ...d, text: e.target.value }
+                                    : d
+                                ));
+                              }}
+                              className="min-h-96 font-mono"
+                            />
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-center py-24">
-                        <div className="bg-green-400 w-32 h-32 mx-auto mb-8 flex items-center justify-center border-8 border-black shadow-[12px_12px_0px_#22c55e]">
-                          <FileCheck className="w-16 h-16 text-black" />
+                      <div className="text-center py-16">
+                        <div className="w-24 h-24 mx-auto mb-6 bg-orange-100 rounded-full flex items-center justify-center">
+                          <Edit3 className="w-12 h-12 text-orange-600" />
                         </div>
-                        <h3 className="text-3xl font-black mb-4">NO TRANSCRIPT AVAILABLE</h3>
-                        <p className="text-gray-400 font-bold mb-8 text-lg">Upload documents to view their content</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Documents to Edit')}</h3>
+                        <p className="text-gray-600 mb-6">{t('Upload documents first to enable editing')}</p>
                         <Button
                           onClick={() => fileInputRef.current?.click()}
-                          className="bg-green-400 text-black border-6 border-black font-black text-xl px-12 py-6 shadow-[8px_8px_0px_#22c55e] hover:shadow-[12px_12px_0px_#22c55e] transition-all"
+                          size="lg"
                         >
-                          <Upload className="mr-3" size={24} />
-                          UPLOAD DOCUMENTS
+                          <Upload className="mr-2" size={20} />
+                          {t('Upload Documents')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Original Content Tab */}
+                {activeTab === 'original' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <FileText size={28} className="text-green-600" />
+                        {t('Original Content')}
+                      </h2>
+                    </div>
+
+                    {docs.length > 0 ? (
+                      <div className="space-y-4">
+                        {docs.map((doc) => (
+                          <div key={doc.id} className="border border-gray-200 rounded-lg">
+                            <div 
+                              className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+                              onClick={() => setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <File size={16} className="text-green-600" />
+                                <div>
+                                  <p className="font-medium">{doc.name}</p>
+                                  <p className="text-sm text-gray-500">{doc.type} • {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {doc.selected && (
+                                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    {t('Selected')}
+                                  </span>
+                                )}
+                                <ChevronRight 
+                                  size={16} 
+                                  className={`transform transition-transform ${
+                                    selectedDocForView === doc.id ? 'rotate-90' : ''
+                                  }`} 
+                                />
+                              </div>
+                            </div>
+                            
+                            <AnimatePresence>
+                              {selectedDocForView === doc.id && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="border-t border-gray-200"
+                                >
+                                  <div className="p-4 bg-gray-50">
+                                    <div className="max-h-64 overflow-y-auto">
+                                      <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+                                        {doc.text}
+                                      </pre>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-16">
+                        <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+                          <FileCheck className="w-12 h-12 text-green-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('No Documents Uploaded')}</h3>
+                        <p className="text-gray-600 mb-6">{t('Upload documents to view their original content')}</p>
+                        <Button
+                          onClick={() => fileInputRef.current?.click()}
+                          size="lg"
+                        >
+                          <Upload className="mr-2" size={20} />
+                          {t('Upload Documents')}
                         </Button>
                       </div>
                     )}
@@ -960,43 +1418,42 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
               </motion.div>
             </AnimatePresence>
           </div>
-        </main>
 
-        {/* AI Chat Panel */}
-        <AnimatePresence>
-          {showChat && (
-            <motion.aside
-              initial={{ x: 400, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 400, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="w-96 bg-gray-900 border-l-8 border-cyan-400 p-6 sticky top-0 h-screen overflow-y-auto"
-            >
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 bg-cyan-400 text-black flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_#22d3ee]">
-                      <MessageCircle className="w-8 h-8" />
+          {/* AI Chat Sidebar */}
+          <AnimatePresence>
+            {showChat && (
+              <motion.aside
+                initial={{ x: 300, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 300, opacity: 0 }}
+                className="w-80"
+              >
+                <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center">
+                        <MessageCircle className="w-6 h-6 text-cyan-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900">{t('AI Tutor')}</h3>
+                        <p className="text-sm text-gray-600">{t('Ask questions')}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black text-cyan-400">AI TUTOR</h3>
-                      <p className="text-gray-400 font-bold text-sm">ASK QUESTIONS</p>
-                    </div>
+                    <Button
+                      onClick={() => setShowChat(false)}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <X size={16} />
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => setShowChat(false)}
-                    size="sm"
-                    className="bg-red-400 text-black border-2 border-black hover:bg-red-500"
-                  >
-                    <X size={16} />
-                  </Button>
+                  
+                  <ChatBox contextText={combinedText} />
                 </div>
-              </div>
-
-              <ChatBox contextText={combinedText} />
-            </motion.aside>
-          )}
-        </AnimatePresence>
+              </motion.aside>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Drag and Drop Overlay */}
@@ -1006,15 +1463,15 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
             onDragOver={(e) => e.preventDefault()}
             onDragLeave={() => setDragActive(false)}
             onDrop={onDrop}
           >
-            <div className="bg-yellow-400 text-black border-8 border-black p-16 shadow-[24px_24px_0px_#fbbf24] text-center">
-              <Upload className="w-24 h-24 mx-auto mb-6" />
-              <h3 className="text-4xl font-black mb-4">DROP FILES HERE</h3>
-              <p className="text-xl font-bold">Release to upload documents</p>
+            <div className="bg-white rounded-xl p-12 text-center shadow-2xl">
+              <Upload className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('Drop Files Here')}</h3>
+              <p className="text-gray-600">{t('Release to upload documents')}</p>
             </div>
           </motion.div>
         )}
@@ -1025,6 +1482,7 @@ The Android Activity lifecycle includes several states: Created, Started, Resume
 
 // Enhanced Chat Box Component
 const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<{ role: 'user'|'assistant'; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1046,16 +1504,21 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
     setLoading(true);
     
     try {
-      // Mock AI response for demonstration
-      setTimeout(() => {
-        const mockResponse = "Based on your study materials, here's what I found: " + 
-          "Android Fragments are modular sections of an activity that have their own lifecycle. " +
-          "They're essential for creating flexible UIs that work across different screen sizes.";
-        setMessages(m => [...m, { role: 'assistant', content: mockResponse }]);
-        setLoading(false);
-      }, 1500);
+      // Mock AI response for demonstration - replace with your actual API
+      const response = await new Promise<string>((resolve) => {
+        setTimeout(() => {
+          if (contextText.trim()) {
+            resolve(`Based on your study materials, here's what I found: ${q.includes('fragment') ? 'Android Fragments are modular sections of an activity that have their own lifecycle.' : 'I can help you understand this topic better. Could you be more specific about what you\'d like to know?'}`);
+          } else {
+            resolve("Please upload and select some documents first so I can help you with your studies.");
+          }
+        }, 1000);
+      });
+      
+      setMessages(m => [...m, { role: 'assistant', content: response }]);
     } catch (e) {
-      setMessages(m => [...m, { role: 'assistant', content: 'Error fetching answer.' }]);
+      setMessages(m => [...m, { role: 'assistant', content: t('Error fetching answer.') }]);
+    } finally {
       setLoading(false);
     }
   };
@@ -1068,35 +1531,35 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
   };
 
   const suggestedQuestions = [
-    "What are the main topics?",
-    "Explain Android Fragments",
-    "Create a study plan",
-    "Summarize key points"
+    t('What are the main topics?'),
+    t('Explain key concepts'),
+    t('Create a study plan'),
+    t('Summarize important points')
   ];
 
   return (
     <div className="flex flex-col h-96">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 bg-black border-4 border-cyan-400 p-4">
+      <div className="flex-1 overflow-y-auto space-y-3 mb-4">
         {messages.length === 0 && !contextText ? (
           <div className="text-center py-8">
-            <div className="bg-gray-600 w-16 h-16 mx-auto mb-4 flex items-center justify-center border-4 border-black">
-              <MessageCircle className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <MessageCircle className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="font-black text-gray-400 mb-4">NO DOCUMENTS SELECTED</p>
-            <p className="text-xs text-gray-500 font-bold">Upload and select documents to chat</p>
+            <p className="font-medium text-gray-500 mb-4">{t('No Documents Selected')}</p>
+            <p className="text-xs text-gray-400">{t('Upload and select documents to chat')}</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="space-y-3">
-            <p className="font-black text-cyan-400 text-center mb-4">SUGGESTED QUESTIONS</p>
+            <p className="font-medium text-cyan-600 text-center mb-4">{t('Suggested Questions')}</p>
             {suggestedQuestions.map((question, index) => (
               <motion.button
                 key={index}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => setInput(question)}
-                className="block w-full text-left bg-gray-800 border-2 border-gray-600 hover:border-cyan-400 px-3 py-3 text-sm font-bold transition-all hover:shadow-[4px_4px_0px_#22d3ee] transform hover:translate-x-1"
+                className="block w-full text-left bg-gray-50 border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 px-3 py-3 rounded-lg text-sm transition-all"
               >
                 💡 {question}
               </motion.button>
@@ -1109,19 +1572,19 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`
-                p-4 border-4 font-bold
+                p-4 rounded-lg text-sm
                 ${message.role === 'user' 
-                  ? 'bg-cyan-400 text-black border-black ml-4 shadow-[6px_6px_0px_#22d3ee]' 
-                  : 'bg-black text-white border-cyan-400 mr-4 shadow-[6px_6px_0px_#22d3ee]'
+                  ? 'bg-cyan-500 text-white ml-8' 
+                  : 'bg-gray-100 text-gray-800 mr-8'
                 }
               `}
             >
-              <div className={`text-xs font-black mb-2 ${
-                message.role === 'user' ? 'text-black/70' : 'text-cyan-400'
+              <div className={`text-xs font-medium mb-1 ${
+                message.role === 'user' ? 'text-cyan-100' : 'text-gray-500'
               }`}>
-                {message.role === 'user' ? 'YOU' : 'AI TUTOR'}
+                {message.role === 'user' ? t('You') : t('AI Tutor')}
               </div>
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              <div className="whitespace-pre-wrap leading-relaxed">
                 {message.content}
               </div>
             </motion.div>
@@ -1132,16 +1595,16 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-black text-white border-4 border-cyan-400 p-4 mr-4 shadow-[6px_6px_0px_#22d3ee]"
+            className="bg-gray-100 text-gray-800 p-4 rounded-lg mr-8"
           >
-            <div className="text-xs font-black text-cyan-400 mb-2">AI TUTOR</div>
+            <div className="text-xs font-medium text-gray-500 mb-1">{t('AI Tutor')}</div>
             <div className="flex items-center gap-3">
               <div className="flex gap-1">
-                <div className="w-3 h-3 bg-cyan-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
-                <div className="w-3 h-3 bg-cyan-400 animate-bounce" style={{animationDelay: '150ms'}}></div>
-                <div className="w-3 h-3 bg-cyan-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
+                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
               </div>
-              <span className="text-sm font-bold">THINKING...</span>
+              <span className="text-sm">{t('Thinking...')}</span>
             </div>
           </motion.div>
         )}
@@ -1150,24 +1613,23 @@ const ChatBox: React.FC<{ contextText: string }> = ({ contextText }) => {
 
       {/* Input */}
       <div className="flex gap-2">
-        <Textarea
+        <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Ask AI assistant about your documents..."
-          className="bg-black border-4 border-cyan-400 text-white font-mono font-bold focus:border-cyan-400 shadow-[4px_4px_0px_#22d3ee] resize-none"
-          rows={3}
+          placeholder={t('Ask AI assistant...')}
+          className="flex-1"
           disabled={loading || !contextText}
         />
         <Button
           onClick={ask}
           disabled={loading || !input.trim() || !contextText}
-          className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[6px_6px_0px_#22d3ee] px-6 self-end"
+          size="sm"
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
           ) : (
-            <ArrowRight size={20} />
+            <ArrowRight size={16} />
           )}
         </Button>
       </div>
