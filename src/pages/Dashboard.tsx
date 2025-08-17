@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
@@ -36,6 +36,24 @@ const Dashboard = () => {
   const [isNewUser, setIsNewUser] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
+  // --- MOCK DATA SNIPPET ---
+  const mockStats = useMemo(() => ({
+    total_study_time: 125, // Mock: 2 hours and 5 minutes
+    learning_milestones: 7,
+    average_quiz_score: 88,
+    notes_created: 12,
+    sessions_this_month: 5,
+    flashcards_created: 21,
+    quizzes_taken: 3,
+    math_chat_sessions: 8,
+    audio_recaps_created: 2,
+    doubt_chains_used: 4,
+  }), []);
+
+  // Use mock data if the user is new and no stats are available
+  const displayedStats = (stats && Object.keys(stats).length > 0) ? stats : mockStats;
+  // --- END OF MOCK DATA SNIPPET ---
+
   const toggleTheme = useCallback(() => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   }, []);
@@ -51,19 +69,18 @@ const Dashboard = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    // Determine if the user is new based on their stats
-    if (!statsLoading && stats) {
-      const hasStats = stats.total_study_time > 0 ||
-                       stats.learning_milestones > 0 ||
-                       stats.notes_created > 0 ||
-                       stats.quizzes_taken > 0 ||
-                       stats.flashcards_created > 0 ||
-                       stats.math_chat_sessions > 0 ||
-                       stats.audio_recaps_created > 0 ||
-                       stats.doubt_chains_used > 0;
-      setIsNewUser(!hasStats);
-    }
-  }, [stats, statsLoading]);
+    // Check if user has any stats to determine if they are new
+    const hasStats = stats && (stats.total_study_time > 0 ||
+                     stats.learning_milestones > 0 ||
+                     stats.notes_created > 0 ||
+                     stats.quizzes_taken > 0 ||
+                     stats.flashcards_created > 0 ||
+                     stats.math_chat_sessions > 0 ||
+                     stats.audio_recaps_created > 0 ||
+                     stats.doubt_chains_used > 0);
+    
+    setIsNewUser(!hasStats);
+  }, [stats]);
 
   const getUserDisplayName = useCallback(() => {
     if (user?.displayName) return user.displayName;
@@ -76,7 +93,7 @@ const Dashboard = () => {
     return isNewUser ? `${t('dashboard.welcomeNew', { name })} 🎉` : `${t('dashboard.welcomeBack', { name })} 👋`;
   }, [getUserDisplayName, isNewUser, t]);
 
-  const formatStudyTime = (minutes: number) => {
+  const formatStudyTime = (minutes) => {
     if (minutes < 60) return `${minutes}${t('dashboard.min')}`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = Math.round(minutes % 60);
@@ -118,42 +135,42 @@ const Dashboard = () => {
       title: t('navigation.aiNotes'), 
       desc: t('dashboard.aiNotesDesc'), 
       route: "/ai-notes", 
-      count: stats?.notes_created || 0 
+      count: displayedStats?.notes_created || 0 
     },
     { 
       icon: MessageCircle, 
       title: t('navigation.mathChat'), 
       desc: t('dashboard.mathChatDesc'), 
       route: "/math-chat", 
-      count: stats?.math_chat_sessions || 0 
+      count: displayedStats?.math_chat_sessions || 0 
     },
     { 
       icon: Users, 
       title: t('navigation.audioRecap'), 
       desc: t('dashboard.audioRecapDesc'), 
       route: "/audio-notes", 
-      count: stats?.audio_recaps_created || 0 
+      count: displayedStats?.audio_recaps_created || 0 
     },
     { 
       icon: HelpCircle, 
       title: t('navigation.doubtChain'), 
       desc: t('dashboard.doubtChainDesc'), 
       route: "/doubt-chain", 
-      count: stats?.doubt_chains_used || 0 
+      count: displayedStats?.doubt_chains_used || 0 
     },
     { 
       icon: Zap, 
       title: t('navigation.flashcards'), 
       desc: t('dashboard.flashcardsDesc'), 
       route: "/flashcards", 
-      count: stats?.flashcards_created || 0 
+      count: displayedStats?.flashcards_created || 0 
     },
     { 
       icon: BookOpen, 
       title: t('navigation.quiz'), 
       desc: t('dashboard.quizDesc'), 
       route: "/quiz", 
-      count: stats?.quizzes_taken || 0 
+      count: displayedStats?.quizzes_taken || 0 
     }
   ];
 
@@ -181,14 +198,12 @@ const Dashboard = () => {
             transition={{ duration: 0.3 }}
             className="mb-8"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight">
-                {getWelcomeMessage()}
-              </h1>
-              <p className={`text-lg ${mutedTextClasses}`}>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight">
+              {getWelcomeMessage()}
+            </h1>
+            <p className={`text-lg ${mutedTextClasses}`}>
               {t('dashboard.subtitle')}
             </p>
-            </div>
           </motion.div>
           
           {isNewUser ? (
@@ -235,28 +250,28 @@ const Dashboard = () => {
                 {[
                   { 
                     title: t('dashboard.studyTime'), 
-                    value: formatStudyTime(stats?.total_study_time || 0), 
+                    value: formatStudyTime(displayedStats?.total_study_time || 0), 
                     icon: Clock, 
-                    trend: `${stats?.sessions_this_month || 0} ${t('dashboard.sessions')}`, 
+                    trend: `${displayedStats?.sessions_this_month || 0} ${t('dashboard.sessions')}`, 
                     accent: '#00e6c4' 
                   },
                   { 
                     title: t('dashboard.milestones'), 
-                    value: stats?.learning_milestones || 0, 
+                    value: displayedStats?.learning_milestones || 0, 
                     icon: Award, 
                     trend: t('dashboard.totalAchievements'), 
                     accent: '#ff5a8f' 
                   },
                   { 
                     title: t('dashboard.quizScore'), 
-                    value: `${stats?.average_quiz_score || 0}%`, 
+                    value: `${displayedStats?.average_quiz_score || 0}%`, 
                     icon: CheckCircle, 
-                    trend: `${stats?.quizzes_taken || 0} ${t('dashboard.completed')}`, 
+                    trend: `${displayedStats?.quizzes_taken || 0} ${t('dashboard.completed')}`, 
                     accent: '#00e6c4' 
                   },
                   { 
                     title: t('dashboard.aiNotes'), 
-                    value: stats?.notes_created || 0, 
+                    value: displayedStats?.notes_created || 0, 
                     icon: Sparkles, 
                     trend: t('dashboard.notesGenerated'), 
                     accent: '#ff5a8f' 
