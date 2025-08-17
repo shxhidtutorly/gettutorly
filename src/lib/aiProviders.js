@@ -184,7 +184,10 @@ class AIProviderManager {
       // OpenRouter
       'mistralai/mistral-7b-instruct:free': 'openrouter',
       // Mistral
-      'mistral-large-latest': 'mistral',
+        'mistral-medium-2508': 'mistral',
+        'mistral-small-2507': 'mistral',
+        'magistral-medium-2507': 'mistral',
+        'codestral-2508': 'mistral',
       // Cerebras
       'gpt-oss-120b': 'cerebras',
       // Nvidia
