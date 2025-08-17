@@ -16,9 +16,443 @@ import {
   BookOpen,
   CreditCard,
 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, createContext, useContext } from "react"
+import { motion, useScroll, useTransform, MotionValue, animate } from "framer-motion"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
+import { cn } from "@/lib/utils"
+
+// Testimonials Column Component
+export const TestimonialsColumn = (props: {
+  className?: string;
+  testimonials: typeof testimonials;
+  duration?: number;
+}) => {
+  return (
+    <div className={props.className}>
+      <motion.div
+        animate={{
+          translateY: "-50%",
+        }}
+        transition={{
+          duration: props.duration || 10,
+          repeat: Infinity,
+          ease: "linear",
+          repeatType: "loop",
+        }}
+        className="flex flex-col gap-6 pb-6 bg-background"
+      >
+        {[
+          ...new Array(2).fill(0).map((_, index) => (
+            <div key={index}>
+              {props.testimonials.map(({ text, image, name, role }, i) => (
+                <div className="p-6 rounded-xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white max-w-xs w-full mb-6" key={i}>
+                  <div className="font-bold text-sm text-black">{text}</div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <img
+                      width={40}
+                      height={40}
+                      src={image}
+                      alt={name}
+                      className="h-10 w-10 rounded-full border-2 border-black"
+                    />
+                    <div className="flex flex-col">
+                      <div className="font-black tracking-tight leading-5 text-black">{name}</div>
+                      <div className="leading-5 opacity-60 tracking-tight font-bold text-sm text-black">{role}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )),
+        ]}
+      </motion.div>
+    </div>
+  );
+};
+
+// Text Gradient Scroll Context
+type TextOpacityEnum = "none" | "soft" | "medium";
+type ViewTypeEnum = "word" | "letter";
+
+type TextGradientScrollContextType = {
+  textOpacity?: TextOpacityEnum;
+  type?: ViewTypeEnum;
+};
+
+const TextGradientScrollContext = createContext<TextGradientScrollContextType>({});
+
+function useGradientScroll() {
+  const context = useContext(TextGradientScrollContext);
+  return context;
+}
+
+// Text Components
+const Word = ({ children, progress, range }: { children: React.ReactNode; progress: MotionValue<number>; range: number[] }) => {
+  const opacity = useTransform(progress, range, [0, 1]);
+  return (
+    <span className="relative me-2 mt-2">
+      <span style={{ position: "absolute", opacity: 0.1 }}>{children}</span>
+      <motion.span style={{ transition: "all .5s", opacity: opacity }}>
+        {children}
+      </motion.span>
+    </span>
+  );
+};
+
+const Char = ({ children, progress, range }: { children: React.ReactNode; progress: MotionValue<number>; range: number[] }) => {
+  const opacity = useTransform(progress, range, [0, 1]);
+  const { textOpacity } = useGradientScroll();
+  return (
+    <span>
+      <span
+        className={cn("absolute", {
+          "opacity-0": textOpacity === "none",
+          "opacity-10": textOpacity === "soft",
+          "opacity-30": textOpacity === "medium",
+        })}
+      >
+        {children}
+      </span>
+      <motion.span
+        style={{
+          transition: "all .5s",
+          opacity: opacity,
+        }}
+      >
+        {children}
+      </motion.span>
+    </span>
+  );
+};
+
+const Letter = ({ children, progress, range }: { children: React.ReactNode; progress: MotionValue<number>; range: number[] }) => {
+  if (typeof children === "string") {
+    const amount = range[1] - range[0];
+    const step = amount / children.length;
+    return (
+      <span className="relative me-2 mt-2">
+        {children.split("").map((char: string, i: number) => {
+          const start = range[0] + i * step;
+          const end = range[0] + (i + 1) * step;
+          return (
+            <Char key={`c_${i}`} progress={progress} range={[start, end]}>
+              {char}
+            </Char>
+          );
+        })}
+      </span>
+    );
+  }
+  return null;
+};
+
+// Text Gradient Scroll Component
+function TextGradientScroll({
+  text,
+  className,
+  type = "letter",
+  textOpacity = "soft",
+}: {
+  text: string;
+  type?: ViewTypeEnum;
+  className?: string;
+  textOpacity?: TextOpacityEnum;
+}) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start center", "end center"],
+  });
+  const words = text.split(" ");
+  
+  return (
+    <TextGradientScrollContext.Provider value={{ textOpacity, type }}>
+      <p ref={ref} className={cn("relative flex m-0 flex-wrap", className)}>
+        {words.map((word, i) => {
+          const start = i / words.length;
+          const end = start + 1 / words.length;
+          return type === "word" ? (
+            <Word key={i} progress={scrollYProgress} range={[start, end]}>
+              {word}
+            </Word>
+          ) : (
+            <Letter key={i} progress={scrollYProgress} range={[start, end]}>
+              {word}
+            </Letter>
+          );
+        })}
+      </p>
+    </TextGradientScrollContext.Provider>
+  );
+}
+
+// Animated Card Component
+interface AnimatedCardProps {
+  className?: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  icons?: Array<{
+    icon: React.ReactNode
+    size?: "sm" | "md" | "lg"
+    className?: string
+  }>
+}
+
+const sizeMap = {
+  sm: "h-8 w-8",
+  md: "h-12 w-12",
+  lg: "h-16 w-16",
+}
+
+export function AnimatedCard({ className, title, description, icons = [] }: AnimatedCardProps) {
+  return (
+    <div
+      className={cn(
+        "max-w-sm w-full mx-auto p-8 rounded-xl border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] group",
+        className
+      )}
+    >
+      <div
+        className={cn(
+          "h-[15rem] md:h-[20rem] rounded-xl z-40",
+          "bg-neutral-50 [mask-image:radial-gradient(50%_50%_at_50%_50%,white_0%,transparent_100%)]"
+        )}
+      >
+        <AnimatedIcons icons={icons} />
+      </div>
+      {title && (
+        <h3 className="text-lg font-black text-black py-2">
+          {title}
+        </h3>
+      )}
+      {description && (
+        <p className="text-sm font-bold text-black max-w-sm">
+          {description}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function AnimatedIcons({ icons }: { icons: AnimatedCardProps["icons"] }) {
+  const scale = [1, 1.1, 1]
+  const transform = ["translateY(0px)", "translateY(-4px)", "translateY(0px)"]
+  
+  const sequence = icons.map((_, index) => [
+    `.circle-${index + 1}`,
+    { scale, transform },
+    { duration: 0.8 },
+  ])
+
+  useEffect(() => {
+    animate(sequence, {
+      repeat: Infinity,
+      repeatDelay: 1,
+    })
+  }, [])
+
+  return (
+    <div className="p-8 overflow-hidden h-full relative flex items-center justify-center">
+      <div className="flex flex-row flex-shrink-0 justify-center items-center gap-2">
+        {icons.map((icon, index) => (
+          <Container
+            key={index}
+            className={cn(
+              sizeMap[icon.size || "lg"],
+              `circle-${index + 1}`,
+              icon.className
+            )}
+          >
+            {icon.icon}
+          </Container>
+        ))}
+      </div>
+      <AnimatedSparkles />
+    </div>
+  )
+}
+
+const Container = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      `rounded-full flex items-center justify-center bg-white border-4 border-black
+      shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`,
+      className
+    )}
+    {...props}
+  />
+))
+Container.displayName = "Container"
+
+const AnimatedSparkles = () => (
+  <div className="h-40 w-px absolute top-20 m-auto z-40 bg-gradient-to-b from-transparent via-purple-500 to-transparent animate-move">
+    <div className="w-10 h-32 top-1/2 -translate-y-1/2 absolute -left-10">
+      <Sparkles />
+    </div>
+  </div>
+)
+
+const Sparkles = () => {
+  const randomMove = () => Math.random() * 2 - 1
+  const randomOpacity = () => Math.random()
+  const random = () => Math.random()
+
+  return (
+    <div className="absolute inset-0">
+      {[...Array(12)].map((_, i) => (
+        <motion.span
+          key={`star-${i}`}
+          animate={{
+            top: `calc(${random() * 100}% + ${randomMove()}px)`,
+            left: `calc(${random() * 100}% + ${randomMove()}px)`,
+            opacity: randomOpacity(),
+            scale: [1, 1.2, 0],
+          }}
+          transition={{
+            duration: random() * 2 + 4,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          style={{
+            position: "absolute",
+            top: `${random() * 100}%`,
+            left: `${random() * 100}%`,
+            width: `2px`,
+            height: `2px`,
+            borderRadius: "50%",
+            zIndex: 1,
+          }}
+          className="inline-block bg-black"
+        />
+      ))}
+    </div>
+  )
+}
+
+// AI Logo Components
+const ClaudeLogo = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    shapeRendering="geometricPrecision"
+    textRendering="geometricPrecision"
+    imageRendering="optimizeQuality"
+    fillRule="evenodd"
+    clipRule="evenodd"
+    viewBox="0 0 512 512"
+    className={className}
+  >
+    <rect fill="#CC9B7A" width="512" height="512" rx="104.187" ry="105.042" />
+    <path
+      fill="#1F1F1E"
+      fillRule="nonzero"
+      d="M318.663 149.787h-43.368l78.952 212.423 43.368.004-78.952-212.427zm-125.326 0l-78.952 212.427h44.255l15.932-44.608 82.846-.004 16.107 44.612h44.255l-79.126-212.427h-45.317zm-4.251 128.341l26.91-74.701 27.083 74.701h-53.993z"
+    />
+  </svg>
+)
+
+const OpenAILogo = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    width="28"
+    viewBox="0 0 28 28"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M26.153 11.46a6.888 6.888 0 0 0-.608-5.73 7.117 7.117 0 0 0-3.29-2.93 7.238 7.238 0 0 0-4.41-.454 7.065 7.065 0 0 0-2.41-1.742A7.15 7.15 0 0 0 12.514 0a7.216 7.216 0 0 0-4.217 1.346 7.061 7.061 0 0 0-2.603 3.539 7.12 7.12 0 0 0-2.734 1.188A7.012 7.012 0 0 0 .966 8.268a6.979 6.979 0 0 0 .88 8.273 6.89 6.89 0 0 0 .607 5.729 7.117 7.117 0 0 0 3.29 2.93 7.238 7.238 0 0 0 4.41.454 7.061 7.061 0 0 0 2.409 1.742c.92.404 1.916.61 2.923.604a7.215 7.215 0 0 0 4.22-1.345 7.06 7.06 0 0 0 2.605-3.543 7.116 7.116 0 0 0 2.734-1.187 7.01 7.01 0 0 0 1.993-2.196 6.978 6.978 0 0 0-.884-8.27Zm-10.61 14.71c-1.412 0-2.505-.428-3.46-1.215.043-.023.119-.064.168-.094l5.65-3.22a.911.911 0 0 0 .464-.793v-7.86l2.389 1.36a.087.087 0 0 1 .046.065v6.508c0 2.952-2.491 5.248-5.257 5.248ZM4.062 21.354a5.17 5.17 0 0 1-.635-3.516c.042.025.115.07.168.1l5.65 3.22a.928.928 0 0 0 .928 0l6.898-3.93v2.72a.083.083 0 0 1-.034.072l-5.711 3.255a5.386 5.386 0 0 1-4.035.522 5.315 5.315 0 0 1-3.23-2.443ZM2.573 9.184a5.283 5.283 0 0 1 2.768-2.301V13.515a.895.895 0 0 0 .464.793l6.897 3.93-2.388 1.36a.087.087 0 0 1-.08.008L4.52 16.349a5.262 5.262 0 0 1-2.475-3.185 5.192 5.192 0 0 1 .527-3.98Zm19.623 4.506-6.898-3.93 2.388-1.36a.087.087 0 0 1 .08-.008l5.713 3.255a5.28 5.28 0 0 1 2.054 2.118 5.19 5.19 0 0 1-.488 5.608 5.314 5.314 0 0 1-2.39 1.742v-6.633a.896.896 0 0 0-.459-.792Zm2.377-3.533a7.973 7.973 0 0 0-.168-.099l-5.65-3.22a.93.93 0 0 0-.928 0l-6.898 3.93V8.046a.083.083 0 0 1 .034-.072l5.712-3.251a5.375 5.375 0 0 1 5.698.241 5.262 5.262 0 0 1 1.865 2.28c.39.92.506 1.93.335 2.913ZM9.631 15.009l-2.39-1.36a.083.083 0 0 1-.046-.065V7.075c.001-.997.29-1.973.832-2.814a5.297 5.297 0 0 1 2.231-1.935 5.382 5.382 0 0 1 5.659.72 4.89 4.89 0 0 0-.168.093l-5.65 3.22a.913.913 0 0 0-.465.793l-.003 7.857Zm1.297-2.76L14 10.5l3.072 1.75v3.5L14 17.499l-3.072-1.75v-3.5Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
+const GeminiLogo = ({ className }: { className?: string }) => (
+  <svg
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 16 16"
+    className={className}
+  >
+    <path
+      d="M16 8.016A8.522 8.522 0 008.016 16h-.032A8.521 8.521 0 000 8.016v-.032A8.521 8.521 0 007.984 0h.032A8.522 8.522 0 0016 7.984v.032z"
+      fill="url(#prefix__paint0_radial_980_20147)"
+    />
+    <defs>
+      <radialGradient
+        id="prefix__paint0_radial_980_20147"
+        cx="0"
+        cy="0"
+        r="1"
+        gradientUnits="userSpaceOnUse"
+        gradientTransform="matrix(16.1326 5.4553 -43.70045 129.2322 1.588 6.503)"
+      >
+        <stop offset=".067" stopColor="#9168C0" />
+        <stop offset=".343" stopColor="#5684D1" />
+        <stop offset=".672" stopColor="#1BA1E3" />
+      </radialGradient>
+    </defs>
+  </svg>
+)
+
+// Testimonials data
+const testimonials = [
+  {
+    text: "Tutorly's AI notes feature transformed my study sessions! It converts my messy lecture recordings into perfectly organized summaries in minutes.",
+    image: "https://randomuser.me/api/portraits/women/1.jpg",
+    name: "Emily Johnson",
+    role: "Computer Science Student",
+  },
+  {
+    text: "The math chat is incredible! It breaks down complex calculus problems step-by-step, making everything so much clearer than my textbook.",
+    image: "https://randomuser.me/api/portraits/men/2.jpg",
+    name: "Michael Chen",
+    role: "Engineering Student",
+  },
+  {
+    text: "I love how Tutorly creates flashcards automatically from my readings. It's like having a personal tutor that knows exactly what I need to study.",
+    image: "https://randomuser.me/api/portraits/women/3.jpg",
+    name: "Sarah Williams",
+    role: "Pre-Med Student",
+  },
+  {
+    text: "The AI quiz feature helped me ace my finals! It generates practice tests from my notes and identifies my weak spots perfectly.",
+    image: "https://randomuser.me/api/portraits/men/4.jpg",
+    name: "David Rodriguez",
+    role: "Business Student",
+  },
+  {
+    text: "Audio recap is a game-changer! I can turn hour-long lectures into concise summaries while commuting. Tutorly saves me so much time.",
+    image: "https://randomuser.me/api/portraits/women/5.jpg",
+    name: "Jessica Martinez",
+    role: "Psychology Student",
+  },
+  {
+    text: "The doubt solver feature is amazing! When I'm stuck on complex topics, Tutorly breaks them down into simple, digestible concepts.",
+    image: "https://randomuser.me/api/portraits/women/6.jpg",
+    name: "Amanda Davis",
+    role: "Biology Student",
+  },
+  {
+    text: "Tutorly's AI chat understands my questions perfectly and provides detailed explanations. It's like having office hours 24/7!",
+    image: "https://randomuser.me/api/portraits/men/7.jpg",
+    name: "James Wilson",
+    role: "Physics Student",
+  },
+  {
+    text: "The AI summaries are spot-on! They capture all the key points from lengthy research papers and make studying so much more efficient.",
+    image: "https://randomuser.me/api/portraits/women/8.jpg",
+    name: "Rachel Brown",
+    role: "Literature Student",
+  },
+];
+
+const firstColumn = testimonials.slice(0, 3);
+const secondColumn = testimonials.slice(3, 6);
+const thirdColumn = testimonials.slice(6, 8);
 
 export default function LandingPage() {
   const [stickyNav, setStickyNav] = useState(false)
@@ -29,11 +463,7 @@ export default function LandingPage() {
   const [heroLoaded, setHeroLoaded] = useState(false)
   const [billingCycle, setBillingCycle] = useState('monthly');
 
- 
-
-
   useEffect(() => {
-    // Immediate hero load with fade-in animation
     setHeroLoaded(true)
 
     const interval = setInterval(() => {
@@ -44,13 +474,11 @@ export default function LandingPage() {
   }, [])
 
   useEffect(() => {
-    // Immediate hero load with fade-in animation
     setHeroLoaded(true)
 
     const handleScroll = () => {
       setStickyNav(window.scrollY > 100)
 
-      // Scroll-triggered animations
       const elements = document.querySelectorAll(
         ".scroll-fade-in, .scroll-slide-left, .scroll-slide-right, .scroll-scale-in",
       )
@@ -162,7 +590,7 @@ export default function LandingPage() {
               <a href="#faq" className="font-black hover:text-purple-500 transition-colors text-sm">
                 FAQ
               </a>
-              <a href="/sgnin" className="font-black hover:text-purple-500 transition-colors text-sm">
+              <a href="/signin" className="font-black hover:text-purple-500 transition-colors text-sm">
                 SIGNIN
               </a>
               <a href="/support" className="font-black hover:text-purple-500 transition-colors text-sm">
@@ -178,7 +606,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section - Immediate render with fade-in */}
+      {/* Hero Section */}
       <section
         id="hero"
         className={`bg-white py-20 md:py-32 relative transition-opacity duration-1000 ${
@@ -208,7 +636,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Centered Single Button */}
             <div className="flex justify-center">
               <a href="/signup">
                 <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
@@ -245,7 +672,7 @@ export default function LandingPage() {
       <section className="bg-gray-50 py-20 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Everything You Need to Excel</h2>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Everything You Need to Excel</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-6"></div>
             <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
               Powerful AI tools designed for modern learners
@@ -305,7 +732,7 @@ export default function LandingPage() {
             ].map((feature, index) => (
               <a key={index} href={feature.href}>
                 <div
-                  className={`${feature.bg} ${feature.textColor} p-8 brutal-border hover-scale hover-lift transition-all cursor-pointer scroll-scale-in`}
+                  className={`${feature.bg} ${feature.textColor} p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all cursor-pointer scroll-scale-in`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <feature.icon className="w-12 h-12 mb-4" />
@@ -322,7 +749,7 @@ export default function LandingPage() {
 
           <div className="text-center scroll-fade-in">
             <a href="/features">
-              <Button className="bg-gray-800 text-white font-black text-lg px-8 py-4 brutal-button hover:bg-gray-700">
+              <Button className="bg-gray-800 text-white font-black text-lg px-8 py-4 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all">
                 SEE ALL FEATURES
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -331,301 +758,267 @@ export default function LandingPage() {
         </div>
       </section>
 
- {/* Trusted By Universities Section */}
-<section className="bg-white py-20 overflow-hidden">
-  <div className="max-w-7xl mx-auto px-4">
-    <div className="text-center mb-16 scroll-fade-in">
-      <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
-        Loved by students from top global universities
-      </h2>
-      <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
-    </div>
-
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-      {[
-        {
-          name: "MIT",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp",
-        },
-        {
-          name: "Stanford University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp",
-        },
-        {
-          name: "University of Pennsylvania",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp",
-        },
-        {
-          name: "Yale University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp",
-        },
-        {
-          name: "University of Cambridge (UOC)",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp",
-        },
-        {
-          name: "Tokyo University of Medicine",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp",
-        },
-        {
-          name: "University of Toronto",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg",
-        },
-        {
-          name: "Harvard University",
-          logo:
-            "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
-        },
-      ].map((university, index) => (
-        <div
-          key={index}
-          className="flex items-center justify-center p-6 bg-white brutal-border hover-scale hover-lift transition-all duration-300 scroll-slide-left"
-          style={{ animationDelay: `${index * 0.1}s` }}
-        >
-          <img
-            src={university.logo}
-            alt={university.name}
-            className="h-16 w-auto object-contain transition-all duration-300 hover:scale-110"
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-</section>
-
-
-      {/* Enhanced Testimonials Section */}
-      <section className="bg-gray-50 py-20">
+      {/* Trusted By Universities Section */}
+      <section className="bg-white py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Trusted by Students Worldwide</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
+              Loved by students from top global universities
+            </h2>
+            <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
             {[
               {
-                name: "Alice Chen",
-                role: "Computer Science Student",
-                quote: "Feels like a real tutor 24/7",
-                avatar: "A",
-                bg: "bg-white",
-                textColor: "text-black",
+                name: "MIT",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp",
               },
               {
-                name: "Shahid afrid",
-                role: "Engineering Student",
-                quote: "AI summaries saved me hours",
-                avatar: "B",
-                bg: "bg-purple-500",
-                textColor: "text-white",
+                name: "Stanford University",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/standford-logo%20(1).webp",
               },
               {
-                name: "Charlie Kim",
-                role: "Pre-Med Student",
-                quote: "Flashcards helped me retain better",
-                avatar: "C",
-                bg: "bg-blue-600",
-                textColor: "text-white",
+                name: "University of Pennsylvania",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/penn-uop-logo.webp",
               },
               {
-                name: "Diana Patel",
-                role: "Business Student",
-                quote: "Turns lectures into notes instantly",
-                avatar: "D",
-                bg: "bg-green-600",
-                textColor: "text-white",
+                name: "Yale University",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/yu-logo.webp",
               },
               {
-                name: "Eve Johnson",
-                role: "Psychology Student",
-                quote: "Audio recaps saved my study time",
-                avatar: "E",
-                bg: "bg-orange-500",
-                textColor: "text-white",
+                name: "University of Cambridge (UOC)",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/uoc-logo.webp",
               },
               {
-                name: "Frank Wilson",
-                role: "Math Student",
-                quote: "Math explanations are super clear",
-                avatar: "F",
-                bg: "bg-red-500",
-                textColor: "text-white",
+                name: "Tokyo University of Medicine",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tuom-logo.webp",
               },
               {
-                name: "Grace Liu",
-                role: "Biology Student",
-                quote: "Everything is organized in one place",
-                avatar: "G",
-                bg: "bg-indigo-600",
-                textColor: "text-white",
+                name: "University of Toronto",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/tos-uni-logo%20(1).svg",
               },
               {
-                name: "Henry Davis",
-                role: "Physics Student",
-                quote: "Love the personalized help!",
-                avatar: "H",
-                bg: "bg-pink-500",
-                textColor: "text-white",
+                name: "Harvard University",
+                logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png",
               },
-            ].map((testimonial, index) => (
+            ].map((university, index) => (
               <div
                 key={index}
-                className={`${testimonial.bg} ${testimonial.textColor} p-6 brutal-border hover-scale hover-lift scroll-slide-right`}
+                className="flex items-center justify-center p-6 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all duration-300 scroll-slide-left"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="flex items-center mb-4">
-                  <div className="w-16 h-16 bg-purple-500 text-white brutal-border flex items-center justify-center font-black text-xl mr-4 rounded-full">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <div className="font-black text-base">{testimonial.name}</div>
-                    <div className="font-bold text-xs opacity-75">{testimonial.role}</div>
-                  </div>
-                </div>
-                <p className="font-bold mb-3 text-sm">"{testimonial.quote}"</p>
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
-                  ))}
-                </div>
+                <img
+                  src={university.logo}
+                  alt={university.name}
+                  className="h-16 w-auto object-contain transition-all duration-300 hover:scale-110"
+                />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-       {/* Fixed Pricing Section */}
-   <section className="bg-stone-50 py-20" id="pricing">
-  <div className="max-w-7xl mx-auto px-4">
-    <div className="text-center mb-8">
-      <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Choose Your Plan</h2>
-      <div className="w-32 h-2 bg-black mx-auto"></div>
-    </div>
-    
-    <div className="flex justify-center items-center my-12">
-      <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-stone-400'}`}>Monthly</span>
-      <label className="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" value="" className="sr-only peer" onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')} checked={billingCycle === 'annually'} />
-        <div className={`w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-2 after:bg-black after:border after:rounded-full after:h-7 after:w-7 after:transition-all after:duration-300 after:ease-in-out`}></div>
-      </label>
-      <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
-      <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
-    </div>
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-  {[
-    {
-      name: "BASIC",
-      desc: "Essential tools to get started",
-      price: "$9",
-      features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
-      notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
-      bg: "bg-white text-black", // BASIC card is white with black text
-      cta: "TRY FREE",
-    },
-    {
-      name: "PRO",
-      desc: "Full features + unlimited usage",
-      price: "$19",
-      features: [
-        "Unlimited Everything",
-        "Priority Support",
-        "Advanced Analytics",
-        "Export Options",
-        "Audio Recap",
-        "Math Solver",
-      ],
-      notIncluded: [],
-      bg: "bg-purple-500 text-white", // PRO card is purple with white text
-      popular: true,
-      cta: "TRY FREE",
-    },
-    {
-      name: "TEAM",
-      desc: "For groups/institutions",
-      price: "$49",
-      features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
-      notIncluded: [],
-      bg: "bg-blue-600 text-white", // TEAM card is blue with white text
-      cta: "TRY FREE",
-    },
-  ].map((plan, index) => (
-    <div
-      key={index}
-      className={`${plan.bg} p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all duration-300 h-full flex flex-col`}
-    >
-      {plan.popular && (
-        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-          <Badge className="bg-gray-800 text-white font-black px-6 py-2 border-2 border-black text-sm">
-            🔥 POPULAR
-          </Badge>
+      {/* Text Gradient Scroll Section */}
+      <section className="bg-gray-50 py-32">
+        <div className="max-w-4xl mx-auto px-4">
+          <TextGradientScroll
+            text="Tutorly is your all-in-one AI-powered study assistant, built to make learning smarter and more efficient. Upload your notes, lectures, or readings, and instantly receive well-structured summaries that save you hours of review. With just one click, Tutorly transforms key concepts into interactive flashcards and personalized quizzes, helping you practice smarter and retain knowledge longer. Unlike traditional study tools, Tutorly adapts to your learning style, ensuring that every session is focused, productive, and stress-free. From simplifying complex topics to keeping you exam-ready, Tutorly is designed to give students the confidence and tools they need to succeed."
+            className="text-3xl md:text-4xl lg:text-5xl font-black text-center leading-relaxed"
+            type="word"
+            textOpacity="soft"
+          />
         </div>
-      )}
-      <div className="text-center mb-6 pt-8">
-        <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
-        <p className="font-bold mb-4 text-base">{plan.desc}</p>
-        <div className="text-5xl font-black">{plan.price}</div>
-        <div className="text-base font-bold">/month</div>
-      </div>
-         <div className="space-y-3 mb-8 flex-grow">
-        {plan.features.map((feature, idx) => (
-          <div key={idx} className="flex items-center">
-            <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-400" />
-            <span className="font-bold text-sm">{feature}</span>
+      </section>
+
+      {/* Animated Card with AI Models */}
+      <section className="bg-white py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Powered by Leading AI Models</h2>
+            <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
+            <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
+              Built with the most advanced AI technologies for unmatched learning experience
+            </p>
           </div>
-        ))}
-        {plan.notIncluded.map((feature, idx) => (
-          <div key={idx} className="flex items-center opacity-50">
-            <div className="w-5 h-5 mr-3 flex-shrink-0 text-red-400 font-black">✕</div>
-            <span className="font-bold line-through text-sm">{feature}</span>
+          
+          <div className="flex justify-center">
+            <AnimatedCard
+              title="Next-Gen AI Technology"
+              description="Tutorly leverages cutting-edge AI models to deliver personalized, intelligent learning experiences tailored to your unique study needs."
+              icons={[
+                {
+                  icon: <ClaudeLogo className="h-4 w-4" />,
+                  size: "sm",
+                },
+                {
+                  icon: <OpenAILogo className="h-6 w-6 text-black" />,
+                  size: "md",
+                },
+                {
+                  icon: <GeminiLogo className="h-8 w-8 text-black" />,
+                  size: "lg",
+                },
+                {
+                  icon: <Brain className="h-6 w-6 text-purple-500" />,
+                  size: "md",
+                },
+                {
+                  icon: <MessageSquare className="h-4 w-4 text-blue-500" />,
+                  size: "sm",
+                },
+              ]}
+            />
           </div>
-        ))}
-      </div>
-      <a href="/signup">
-        <Button className="w-full font-black py-4 mt-auto bg-purple-500 text-white hover:bg-purple-600 border-2 border-black">
-          {plan.cta}
-        </Button>
-      </a>
-    </div>
-  ))}
-</div>
-  </div>
-</section>
+        </div>
+      </section>
+
+      {/* Enhanced Testimonials Section */}
+      <section className="bg-gray-50 py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">What Students Are Saying</h2>
+            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+          </div>
+
+          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[740px] overflow-hidden">
+            <TestimonialsColumn testimonials={firstColumn} duration={15} />
+            <TestimonialsColumn testimonials={secondColumn} className="hidden md:block" duration={19} />
+            <TestimonialsColumn testimonials={thirdColumn} className="hidden lg:block" duration={17} />
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="bg-white py-20" id="pricing">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase text-black">Choose Your Plan</h2>
+            <div className="w-32 h-2 bg-black mx-auto"></div>
+          </div>
+          
+          <div className="flex justify-center items-center my-12">
+            <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-gray-400'}`}>Monthly</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')} 
+                checked={billingCycle === 'annually'} 
+              />
+              <div className="w-20 h-10 bg-gray-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-2 after:bg-black after:border after:rounded-full after:h-7 after:w-7 after:transition-all after:duration-300 after:ease-in-out"></div>
+            </label>
+            <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-gray-400'}`}>Annually</span>
+            <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+            {[
+              {
+                name: "BASIC",
+                desc: "Essential tools to get started",
+                price: "$9",
+                features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
+                notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
+                bg: "bg-white text-black",
+                cta: "TRY FREE",
+              },
+              {
+                name: "PRO",
+                desc: "Full features + unlimited usage",
+                price: "$19",
+                features: [
+                  "Unlimited Everything",
+                  "Priority Support",
+                  "Advanced Analytics",
+                  "Export Options",
+                  "Audio Recap",
+                  "Math Solver",
+                ],
+                notIncluded: [],
+                bg: "bg-purple-500 text-white",
+                popular: true,
+                cta: "TRY FREE",
+              },
+              {
+                name: "TEAM",
+                desc: "For groups/institutions",
+                price: "$49",
+                features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
+                notIncluded: [],
+                bg: "bg-blue-600 text-white",
+                cta: "TRY FREE",
+              },
+            ].map((plan, index) => (
+              <div
+                key={index}
+                className={`${plan.bg} p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all duration-300 h-full flex flex-col`}
+              >
+                {plan.popular && (
+                  <div className="absolute top-3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+                    <Badge className="bg-gray-800 text-white font-black px-6 py-2 border-2 border-black text-sm">
+                      🔥 POPULAR
+                    </Badge>
+                  </div>
+                )}
+                <div className="text-center mb-6 pt-8">
+                  <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
+                  <p className="font-bold mb-4 text-base">{plan.desc}</p>
+                  <div className="text-5xl font-black">{plan.price}</div>
+                  <div className="text-base font-bold">/month</div>
+                </div>
+                <div className="space-y-3 mb-8 flex-grow">
+                  {plan.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-center">
+                      <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-400" />
+                      <span className="font-bold text-sm">{feature}</span>
+                    </div>
+                  ))}
+                  {plan.notIncluded.map((feature, idx) => (
+                    <div key={idx} className="flex items-center opacity-50">
+                      <div className="w-5 h-5 mr-3 flex-shrink-0 text-red-400 font-black">✕</div>
+                      <span className="font-bold line-through text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                <a href="/signup">
+                  <Button className="w-full font-black py-4 mt-auto bg-purple-500 text-white hover:bg-purple-600 border-2 border-black">
+                    {plan.cta}
+                  </Button>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       
       {/* FAQ Section */}
-      <section id="faq" className="bg-white py-20">
+      <section id="faq" className="bg-gray-50 py-20">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
             <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">FAQs</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
-          <div className="space-y-0">
+          <div className="space-y-4">
             {faqData.map((faq, index) => (
               <div
                 key={index}
-                className="bg-gray-50 brutal-border scroll-fade-in"
+                className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] scroll-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <button
-                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-100 transition-colors text-black"
+                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-50 transition-colors text-black"
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                 >
                   {faq.question}
-                  <div className={`faq-icon ${openFaq === index ? "open" : ""}`}>
-                    {openFaq === index ? <Minus className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                  <div className={`transition-transform duration-300 ${openFaq === index ? "rotate-45" : ""}`}>
+                    {openFaq === index ? <Minus className="w-6 h-6 text-black" /> : <Plus className="w-6 h-6 text-black" />}
                   </div>
                 </button>
-                <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
-                  <div className="px-6 pb-6">
-                    <p className="font-bold text-gray-700">{faq.answer}</p>
+                <div className={`overflow-hidden transition-all duration-300 ${openFaq === index ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
+                  <div className="px-6 pb-6 border-t-2 border-black">
+                    <p className="font-bold text-black pt-4">{faq.answer}</p>
                   </div>
                 </div>
               </div>
@@ -643,13 +1036,13 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <a href="/signup">
-              <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
+              <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all">
                 START LEARNING FREE
               </Button>
             </a>
             <Button
               variant="outline"
-              className="bg-transparent border-white text-white font-black text-xl px-12 py-6 brutal-button hover:bg-white hover:text-black"
+              className="bg-transparent border-4 border-white text-white font-black text-xl px-12 py-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:bg-white hover:text-black hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all"
             >
               CONTACT SALES
             </Button>
@@ -658,6 +1051,145 @@ export default function LandingPage() {
       </section>
 
       <Footer />
+
+      <style jsx>{`
+        .nav-sticky {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          border-bottom: 4px solid black;
+          z-index: 50;
+          transform: translateY(-100%);
+          transition: transform 0.3s ease;
+        }
+        
+        .nav-sticky.visible {
+          transform: translateY(0);
+        }
+        
+        .brutal-border {
+          border: 4px solid black;
+          box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+        }
+        
+        .brutal-button {
+          border: 4px solid black;
+          box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+          transition: all 0.2s ease;
+        }
+        
+        .brutal-button:hover {
+          box-shadow: none;
+          transform: translate(2px, 2px);
+        }
+        
+        .brutal-button-glow {
+          animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+          from {
+            box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1), 0 0 20px rgba(168, 85, 247, 0.4);
+          }
+          to {
+            box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1), 0 0 30px rgba(168, 85, 247, 0.6);
+          }
+        }
+        
+        .floating {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+        
+        .count-animation {
+          animation: slideInUp 0.6s ease-out forwards;
+          opacity: 0;
+          transform: translateY(50px);
+        }
+        
+        @keyframes slideInUp {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .hover-scale:hover {
+          transform: scale(1.05) translateY(-5px);
+        }
+        
+        .hover-lift {
+          transition: all 0.3s ease;
+        }
+        
+        .scroll-fade-in {
+          opacity: 0;
+          transform: translateY(30px);
+          transition: all 0.8s ease;
+        }
+        
+        .scroll-fade-in.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        
+        .scroll-slide-left {
+          opacity: 0;
+          transform: translateX(-50px);
+          transition: all 0.8s ease;
+        }
+        
+        .scroll-slide-left.visible {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        
+        .scroll-slide-right {
+          opacity: 0;
+          transform: translateX(50px);
+          transition: all 0.8s ease;
+        }
+        
+        .scroll-slide-right.visible {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        
+        .scroll-scale-in {
+          opacity: 0;
+          transform: scale(0.8);
+          transition: all 0.8s ease;
+        }
+        
+        .scroll-scale-in.visible {
+          opacity: 1;
+          transform: scale(1);
+        }
+        
+        .animate-move {
+          animation: move 4s linear infinite;
+        }
+        
+        @keyframes move {
+          0% {
+            transform: translateX(-200px);
+          }
+          100% {
+            transform: translateX(200px);
+          }
+        }
+      `}</style>
     </div>
   )
 }
