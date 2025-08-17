@@ -1,4 +1,3 @@
-// api/ai.js
 console.log('🚀 Starting AI API import...');
 
 import { AIProviderManager } from '../src/lib/aiProviders.js';
@@ -33,7 +32,11 @@ export default async function handler(req, res) {
     if (typeof prompt === 'string') {
       text = prompt;
       files = [];
-    } else if (typeof prompt === 'object' && prompt !== null && typeof prompt.text === 'string') { // Added prompt !== null check
+    } else if (
+      typeof prompt === 'object' &&
+      prompt !== null &&
+      typeof prompt.text === 'string'
+    ) {
       text = prompt.text;
       files = Array.isArray(prompt.files) ? prompt.files : [];
     } else {
@@ -42,31 +45,44 @@ export default async function handler(req, res) {
       });
     }
 
-    if (model && !['gemini', 'groq', 'claude', 'openrouter', 'huggingface', 'together'].includes(model)) {
+    // ✅ Updated list with new models
+    const SUPPORTED_MODELS = [
+      'gemini',
+      'groq',
+      'claude',
+      'openrouter',
+      'huggingface',
+      'together',
+      'nvidia',
+      'mistral',
+      'cerebras',
+    ];
+
+    if (model && !SUPPORTED_MODELS.includes(model)) {
       console.log('❌ Invalid model:', model);
       return res.status(400).json({
-        error: 'Invalid model. Supported models: gemini, groq, claude, openrouter, huggingface, together',
+        error: `Invalid model. Supported models: ${SUPPORTED_MODELS.join(', ')}`,
       });
     }
 
-    // FIX START: Access `text` property of the prompt object for logging
-    // Ensure `text` is a string before calling substring
-    const loggableText = typeof text === 'string' ? text.substring(0, 50) + '...' : '[Non-string Prompt]';
+    // Safe log for prompt text
+    const loggableText =
+      typeof text === 'string' ? text.substring(0, 50) + '...' : '[Non-string Prompt]';
     console.log('✅ Valid request - Prompt:', loggableText, 'Model:', model);
-    // FIX END
 
     // Initialize AI Provider Manager
     console.log('🔧 Creating AIProviderManager instance...');
     const aiManager = new AIProviderManager();
     console.log('✅ AIProviderManager created successfully');
 
-    // Get response from the specified AI provider with automatic key rotation
+    // Call AI Provider
     console.log('🤖 Calling AI Provider Manager...');
-    // The `getAIResponse` method already expects an object like { text, files } when handling Gemini
-    // For other models, your aiProviders.js code handles converting this object back to a string prompt
     const aiResponse = await aiManager.getAIResponse({ text, files }, model);
 
-    console.log('✅ AI Response received:', aiResponse.message.substring(0, 100) + '...');
+    console.log(
+      '✅ AI Response received:',
+      aiResponse.message.substring(0, 100) + '...'
+    );
     console.log('=== AI API ROUTE SUCCESS ===');
 
     return res.status(200).json({
@@ -74,13 +90,11 @@ export default async function handler(req, res) {
       provider: aiResponse.provider,
       model: aiResponse.model,
     });
-
   } catch (error) {
     console.error('=== AI API ROUTE ERROR ===');
     console.error('Error details:', error);
     console.error('Error stack:', error.stack);
 
-    // Handle specific error types
     if (error instanceof Error) {
       if (error.message.includes('rate limit')) {
         console.log('❌ Rate limit error');
