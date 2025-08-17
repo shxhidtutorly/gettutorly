@@ -1,10 +1,5 @@
-// aiProviders.js
-console.log('📦 Loading aiProviders.js...');
-
 class AIProviderManager {
   constructor() {
-    console.log('🔧 Initializing AI Provider Manager...');
-
     // Order of preference for provider fallback
     this.providerOrder = [
       'together',
@@ -12,35 +7,33 @@ class AIProviderManager {
       'groq',
       'claude',
       'openrouter',
-      'mistral',   // correct spelling used here
+      'mistral',
       'cerebras',
       'nvidia'
     ];
 
     // Map of environment var names to provider keys
-    // Note: accept both spelling variants of Mistral env var to be robust
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
       claude: this.getKeysFromEnv('CLAUDE_API_KEY'),
       openrouter: this.getKeysFromEnv('OPENROUTER_API_KEY'),
       together: this.getKeysFromEnv('TOGETHER_API_KEY'),
-      mistral: this.getKeysFromEnv('MISTRAL_API_KEY') // if you used MINISTRAL_API_KEY upstream, add it to env as MISTRAL_API_KEY
-        .concat(this.getKeysFromEnv('MINISTRAL_API_KEY')),
-      nvidia: this.getKeysFromEnv('NVIDIA_API_KEY').concat(this.getKeysFromEnv('NVIDA_API_KEY')), // accept both env names
+      mistral: this.getKeysFromEnv('MISTRAL_API_KEY').concat(this.getKeysFromEnv('MINISTRAL_API_KEY')),
+      nvidia: this.getKeysFromEnv('NVIDIA_API_KEY').concat(this.getKeysFromEnv('NVIDA_API_KEY')),
       cerebras: this.getKeysFromEnv('CEREBRAS_API_KEY'),
     };
 
-    // Provider max context/token capacity defaults (can be overridden with env vars MAX_TOKENS_{PROVIDER})
+    // Provider max context/token capacity defaults
     this.defaultProviderMaxTokens = {
-      together: 8193,
+      together: 8192,
       gemini: 8192,
-      groq: 16384,
-      claude: 9000,
-      openrouter: 32768,
-      mistral: 8192,
-      cerebras: 65536,
-      nvidia: 65536
+      groq: 32768, // Llama3.1 on Groq has a larger context
+      claude: 200000, // Sonnet 3.5 has a very large context
+      openrouter: 128000,
+      mistral: 32768,
+      cerebras: 8192,
+      nvidia: 32768
     };
 
     // Load effective max tokens (allow override via env var name MAX_TOKENS_{PROVIDER})
@@ -50,11 +43,6 @@ class AIProviderManager {
       const envVal = process.env[envName];
       this.providerMaxTokens[prov] = envVal ? parseInt(envVal, 10) : this.defaultProviderMaxTokens[prov];
     });
-
-    Object.entries(this.apiKeys).forEach(([provider, keys]) => {
-      console.log(`🔑 ${provider}: ${Array.isArray(keys) ? keys.length : 0} keys available`);
-    });
-    console.log('ℹ️ Provider max tokens:', this.providerMaxTokens);
   }
 
   getKeysFromEnv(envVar) {
@@ -96,7 +84,8 @@ class AIProviderManager {
       msg.includes('max_output_tokens') ||
       msg.includes('finishreason') && msg.includes('max') ||
       msg.includes('max tokens') ||
-      msg.includes('input validation error')
+      msg.includes('input validation error') ||
+      msg.includes('context_length_exceeded')
     );
   }
 
@@ -135,12 +124,11 @@ class AIProviderManager {
       promptTextForEstimate = JSON.stringify(prompt || '');
     }
 
-    const desiredMaxOutput = options.maxOutputTokens || 40000;
+    const desiredMaxOutput = options.maxOutputTokens || 8000;
 
     for (const provider of fallbackProviders) {
       const keys = this.apiKeys[provider];
       if (!keys || keys.length === 0) {
-        console.log(`ℹ️ Skipping ${provider}: No API keys available.`);
         continue;
       }
 
@@ -158,18 +146,12 @@ class AIProviderManager {
 
         for (const attemptMax of attemptMaxList) {
           try {
-            console.log(`Attempting ${provider} (key ${i + 1}/${keys.length}) with max_tokens=${attemptMax}...`);
             const response = await this.callProvider(provider, prompt, key, model, { maxTokens: attemptMax });
-            console.log(`✅ Successfully received response from ${provider} (key ${i + 1}).`);
             return { message: response, provider, model, usedKeyIndex: i, usedMaxTokens: attemptMax };
           } catch (error) {
             lastError = error;
-            console.log(`❌ Failed with ${provider} key ${i + 1} (max_tokens=${attemptMax}): ${error.message}`);
             if (!this.isTokenLimitError(error)) {
-              console.log('ℹ️ Error not related to token limits - moving to next key/provider.');
               break;
-            } else {
-              console.log('⚠️ Token-limit related error — will retry with smaller max_tokens if attempts remain.');
             }
           }
         }
@@ -187,27 +169,46 @@ class AIProviderManager {
      Model -> provider mapping
      ---------------------------- */
   getProviderForModel(model) {
+    // This function maps a specific model name to its provider.
+    // It's designed to be robust if the user passes a provider name directly as a model.
     const modelProviderMap = {
-      'gemini': 'gemini',
-      'gemini-2.5-flash': 'gemini',
+      // Gemini
+      'gemini-1.5-flash-latest': 'gemini',
+      'gemini-1.5-pro-latest': 'gemini',
+
+      // Groq
+      'llama3-8b-8192': 'groq',
       'llama-3.1-8b-instant': 'groq',
-      'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': 'together',
-      'claude-3-5-sonnet-20241022': 'claude',
-      'deepseek/deepseek-r1-0528-qwen3-8b:free': 'openrouter',
-      'microsoft/DialoGPT-medium': 'groq',
-      // New models/providers - accept both names users might send
-      'ministral-8b-2410': 'mistral',
-      'mistral-8b': 'mistral',
-      'gpt-oss-120b': 'cerebras',
-      'nvidia-nim': 'nvidia',
-      'nvidia': 'nvidia',
-      'mistral': 'mistral',
-      'cerebras': 'cerebras',
-      'together': 'together',
-      'openrouter': 'openrouter'
+      'mixtral-8x7b-32768': 'groq',
+
+      // Together
+      'meta-llama/Llama-3-70b-chat-hf': 'together',
+      'meta-llama/Llama-3.1-8B-Instruct-Turbo': 'together',
+
+      // Claude
+      'claude-3-5-sonnet-20240620': 'claude',
+      'claude-3-opus-20240229': 'claude',
+
+      // OpenRouter
+      'mistralai/mistral-7b-instruct:free': 'openrouter',
+      'google/gemma-7b-it:free': 'openrouter',
+
+      // Mistral
+      'open-mistral-nemo-2407': 'mistral',
+      'mistral-large-latest': 'mistral',
+
+      // Cerebras
+      'cerebras/Cerebras-GPT-13B': 'cerebras',
+
+      // Nvidia
+      'meta/llama3-70b-instruct': 'nvidia',
+      'nvidia/nemotron-4-340b-instruct': 'nvidia',
     };
+    // If a direct model match is found, return its provider.
+    // Otherwise, assume the 'model' string is actually the provider name itself.
     return modelProviderMap[model] || model;
   }
+
 
   /* ----------------------------
      callProvider dispatcher (supports optional { maxTokens })
@@ -272,8 +273,9 @@ class AIProviderManager {
       }
     }
 
-    const requestedMax = options.maxTokens || 1800;
+    const requestedMax = options.maxTokens || 8190;
     const safeMax = Math.min(requestedMax, this.getProviderMaxTokens('gemini'));
+    const model = (promptObj.files && promptObj.files.length > 0) ? 'gemini-1.5-pro-latest' : 'gemini-1.5-flash-latest';
 
     const body = {
       contents: [{ parts }],
@@ -285,7 +287,7 @@ class AIProviderManager {
       }
     };
 
-    const url = `${process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'}?key=${apiKey}`;
+    const url = `${process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/models/'}${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -314,7 +316,7 @@ class AIProviderManager {
 
   // Groq
   async callGroq(prompt, apiKey, options = {}) {
-    const max_tokens = options.maxTokens || 4000;
+    const max_tokens = options.maxTokens || 8000;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('groq'));
 
     const response = await fetch(process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions', {
@@ -324,7 +326,7 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+        model: process.env.GROQ_MODEL || 'llama3-8b-8192',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: safeMax,
         temperature: options.temperature ?? 0.3
@@ -343,19 +345,19 @@ class AIProviderManager {
 
   // Claude
   async callClaude(prompt, apiKey, options = {}) {
-    const max_tokens = options.maxTokens || 800;
+    const max_tokens = options.maxTokens || 4096;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('claude'));
 
     const response = await fetch(process.env.CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': apiKey, // Anthropic uses x-api-key header
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022',
-        max_tokens_to_sample: safeMax,
+        model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620',
+        max_tokens: safeMax, // Correct parameter for Messages API
         messages: [{ role: 'user', content: prompt }],
         temperature: options.temperature ?? 0.3
       })
@@ -366,14 +368,14 @@ class AIProviderManager {
       throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
     }
 
-    let claudeResponse = data?.content?.[0]?.text || data?.message || 'No response from Claude';
+    let claudeResponse = data?.content?.[0]?.text || 'No response from Claude';
     claudeResponse = this.removeMarkdownFormatting(claudeResponse);
     return claudeResponse;
   }
 
   // OpenRouter
   async callOpenRouter(prompt, apiKey, model, options = {}) {
-    const max_tokens = options.maxTokens || 6000;
+    const max_tokens = options.maxTokens || 8000;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('openrouter'));
 
     const response = await fetch(process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions', {
@@ -381,11 +383,11 @@ class AIProviderManager {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://gettutorly.com',
-        'X-Title': 'AI Provider Manager'
+        'HTTP-Referer': 'https://gettutorly.com', // Replace with your site
+        'X-Title': 'Tutorly AI' // Replace with your app name
       },
       body: JSON.stringify({
-        model: model || process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1-0528-qwen3-8b:free',
+        model: model || process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct:free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: safeMax,
         temperature: options.temperature ?? 0.3
@@ -404,7 +406,7 @@ class AIProviderManager {
 
   // Together.ai
   async callTogether(prompt, apiKey, options = {}) {
-    const max_tokens = options.maxTokens || 5006;
+    const max_tokens = options.maxTokens || 7000;
     const safeMax = Math.min(max_tokens, this.getProviderMaxTokens('together'));
 
     const response = await fetch(process.env.TOGETHER_API_URL || 'https://api.together.xyz/v1/chat/completions', {
@@ -414,7 +416,7 @@ class AIProviderManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3-70b-chat-hf',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: safeMax,
         temperature: options.temperature ?? 0.3
@@ -426,30 +428,21 @@ class AIProviderManager {
       throw new Error(`Together.ai API error: ${response.status} ${response.statusText} - ${data.error?.message || JSON.stringify(data)}`);
     }
 
-    console.log('📥 Together API full response:', JSON.stringify(data, null, 2));
     const message = data.choices?.[0]?.message?.content;
-    const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
-    console.log(`📌 Together finish reason: ${finishReason}`);
-
-    if (!message || message.length < 20) {
-      console.warn('⚠️ Short or missing response from Together:', message);
-    }
-
     return this.removeMarkdownFormatting(message || '');
   }
 
-async callMistral(prompt, apiKey, model, options = {}) {
-    // env: MISTRAL_API_URL (e.g. https://api.mistral.ai/v1)
-    // env: MISTRAL_MODEL (e.g. 'mistral-large-latest')
+  // Mistral
+  async callMistral(prompt, apiKey, model, options = {}) {
     const base = process.env.MISTRAL_API_URL || 'https://api.mistral.ai/v1';
-    const finalModel = model || process.env.MISTRAL_MODEL || 'mistral-large-latest';
+    const finalModel = model || process.env.MISTRAL_MODEL || 'open-mistral-nemo-2407';
     const url = `${base}/chat/completions`;
 
     const body = {
       model: finalModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens ?? 1024
+      max_tokens: options.maxTokens ?? 4096
     };
 
     const resp = await fetch(url, {
@@ -460,25 +453,24 @@ async callMistral(prompt, apiKey, model, options = {}) {
 
     const data = await resp.json().catch(() => null);
     if (!resp.ok) {
-      throw new Error(`Mistral API error: ${resp.status} - ${data?.message || JSON.stringify(data)}`);
+      throw new Error(`Mistral API error: ${resp.status} - ${data?.error?.message || JSON.stringify(data)}`);
     }
 
     const text = data?.choices?.[0]?.message?.content || '';
     return this.removeMarkdownFormatting(text);
   }
 
+  // Cerebras
   async callCerebras(prompt, apiKey, model, options = {}) {
-    // env: CEREBRAS_API_BASE (e.g. https://api.cerebras.net/v1)
-    // env: CEREBRAS_MODEL (e.g. 'gpt-oss-120b')
-    const base = process.env.CEREBRAS_API_BASE || process.env.CEREBRAS_API_URL || 'https://api.cerebras.net/v1';
-    const finalModel = model || process.env.CEREBRAS_MODEL || 'gpt-oss-120b';
+    const base = process.env.CEREBRAS_API_BASE || 'https://api.cerebras.net/v1';
+    const finalModel = model || process.env.CEREBRAS_MODEL || 'cerebras/Cerebras-GPT-13B';
     const url = `${base}/chat/completions`;
 
     const body = {
       model: finalModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens ?? 1024
+      max_tokens: options.maxTokens ?? 2048
     };
 
     const resp = await fetch(url, {
@@ -496,18 +488,17 @@ async callMistral(prompt, apiKey, model, options = {}) {
     return this.removeMarkdownFormatting(text);
   }
 
+  // Nvidia
   async callNvidia(prompt, apiKey, model, options = {}) {
-    // env: NVIDIA_NIM_BASE (e.g. https://integrate.api.nvidia.com/v1)
-    // env: NVIDIA_MODEL (e.g. 'nvidia/nemotron-4-340b-reward')
-    const base = process.env.NVIDIA_NIM_BASE || 'https://integrate.api.nvidia.com/v1';
-    const finalModel = model || process.env.NVIDIA_MODEL || 'nvidia/nemotron-4-340b-reward';
+    const base = process.env.NVIDIA_API_BASE || 'https://integrate.api.nvidia.com/v1';
+    const finalModel = model || process.env.NVIDIA_MODEL || 'meta/llama3-70b-instruct';
     const url = `${base}/chat/completions`;
 
     const body = {
       model: finalModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens ?? 1024
+      max_tokens: options.maxTokens ?? 8000
     };
 
     const resp = await fetch(url, {
@@ -527,4 +518,3 @@ async callMistral(prompt, apiKey, model, options = {}) {
 }
 
 export { AIProviderManager };
-console.log('✅ AIProviderManager exported successfully');
