@@ -168,7 +168,13 @@ function TextGradientScroll({
   
   return (
     <TextGradientScrollContext.Provider value={{ textOpacity, type }}>
-      <p ref={ref} className={cn("relative flex m-0 flex-wrap", className)}>
+<p
+  ref={ref}
+  className={cn(
+    "relative flex m-0 flex-wrap text-white", // default white
+    className
+  )}
+>
         {words.map((word, i) => {
           const start = i / words.length;
           const end = start + 1 / words.length;
@@ -672,7 +678,7 @@ export default function LandingPage() {
       <section className="bg-gray-50 py-20 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Everything You Need to Excel</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Everything You Need to Excel</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto mb-6"></div>
             <p className="text-xl font-bold text-gray-700 max-w-3xl mx-auto">
               Powerful AI tools designed for modern learners
@@ -824,7 +830,7 @@ export default function LandingPage() {
   <div className="max-w-4xl mx-auto px-4">
     <TextGradientScroll
       text="Tutorly is your all-in-one AI-powered study assistant, built to make learning smarter and more efficient. Upload your notes, lectures, or readings, and instantly receive well-structured summaries that save you hours of review. With just one click, Tutorly transforms key concepts into interactive flashcards and personalized quizzes, helping you practice smarter and retain knowledge longer. Unlike traditional study tools, Tutorly adapts to your learning style, ensuring that every session is focused, productive, and stress-free. From simplifying complex topics to keeping you exam-ready, Tutorly is designed to give students the confidence and tools they need to succeed."
-      className="text-3xl md:text-4xl lg:text-5xl font-black text-center leading-relaxed bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent"
+      className="text-3xl md:text-4xl lg:text-5xl font-black text-center leading-relaxed"
       type="word"
       textOpacity="soft"
     />
