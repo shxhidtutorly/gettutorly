@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import confetti from "canvas-confetti";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -73,21 +74,43 @@ const MultiDocSession: React.FC = () => {
   const [summary, setSummary] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [flashcards, setFlashcards] = useState<{ id: string; question: string; answer: string }[]>([]);
-  const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
+// Quiz State
+const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
 const [quizIndex, setQuizIndex] = useState(0);
 const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+const [isCompleted, setIsCompleted] = useState(false); // <-- NEW
+
 const quizCurrent = useMemo(
   () => (quiz && quiz.length > 0 ? quiz[quizIndex] : null),
   [quiz, quizIndex]
 );
 
-// Answer select helper (unchanged, but keep it with this state)
+// Select answer
 const selectAnswer = (i: number) =>
   setQuizAnswers((prev) => {
     const next = [...prev];
     next[quizIndex] = i;
     return next;
   });
+
+// Move next
+const handleNext = () => {
+  if (quizIndex < (quiz?.length ?? 0) - 1) {
+    setQuizIndex((i) => i + 1);
+  } else {
+    // Last question → mark quiz complete
+    setIsCompleted(true);
+  }
+};
+
+// Score calculation
+const score = useMemo(() => {
+  if (!quiz) return 0;
+  return quiz.reduce((acc, q, idx) => {
+    return acc + (quizAnswers[idx] === q.correctAnswer ? 1 : 0);
+  }, 0);
+}, [quiz, quizAnswers]);
+
 
   // View state
   const [selectedDocForView, setSelectedDocForView] = useState<string | null>(null);
@@ -909,87 +932,104 @@ ${combinedText}`;
                   </div>
                 )}
 
-                {/* Quiz Tab */}
-                {activeTab === 'quiz' && (
-                  <div>
-                    <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
-                    
-                   {quiz && quizCurrent ? (
-  <div className="space-y-6">
-    <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <span className="font-black text-purple-400">
-            QUESTION {quizIndex + 1} OF {quiz.length}
-          </span>
-          <div className="flex gap-1">
-            {quiz.map((_, index) => (
-              <div
-                key={index}
-                className={`w-4 h-4 border-2 border-black ${
-                  index === quizIndex
-                    ? 'bg-purple-400'
-                    : quizAnswers[index] !== -1
-                    ? 'bg-green-400'
-                    : 'bg-gray-600'
-                }`}
-              />
-            ))}
+               {/* Quiz Tab */}
+{activeTab === 'quiz' && (
+  <div>
+    <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
+
+    {/* Quiz Complete Screen */}
+    {quiz && isCompleted ? (
+      <div className="text-center py-16">
+        <div className="bg-green-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#22c55e] animate-bounce">
+          <CheckSquare className="w-12 h-12 text-black" />
+        </div>
+        <h3 className="text-2xl font-black mb-4">🎉 QUIZ COMPLETE!</h3>
+        <p className="text-xl mb-4">
+          You scored <span className="text-purple-400">{score}</span> / {quiz.length}
+        </p>
+        <div className="space-y-2 text-left max-w-md mx-auto">
+          {quiz.map((q, i) => (
+            <div key={i} className="p-3 border-2 border-black bg-gray-900">
+              <p className="font-bold mb-1">{i + 1}. {q.question}</p>
+              <p className={quizAnswers[i] === q.correctAnswer ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                Your Answer: {q.options[quizAnswers[i]] ?? "Not answered"}
+              </p>
+              <p className="text-purple-400">Correct: {q.options[q.correctAnswer]}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : quiz && quizCurrent ? (
+      <div className="space-y-6">
+        <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-black text-purple-400">
+                QUESTION {quizIndex + 1} OF {quiz.length}
+              </span>
+              <div className="flex gap-1">
+                {quiz.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-4 h-4 border-2 border-black ${
+                      index === quizIndex
+                        ? "bg-purple-400"
+                        : quizAnswers[index] !== -1
+                        ? "bg-green-400"
+                        : "bg-gray-600"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            <QuizCard
+              question={quizCurrent.question}
+              options={quizCurrent.options}
+              questionNumber={quizIndex + 1}
+              totalQuestions={quiz.length}
+              selectedAnswer={quizAnswers[quizIndex] ?? null}
+              onAnswerSelect={selectAnswer}
+            />
           </div>
         </div>
-        <QuizCard
-          question={quizCurrent.question}
-          options={quizCurrent.options}
-          questionNumber={quizIndex + 1}
-          totalQuestions={quiz.length}
-          selectedAnswer={quizAnswers[quizIndex] ?? null}
-          onAnswerSelect={selectAnswer}
-        />
-      </div>
-    </div>
 
-                        
-                        <div className="flex items-center justify-between">
-                          <Button
-                            disabled={quizIndex === 0}
-                            onClick={() => setQuizIndex(i => Math.max(0, i-1))}
-                            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
-                          >
-                            <ChevronLeft size={16} className="mr-2" />
-                            PREV
-                          </Button>
-                          
-                          <Button
-                            disabled={quizIndex >= quiz.length - 1}
-                            onClick={() => setQuizIndex(i => Math.min(quiz.length - 1, i+1))}
-                            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
-                          >
-                            NEXT
-                            <ChevronRight size={16} className="ml-2" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <div className="bg-purple-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#a855f7]">
-                          <CheckSquare className="w-12 h-12 text-black" />
-                        </div>
-                        <p className="text-xl font-black mb-4">NO QUIZ YET</p>
-                        <p className="text-gray-400 font-bold mb-8">Select documents and generate quiz</p>
-                        <Button
-                          onClick={runQuiz}
-                          disabled={isLoading || !hasSelectedDocs}
-                          className={`${getColorClasses('purple')} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#a855f7]`}
-                        >
-                          GENERATE QUIZ
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+        <div className="flex items-center justify-between">
+          <Button
+            disabled={quizIndex === 0}
+            onClick={() => setQuizIndex((i) => Math.max(0, i - 1))}
+            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
+          >
+            <ChevronLeft size={16} className="mr-2" />
+            PREV
+          </Button>
+
+          <Button
+            onClick={handleNext}
+            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
+          >
+            {quizIndex >= quiz.length - 1 ? "FINISH" : "NEXT"}
+            <ChevronRight size={16} className="ml-2" />
+          </Button>
+        </div>
+      </div>
+    ) : (
+      <div className="text-center py-16">
+        <div className="bg-purple-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#a855f7]">
+          <CheckSquare className="w-12 h-12 text-black" />
+        </div>
+        <p className="text-xl font-black mb-4">NO QUIZ YET</p>
+        <p className="text-gray-400 font-bold mb-8">Select documents and generate quiz</p>
+        <Button
+          onClick={runQuiz}
+          disabled={isLoading || !hasSelectedDocs}
+          className={`${getColorClasses("purple")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#a855f7]`}
+        >
+          GENERATE QUIZ
+        </Button>
+      </div>
+    )}
+  </div>
+)}
 
           {/* AI Chat Sidebar */}
           <div className="lg:col-span-1">
