@@ -76,8 +76,20 @@ const MultiDocSession: React.FC = () => {
   const [notes, setNotes] = useState<string>("");
   const [flashcards, setFlashcards] = useState<{ id: string; question: string; answer: string }[]>([]);
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
-  const [quizIndex, setQuizIndex] = useState(0);
-  const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+const [quizIndex, setQuizIndex] = useState(0);
+const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+const quizCurrent = useMemo(
+  () => (quiz && quiz.length > 0 ? quiz[quizIndex] : null),
+  [quiz, quizIndex]
+);
+
+// Answer select helper (unchanged, but keep it with this state)
+const selectAnswer = (i: number) =>
+  setQuizAnswers((prev) => {
+    const next = [...prev];
+    next[quizIndex] = i;
+    return next;
+  });
 
   // View state
   const [selectedDocForView, setSelectedDocForView] = useState<string | null>(null);
@@ -294,26 +306,29 @@ const runFlashcards = async (count: number) => {
 };
 
 // --- QUIZ ---
-// --- QUIZ ---
 const runQuiz = async () => {
   if (!combinedText.trim()) {
     console.warn("⚠️ combinedText is empty", combinedText);
     toast({ variant: "destructive", title: "❌ Select at least one document" });
     return;
   }
+
   setIsLoading(true);
   setProgress(60);
+
   try {
     const prompt = `Create a multiple-choice quiz (10 questions) from this study material.
-    Return strict JSON ONLY with this structure:
-    {
-      "questions": [
-        { "question": string, "options": [string, string, string, string], "correct": number }
-      ]
-    }
-    No explanation, no extra text, no markdown fences.
+Return strict JSON ONLY with this structure:
+{
+  "questions": [
+    { "question": string, "options": [string, string, string, string], "correct": number }
+  ]
+}
+No explanation, no extra text, no markdown fences.
 
-    Material:\n\n${combinedText}`;
+Material:
+
+${combinedText}`;
 
     const resp = await fetch("/api/ai", {
       method: "POST",
@@ -322,26 +337,22 @@ const runQuiz = async () => {
     });
 
     const data = await resp.json();
+    const raw = String(data?.response ?? "");
 
-    // Robust JSON extraction
+    // Extract a JSON object, strip junk/fences, then parse
     let parsed: { questions: QuizQuestion[] } | null = null;
     try {
-      // Find the FIRST valid {...} block in the response
-      const match = (data.response || "").match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(match[0]);
-      } else {
-        // Try parsing raw if no match
-        parsed = JSON.parse(data.response);
-      }
-    } catch (err) {
-      console.error("⚠️ Quiz JSON parse error:", err, data.response);
+      const objMatch = raw.match(/\{[\s\S]*\}/); // first {...} block
+      const candidate = (objMatch ? objMatch[0] : raw)
+        .replace(/```json|```/g, "")
+        .trim();
 
-      // Try last-resort cleanup: remove leading "Here is..." text
+      parsed = JSON.parse(candidate);
+    } catch (err) {
+      console.error("⚠️ Quiz JSON parse error:", err, raw);
+      // last‑resort cleanup: remove anything before first {, then parse
       try {
-        const cleaned = (data.response || "")
-          .replace(/^[^{]+/, "") // remove anything before first {
-          .replace(/```json|```/g, ""); // remove code fences if present
+        const cleaned = raw.replace(/^[^{]+/, "").replace(/```json|```/g, "").trim();
         parsed = JSON.parse(cleaned);
       } catch (err2) {
         console.error("❌ Quiz cleanup parse failed:", err2);
@@ -350,9 +361,15 @@ const runQuiz = async () => {
       }
     }
 
+    if (!parsed?.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+      console.error("❌ Invalid quiz payload:", parsed);
+      toast({ variant: "destructive", title: "❌ Invalid quiz format from AI" });
+      return;
+    }
+
     setQuiz(parsed.questions);
     setQuizIndex(0);
-    setQuizAnswers(new Array(parsed.questions.length).fill(-1));
+    setQuizAnswers(Array(parsed.questions.length).fill(-1));
     setActiveTab("quiz");
     toast({ title: "✅ Quiz generated!" });
   } catch (e) {
@@ -363,6 +380,7 @@ const runQuiz = async () => {
     setProgress(0);
   }
 };
+
 
   const docsEmpty = docs.length === 0;
   const hasSelectedDocs = selectedDocs.length > 0;
@@ -898,36 +916,40 @@ const runQuiz = async () => {
                   <div>
                     <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
                     
-                    {quiz && quizCurrent ? (
-                      <div className="space-y-6">
-                        <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between mb-4">
-                              <span className="font-black text-purple-400">
-                                QUESTION {quizIndex + 1} OF {quiz.length}
-                              </span>
-                              <div className="flex gap-1">
-                                {quiz.map((_, index) => (
-                                  <div
-                                    key={index}
-                                    className={`w-4 h-4 border-2 border-black ${
-                                      index === quizIndex ? 'bg-purple-400' : 
-                                      quizAnswers[index] !== -1 ? 'bg-green-400' : 'bg-gray-600'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <QuizCard
-                              question={quizCurrent.question}
-                              options={quizCurrent.options}
-                              questionNumber={quizIndex + 1}
-                              totalQuestions={quiz.length}
-                              selectedAnswer={quizAnswers[quizIndex] ?? null}
-                              onAnswerSelect={selectAnswer}
-                            />
-                          </div>
-                        </div>
+                   {quiz && quizCurrent ? (
+  <div className="space-y-6">
+    <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <span className="font-black text-purple-400">
+            QUESTION {quizIndex + 1} OF {quiz.length}
+          </span>
+          <div className="flex gap-1">
+            {quiz.map((_, index) => (
+              <div
+                key={index}
+                className={`w-4 h-4 border-2 border-black ${
+                  index === quizIndex
+                    ? 'bg-purple-400'
+                    : quizAnswers[index] !== -1
+                    ? 'bg-green-400'
+                    : 'bg-gray-600'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+        <QuizCard
+          question={quizCurrent.question}
+          options={quizCurrent.options}
+          questionNumber={quizIndex + 1}
+          totalQuestions={quiz.length}
+          selectedAnswer={quizAnswers[quizIndex] ?? null}
+          onAnswerSelect={selectAnswer}
+        />
+      </div>
+    </div>
+
                         
                         <div className="flex items-center justify-between">
                           <Button
