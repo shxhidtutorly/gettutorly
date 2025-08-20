@@ -180,11 +180,21 @@ const QuizPage = () => {
   try {
     // wait for Firestore write to finish
     const res = await endSession("quiz", activeQuiz.title, true);
+
     trackQuizCompleted();
     setShowConfetti(true);
     setGameState('results');
     setTimeout(() => setShowConfetti(false), 8000); // Confetti for 8 seconds
-  };
+  } catch (err) {
+    console.error("Error ending quiz session:", err);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: "Could not save your quiz session."
+    });
+  }
+};
+
   
   const handleRestart = () => {
     if (!activeQuiz) return;
