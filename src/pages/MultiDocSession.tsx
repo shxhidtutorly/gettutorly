@@ -794,7 +794,7 @@ ${combinedText}`;
             </div>
 
             {/* Tutorly Avatar */}
-<div className="flex items-center gap-3">
+         <div className="flex items-center gap-3">
   <img
     src={GITHUB_RAW_AI}
     alt="Tutorly AI"
@@ -805,13 +805,12 @@ ${combinedText}`;
         "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><circle cx='24' cy='24' r='24' fill='%2322d3ee'/><text x='50%' y='55%' font-size='16' text-anchor='middle' fill='black' font-family='Arial'>AI</text></svg>";
     }}
   />
-
-  <div>
-    <div className="text-lg font-black text-cyan-400">TUTORLY</div>
-    <div className="text-xs text-gray-400 font-bold">AI STUDY ASSISTANT</div>
-  </div>
-</div>
-
+              <div>
+                <div className="text-lg font-black text-cyan-400">TUTORLY</div>
+                <div className="text-xs text-gray-400 font-bold">AI STUDY ASSISTANT</div>
+              </div>
+            </div>
+          </div>
           
           {/* Timer Progress Bar */}
           <div className="mt-3">
