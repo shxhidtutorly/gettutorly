@@ -236,72 +236,114 @@ const MultiDocSession: React.FC = () => {
     }
   };
 
-  const runFlashcards = async (count: number) => {
-    if (!combinedText.trim()) { 
-      toast({ variant: "destructive", title: "❌ Select at least one document" }); 
-      return; 
-    }
-    setIsLoading(true); 
-    setProgress(60);
-    try {
-      // Use combined text directly for flashcards to avoid double processing
-      const cards = await generateFlashcardsAI(combinedText);
-      const formattedCards = cards.slice(0, count).map((card, i) => ({
-        id: `flashcard-${Date.now()}-${i}`,
-        question: card.question || card.front || 'Question',
-        answer: card.answer || card.back || 'Answer'
-      }));
-      setFlashcards(formattedCards);
-      setActiveTab('flashcards');
-      toast({ title: `✅ Generated ${formattedCards.length} flashcards` });
-    } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "❌ Failed to generate flashcards" });
-    } finally { 
-      setIsLoading(false); 
-      setProgress(0); 
-    }
-  };
+ // --- FLASHCARDS ---
+const runFlashcards = async (count: number) => {
+  if (!combinedText.trim()) {
+    console.warn("⚠️ combinedText is empty", combinedText);
+    toast({ variant: "destructive", title: "❌ Select at least one document" });
+    return;
+  }
+  setIsLoading(true);
+  setProgress(60);
+  try {
+    const prompt = `Generate ${count} flashcards from the following study material.
+    Return a strict JSON array only, where each item has:
+    - question (string)
+    - answer (string).
+    No extra text.
 
-  const runQuiz = async () => {
-    if (!combinedText.trim()) { 
-      toast({ variant: "destructive", title: "❌ Select at least one document" }); 
-      return; 
-    }
-    setIsLoading(true); 
-    setProgress(60);
-    try {
-      const prompt = `Create a multiple-choice quiz (10 questions) from this study material. Return strict JSON with an array named questions where each item has: question (string), options (array of 4 strings), correct (number index of correct option). No extra text.\n\n${combinedText}`;
-      const resp = await fetch('/api/ai', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ prompt, model: 'together' }) 
-      });
-      const data = await resp.json();
-      let parsed: { questions: QuizQuestion[] } | null = null;
-      const match = (data.response || '').match(/\{[\s\S]*\}/);
-      if (match) parsed = JSON.parse(match[0]); 
-      else parsed = JSON.parse(data.response);
-      setQuiz(parsed.questions);
-      setQuizIndex(0);
-      setQuizAnswers(new Array(parsed.questions.length).fill(-1));
-      setActiveTab('quiz');
-      toast({ title: "✅ Quiz generated!" });
-    } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "❌ Failed to generate quiz" });
-    } finally { 
-      setIsLoading(false); 
-      setProgress(0); 
-    }
-  };
+    Material:\n\n${combinedText}`;
 
-  const quizCurrent = quiz ? quiz[quizIndex] : null;
-  const selectAnswer = (i: number) => setQuizAnswers(prev => { 
-    const next = [...prev]; 
-    next[quizIndex] = i; 
-    return next; 
-  });
+    const resp = await fetch("/api/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, model: "together" }),
+    });
+
+    const data = await resp.json();
+
+    // Robust JSON extraction
+    let parsed: any[] = [];
+    try {
+      const match = (data.response || "").match(/\[[\s\S]*\]/);
+      parsed = match ? JSON.parse(match[0]) : JSON.parse(data.response);
+    } catch (err) {
+      console.error("⚠️ Flashcards JSON parse error:", err, data.response);
+      toast({ variant: "destructive", title: "❌ Could not parse flashcards JSON" });
+      return;
+    }
+
+    const formattedCards = parsed.slice(0, count).map((card: any, i: number) => ({
+      id: `flashcard-${Date.now()}-${i}`,
+      question: card.question || card.front || "Question",
+      answer: card.answer || card.back || "Answer",
+    }));
+
+    setFlashcards(formattedCards);
+    setActiveTab("flashcards");
+    toast({ title: `✅ Generated ${formattedCards.length} flashcards` });
+  } catch (e) {
+    console.error("❌ Flashcards generation failed:", e);
+    toast({ variant: "destructive", title: "❌ Failed to generate flashcards" });
+  } finally {
+    setIsLoading(false);
+    setProgress(0);
+  }
+};
+
+// --- QUIZ ---
+const runQuiz = async () => {
+  if (!combinedText.trim()) {
+    console.warn("⚠️ combinedText is empty", combinedText);
+    toast({ variant: "destructive", title: "❌ Select at least one document" });
+    return;
+  }
+  setIsLoading(true);
+  setProgress(60);
+  try {
+    const prompt = `Create a multiple-choice quiz (10 questions) from this study material.
+    Return strict JSON with this structure:
+    {
+      "questions": [
+        { "question": string, "options": [string, string, string, string], "correct": number }
+      ]
+    }
+    No extra text.
+
+    Material:\n\n${combinedText}`;
+
+    const resp = await fetch("/api/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, model: "together" }),
+    });
+
+    const data = await resp.json();
+
+    // Robust JSON extraction
+    let parsed: { questions: QuizQuestion[] } | null = null;
+    try {
+      const match = (data.response || "").match(/\{[\s\S]*\}/);
+      parsed = match ? JSON.parse(match[0]) : JSON.parse(data.response);
+    } catch (err) {
+      console.error("⚠️ Quiz JSON parse error:", err, data.response);
+      toast({ variant: "destructive", title: "❌ Could not parse quiz JSON" });
+      return;
+    }
+
+    setQuiz(parsed.questions);
+    setQuizIndex(0);
+    setQuizAnswers(new Array(parsed.questions.length).fill(-1));
+    setActiveTab("quiz");
+    toast({ title: "✅ Quiz generated!" });
+  } catch (e) {
+    console.error("❌ Quiz generation failed:", e);
+    toast({ variant: "destructive", title: "❌ Failed to generate quiz" });
+  } finally {
+    setIsLoading(false);
+    setProgress(0);
+  }
+};
 
   const docsEmpty = docs.length === 0;
   const hasSelectedDocs = selectedDocs.length > 0;
