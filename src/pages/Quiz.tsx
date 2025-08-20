@@ -164,16 +164,22 @@ const QuizPage = () => {
     }
   };
 
-  const handleSubmitQuiz = () => {
-    if (!activeQuiz) return;
+  const handleSubmitQuiz = async () => {
+  if (!activeQuiz) return;
 
-    const unanswered = userAnswers.some(answer => answer === -1);
-    if (unanswered) {
-      toast({ variant: "destructive", title: "Incomplete!", description: "Please answer all questions." });
-      return;
-    }
-    
-    endSession("quiz", activeQuiz.title, true);
+  const unanswered = userAnswers.some(answer => answer === -1);
+  if (unanswered) {
+    toast({
+      variant: "destructive",
+      title: "Incomplete!",
+      description: "Please answer all questions."
+    });
+    return;
+  }
+
+  try {
+    // wait for Firestore write to finish
+    const res = await endSession("quiz", activeQuiz.title, true);
     trackQuizCompleted();
     setShowConfetti(true);
     setGameState('results');
