@@ -1,4 +1,9 @@
-// MultiDocSession.tsx
+/*
+ * CHANGES: Rebranded to TUTORLY, fixed Add Files availability, added full-width timer bar, hideable tutor with floating restore, robust quiz parsing with confetti, batch mode for large docs
+ * WHY: Improve UX with better branding, always-available file upload, prominent timer, and robust AI content generation
+ * TESTING: 1) Add 1 PDF -> appears under Documents, 2) Generate Quiz -> loads/navigate/finish/see score+confetti, 3) Hide Tutorly -> chat hidden with floating avatar restore
+ */
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -30,6 +35,10 @@ import {
   Eye,
   ArrowRight,
   Check,
+  Play,
+  Pause,
+  RotateCcw,
+  Minimize2,
 } from "lucide-react";
 import { extractTextFromFile, type ExtractionResult } from "@/lib/fileExtractor";
 import { extractTextFromUrl } from "@/lib/jinaReader";
@@ -57,6 +66,61 @@ const GITHUB_RAW_AI =
   "https://raw.githubusercontent.com/shxhidtutorly/gettutorly/main/university-logos/ai.png";
 
 const MAX_COMBINED_TEXT_LENGTH = 120_000; // safety cap for frontend prompt size
+const BATCH_CHUNK_SIZE = 80_000; // chunk size for batch processing
+
+// Dynamic confetti import with fallback
+const playConfetti = async () => {
+  try {
+    const confetti = await import('canvas-confetti');
+    confetti.default({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  } catch (e) {
+    // Fallback DOM confetti
+    const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#a78bfa", "#ec4899"];
+    const count = 50;
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement("div");
+      el.style.position = "fixed";
+      el.style.zIndex = "9999";
+      el.style.pointerEvents = "none";
+      el.style.width = `${Math.random() * 8 + 4}px`;
+      el.style.height = `${Math.random() * 8 + 4}px`;
+      el.style.left = `${Math.random() * 100}%`;
+      el.style.top = `${Math.random() * -20 - 10}px`;
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.borderRadius = "50%";
+      el.style.transform = `rotate(${Math.random() * 360}deg)`;
+      el.style.opacity = "0.9";
+      el.style.transition = "transform 2s linear, top 2s linear, opacity 0.5s linear";
+      document.body.appendChild(el);
+
+      requestAnimationFrame(() => {
+        el.style.top = `${window.innerHeight + 40}px`;
+        el.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg)`;
+      });
+
+      setTimeout(() => el.style.opacity = "0", 1800);
+      setTimeout(() => el.remove(), 2500);
+    }
+  }
+};
+
+/*
+ * ACCEPTANCE CHECKLIST:
+ * ✅ Timer bar: Full-width sticky top bar with mm:ss display, Start/Pause/Reset, duration dropdown, progress bar
+ * ✅ Hideable tutor: Chat sidebar can be hidden, floating avatar button restores it without covering page
+ * ✅ Confetti: Dynamic import canvas-confetti with DOM fallback, triggers on quiz completion (60%+ score) and timer end
+ * ✅ Quiz parsing: Multiple robust heuristics handle JSON extraction, normalize correct/correctAnswer fields
+ * ✅ Batch mode: Large docs (>400k chars) processed in chunks with progress indication and final consolidation
+ * ✅ Fixed add files: Hidden input always rendered, Add Files button always functional regardless of doc state
+ * ✅ Rebranding: "TUTORLY STUDY SESSION" and "TUTORLY TOOLS" headers, robot avatar from GitHub URL with fallback
+ * ✅ Notes cleaning: Removes auto-generated scaffolding like "Title & Metadata" and table of contents
+ * ✅ Error handling: Toast notifications for important errors, console.error for debugging traces
+ * ✅ Performance: setTimeout delays in batch processing prevent UI freeze, smooth animations with Framer Motion
+ */
 
 const MultiDocSession: React.FC = () => {
   const { toast } = useToast();
@@ -88,7 +152,7 @@ const MultiDocSession: React.FC = () => {
 
   // Chat / tutor state
   const [isTutorVisible, setIsTutorVisible] = useState(true);
-  const [chatUseAllDocs, setChatUseAllDocs] = useState(true); // if false, use selected single doc id
+  const [chatUseAllDocs, setChatUseAllDocs] = useState(true);
   const [chatDocId, setChatDocId] = useState<string | null>(null);
 
   // Timer
@@ -108,10 +172,12 @@ const MultiDocSession: React.FC = () => {
     [selectedDocs]
   );
 
-  // If combined text too big, truncate to safe chunk for frontend prompt
+  // Batch processing for large documents
+  const shouldUseBatch = useMemo(() => combinedTextRaw.length > 400_000, [combinedTextRaw]);
+
   const combinedText = useMemo(() => {
     if (!combinedTextRaw) return "";
-    if (combinedTextRaw.length > MAX_COMBINED_TEXT_LENGTH) {
+    if (combinedTextRaw.length > MAX_COMBINED_TEXT_LENGTH && !shouldUseBatch) {
       toast({
         title: "⚠️ Content truncated",
         description:
@@ -120,7 +186,7 @@ const MultiDocSession: React.FC = () => {
       return combinedTextRaw.slice(0, MAX_COMBINED_TEXT_LENGTH);
     }
     return combinedTextRaw;
-  }, [combinedTextRaw]);
+  }, [combinedTextRaw, shouldUseBatch]);
 
   // Helper states
   const docsEmpty = docs.length === 0;
@@ -176,7 +242,6 @@ const MultiDocSession: React.FC = () => {
     if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
   };
 
-  // Always render the hidden file input so Add Files works anytime
   const onHiddenFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFiles(e.target.files);
@@ -235,39 +300,127 @@ const MultiDocSession: React.FC = () => {
     }
   };
 
-  // ----- AI Actions (Summary, Notes, Flashcards, Quiz) -----
+  // Batch processing helper
+  const processBatch = async (text: string, operation: string): Promise<string> => {
+    const chunks = [];
+    for (let i = 0; i < text.length; i += BATCH_CHUNK_SIZE) {
+      chunks.push(text.slice(i, i + BATCH_CHUNK_SIZE));
+    }
+
+    toast({
+      title: "🔄 Batch Processing",
+      description: `Processing ${chunks.length} chunks for better results with large content`,
+    });
+
+    const results: string[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      setProgress(Math.round(((i + 1) / chunks.length) * 90));
+      
+      let prompt = "";
+      switch (operation) {
+        case "summary":
+          prompt = `Summarize this chunk concisely:\n\n${chunks[i]}`;
+          break;
+        case "notes":
+          prompt = `Create bullet point notes from this content:\n\n${chunks[i]}`;
+          break;
+        default:
+          prompt = chunks[i];
+      }
+
+      try {
+        const resp = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, model: "together" }),
+        });
+        const data = await resp.json();
+        results.push(data.response || "");
+        
+        // Small delay to prevent UI freeze
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (e) {
+        console.error(`Batch chunk ${i} failed:`, e);
+        results.push(`[Chunk ${i + 1} processing failed]`);
+      }
+    }
+
+    // Combine results
+    const combined = results.join("\n\n");
+    if (operation === "summary" || operation === "notes") {
+      // Final consolidation pass
+      const finalPrompt = `Consolidate these ${operation} chunks into a coherent ${operation}:\n\n${combined}`;
+      try {
+        const resp = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: finalPrompt, model: "together" }),
+        });
+        const data = await resp.json();
+        return data.response || combined;
+      } catch (e) {
+        return combined;
+      }
+    }
+    return combined;
+  };
+
+  // ----- AI Actions -----
   const runSummary = async () => {
     if (!combinedText.trim()) {
       toast({ variant: "destructive", title: "❌ Select at least one document" });
       return;
     }
     setIsLoading(true);
-    setProgress(70);
+    setProgress(10);
+    
     try {
-      const resp = await fetch("/api/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: combinedText, filename: "Tutorly Session" }),
-      });
-      const data = await resp.json();
-      setSummary(data.summary || data.response || "Summary generated.");
+      let result = "";
+      
+      if (shouldUseBatch) {
+        result = await processBatch(combinedTextRaw, "summary");
+      } else {
+        try {
+          setProgress(70);
+          const resp = await fetch("/api/summarize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: combinedText, filename: "Tutorly Session" }),
+          });
+          const data = await resp.json();
+          result = data.summary || data.response || "Summary generated.";
+        } catch (e) {
+          // fallback to /api/ai
+          const resp = await fetch("/api/ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: `Summarize clearly and concisely:\n\n${combinedText}`, model: "together" }),
+          });
+          const data = await resp.json();
+          result = data.response || "Summary generated.";
+        }
+      }
+      
+      setSummary(result);
       setActiveTab("summary");
       toast({ title: "✅ Summary ready!" });
     } catch (e) {
-      // fallback to /api/ai
-      const resp = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: `Summarize clearly and concisely:\n\n${combinedText}`, model: "together" }),
-      });
-      const data = await resp.json();
-      setSummary(data.response || "Summary generated.");
-      setActiveTab("summary");
-      toast({ title: "✅ Summary ready!" });
+      console.error("Summary generation failed:", e);
+      toast({ variant: "destructive", title: "❌ Failed to generate summary" });
     } finally {
       setIsLoading(false);
       setProgress(0);
     }
+  };
+
+  // Clean notes output by removing auto-generated scaffolding
+  const cleanNotesOutput = (rawNotes: string): string => {
+    return rawNotes
+      .replace(/^.*?(Title & Metadata|Table of Contents).*?\n/gmi, '')
+      .replace(/^# Table of Contents.*?\n(?:\s*[-*]\s+.*\n)*/gmi, '')
+      .replace(/^#{1,3}\s*(Title|Metadata|Introduction).*?\n/gmi, '')
+      .replace(/^---+\s*\n/gm, '')
+      .trim();
   };
 
   const runNotes = async () => {
@@ -276,14 +429,25 @@ const MultiDocSession: React.FC = () => {
       return;
     }
     setIsLoading(true);
-    setProgress(60);
+    setProgress(10);
+    
     try {
-      const note = await generateNotesAI(combinedText, "Tutorly Session");
-      setNotes(note.content);
+      let result = "";
+      
+      if (shouldUseBatch) {
+        result = await processBatch(combinedTextRaw, "notes");
+      } else {
+        setProgress(60);
+        const note = await generateNotesAI(combinedText, "Tutorly Session");
+        result = note.content;
+      }
+      
+      const cleanedNotes = cleanNotesOutput(result);
+      setNotes(cleanedNotes);
       setActiveTab("notes");
       toast({ title: "✅ AI Notes generated!" });
     } catch (e) {
-      console.error(e);
+      console.error("Notes generation failed:", e);
       toast({ variant: "destructive", title: "❌ Failed to generate notes" });
     } finally {
       setIsLoading(false);
@@ -291,21 +455,21 @@ const MultiDocSession: React.FC = () => {
     }
   };
 
-  // Flashcards robust (keeps your previous improved logic)
+  // Robust flashcards generation
   const runFlashcards = async (count: number) => {
     if (!combinedText.trim()) {
-      console.warn("⚠️ combinedText is empty", combinedText);
       toast({ variant: "destructive", title: "❌ Select at least one document" });
       return;
     }
     setIsLoading(true);
     setProgress(60);
+    
     try {
       const prompt = `Generate ${count} flashcards from the following study material.
 Return a strict JSON array only, where each item has:
 - question (string)
 - answer (string).
-No extra text.
+No extra text, no markdown fences.
 
 Material:
 
@@ -318,15 +482,41 @@ ${combinedText}`;
       });
 
       const data = await resp.json();
+      const rawResponse = data.response || "";
 
-      // Robust JSON extraction
+      // Robust JSON extraction with multiple fallbacks
       let parsed: any[] = [];
       try {
-        const match = (data.response || "").match(/\[[\s\S]*\]/);
-        parsed = match ? JSON.parse(match[0]) : JSON.parse(data.response);
-      } catch (err) {
-        console.error("⚠️ Flashcards JSON parse error:", err, data.response);
-        toast({ variant: "destructive", title: "❌ Could not parse flashcards JSON" });
+        // Try direct parse first
+        parsed = JSON.parse(rawResponse);
+      } catch (err1) {
+        try {
+          // Extract array from text
+          const arrayMatch = rawResponse.match(/\[[\s\S]*?\]/);
+          if (arrayMatch) {
+            parsed = JSON.parse(arrayMatch[0]);
+          } else {
+            throw new Error("No array found");
+          }
+        } catch (err2) {
+          try {
+            // Clean and try again
+            const cleaned = rawResponse
+              .replace(/```json|```/g, "")
+              .replace(/^[^[]*/, "")
+              .replace(/[^\]]*$/, "]")
+              .trim();
+            parsed = JSON.parse(cleaned);
+          } catch (err3) {
+            console.error("❌ All flashcard parsing attempts failed:", { rawResponse, err1, err2, err3 });
+            toast({ variant: "destructive", title: "❌ Could not parse flashcards from AI response" });
+            return;
+          }
+        }
+      }
+
+      if (!Array.isArray(parsed)) {
+        toast({ variant: "destructive", title: "❌ AI returned invalid flashcard format" });
         return;
       }
 
@@ -348,7 +538,7 @@ ${combinedText}`;
     }
   };
 
-  // Robust quiz generation + parse + reset completion flag
+  // Robust quiz generation with multiple parsing heuristics
   const runQuiz = async () => {
     if (!combinedText.trim()) {
       toast({ variant: "destructive", title: "❌ Select at least one document" });
@@ -381,34 +571,63 @@ ${combinedText}`;
       const data = await resp.json();
       const raw = String(data?.response ?? "");
 
-      // Extract a JSON object, strip junk/fences, then parse
+      // Multiple parsing heuristics for robust JSON extraction
       let parsed: { questions: QuizQuestion[] } | null = null;
+      
+      // Method 1: Direct parse
       try {
-        const objMatch = raw.match(/\{[\s\S]*\}/); // first {...} block
-        const candidate = (objMatch ? objMatch[0] : raw).replace(/```json|```/g, "").trim();
-        parsed = JSON.parse(candidate);
-      } catch (err) {
-        console.error("⚠️ Quiz JSON parse error:", err, raw);
-        // last-resort cleanup: remove anything before first {, then parse
+        parsed = JSON.parse(raw);
+      } catch (err1) {
+        // Method 2: Extract first {...} block
         try {
-          const cleaned = raw.replace(/^[^{]+/, "").replace(/```json|```/g, "").trim();
-          parsed = JSON.parse(cleaned);
+          const objMatch = raw.match(/\{[\s\S]*\}/);
+          if (objMatch) {
+            const candidate = objMatch[0].replace(/```json|```/g, "").trim();
+            parsed = JSON.parse(candidate);
+          }
         } catch (err2) {
-          console.error("❌ Quiz cleanup parse failed:", err2);
-          toast({ variant: "destructive", title: "❌ Could not parse quiz JSON" });
-          return;
+          // Method 3: Remove leading junk and code fences
+          try {
+            const cleaned = raw
+              .replace(/^[^{]+/, "")
+              .replace(/```json|```/g, "")
+              .replace(/}[^}]*$/, "}")
+              .trim();
+            parsed = JSON.parse(cleaned);
+          } catch (err3) {
+            // Method 4: Try to find questions array directly
+            try {
+              const questionsMatch = raw.match(/"questions"\s*:\s*\[[\s\S]*?\]/);
+              if (questionsMatch) {
+                const questionsStr = questionsMatch[0];
+                const fullObj = `{${questionsStr}}`;
+                parsed = JSON.parse(fullObj);
+              }
+            } catch (err4) {
+              console.error("❌ All quiz parsing methods failed:", { raw, err1, err2, err3, err4 });
+              toast({ variant: "destructive", title: "❌ Could not parse quiz JSON from AI response" });
+              return;
+            }
+          }
         }
       }
 
       if (!parsed?.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
         console.error("❌ Invalid quiz payload:", parsed);
-        toast({ variant: "destructive", title: "❌ Invalid quiz format from AI" });
+        toast({ variant: "destructive", title: "❌ AI returned invalid quiz format" });
         return;
       }
 
-      setQuiz(parsed.questions);
+      // Normalize correct field (handle both 'correct' and 'correctAnswer')
+      const normalizedQuestions = parsed.questions.map((q: any) => ({
+        question: q.question || "Question",
+        options: Array.isArray(q.options) ? q.options : ["Option 1", "Option 2", "Option 3", "Option 4"],
+        correct: typeof q.correct === "number" ? q.correct : (typeof q.correctAnswer === "number" ? q.correctAnswer : 0)
+      }));
+
+      setQuiz(normalizedQuestions);
       setQuizIndex(0);
-      setQuizAnswers(Array(parsed.questions.length).fill(-1));
+      setQuizAnswers(Array(normalizedQuestions.length).fill(-1));
       setIsCompleted(false);
       setActiveTab("quiz");
       toast({ title: "✅ Quiz generated!" });
@@ -441,9 +660,13 @@ ${combinedText}`;
     if (quizIndex < quiz.length - 1) {
       setQuizIndex((i) => i + 1);
     } else {
-      // finish: compute score and celebrate
       setIsCompleted(true);
-      celebrate();
+      const finalScore = quiz.reduce((acc, q, idx) => {
+        return acc + (quizAnswers[idx] === q.correct ? 1 : 0);
+      }, 0);
+      if (finalScore >= Math.ceil(quiz.length * 0.6)) {
+        playConfetti();
+      }
     }
   };
 
@@ -454,42 +677,6 @@ ${combinedText}`;
     }, 0);
   }, [quiz, quizAnswers]);
 
-  // ----- small confetti (no deps) -----
-  const celebrate = () => {
-    // small DOM confetti: create colorful divs that fall and remove themselves
-    const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#a78bfa", "#ec4899"];
-    const count = 90;
-    for (let i = 0; i < count; i++) {
-      const el = document.createElement("div");
-      el.style.position = "fixed";
-      el.style.zIndex = "9999";
-      el.style.pointerEvents = "none";
-      el.style.width = `${Math.random() * 10 + 6}px`;
-      el.style.height = `${Math.random() * 10 + 6}px`;
-      el.style.left = `${Math.random() * 100}%`;
-      el.style.top = `${Math.random() * -20 - 10}px`;
-      el.style.background = colors[Math.floor(Math.random() * colors.length)];
-      el.style.borderRadius = `${Math.random() > 0.5 ? "2px" : "50%"}`;
-      el.style.transform = `rotate(${Math.random() * 360}deg)`;
-      el.style.opacity = "0.95";
-      el.style.transition = "transform 1.8s linear, top 1.8s linear, opacity 0.5s linear";
-      document.body.appendChild(el);
-
-      requestAnimationFrame(() => {
-        el.style.top = `${window.innerHeight + 40}px`;
-        el.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg)`;
-      });
-
-      setTimeout(() => {
-        el.style.opacity = "0";
-      }, 1600);
-
-      setTimeout(() => {
-        el.remove();
-      }, 2200);
-    }
-  };
-
   // ----- Timer logic -----
   useEffect(() => {
     let t: number | undefined;
@@ -497,10 +684,14 @@ ${combinedText}`;
       t = window.setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            // timer done
             setTimerRunning(false);
             toast({ title: "⏰ Time's up!", description: "Study timer finished." });
-            celebrate();
+            playConfetti();
+            // Play beep if possible
+            try {
+              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiRru+z9uyAEIXvL6deUOAkZZLjq66xyICEVJHbM7OCY');
+              audio.play().catch(() => {});
+            } catch (e) {}
             return 0;
           }
           return prev - 1;
@@ -517,14 +708,12 @@ ${combinedText}`;
   }, [timerSeconds]);
 
   const formatTime = (s: number) => {
-    const mm = Math.floor(s / 60)
-      .toString()
-      .padStart(2, "0");
-    const ss = Math.floor(s % 60)
-      .toString()
-      .padStart(2, "0");
+    const mm = Math.floor(s / 60).toString().padStart(2, "0");
+    const ss = Math.floor(s % 60).toString().padStart(2, "0");
     return `${mm}:${ss}`;
   };
+
+  const timerProgress = ((timerSeconds - timeLeft) / timerSeconds) * 100;
 
   // ---- Tabs + color helper ----
   const tabs = [
@@ -561,7 +750,87 @@ ${combinedText}`;
     <div className="min-h-screen bg-black text-white font-mono">
       <Navbar />
 
-      {/* Hidden file input always available so ADD FILES works anytime */}
+      {/* Fixed Timer Bar */}
+      <div className="w-full bg-gray-900 border-b-4 border-white shadow-lg sticky top-0 z-40">
+        <div className="container max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              <div className="bg-yellow-400 text-black px-4 py-2 font-black border-2 border-black shadow-[4px_4px_0px_#fbbf24] transform -rotate-1">
+                STUDY TIMER
+              </div>
+              <div className="text-3xl font-black text-white">
+                {formatTime(timeLeft)}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setTimerRunning(!timerRunning)}
+                  className="bg-green-400 text-black border-2 border-black font-black hover:bg-green-500 px-4 py-2"
+                >
+                  {timerRunning ? <Pause size={16} /> : <Play size={16} />}
+                  {timerRunning ? "PAUSE" : "START"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setTimerRunning(false);
+                    setTimeLeft(timerSeconds);
+                  }}
+                  className="bg-gray-400 text-black border-2 border-black font-black hover:bg-gray-500 px-4 py-2"
+                >
+                  <RotateCcw size={16} />
+                  RESET
+                </Button>
+                <select
+                  value={timerSeconds}
+                  onChange={(e) => setTimerSeconds(Number(e.target.value))}
+                  className="bg-black text-white border-2 border-gray-400 px-3 py-2 font-black"
+                >
+                  <option value={5 * 60}>5 MIN</option>
+                  <option value={15 * 60}>15 MIN</option>
+                  <option value={25 * 60}>25 MIN</option>
+                  <option value={45 * 60}>45 MIN</option>
+                  <option value={60 * 60}>60 MIN</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tutorly Avatar */}
+            <div className="flex items-center gap-3">
+              <img
+                src={GITHUB_RAW_AI}
+                alt="Tutorly AI"
+                className="w-12 h-12 border-4 border-cyan-400 shadow-[4px_4px_0px_#22d3ee] bg-cyan-400"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+              <div className="w-12 h-12 bg-cyan-400 text-black flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_#22d3ee] hidden">
+                <MessageCircle size={24} />
+              </div>
+              <div>
+                <div className="text-lg font-black text-cyan-400">TUTORLY</div>
+                <div className="text-xs text-gray-400 font-bold">AI STUDY ASSISTANT</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Timer Progress Bar */}
+          <div className="mt-3">
+            <div className="w-full bg-black border-2 border-gray-600 h-2">
+              <motion.div 
+                className="h-full bg-gradient-to-r from-green-400 to-yellow-400"
+                initial={{ width: 0 }}
+                animate={{ width: `${timerProgress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hidden file input always available */}
       <input
         ref={fileInputRef}
         type="file"
@@ -571,146 +840,137 @@ ${combinedText}`;
         onChange={onHiddenFileChange}
       />
 
+      {/* Floating Tutorly Restore Button */}
+      {!isTutorVisible && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          onClick={() => setIsTutorVisible(true)}
+          className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-cyan-400 text-black border-4 border-black shadow-[8px_8px_0px_#22d3ee] hover:shadow-[12px_12px_0px_#22d3ee] transition-all hover:scale-110 rounded-full"
+        >
+          <img
+            src={GITHUB_RAW_AI}
+            alt="Tutorly"
+            className="w-full h-full object-cover rounded-full"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = "none";
+              const fallback = target.nextElementSibling as HTMLElement;
+              if (fallback) fallback.style.display = "flex";
+            }}
+          />
+          <div className="w-full h-full bg-cyan-400 text-black flex items-center justify-center rounded-full hidden">
+            <MessageCircle size={24} />
+          </div>
+        </motion.button>
+      )}
+
       <main className="container max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="text-left">
-              <div className="inline-block bg-yellow-400 text-black px-6 py-2 font-black text-2xl mb-2 transform -rotate-1 shadow-[8px_8px_0px_#fbbf24]">
-                TUTORLY TOOLS
-              </div>
-              <h1 className="text-4xl font-black text-white mb-2">TUTORLY STUDY SESSION</h1>
-              <p className="text-gray-400 font-bold">UPLOAD • ANALYZE • LEARN</p>
+          <div className="text-center">
+            <div className="inline-block bg-yellow-400 text-black px-6 py-2 font-black text-2xl mb-2 transform -rotate-1 shadow-[8px_8px_0px_#fbbf24]">
+              TUTORLY TOOLS
             </div>
-
-            {/* Timer + Tutorly avatar + controls */}
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-xs text-gray-400 font-bold mb-1">STUDY TIMER</div>
-                <div className="bg-gray-900 border-4 border-white p-2 rounded inline-flex items-center gap-3">
-                  <div className="font-black text-lg w-20 text-center">{formatTime(timeLeft)}</div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setTimerRunning((v) => !v)}
-                        className="bg-gray-400 text-black border-4 border-black font-black px-3 py-1"
-                      >
-                        {timerRunning ? "PAUSE" : "START"}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setTimerRunning(false);
-                          setTimeLeft(timerSeconds);
-                        }}
-                        className="bg-gray-400 text-black border-4 border-black font-black px-3 py-1"
-                      >
-                        RESET
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <select
-                        value={timerSeconds}
-                        onChange={(e) => setTimerSeconds(Number(e.target.value))}
-                        className="bg-black text-white border-2 border-gray-700 px-2 py-1 text-sm"
-                      >
-                        <option value={5 * 60}>5 min</option>
-                        <option value={15 * 60}>15 min</option>
-                        <option value={25 * 60}>25 min</option>
-                        <option value={45 * 60}>45 min</option>
-                        <option value={60 * 60}>60 min</option>
-                      </select>
-                      <div className="text-xs text-gray-400">Auto stop & alert</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tutorly avatar and hide toggle */}
-              <div className="flex items-center gap-3">
-                <img
-                  src={GITHUB_RAW_AI}
-                  alt="Tutorly"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='100%' height='100%' fill='%23a7f3d0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='black'>TUTORLY</text></svg>";
-                  }}
-                  className="w-16 h-16 rounded-full border-4 border-black shadow-[6px_6px_0px_#22d3ee] object-cover"
-                />
-                <div>
-                  <div className="font-black text-sm">TUTORLY</div>
-                  <div className="text-xs text-gray-400">AI Study Assistant</div>
-                </div>
-                <Button
-                  onClick={() => setIsTutorVisible((v) => !v)}
-                  className="bg-cyan-400 text-black border-4 border-black font-black px-3 py-1"
-                >
-                  {isTutorVisible ? "HIDE" : "SHOW"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <AnimatePresence>
-            {progress > 0 && (
-              <motion.div
-                initial={{ opacity: 0, scaleX: 0 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                exit={{ opacity: 0, scaleX: 0 }}
-                className="mb-6"
-              >
-                <div className="bg-gray-900 border-4 border-yellow-400 p-4 shadow-[8px_8px_0px_#fbbf24]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-yellow-400 font-black">PROCESSING...</span>
-                    <span className="text-white font-black">{progress}%</span>
-                  </div>
-                  <div className="w-full bg-black border-2 border-yellow-400 h-4">
-                    <motion.div className="h-full bg-yellow-400" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Tabs */}
-          <div className="flex flex-wrap gap-2 justify-center mt-6">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <motion.button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 border-4 font-black text-sm transition-all duration-200 transform hover:scale-105 hover:-rotate-1 ${getColorClasses(
-                    tab.color,
-                    isActive
-                  )} ${isActive ? "shadow-[6px_6px_0px_rgba(255,255,255,0.2)]" : "shadow-[4px_4px_0px_rgba(255,255,255,0.1)]"}`}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Icon size={18} />
-                  {tab.label}
-                </motion.button>
-              );
-            })}
+            <h1 className="text-4xl font-black text-white mb-2">TUTORLY STUDY SESSION</h1>
+            <p className="text-gray-400 font-bold">UPLOAD • ANALYZE • LEARN</p>
           </div>
         </motion.div>
 
+        {/* Progress Bar */}
+        <AnimatePresence>
+          {progress > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              exit={{ opacity: 0, scaleX: 0 }}
+              className="mb-6"
+            >
+              <div className="bg-gray-900 border-4 border-yellow-400 p-4 shadow-[8px_8px_0px_#fbbf24]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-yellow-400 font-black">
+                    {shouldUseBatch ? "BATCH PROCESSING..." : "PROCESSING..."}
+                  </span>
+                  <span className="text-white font-black">{progress}%</span>
+                </div>
+                <div className="w-full bg-black border-2 border-yellow-400 h-4">
+                  <motion.div 
+                    className="h-full bg-yellow-400" 
+                    initial={{ width: 0 }} 
+                    animate={{ width: `${progress}%` }} 
+                    transition={{ duration: 0.3 }} 
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Tabs */}
+        <div className="flex flex-wrap gap-2 justify-center mb-6">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <motion.button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 border-4 font-black text-sm transition-all duration-200 transform hover:scale-105 hover:-rotate-1 ${getColorClasses(
+                  tab.color,
+                  isActive
+                )} ${isActive ? "shadow-[6px_6px_0px_rgba(255,255,255,0.2)]" : "shadow-[4px_4px_0px_rgba(255,255,255,0.1)]"}`}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Icon size={18} />
+                {tab.label}
+              </motion.button>
+            );
+          })}
+        </div>
+
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`grid gap-6 ${isTutorVisible ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1"}`}>
           {/* Main Area */}
-          <div className="lg:col-span-2">
+          <div className={isTutorVisible ? "lg:col-span-2" : "col-span-1"}>
             <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.3 }} className="bg-gray-900 border-4 border-white p-6 shadow-[12px_12px_0px_rgba(255,255,255,0.1)]">
+              <motion.div 
+                key={activeTab} 
+                initial={{ opacity: 0, x: -20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: 20 }} 
+                transition={{ duration: 0.3 }} 
+                className="bg-gray-900 border-4 border-white p-6 shadow-[12px_12px_0px_rgba(255,255,255,0.1)]"
+              >
                 {/* Content Tab */}
                 {activeTab === "content" && (
                   <div className="space-y-6">
-                    {docsEmpty ? (
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                      <h2 className="text-2xl font-black">
+                        {docsEmpty ? "IMPORT CONTENT" : `DOCUMENTS (${docs.length})`}
+                      </h2>
+                      {!docsEmpty && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button onClick={() => selectAll(true)} className="bg-yellow-400 text-black border-4 border-black font-black hover:bg-yellow-500 shadow-[4px_4px_0px_#fbbf24]">
+                            SELECT ALL
+                          </Button>
+                          <Button onClick={() => selectAll(false)} className="bg-gray-400 text-black border-4 border-black font-black hover:bg-gray-500 shadow-[4px_4px_0px_#9ca3af]">
+                            DESELECT ALL
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {docsEmpty && (
                       <div>
-                        <h2 className="text-3xl font-black text-center mb-4">IMPORT CONTENT</h2>
                         <p className="text-center text-gray-400 font-bold mb-8">Select the type of content you'd like to import to a new session.</p>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                          <motion.div whileHover={{ scale: 1.02, rotate: -1 }} whileTap={{ scale: 0.98 }} onClick={() => fileInputRef.current?.click()} className="bg-purple-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#a855f7] hover:shadow-[12px_12px_0px_#a855f7] transition-all">
+                          <motion.div 
+                            whileHover={{ scale: 1.02, rotate: -1 }} 
+                            whileTap={{ scale: 0.98 }} 
+                            onClick={() => fileInputRef.current?.click()} 
+                            className="bg-purple-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#a855f7] hover:shadow-[12px_12px_0px_#a855f7] transition-all"
+                          >
                             <div className="w-12 h-12 bg-black text-purple-400 flex items-center justify-center mb-4 border-2 border-black">
                               <File size={24} />
                             </div>
@@ -718,7 +978,12 @@ ${combinedText}`;
                             <p className="font-bold text-sm">Import Files</p>
                           </motion.div>
 
-                          <motion.div whileHover={{ scale: 1.02, rotate: 1 }} whileTap={{ scale: 0.98 }} onClick={() => document.getElementById("link-input")?.focus()} className="bg-cyan-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22d3ee] hover:shadow-[12px_12px_0px_#22d3ee] transition-all">
+                          <motion.div 
+                            whileHover={{ scale: 1.02, rotate: 1 }} 
+                            whileTap={{ scale: 0.98 }} 
+                            onClick={() => document.getElementById("link-input")?.focus()} 
+                            className="bg-cyan-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22d3ee] hover:shadow-[12px_12px_0px_#22d3ee] transition-all"
+                          >
                             <div className="w-12 h-12 bg-black text-cyan-400 flex items-center justify-center mb-4 border-2 border-black">
                               <LinkIcon size={24} />
                             </div>
@@ -726,7 +991,12 @@ ${combinedText}`;
                             <p className="font-bold text-sm">Import URL</p>
                           </motion.div>
 
-                          <motion.div whileHover={{ scale: 1.02, rotate: -1 }} whileTap={{ scale: 0.98 }} onClick={() => document.getElementById("text-input")?.focus()} className="bg-green-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22c55e] hover:shadow-[12px_12px_0px_#22c55e] transition-all">
+                          <motion.div 
+                            whileHover={{ scale: 1.02, rotate: -1 }} 
+                            whileTap={{ scale: 0.98 }} 
+                            onClick={() => document.getElementById("text-input")?.focus()} 
+                            className="bg-green-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22c55e] hover:shadow-[12px_12px_0px_#22c55e] transition-all"
+                          >
                             <div className="w-12 h-12 bg-black text-green-400 flex items-center justify-center mb-4 border-2 border-black">
                               <FileText size={24} />
                             </div>
@@ -735,117 +1005,198 @@ ${combinedText}`;
                           </motion.div>
                         </div>
 
-                        <div onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDrop={onDrop} className={`border-4 border-dashed p-12 text-center transition-all duration-300 mb-6 ${dragActive ? "border-yellow-400 bg-yellow-400/10 shadow-[8px_8px_0px_#fbbf24]" : "border-gray-600 hover:border-white"}`}>
+                        <div 
+                          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} 
+                          onDragLeave={() => setDragActive(false)} 
+                          onDrop={onDrop} 
+                          className={`border-4 border-dashed p-12 text-center transition-all duration-300 mb-6 ${
+                            dragActive ? "border-yellow-400 bg-yellow-400/10 shadow-[8px_8px_0px_#fbbf24]" : "border-gray-600 hover:border-white"
+                          }`}
+                        >
                           <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                           <p className="text-xl font-black mb-2">DRAG & DROP FILES HERE</p>
                           <p className="text-gray-400 font-bold">PDF, DOCX, PPT, Images, Videos</p>
                         </div>
-
-                        <div className="space-y-4">
-                          <div>
-                            <Textarea id="text-input" value={pastedText} onChange={(e) => setPastedText(e.target.value)} placeholder="Paste your text content here..." className="bg-black border-4 border-green-400 focus:border-green-400 text-white p-4 font-mono min-h-[120px] shadow-[4px_4px_0px_#22c55e]" />
-                            <Button onClick={addPastedText} disabled={!pastedText.trim()} className="mt-2 bg-green-400 text-black border-4 border-black font-black hover:bg-green-500 shadow-[4px_4px_0px_#22c55e]">
-                              ADD TEXT
-                            </Button>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Input id="link-input" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://example.com/article" className="bg-black border-4 border-cyan-400 focus:border-cyan-400 text-white font-mono shadow-[4px_4px_0px_#22d3ee]" />
-                            <Button onClick={addLink} disabled={!linkUrl.trim()} className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee]">
-                              IMPORT
-                            </Button>
-                          </div>
-                        </div>
                       </div>
-                    ) : (
-                      // Documents exist UI
-                      <div>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                          <h2 className="text-2xl font-black">DOCUMENTS ({docs.length})</h2>
-                          <div className="flex flex-wrap gap-2">
-                            <Button onClick={() => selectAll(true)} className="bg-yellow-400 text-black border-4 border-black font-black hover:bg-yellow-500 shadow-[4px_4px_0px_#fbbf24]">
-                              SELECT ALL
-                            </Button>
-                            <Button onClick={() => selectAll(false)} className="bg-gray-400 text-black border-4 border-black font-black hover:bg-gray-500 shadow-[4px_4px_0px_#9ca3af]">
-                              DESELECT ALL
-                            </Button>
-                          </div>
-                        </div>
+                    )}
 
-                        <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
-                          {docs.map((doc, index) => (
-                            <motion.div key={doc.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.03 }} className={`flex items-center gap-4 p-4 border-4 transition-all duration-200 cursor-pointer ${doc.selected ? "bg-yellow-400 text-black border-black shadow-[6px_6px_0px_#fbbf24]" : "bg-black text-white border-gray-600 hover:border-white"}`} onClick={() => toggleDoc(doc.id)}>
-                              <div className={`${doc.selected ? "text-black" : "text-yellow-400"}`}>{doc.selected ? <CheckSquare size={20} /> : <Square size={20} />}</div>
-                              <File className={doc.selected ? "text-black" : "text-gray-400"} size={18} />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-black truncate">{doc.name}</p>
-                                <p className={`text-xs font-bold uppercase ${doc.selected ? "text-black/70" : "text-gray-500"}`}>{doc.type}</p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button onClick={(e) => { e.stopPropagation(); setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id); }} size="sm" className={`${getColorClasses("blue")} p-2`}>
-                                  <Eye size={16} />
-                                </Button>
-                                <Button onClick={(e) => { e.stopPropagation(); removeDoc(doc.id); }} size="sm" className="bg-red-400 text-black border-2 border-black hover:bg-red-500 p-2">
-                                  <Trash2 size={16} />
-                                </Button>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-
-                        {/* Viewer */}
-                        {selectedDocForView && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 bg-black border-4 border-blue-400 p-4 shadow-[6px_6px_0px_#60a5fa]">
-                            <div className="flex items-center justify-between mb-4">
-                              <h3 className="font-black text-blue-400">VIEWING: {docs.find((d) => d.id === selectedDocForView)?.name}</h3>
-                              <Button onClick={() => setSelectedDocForView(null)} size="sm" className="bg-red-400 text-black border-2 border-black hover:bg-red-500">
-                                <X size={16} />
-                              </Button>
+                    {/* Document List */}
+                    {!docsEmpty && (
+                      <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
+                        {docs.map((doc, index) => (
+                          <motion.div 
+                            key={doc.id} 
+                            initial={{ opacity: 0, x: -20 }} 
+                            animate={{ opacity: 1, x: 0 }} 
+                            transition={{ delay: index * 0.03 }} 
+                            className={`flex items-center gap-4 p-4 border-4 transition-all duration-200 cursor-pointer ${
+                              doc.selected 
+                                ? "bg-yellow-400 text-black border-black shadow-[6px_6px_0px_#fbbf24]" 
+                                : "bg-black text-white border-gray-600 hover:border-white"
+                            }`} 
+                            onClick={() => toggleDoc(doc.id)}
+                          >
+                            <div className={`${doc.selected ? "text-black" : "text-yellow-400"}`}>
+                              {doc.selected ? <CheckSquare size={20} /> : <Square size={20} />}
                             </div>
-                            <div className="max-h-64 overflow-y-auto bg-gray-900 p-4 border-2 border-blue-400">
-                              <pre className="whitespace-pre-wrap text-gray-300 font-mono text-sm">{docs.find((d) => d.id === selectedDocForView)?.text}</pre>
+                            <File className={doc.selected ? "text-black" : "text-gray-400"} size={18} />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-black truncate">{doc.name}</p>
+                              <p className={`text-xs font-bold uppercase ${doc.selected ? "text-black/70" : "text-gray-500"}`}>
+                                {doc.type}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id); 
+                                }} 
+                                size="sm" 
+                                className={`${getColorClasses("blue")} p-2`}
+                              >
+                                <Eye size={16} />
+                              </Button>
+                              <Button 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  removeDoc(doc.id); 
+                                }} 
+                                size="sm" 
+                                className="bg-red-400 text-black border-2 border-black hover:bg-red-500 p-2"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
                             </div>
                           </motion.div>
-                        )}
+                        ))}
+                      </div>
+                    )}
 
-                        {/* Action Buttons */}
-                        <div className="bg-gray-900 border-4 border-white p-6 shadow-[8px_8px_0px_rgba(255,255,255,0.1)]">
-                          <h3 className="font-black text-white mb-4">GENERATE AI CONTENT ({hasSelectedDocs ? selectedDocs.length : 0} DOCS SELECTED)</h3>
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                            <Button onClick={runSummary} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("blue")} font-black shadow-[4px_4px_0px_#60a5fa] hover:shadow-[6px_6px_0px_#60a5fa] transition-all`}>
-                              <Zap className="mr-2" size={16} />
-                              SUMMARY
-                            </Button>
-                            <Button onClick={runNotes} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("green")} font-black shadow-[4px_4px_0px_#22c55e] hover:shadow-[6px_6px_0px_#22c55e] transition-all`}>
-                              <FileCheck className="mr-2" size={16} />
-                              NOTES
-                            </Button>
-                            <Button onClick={() => runFlashcards(10)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[4px_4px_0px_#ec4899] hover:shadow-[6px_6px_0px_#ec4899] transition-all`}>
-                              <Brain className="mr-2" size={16} />
-                              FLASHCARDS
-                            </Button>
-                            <Button onClick={runQuiz} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("purple")} font-black shadow-[4px_4px_0px_#a855f7] hover:shadow-[6px_6px_0px_#a855f7] transition-all`}>
-                              <CheckSquare className="mr-2" size={16} />
-                              QUIZ
-                            </Button>
-                          </div>
+                    {/* Document Viewer */}
+                    {selectedDocForView && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }} 
+                        animate={{ opacity: 1, height: "auto" }} 
+                        exit={{ opacity: 0, height: 0 }} 
+                        className="mb-6 bg-black border-4 border-blue-400 p-4 shadow-[6px_6px_0px_#60a5fa]"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-black text-blue-400">
+                            VIEWING: {docs.find((d) => d.id === selectedDocForView)?.name}
+                          </h3>
+                          <Button 
+                            onClick={() => setSelectedDocForView(null)} 
+                            size="sm" 
+                            className="bg-red-400 text-black border-2 border-black hover:bg-red-500"
+                          >
+                            <X size={16} />
+                          </Button>
                         </div>
+                        <div className="max-h-64 overflow-y-auto bg-gray-900 p-4 border-2 border-blue-400">
+                          <pre className="whitespace-pre-wrap text-gray-300 font-mono text-sm">
+                            {docs.find((d) => d.id === selectedDocForView)?.text}
+                          </pre>
+                        </div>
+                      </motion.div>
+                    )}
 
-                        {/* Quick Add More */}
-                        <div className="bg-black border-4 border-yellow-400 p-4 shadow-[6px_6px_0px_#fbbf24]">
-                          <h4 className="font-black text-yellow-400 mb-3">ADD MORE CONTENT</h4>
-                          <div className="flex flex-col md:flex-row gap-3">
-                            <Button onClick={() => fileInputRef.current?.click()} className={`${getColorClasses("purple")} font-black flex-1`}>
-                              <Plus className="mr-2" size={16} />
-                              ADD FILES
-                            </Button>
-                            <div className="flex gap-2 flex-1">
-                              <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Add URL..." className="bg-black border-2 border-cyan-400 text-white font-mono" />
-                              <Button onClick={addLink} disabled={!linkUrl.trim()} className={`${getColorClasses("cyan")} font-black`}>
-                                ADD
-                              </Button>
-                            </div>
+                    {/* Import Controls - Always Available */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-black text-green-400 mb-2">PASTE TEXT</label>
+                        <Textarea 
+                          id="text-input" 
+                          value={pastedText} 
+                          onChange={(e) => setPastedText(e.target.value)} 
+                          placeholder="Paste your text content here..." 
+                          className="bg-black border-4 border-green-400 focus:border-green-400 text-white p-4 font-mono min-h-[120px] shadow-[4px_4px_0px_#22c55e]" 
+                        />
+                        <Button 
+                          onClick={addPastedText} 
+                          disabled={!pastedText.trim()} 
+                          className="mt-2 bg-green-400 text-black border-4 border-black font-black hover:bg-green-500 shadow-[4px_4px_0px_#22c55e]"
+                        >
+                          ADD TEXT
+                        </Button>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-black text-cyan-400 mb-2">IMPORT URL</label>
+                        <div className="flex gap-2">
+                          <Input 
+                            id="link-input" 
+                            value={linkUrl} 
+                            onChange={(e) => setLinkUrl(e.target.value)} 
+                            placeholder="https://example.com/article" 
+                            className="bg-black border-4 border-cyan-400 focus:border-cyan-400 text-white font-mono shadow-[4px_4px_0px_#22d3ee]" 
+                          />
+                          <Button 
+                            onClick={addLink} 
+                            disabled={!linkUrl.trim()} 
+                            className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee]"
+                          >
+                            IMPORT
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-black text-purple-400 mb-2">UPLOAD FILES</label>
+                        <Button 
+                          onClick={() => fileInputRef.current?.click()} 
+                          className="bg-purple-400 text-black border-4 border-black font-black hover:bg-purple-500 shadow-[4px_4px_0px_#a855f7] w-full"
+                        >
+                          <Plus className="mr-2" size={16} />
+                          ADD FILES
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    {!docsEmpty && (
+                      <div className="bg-gray-900 border-4 border-white p-6 shadow-[8px_8px_0px_rgba(255,255,255,0.1)] mt-6">
+                        <h3 className="font-black text-white mb-4">
+                          GENERATE AI CONTENT ({hasSelectedDocs ? selectedDocs.length : 0} DOCS SELECTED)
+                        </h3>
+                        {shouldUseBatch && (
+                          <div className="bg-yellow-400 text-black p-3 border-2 border-black mb-4 font-bold text-sm">
+                            📊 BATCH MODE: Large content detected - will process in chunks for optimal results
                           </div>
+                        )}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                          <Button 
+                            onClick={runSummary} 
+                            disabled={isLoading || !hasSelectedDocs} 
+                            className={`${getColorClasses("blue")} font-black shadow-[4px_4px_0px_#60a5fa] hover:shadow-[6px_6px_0px_#60a5fa] transition-all`}
+                          >
+                            <Zap className="mr-2" size={16} />
+                            SUMMARY
+                          </Button>
+                          <Button 
+                            onClick={runNotes} 
+                            disabled={isLoading || !hasSelectedDocs} 
+                            className={`${getColorClasses("green")} font-black shadow-[4px_4px_0px_#22c55e] hover:shadow-[6px_6px_0px_#22c55e] transition-all`}
+                          >
+                            <FileCheck className="mr-2" size={16} />
+                            NOTES
+                          </Button>
+                          <Button 
+                            onClick={() => runFlashcards(10)} 
+                            disabled={isLoading || !hasSelectedDocs} 
+                            className={`${getColorClasses("pink")} font-black shadow-[4px_4px_0px_#ec4899] hover:shadow-[6px_6px_0px_#ec4899] transition-all`}
+                          >
+                            <Brain className="mr-2" size={16} />
+                            FLASHCARDS
+                          </Button>
+                          <Button 
+                            onClick={runQuiz} 
+                            disabled={isLoading || !hasSelectedDocs} 
+                            className={`${getColorClasses("purple")} font-black shadow-[4px_4px_0px_#a855f7] hover:shadow-[6px_6px_0px_#a855f7] transition-all`}
+                          >
+                            <CheckSquare className="mr-2" size={16} />
+                            QUIZ
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -867,7 +1218,11 @@ ${combinedText}`;
                         </div>
                         <p className="text-xl font-black mb-4">NO SUMMARY YET</p>
                         <p className="text-gray-400 font-bold mb-8">Select documents and generate summary</p>
-                        <Button onClick={runSummary} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("blue")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#60a5fa]`}>
+                        <Button 
+                          onClick={runSummary} 
+                          disabled={isLoading || !hasSelectedDocs} 
+                          className={`${getColorClasses("blue")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#60a5fa]`}
+                        >
                           GENERATE SUMMARY
                         </Button>
                       </div>
@@ -890,7 +1245,11 @@ ${combinedText}`;
                         </div>
                         <p className="text-xl font-black mb-4">NO NOTES YET</p>
                         <p className="text-gray-400 font-bold mb-8">Select documents and generate AI notes</p>
-                        <Button onClick={runNotes} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("green")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#22c55e]`}>
+                        <Button 
+                          onClick={runNotes} 
+                          disabled={isLoading || !hasSelectedDocs} 
+                          className={`${getColorClasses("green")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#22c55e]`}
+                        >
                           GENERATE NOTES
                         </Button>
                       </div>
@@ -932,13 +1291,25 @@ ${combinedText}`;
                         <p className="text-xl font-black mb-4">NO FLASHCARDS YET</p>
                         <p className="text-gray-400 font-bold mb-8">Select documents and generate flashcards</p>
                         <div className="flex flex-wrap gap-3 justify-center">
-                          <Button onClick={() => runFlashcards(5)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}>
+                          <Button 
+                            onClick={() => runFlashcards(5)} 
+                            disabled={isLoading || !hasSelectedDocs} 
+                            className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}
+                          >
                             5 CARDS
                           </Button>
-                          <Button onClick={() => runFlashcards(10)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}>
+                          <Button 
+                            onClick={() => runFlashcards(10)} 
+                            disabled={isLoading || !hasSelectedDocs} 
+                            className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}
+                          >
                             10 CARDS
                           </Button>
-                          <Button onClick={() => runFlashcards(20)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}>
+                          <Button 
+                            onClick={() => runFlashcards(20)} 
+                            disabled={isLoading || !hasSelectedDocs} 
+                            className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}
+                          >
                             20 CARDS
                           </Button>
                         </div>
@@ -952,7 +1323,7 @@ ${combinedText}`;
                   <div>
                     <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
 
-                    {/* Completed */}
+                    {/* Quiz Completed */}
                     {quiz && isCompleted ? (
                       <div className="text-center py-16">
                         <div className="bg-green-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#22c55e] animate-bounce">
@@ -960,77 +1331,102 @@ ${combinedText}`;
                         </div>
                         <h3 className="text-2xl font-black mb-4">🎉 QUIZ COMPLETE!</h3>
                         <p className="text-xl mb-4">
-                          You scored <span className="text-purple-400">{score}</span> / {quiz.length}
+                          You scored <span className="text-purple-400 font-black">{score}</span> / {quiz.length}
+                        </p>
+                        <p className="text-lg mb-8 font-bold">
+                          {score >= Math.ceil(quiz.length * 0.6) ? "🌟 Great job!" : "📚 Keep studying!"}
                         </p>
 
-                        <div className="space-y-3 text-left max-w-3xl mx-auto">
+                        <div className="space-y-3 text-left max-w-3xl mx-auto mb-8">
                           {quiz.map((q, i) => (
-                            <div key={i} className="p-3 border-2 border-black bg-gray-900">
-                              <p className="font-bold mb-1">
+                            <div key={i} className="p-4 border-4 border-gray-600 bg-gray-900">
+                              <p className="font-bold mb-2 text-white">
                                 {i + 1}. {q.question}
                               </p>
-                              <p className={quizAnswers[i] === q.correct ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
-                                Your Answer: {quizAnswers[i] >= 0 ? q.options[quizAnswers[i]] : "Not answered"}
-                              </p>
-                              <p className="text-purple-400">Correct: {q.options[q.correct]}</p>
+                              <div className="space-y-1">
+                                <p className={`font-bold ${quizAnswers[i] === q.correct ? "text-green-400" : "text-red-400"}`}>
+                                  Your Answer: {quizAnswers[i] >= 0 ? q.options[quizAnswers[i]] : "Not answered"}
+                                </p>
+                                <p className="text-purple-400 font-bold">
+                                  Correct: {q.options[q.correct]}
+                                </p>
+                              </div>
                             </div>
                           ))}
                         </div>
 
-                        <div className="mt-6 flex justify-center gap-4">
+                        <div className="flex justify-center gap-4">
                           <Button
                             onClick={() => {
-                              // Retake: keep same quiz, reset answers and index
                               setQuizAnswers(Array(quiz.length).fill(-1));
                               setQuizIndex(0);
                               setIsCompleted(false);
                             }}
-                            className="bg-gray-400 text-black border-4 border-black font-black px-6 py-3"
+                            className="bg-gray-400 text-black border-4 border-black font-black px-6 py-3 shadow-[4px_4px_0px_#9ca3af]"
                           >
-                            Retake
+                            RETAKE
                           </Button>
-
                           <Button
                             onClick={() => {
-                              // Close: clear quiz
                               setQuiz(null);
                               setQuizAnswers([]);
                               setQuizIndex(0);
                               setIsCompleted(false);
                               setActiveTab("content");
                             }}
-                            className="bg-purple-400 text-black border-4 border-black font-black px-6 py-3"
+                            className="bg-purple-400 text-black border-4 border-black font-black px-6 py-3 shadow-[4px_4px_0px_#a855f7]"
                           >
-                            Close
+                            CLOSE
                           </Button>
                         </div>
                       </div>
                     ) : quiz && quizCurrent ? (
                       <div className="space-y-6">
                         <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between mb-4">
-                              <span className="font-black text-purple-400">
-                                QUESTION {quizIndex + 1} OF {quiz.length}
-                              </span>
-                              <div className="flex gap-1">
-                                {quiz.map((_, index) => (
-                                  <div key={index} className={`w-4 h-4 border-2 border-black ${index === quizIndex ? "bg-purple-400" : quizAnswers[index] !== -1 ? "bg-green-400" : "bg-gray-600"}`} />
-                                ))}
-                              </div>
+                          <div className="flex items-center justify-between mb-6">
+                            <span className="font-black text-purple-400 text-lg">
+                              QUESTION {quizIndex + 1} OF {quiz.length}
+                            </span>
+                            <div className="flex gap-1">
+                              {quiz.map((_, index) => (
+                                <div 
+                                  key={index} 
+                                  className={`w-4 h-4 border-2 border-black ${
+                                    index === quizIndex 
+                                      ? "bg-purple-400" 
+                                      : quizAnswers[index] !== -1 
+                                      ? "bg-green-400" 
+                                      : "bg-gray-600"
+                                  }`} 
+                                />
+                              ))}
                             </div>
-
-                            <QuizCard question={quizCurrent.question} options={quizCurrent.options} questionNumber={quizIndex + 1} totalQuestions={quiz.length} selectedAnswer={quizAnswers[quizIndex] ?? null} onAnswerSelect={selectAnswer} />
                           </div>
+
+                          <QuizCard 
+                            question={quizCurrent.question}
+                            options={quizCurrent.options}
+                            questionNumber={quizIndex + 1}
+                            totalQuestions={quiz.length}
+                            selectedAnswer={quizAnswers[quizIndex] ?? null}
+                            onAnswerSelect={selectAnswer}
+                          />
                         </div>
 
                         <div className="flex items-center justify-between">
-                          <Button disabled={quizIndex === 0} onClick={handlePrev} className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]">
+                          <Button 
+                            disabled={quizIndex === 0} 
+                            onClick={handlePrev} 
+                            className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
+                          >
                             <ChevronLeft size={16} className="mr-2" />
                             PREV
                           </Button>
 
-                          <Button onClick={handleNext} className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]">
+                          <Button 
+                            onClick={handleNext} 
+                            className="bg-purple-400 text-black border-4 border-black font-black shadow-[4px_4px_0px_#a855f7]"
+                          >
                             {quizIndex >= quiz.length - 1 ? "FINISH" : "NEXT"}
                             <ChevronRight size={16} className="ml-2" />
                           </Button>
@@ -1043,7 +1439,11 @@ ${combinedText}`;
                         </div>
                         <p className="text-xl font-black mb-4">NO QUIZ YET</p>
                         <p className="text-gray-400 font-bold mb-8">Select documents and generate quiz</p>
-                        <Button onClick={runQuiz} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("purple")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#a855f7]`}>
+                        <Button 
+                          onClick={runQuiz} 
+                          disabled={isLoading || !hasSelectedDocs} 
+                          className={`${getColorClasses("purple")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#a855f7]`}
+                        >
                           GENERATE QUIZ
                         </Button>
                       </div>
@@ -1055,39 +1455,56 @@ ${combinedText}`;
           </div>
 
           {/* Sidebar - Chat / Tutorly */}
-          <div className="lg:col-span-1">
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-gray-900 border-4 border-cyan-400 p-6 shadow-[8px_8px_0px_#22d3ee] sticky top-8">
-              <div className="flex items-center gap-3 mb-4 justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 bg-cyan-400 text-black flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_#22d3ee]">
-                    <MessageCircle className="w-8 h-8" />
+          {isTutorVisible && (
+            <div className="lg:col-span-1">
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                className="bg-gray-900 border-4 border-cyan-400 p-6 shadow-[8px_8px_0px_#22d3ee] sticky top-32"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={GITHUB_RAW_AI}
+                      alt="Tutorly AI"
+                      className="w-14 h-14 border-4 border-black shadow-[4px_4px_0px_#22d3ee] bg-cyan-400"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = "flex";
+                      }}
+                    />
+                    <div className="w-14 h-14 bg-cyan-400 text-black flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_#22d3ee] hidden">
+                      <MessageCircle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-cyan-400">TUTORLY</h3>
+                      <p className="text-gray-400 font-bold text-sm">Your AI study helper</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-black text-cyan-400">TUTORLY</h3>
-                    <p className="text-gray-400 font-bold text-sm">Your AI study helper</p>
-                  </div>
+
+                  <Button
+                    onClick={() => setIsTutorVisible(false)}
+                    size="sm"
+                    className="bg-gray-600 text-white border-2 border-gray-400 hover:bg-gray-700 p-2"
+                    aria-label="Hide Tutorly"
+                  >
+                    <Minimize2 size={16} />
+                  </Button>
                 </div>
 
-                {/* Chat controls: choose docs to chat with */}
-                <div className="flex flex-col items-end gap-2">
-                  <div className="text-xs text-gray-400">Chat scope</div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setChatUseAllDocs(true); setChatDocId(null); }} className={`px-2 py-1 text-xs font-black border-2 ${chatUseAllDocs ? "bg-cyan-400 text-black border-black" : "bg-black text-cyan-400 border-cyan-400"}`}>ALL</button>
-                    <button onClick={() => { setChatUseAllDocs(false); if (selectedDocs[0]) setChatDocId(selectedDocs[0].id); }} className={`px-2 py-1 text-xs font-black border-2 ${!chatUseAllDocs ? "bg-cyan-400 text-black border-black" : "bg-black text-cyan-400 border-cyan-400"}`}>SINGLE</button>
-                  </div>
-                </div>
-              </div>
-
-              {isTutorVisible ? (
-                <ChatBox contextText={chatContextText} docs={docs} selectedDocId={chatDocId} setSelectedDocId={setChatDocId} />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="font-black text-gray-400">Tutorly hidden</p>
-                  <p className="text-xs text-gray-500">Click SHOW to open the assistant</p>
-                </div>
-              )}
-            </motion.div>
-          </div>
+                <ChatBox 
+                  contextText={chatContextText} 
+                  docs={docs} 
+                  selectedDocId={chatDocId} 
+                  setSelectedDocId={setChatDocId}
+                  chatUseAllDocs={chatUseAllDocs}
+                  setChatUseAllDocs={setChatUseAllDocs}
+                />
+              </motion.div>
+            </div>
+          )}
         </div>
       </main>
 
@@ -1099,26 +1516,50 @@ ${combinedText}`;
 
 export default MultiDocSession;
 
-/* ---------- FlashcardComponent (unchanged, copy/paste) ---------- */
-const FlashcardComponent: React.FC<{ card: { id: string; question: string; answer: string }; index: number }> = ({ card, index }) => {
+/* ---------- FlashcardComponent ---------- */
+const FlashcardComponent: React.FC<{ 
+  card: { id: string; question: string; answer: string }; 
+  index: number 
+}> = ({ card, index }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="h-48 cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
-      <motion.div className="w-full h-full relative" animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.6 }} style={{ transformStyle: "preserve-3d" }}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ delay: index * 0.1 }} 
+      className="h-48 cursor-pointer" 
+      onClick={() => setIsFlipped(!isFlipped)}
+    >
+      <motion.div 
+        className="w-full h-full relative" 
+        animate={{ rotateY: isFlipped ? 180 : 0 }} 
+        transition={{ duration: 0.6 }} 
+        style={{ transformStyle: "preserve-3d" }}
+      >
         {/* Front */}
-        <div className="absolute inset-0 w-full h-full bg-pink-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#ec4899]" style={{ backfaceVisibility: "hidden" }}>
+        <div 
+          className="absolute inset-0 w-full h-full bg-pink-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#ec4899]" 
+          style={{ backfaceVisibility: "hidden" }}
+        >
           <div className="text-center">
-            <div className="bg-black text-pink-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-pink-400">QUESTION</div>
+            <div className="bg-black text-pink-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-pink-400">
+              QUESTION
+            </div>
             <p className="font-bold text-lg leading-tight">{card.question}</p>
             <div className="text-xs font-bold mt-4 opacity-70">CLICK TO REVEAL</div>
           </div>
         </div>
 
         {/* Back */}
-        <div className="absolute inset-0 w-full h-full bg-green-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#22c55e]" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+        <div 
+          className="absolute inset-0 w-full h-full bg-green-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#22c55e]" 
+          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+        >
           <div className="text-center">
-            <div className="bg-black text-green-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-green-400">ANSWER</div>
+            <div className="bg-black text-green-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-green-400">
+              ANSWER
+            </div>
             <p className="font-bold text-lg leading-tight">{card.answer}</p>
             <div className="text-xs font-bold mt-4 opacity-70">CLICK FOR QUESTION</div>
           </div>
@@ -1128,8 +1569,15 @@ const FlashcardComponent: React.FC<{ card: { id: string; question: string; answe
   );
 };
 
-/* ---------- ChatBox updated to TUTORLY ---------- */
-const ChatBox: React.FC<{ contextText: string; docs: SessionDoc[]; selectedDocId: string | null; setSelectedDocId: (id: string | null) => void }> = ({ contextText, docs, selectedDocId, setSelectedDocId }) => {
+/* ---------- ChatBox Component ---------- */
+const ChatBox: React.FC<{ 
+  contextText: string; 
+  docs: SessionDoc[]; 
+  selectedDocId: string | null; 
+  setSelectedDocId: (id: string | null) => void;
+  chatUseAllDocs: boolean;
+  setChatUseAllDocs: (use: boolean) => void;
+}> = ({ contextText, docs, selectedDocId, setSelectedDocId, chatUseAllDocs, setChatUseAllDocs }) => {
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1155,7 +1603,7 @@ const ChatBox: React.FC<{ contextText: string; docs: SessionDoc[]; selectedDocId
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `Use the following study materials to answer concisely.\n\n<materials>\n${contextText}\n</materials>\n\nQuestion: ${q}`,
+          prompt: `Use the following study materials to answer concisely and helpfully.\n\n<materials>\n${contextText}\n</materials>\n\nQuestion: ${q}`,
           model: "groq",
         }),
       });
@@ -1176,22 +1624,67 @@ const ChatBox: React.FC<{ contextText: string; docs: SessionDoc[]; selectedDocId
     }
   };
 
-  const suggestedQuestions = ["What are the main topics?", "Summarize key points", "Create a study plan", "Explain difficult concepts"];
+  const suggestedQuestions = [
+    "What are the main topics?", 
+    "Summarize key points", 
+    "Create a study plan", 
+    "Explain difficult concepts"
+  ];
 
   return (
     <div className="flex flex-col h-96">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="text-xs text-gray-400">Chat with</div>
-        <select value={selectedDocId ?? "all"} onChange={(e) => setSelectedDocId(e.target.value === "all" ? null : e.target.value)} className="bg-black text-white border-2 border-gray-700 px-2 py-1 text-sm">
-          <option value="all">All Selected Docs</option>
-          {docs.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+      {/* Chat scope controls */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="text-xs text-gray-400 font-bold">CHAT SCOPE:</div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { 
+              setChatUseAllDocs(true); 
+              setSelectedDocId(null); 
+            }} 
+            className={`px-3 py-1 text-xs font-black border-2 transition-all ${
+              chatUseAllDocs 
+                ? "bg-cyan-400 text-black border-black" 
+                : "bg-black text-cyan-400 border-cyan-400 hover:bg-cyan-400 hover:text-black"
+            }`}
+          >
+            ALL DOCS
+          </button>
+          <button 
+            onClick={() => { 
+              setChatUseAllDocs(false); 
+              if (docs.length > 0 && !selectedDocId) setSelectedDocId(docs[0].id); 
+            }} 
+            className={`px-3 py-1 text-xs font-black border-2 transition-all ${
+              !chatUseAllDocs 
+                ? "bg-cyan-400 text-black border-black" 
+                : "bg-black text-cyan-400 border-cyan-400 hover:bg-cyan-400 hover:text-black"
+            }`}
+          >
+            SINGLE DOC
+          </button>
+        </div>
       </div>
 
+      {/* Single doc selector */}
+      {!chatUseAllDocs && docs.length > 0 && (
+        <div className="mb-4">
+          <select 
+            value={selectedDocId || ""} 
+            onChange={(e) => setSelectedDocId(e.target.value || null)} 
+            className="w-full bg-black text-white border-2 border-gray-700 px-2 py-1 text-sm font-bold"
+          >
+            <option value="">Choose document...</option>
+            {docs.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
         {messages.length === 0 && !contextText ? (
           <div className="text-center py-8">
@@ -1205,22 +1698,46 @@ const ChatBox: React.FC<{ contextText: string; docs: SessionDoc[]; selectedDocId
           <div className="space-y-3">
             <p className="font-black text-cyan-400 text-center mb-4">ASK TUTORLY</p>
             {suggestedQuestions.map((question, index) => (
-              <motion.button key={index} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }} onClick={() => setInput(question)} className="block w-full text-left bg-black border-2 border-gray-600 hover:border-cyan-400 px-3 py-2 text-xs font-bold transition-all hover:shadow-[4px_4px_0px_#22d3ee]">
+              <motion.button 
+                key={index} 
+                initial={{ opacity: 0, x: -10 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                transition={{ delay: index * 0.1 }} 
+                onClick={() => setInput(question)} 
+                className="block w-full text-left bg-black border-2 border-gray-600 hover:border-cyan-400 px-3 py-2 text-xs font-bold transition-all hover:shadow-[4px_4px_0px_#22d3ee]"
+              >
                 💡 {question}
               </motion.button>
             ))}
           </div>
         ) : (
           messages.map((message, index) => (
-            <motion.div key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`p-3 border-4 text-sm font-bold ${message.role === "user" ? "bg-cyan-400 text-black border-black ml-4 shadow-[4px_4px_0px_#22d3ee]" : "bg-black text-white border-cyan-400 mr-4 shadow-[4px_4px_0px_#22d3ee]"}`}>
-              <div className={`text-xs font-black mb-1 ${message.role === "user" ? "text-black/70" : "text-cyan-400"}`}>{message.role === "user" ? "YOU" : "TUTORLY"}</div>
+            <motion.div 
+              key={index} 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className={`p-3 border-4 text-sm font-bold ${
+                message.role === "user" 
+                  ? "bg-cyan-400 text-black border-black ml-4 shadow-[4px_4px_0px_#22d3ee]" 
+                  : "bg-black text-white border-cyan-400 mr-4 shadow-[4px_4px_0px_#22d3ee]"
+              }`}
+            >
+              <div className={`text-xs font-black mb-1 ${
+                message.role === "user" ? "text-black/70" : "text-cyan-400"
+              }`}>
+                {message.role === "user" ? "YOU" : "TUTORLY"}
+              </div>
               <div className="whitespace-pre-wrap">{message.content}</div>
             </motion.div>
           ))
         )}
 
         {loading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-black text-white border-4 border-cyan-400 p-3 mr-4 shadow-[4px_4px_0px_#22d3ee]">
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            className="bg-black text-white border-4 border-cyan-400 p-3 mr-4 shadow-[4px_4px_0px_#22d3ee]"
+          >
             <div className="text-xs font-black text-cyan-400 mb-1">TUTORLY</div>
             <div className="flex items-center gap-2">
               <div className="flex gap-1">
@@ -1236,10 +1753,26 @@ const ChatBox: React.FC<{ contextText: string; docs: SessionDoc[]; selectedDocId
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Input */}
       <div className="flex gap-2">
-        <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={handleKeyPress} placeholder="Ask Tutorly..." className="bg-black border-2 border-cyan-400 text-white font-mono text-sm font-bold focus:border-cyan-400 shadow-[2px_2px_0px_#22d3ee]" disabled={loading || !contextText} />
-        <Button onClick={ask} disabled={loading || !input.trim() || !contextText} className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee] px-4">
-          {loading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : <ArrowRight size={16} />}
+        <Input 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          onKeyPress={handleKeyPress} 
+          placeholder="Ask Tutorly..." 
+          className="bg-black border-2 border-cyan-400 text-white font-mono text-sm font-bold focus:border-cyan-400 shadow-[2px_2px_0px_#22d3ee]" 
+          disabled={loading || !contextText} 
+        />
+        <Button 
+          onClick={ask} 
+          disabled={loading || !input.trim() || !contextText} 
+          className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee] px-4"
+        >
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <ArrowRight size={16} />
+          )}
         </Button>
       </div>
     </div>
