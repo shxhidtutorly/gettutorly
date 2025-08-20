@@ -292,6 +292,7 @@ const runFlashcards = async (count: number) => {
 };
 
 // --- QUIZ ---
+// --- QUIZ ---
 const runQuiz = async () => {
   if (!combinedText.trim()) {
     console.warn("⚠️ combinedText is empty", combinedText);
@@ -302,13 +303,13 @@ const runQuiz = async () => {
   setProgress(60);
   try {
     const prompt = `Create a multiple-choice quiz (10 questions) from this study material.
-    Return strict JSON with this structure:
+    Return strict JSON ONLY with this structure:
     {
       "questions": [
         { "question": string, "options": [string, string, string, string], "correct": number }
       ]
     }
-    No extra text.
+    No explanation, no extra text, no markdown fences.
 
     Material:\n\n${combinedText}`;
 
@@ -323,12 +324,28 @@ const runQuiz = async () => {
     // Robust JSON extraction
     let parsed: { questions: QuizQuestion[] } | null = null;
     try {
+      // Find the FIRST valid {...} block in the response
       const match = (data.response || "").match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : JSON.parse(data.response);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        // Try parsing raw if no match
+        parsed = JSON.parse(data.response);
+      }
     } catch (err) {
       console.error("⚠️ Quiz JSON parse error:", err, data.response);
-      toast({ variant: "destructive", title: "❌ Could not parse quiz JSON" });
-      return;
+
+      // Try last-resort cleanup: remove leading "Here is..." text
+      try {
+        const cleaned = (data.response || "")
+          .replace(/^[^{]+/, "") // remove anything before first {
+          .replace(/```json|```/g, ""); // remove code fences if present
+        parsed = JSON.parse(cleaned);
+      } catch (err2) {
+        console.error("❌ Quiz cleanup parse failed:", err2);
+        toast({ variant: "destructive", title: "❌ Could not parse quiz JSON" });
+        return;
+      }
     }
 
     setQuiz(parsed.questions);
