@@ -15,6 +15,7 @@ import {
   Home,
   X,
   Check,
+  Loader2,
   Trophy
 } from "lucide-react";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
