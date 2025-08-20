@@ -54,7 +54,9 @@ type ActiveTab = 'content' | 'summary' | 'notes' | 'flashcards' | 'quiz';
 
 const MultiDocSession: React.FC = () => {
   const { toast } = useToast();
-
+  // Define quiz state safely
+  const [quizCurrent, setQuizCurrent] = useState(null); 
+  const [quizData, setQuizData] = useState([]);
   // Documents state
   const [docs, setDocs] = useState<SessionDoc[]>([]);
   const [dragActive, setDragActive] = useState(false);
