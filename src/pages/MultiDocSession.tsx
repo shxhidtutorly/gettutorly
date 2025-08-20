@@ -35,20 +35,54 @@ import { extractTextFromUrl } from "@/lib/jinaReader";
 import { generateNotesAI, generateFlashcardsAI } from "@/lib/aiNotesService";
 import { QuizCard } from "@/components/quiz/QuizCard";
 
-// Local types
-interface SessionDoc {
-  id: string;
-  name: string;
-  type: string;
-  text: string;
-  selected: boolean;
-}
+// --- Quiz state & helpers (replace existing quiz state block) ---
+const [quiz, setQuiz] = useState<{
+  question: string;
+  options: string[];
+  correct: number;
+}[] | null>(null);
 
-interface QuizQuestion { 
-  question: string; 
-  options: string[]; 
-  correct: number 
-}
+const [quizIndex, setQuizIndex] = useState(0);
+const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+const [isCompleted, setIsCompleted] = useState(false);
+
+const quizCurrent = useMemo(
+  () => (quiz && quiz.length > 0 ? quiz[quizIndex] : null),
+  [quiz, quizIndex]
+);
+
+// selectAnswer uses current quizIndex (keeps API same as your QuizCard)
+const selectAnswer = (i: number) =>
+  setQuizAnswers((prev) => {
+    const next = [...prev];
+    next[quizIndex] = i;
+    return next;
+  });
+
+// Move to next question or finish
+const handleNext = () => {
+  if (!quiz) return;
+  if (quizIndex < quiz.length - 1) {
+    setQuizIndex((i) => i + 1);
+  } else {
+    setIsCompleted(true);
+  }
+};
+
+// Move to previous question
+const handlePrev = () => {
+  setIsCompleted(false);
+  setQuizIndex((i) => Math.max(0, i - 1));
+};
+
+// Score calculation uses `correct` (matches the AI response)
+const score = useMemo(() => {
+  if (!quiz) return 0;
+  return quiz.reduce((acc, q, idx) => {
+    return acc + (quizAnswers[idx] === q.correct ? 1 : 0);
+  }, 0);
+}, [quiz, quizAnswers]);
+
 
 type ActiveTab = 'content' | 'summary' | 'notes' | 'flashcards' | 'quiz';
 
@@ -72,44 +106,7 @@ const MultiDocSession: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [summary, setSummary] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
-  const [flashcards, setFlashcards] = useState<{ id: string; question: string; answer: string }[]>([]);
-  // Quiz State
-const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
-const [quizIndex, setQuizIndex] = useState(0);
-const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
-const [isCompleted, setIsCompleted] = useState(false); // <-- NEW
-
-const quizCurrent = useMemo(
-  () => (quiz && quiz.length > 0 ? quiz[quizIndex] : null),
-  [quiz, quizIndex]
-);
-
-// Select answer
-const selectAnswer = (i: number) =>
-  setQuizAnswers((prev) => {
-    const next = [...prev];
-    next[quizIndex] = i;
-    return next;
-  });
-
-// Move next
-const handleNext = () => {
-  if (quizIndex < (quiz?.length ?? 0) - 1) {
-    setQuizIndex((i) => i + 1);
-  } else {
-    // Last question → mark quiz complete
-    setIsCompleted(true);
-  }
-};
-
-// Score calculation
-const score = useMemo(() => {
-  if (!quiz) return 0;
-  return quiz.reduce((acc, q, idx) => {
-    return acc + (quizAnswers[idx] === q.correctAnswer ? 1 : 0);
-  }, 0);
-}, [quiz, quizAnswers]);
-
+ 
   // View state
   const [selectedDocForView, setSelectedDocForView] = useState<string | null>(null);
 
@@ -358,18 +355,15 @@ ${combinedText}`;
     const data = await resp.json();
     const raw = String(data?.response ?? "");
 
-    // Extract a JSON object, strip junk/fences, then parse
-    let parsed: { questions: QuizQuestion[] } | null = null;
+    // Extract first {...} block or fallback, strip fences and parse
+    let parsed: { questions: { question: string; options: string[]; correct: number }[] } | null = null;
     try {
       const objMatch = raw.match(/\{[\s\S]*\}/); // first {...} block
-      const candidate = (objMatch ? objMatch[0] : raw)
-        .replace(/```json|```/g, "")
-        .trim();
-
+      const candidate = (objMatch ? objMatch[0] : raw).replace(/```json|```/g, "").trim();
       parsed = JSON.parse(candidate);
     } catch (err) {
-      console.error("⚠️ Quiz JSON parse error:", err, raw);
-      // last‑resort cleanup: remove anything before first {, then parse
+      console.error("⚠️ Quiz JSON parse error (first attempt):", err, raw);
+      // last-resort cleanup:
       try {
         const cleaned = raw.replace(/^[^{]+/, "").replace(/```json|```/g, "").trim();
         parsed = JSON.parse(cleaned);
@@ -389,6 +383,7 @@ ${combinedText}`;
     setQuiz(parsed.questions);
     setQuizIndex(0);
     setQuizAnswers(Array(parsed.questions.length).fill(-1));
+    setIsCompleted(false); // reset completion flag
     setActiveTab("quiz");
     toast({ title: "✅ Quiz generated!" });
   } catch (e) {
@@ -399,6 +394,7 @@ ${combinedText}`;
     setProgress(0);
   }
 };
+
 
 
   const docsEmpty = docs.length === 0;
@@ -930,12 +926,12 @@ ${combinedText}`;
                   </div>
                 )}
 
-              {/* Quiz Tab */}
-{activeTab === 'quiz' && (
+             {/* Quiz Tab */}
+{activeTab === "quiz" && (
   <div>
     <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
 
-    {/* Quiz Complete Screen */}
+    {/* Completed screen */}
     {quiz && isCompleted ? (
       <div className="text-center py-16">
         <div className="bg-green-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#22c55e] animate-bounce">
@@ -945,19 +941,51 @@ ${combinedText}`;
         <p className="text-xl mb-4">
           You scored <span className="text-purple-400">{score}</span> / {quiz.length}
         </p>
-        <div className="space-y-2 text-left max-w-md mx-auto">
+
+        <div className="space-y-3 text-left max-w-3xl mx-auto">
           {quiz.map((q, i) => (
             <div key={i} className="p-3 border-2 border-black bg-gray-900">
-              <p className="font-bold mb-1">{i + 1}. {q.question}</p>
-              <p className={quizAnswers[i] === q.correctAnswer ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
-                Your Answer: {q.options[quizAnswers[i]] ?? "Not answered"}
+              <p className="font-bold mb-1">
+                {i + 1}. {q.question}
               </p>
-              <p className="text-purple-400">Correct: {q.options[q.correctAnswer]}</p>
+              <p className={quizAnswers[i] === q.correct ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                Your Answer: {quizAnswers[i] >= 0 ? q.options[quizAnswers[i]] : "Not answered"}
+              </p>
+              <p className="text-purple-400">Correct: {q.options[q.correct]}</p>
             </div>
           ))}
         </div>
+
+        <div className="mt-6 flex justify-center gap-4">
+          <Button
+            onClick={() => {
+              // Retake: keep same quiz, reset answers and index
+              setQuizAnswers(Array(quiz.length).fill(-1));
+              setQuizIndex(0);
+              setIsCompleted(false);
+            }}
+            className="bg-gray-400 text-black border-4 border-black font-black px-6 py-3"
+          >
+            Retake
+          </Button>
+
+          <Button
+            onClick={() => {
+              // Restart: clear quiz entirely
+              setQuiz(null);
+              setQuizAnswers([]);
+              setQuizIndex(0);
+              setIsCompleted(false);
+              setActiveTab("content");
+            }}
+            className="bg-purple-400 text-black border-4 border-black font-black px-6 py-3"
+          >
+            Close
+          </Button>
+        </div>
       </div>
     ) : quiz && quizCurrent ? (
+      // Active question UI
       <div className="space-y-6">
         <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
           <div className="mb-4">
@@ -965,21 +993,19 @@ ${combinedText}`;
               <span className="font-black text-purple-400">
                 QUESTION {quizIndex + 1} OF {quiz.length}
               </span>
+
               <div className="flex gap-1">
                 {quiz.map((_, index) => (
                   <div
                     key={index}
                     className={`w-4 h-4 border-2 border-black ${
-                      index === quizIndex
-                        ? "bg-purple-400"
-                        : quizAnswers[index] !== -1
-                        ? "bg-green-400"
-                        : "bg-gray-600"
+                      index === quizIndex ? "bg-purple-400" : quizAnswers[index] !== -1 ? "bg-green-400" : "bg-gray-600"
                     }`}
                   />
                 ))}
               </div>
             </div>
+
             <QuizCard
               question={quizCurrent.question}
               options={quizCurrent.options}
@@ -994,7 +1020,7 @@ ${combinedText}`;
         <div className="flex items-center justify-between">
           <Button
             disabled={quizIndex === 0}
-            onClick={() => setQuizIndex((i) => Math.max(0, i - 1))}
+            onClick={handlePrev}
             className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]"
           >
             <ChevronLeft size={16} className="mr-2" />
@@ -1011,6 +1037,7 @@ ${combinedText}`;
         </div>
       </div>
     ) : (
+      // No quiz yet
       <div className="text-center py-16">
         <div className="bg-purple-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#a855f7]">
           <CheckSquare className="w-12 h-12 text-black" />
