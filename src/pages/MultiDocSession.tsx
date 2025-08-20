@@ -625,31 +625,7 @@ ${combinedText}`;
                 </div>
               </div>
 
-              {/* Tutorly avatar and hide toggle */}
-              <div className="flex items-center gap-3">
-                <img
-                  src={GITHUB_RAW_AI}
-                  alt="Tutorly"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='100%' height='100%' fill='%23a7f3d0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='black'>TUTORLY</text></svg>";
-                  }}
-                  className="w-16 h-16 rounded-full border-4 border-black shadow-[6px_6px_0px_#22d3ee] object-cover"
-                />
-                <div>
-                  <div className="font-black text-sm">TUTORLY</div>
-                  <div className="text-xs text-gray-400">AI Study Assistant</div>
-                </div>
-                <Button
-                  onClick={() => setIsTutorVisible((v) => !v)}
-                  className="bg-cyan-400 text-black border-4 border-black font-black px-3 py-1"
-                >
-                  {isTutorVisible ? "HIDE" : "SHOW"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
+            
           {/* Progress Bar */}
           <AnimatePresence>
             {progress > 0 && (
