@@ -1,5 +1,5 @@
-// MultiDocSession.tsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+// src/pages/MultiDocSession.tsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -13,13 +13,10 @@ import {
   Upload,
   FileText,
   Link as LinkIcon,
-  Sparkles,
   CheckSquare,
   Square,
   X,
   File,
-  PlayCircle,
-  MessageCircle,
   Brain,
   FileCheck,
   Zap,
@@ -29,14 +26,13 @@ import {
   Trash2,
   Eye,
   ArrowRight,
-  Check,
 } from "lucide-react";
 import { extractTextFromFile, type ExtractionResult } from "@/lib/fileExtractor";
 import { extractTextFromUrl } from "@/lib/jinaReader";
 import { generateNotesAI, generateFlashcardsAI } from "@/lib/aiNotesService";
 import { QuizCard } from "@/components/quiz/QuizCard";
 
-// Local types
+// --- Local types & constants ---
 interface SessionDoc {
   id: string;
   name: string;
@@ -44,164 +40,270 @@ interface SessionDoc {
   text: string;
   selected: boolean;
 }
-
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  correct: number;
-}
-
+type QuizQuestion = { question: string; options: string[]; correct?: number; correctAnswer?: number };
 type ActiveTab = "content" | "summary" | "notes" | "flashcards" | "quiz";
 
-const GITHUB_RAW_AI =
-  "https://raw.githubusercontent.com/shxhidtutorly/gettutorly/main/university-logos/ai.png";
+const GITHUB_RAW_AI = "https://raw.githubusercontent.com/shxhidtutorly/university-logos/main/ai.png";
+const MAX_COMBINED_TEXT_LENGTH = 140_000; // safety cap for frontend prompt size
+const BATCH_CHUNK = 100_000; // chunk size for batch processing
 
-const MAX_COMBINED_TEXT_LENGTH = 120_000; // safety cap for frontend prompt size
+// --- Utility helpers ---
+const readFileAsText = (file: File): Promise<string> =>
+  new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result ?? ""));
+    r.onerror = rej;
+    r.readAsText(file);
+  });
 
+const tryParseJSON = (maybe: string) => {
+  try {
+    return JSON.parse(maybe);
+  } catch {
+    return null;
+  }
+};
+
+const stripMarkdownTOCAndMetadata = (s: string) => {
+  // Heuristic clean: remove "Title & Metadata" section and long TOC blocks,
+  // remove bracketed TOC links and multiple repeated headings.
+  let out = s;
+
+  // Remove "Title & Metadata" block if present
+  out = out.replace(/Title\s*&\s*Metadata[\s\S]*?(?=\n\n|$)/gi, "");
+
+  // Remove typical "Table of Contents" lists of bracketed links
+  out = out.replace(/\[(?:[^\]]+)\]\([^)]+\)/g, ""); // remove [label](link)
+  out = out.replace(/Table of Contents[:\s\S]*?(?=\n\n|$)/gi, "");
+
+  // Remove multiple repeated header/directives often from AI scaffolding
+  out = out.replace(/\[.*?#.*?\]\(.*?\)/g, ""); // remove [..](..#..)
+  out = out.replace(/-{3,}/g, "\n"); // replace horizontal rules
+
+  // Trim long repeated whitespace/lines
+  out = out
+    .split("\n")
+    .map((ln) => ln.trimRight())
+    .filter((ln, idx, arr) => {
+      // drop lines that are extremely short repeated noise
+      if (/^[-_*]{2,}$/.test(ln)) return false;
+      if (ln.length === 0 && arr[idx + 1] && arr[idx + 1].length === 0) return false;
+      return true;
+    })
+    .join("\n");
+
+  // If still too long or obviously scaffold, try to extract "Executive Summary" or "Key Takeaways" sections
+  const execIdx = out.search(/Executive Summary|Key Takeaways|Executive summary|Summary:/i);
+  if (execIdx > 0) {
+    out = out.slice(execIdx);
+  }
+
+  // Final trim
+  return out.trim();
+};
+
+// Dynamic confetti: try to use canvas-confetti if available
+const runConfetti = async (good = true) => {
+  try {
+    // try dynamic import
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const confetti = (await import("canvas-confetti")).default;
+    confetti({
+      particleCount: good ? 120 : 60,
+      spread: good ? 90 : 50,
+      origin: { y: 0.35 },
+    });
+  } catch {
+    // fallback small DOM confetti
+    const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#a78bfa", "#ec4899"];
+    for (let i = 0; i < 60; i++) {
+      const el = document.createElement("div");
+      el.style.position = "fixed";
+      el.style.zIndex = "9999";
+      el.style.pointerEvents = "none";
+      el.style.width = `${Math.random() * 8 + 6}px`;
+      el.style.height = `${Math.random() * 8 + 6}px`;
+      el.style.left = `${Math.random() * 100}%`;
+      el.style.top = `${Math.random() * -20 - 10}px`;
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.borderRadius = Math.random() > 0.5 ? "2px" : "50%";
+      el.style.transform = `rotate(${Math.random() * 360}deg)`;
+      el.style.opacity = "0.95";
+      el.style.transition = "transform 1.6s linear, top 1.6s linear, opacity 0.5s linear";
+      document.body.appendChild(el);
+      requestAnimationFrame(() => {
+        el.style.top = `${window.innerHeight + 20}px`;
+        el.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg)`;
+      });
+      setTimeout(() => (el.style.opacity = "0"), 1400);
+      setTimeout(() => el.remove(), 2000);
+    }
+  }
+};
+
+// Chunking helper for batch calls (simple heuristic)
+const chunkText = (text: string, size = BATCH_CHUNK) => {
+  const chunks: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const part = text.slice(i, i + size);
+    chunks.push(part);
+    i += size;
+  }
+  return chunks;
+};
+
+// --- Component ---
 const MultiDocSession: React.FC = () => {
   const { toast } = useToast();
 
-  // Documents state
+  // Docs
   const [docs, setDocs] = useState<SessionDoc[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Import options
+  // Import states
   const [pastedText, setPastedText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
 
-  // Tab state
+  // Tabs & UI
   const [activeTab, setActiveTab] = useState<ActiveTab>("content");
-
-  // Center output state
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [summary, setSummary] = useState<string>("");
-  const [notes, setNotes] = useState<string>("");
-  const [flashcards, setFlashcards] = useState<
-    { id: string; question: string; answer: string }[]
-  >([]);
+
+  // AI outputs
+  const [summary, setSummary] = useState("");
+  const [notes, setNotes] = useState("");
+  const [flashcards, setFlashcards] = useState<{ id: string; question: string; answer: string }[]>([]);
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // Chat / tutor state
+  // Tutorly / chat
   const [isTutorVisible, setIsTutorVisible] = useState(true);
-  const [chatUseAllDocs, setChatUseAllDocs] = useState(true); // if false, use selected single doc id
+  const [chatUseAllDocs, setChatUseAllDocs] = useState(true);
   const [chatDocId, setChatDocId] = useState<string | null>(null);
 
-  // Timer
-  const [timerSeconds, setTimerSeconds] = useState(25 * 60); // default 25 minutes
-  const [timeLeft, setTimeLeft] = useState(timerSeconds);
+  // Timer (fixed top bar)
+  const [durationMin, setDurationMin] = useState(25);
+  const [timeLeft, setTimeLeft] = useState(durationMin * 60);
   const [timerRunning, setTimerRunning] = useState(false);
 
-  // View state
-  const [selectedDocForView, setSelectedDocForView] = useState<string | null>(null);
+  useEffect(() => setTimeLeft(durationMin * 60), [durationMin]);
 
+  useEffect(() => {
+    if (!timerRunning) return;
+    const id = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(id);
+          setTimerRunning(false);
+          toast({ title: "⏰ Time's up!", description: "Study timer finished." });
+          runConfetti(true);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerRunning]);
+
+  // Combined text
   const selectedDocs = useMemo(() => docs.filter((d) => d.selected), [docs]);
-  const combinedTextRaw = useMemo(
-    () =>
-      selectedDocs
-        .map((d) => `# ${d.name}\n\n${d.text}`)
-        .join("\n\n---\n\n"),
-    [selectedDocs]
-  );
+  const combinedTextRaw = useMemo(() => selectedDocs.map((d) => `# ${d.name}\n\n${d.text}`).join("\n\n---\n\n"), [selectedDocs]);
 
-  // If combined text too big, truncate to safe chunk for frontend prompt
   const combinedText = useMemo(() => {
     if (!combinedTextRaw) return "";
     if (combinedTextRaw.length > MAX_COMBINED_TEXT_LENGTH) {
       toast({
         title: "⚠️ Content truncated",
-        description:
-          "Combined content is very large — using first ~120k chars to generate AI outputs. For full-document results, try smaller batches.",
+        description: "Combined content is very large — using a chunk for generation. Use Batch mode for full processing.",
       });
       return combinedTextRaw.slice(0, MAX_COMBINED_TEXT_LENGTH);
     }
     return combinedTextRaw;
-  }, [combinedTextRaw]);
+  }, [combinedTextRaw, toast]);
 
-  // Helper states
-  const docsEmpty = docs.length === 0;
   const hasSelectedDocs = selectedDocs.length > 0;
+  const docsEmpty = docs.length === 0;
 
-  // ----- Basic helpers -----
+  // Basic doc helpers
   const addDocs = (newOnes: SessionDoc[]) => {
     setDocs((prev) => [...newOnes, ...prev]);
-    if (newOnes.length > 0) {
-      setActiveTab("content");
-    }
+    if (newOnes.length) setActiveTab("content");
   };
-
-  const toggleDoc = (id: string) =>
-    setDocs((prev) => prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d)));
+  const toggleDoc = (id: string) => setDocs((prev) => prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d)));
   const selectAll = (checked: boolean) => setDocs((prev) => prev.map((d) => ({ ...d, selected: checked })));
   const removeDoc = (id: string) => setDocs((prev) => prev.filter((d) => d.id !== id));
 
-  // ----- File handlers -----
+  // ---- File handling (fix: always present hidden input) ----
   const handleFiles = async (files: FileList | File[]) => {
-    const arr = Array.from(files);
-    if (arr.length === 0) return;
-    setProgress(10);
+    const arr = Array.from(files as FileList);
+    if (!arr.length) return;
     setIsLoading(true);
+    setProgress(10);
     try {
-      const results: SessionDoc[] = [];
+      const added: SessionDoc[] = [];
       for (let i = 0; i < arr.length; i++) {
         const f = arr[i];
-        const res: ExtractionResult = await extractTextFromFile(f);
-        results.push({
+        // Use your existing extractor (PDF -> text)
+        let text = "";
+        try {
+          const res: ExtractionResult = await extractTextFromFile(f);
+          text = res.text;
+        } catch {
+          // fallback: text read
+          try {
+            text = await readFileAsText(f as File);
+          } catch {
+            text = "";
+          }
+        }
+        added.push({
           id: `${Date.now()}-${i}-${f.name}`,
           name: f.name,
-          type: res.fileType,
-          text: res.text,
+          type: f.type || "unknown",
+          text,
           selected: true,
         });
-        setProgress(10 + Math.round(((i + 1) / arr.length) * 50));
+        setProgress(10 + Math.round(((i + 1) / arr.length) * 60));
       }
-      addDocs(results);
-      toast({ title: `✅ Added ${results.length} document${results.length > 1 ? "s" : ""}` });
+      addDocs(added);
+      toast({ title: `✅ Added ${added.length} document(s)` });
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "❌ Failed to process files" });
+      toast({ variant: "destructive", title: "❌ Failed to add files" });
     } finally {
       setIsLoading(false);
-      setTimeout(() => setProgress(0), 600);
+      setProgress(0);
     }
   };
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
+    if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files);
   };
 
-  // Always render the hidden file input so Add Files works anytime
   const onHiddenFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files && e.target.files.length) {
       handleFiles(e.target.files);
       e.currentTarget.value = "";
     }
   };
 
-  // Import: Paste Text
+  // Add pasted text
   const addPastedText = () => {
     if (!pastedText.trim()) return;
     const id = `${Date.now()}-paste`;
-    addDocs([
-      {
-        id,
-        name: `Pasted Text ${new Date().toLocaleTimeString()}`,
-        type: "text",
-        text: pastedText.trim(),
-        selected: true,
-      },
-    ]);
+    addDocs([{ id, name: `Pasted ${new Date().toLocaleTimeString()}`, type: "text", text: pastedText.trim(), selected: true }]);
     setPastedText("");
-    toast({ title: "✅ Text added as document" });
+    toast({ title: "✅ Text added" });
   };
 
-  // Import: Link (web page)
+  // Add url
   const addLink = async () => {
     if (!/^https?:\/\//i.test(linkUrl)) {
       toast({ variant: "destructive", title: "❌ Enter a valid URL" });
@@ -211,23 +313,16 @@ const MultiDocSession: React.FC = () => {
     setProgress(20);
     try {
       const res = await extractTextFromUrl(linkUrl);
-      if (res.success && res.content) {
+      if (res.success) {
         const id = `${Date.now()}-url`;
-        addDocs([
-          {
-            id,
-            name: res.title || linkUrl,
-            type: "html",
-            text: res.content,
-            selected: true,
-          },
-        ]);
-        toast({ title: "✅ Imported content from link" });
+        addDocs([{ id, name: res.title || linkUrl, type: "html", text: res.content || "", selected: true }]);
+        toast({ title: "✅ Imported from URL" });
       } else {
-        toast({ variant: "destructive", title: "❌ Failed to import from link", description: res.error });
+        toast({ variant: "destructive", title: "❌ Failed to import", description: res.error });
       }
     } catch (e) {
-      toast({ variant: "destructive", title: "❌ Failed to import from link" });
+      console.error(e);
+      toast({ variant: "destructive", title: "❌ Failed to import URL" });
     } finally {
       setIsLoading(false);
       setProgress(0);
@@ -235,53 +330,101 @@ const MultiDocSession: React.FC = () => {
     }
   };
 
-  // ----- AI Actions (Summary, Notes, Flashcards, Quiz) -----
+  // ---- Batch processing helper for AI calls ----
+  const callAIWithChunks = async (promptGenerator: (chunk: string, idx: number) => any, text: string) => {
+    // Splits `text` into chunks and calls promptGenerator for each, concatenates responses
+    const chunks = chunkText(text, BATCH_CHUNK);
+    const responses: string[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      setProgress(Math.round(((i + 1) / chunks.length) * 80));
+      try {
+        const res = await promptGenerator(chunks[i], i);
+        if (res?.response) responses.push(res.response);
+        else if (typeof res === "string") responses.push(res);
+      } catch (e) {
+        console.error("Chunk call failed", e);
+      }
+      // small gap to avoid rate bursts
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    setProgress(100);
+    return responses.join("\n\n");
+  };
+
+  // ---- Summary (uses batch if necessary) ----
   const runSummary = async () => {
     if (!combinedText.trim()) {
       toast({ variant: "destructive", title: "❌ Select at least one document" });
       return;
     }
     setIsLoading(true);
-    setProgress(70);
+    setProgress(10);
     try {
-      const resp = await fetch("/api/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: combinedText, filename: "Tutorly Session" }),
-      });
-      const data = await resp.json();
-      setSummary(data.summary || data.response || "Summary generated.");
+      let output = "";
+      if (combinedTextRaw.length > BATCH_CHUNK) {
+        // chunked summarization
+        output = await callAIWithChunks(
+          async (chunk) =>
+            fetch("/api/ai", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt: `Summarize concisely:\n\n${chunk}`, model: "together" }),
+            }).then((r) => r.json()),
+          combinedTextRaw
+        );
+      } else {
+        const resp = await fetch("/api/summarize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: combinedText, filename: "Tutorly Session" }) });
+        const data = await resp.json();
+        output = data.summary || data.response || "";
+        if (!output) {
+          // fallback
+          const fallback = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `Summarize:\n\n${combinedText}`, model: "together" }) });
+          const fdata = await fallback.json();
+          output = fdata.response || "";
+        }
+      }
+      setSummary(output.trim());
       setActiveTab("summary");
-      toast({ title: "✅ Summary ready!" });
+      toast({ title: "✅ Summary ready" });
     } catch (e) {
-      // fallback to /api/ai
-      const resp = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: `Summarize clearly and concisely:\n\n${combinedText}`, model: "together" }),
-      });
-      const data = await resp.json();
-      setSummary(data.response || "Summary generated.");
-      setActiveTab("summary");
-      toast({ title: "✅ Summary ready!" });
+      console.error(e);
+      toast({ variant: "destructive", title: "❌ Failed to generate summary" });
     } finally {
       setIsLoading(false);
       setProgress(0);
     }
   };
 
+  // ---- Notes (cleaned) ----
   const runNotes = async () => {
     if (!combinedText.trim()) {
       toast({ variant: "destructive", title: "❌ Select at least one document" });
       return;
     }
     setIsLoading(true);
-    setProgress(60);
+    setProgress(10);
     try {
-      const note = await generateNotesAI(combinedText, "Tutorly Session");
-      setNotes(note.content);
+      let raw = "";
+      if (combinedTextRaw.length > BATCH_CHUNK) {
+        raw = await callAIWithChunks(
+          async (chunk) =>
+            fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `Create study notes (concise, bullet points):\n\n${chunk}`, model: "together" }) })
+              .then((r) => r.json()),
+          combinedTextRaw
+        );
+      } else {
+        const note = await generateNotesAI(combinedText, "Tutorly Session");
+        raw = note?.content || "";
+        if (!raw) {
+          const resp = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `Create study notes (concise bullet points):\n\n${combinedText}`, model: "together" }) });
+          const data = await resp.json();
+          raw = data.response || "";
+        }
+      }
+      const cleaned = stripMarkdownTOCAndMetadata(raw || "");
+      setNotes(cleaned || raw || "No notes generated.");
       setActiveTab("notes");
-      toast({ title: "✅ AI Notes generated!" });
+      toast({ title: "✅ Notes ready" });
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "❌ Failed to generate notes" });
@@ -291,56 +434,37 @@ const MultiDocSession: React.FC = () => {
     }
   };
 
-  // Flashcards robust (keeps your previous improved logic)
+  // ---- Flashcards ----
   const runFlashcards = async (count: number) => {
     if (!combinedText.trim()) {
-      console.warn("⚠️ combinedText is empty", combinedText);
       toast({ variant: "destructive", title: "❌ Select at least one document" });
       return;
     }
     setIsLoading(true);
-    setProgress(60);
+    setProgress(10);
     try {
-      const prompt = `Generate ${count} flashcards from the following study material.
-Return a strict JSON array only, where each item has:
-- question (string)
-- answer (string).
-No extra text.
-
-Material:
-
-${combinedText}`;
-
-      const resp = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, model: "together" }),
-      });
-
+      // chunking/flavor simplified - we just send combinedText or first chunk
+      const input = combinedTextRaw.length > BATCH_CHUNK ? combinedTextRaw.slice(0, BATCH_CHUNK) : combinedText;
+      const prompt = `Generate ${count} flashcards from the material. Return only JSON array like: [{ "question": "...", "answer": "..." }, ...] \n\nMaterial:\n\n${input}`;
+      const resp = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, model: "together" }) });
       const data = await resp.json();
-
-      // Robust JSON extraction
+      const raw = String(data.response || "");
       let parsed: any[] = [];
       try {
-        const match = (data.response || "").match(/\[[\s\S]*\]/);
-        parsed = match ? JSON.parse(match[0]) : JSON.parse(data.response);
+        const m = raw.match(/\[[\s\S]*\]/);
+        parsed = m ? JSON.parse(m[0]) : JSON.parse(raw);
       } catch (err) {
-        console.error("⚠️ Flashcards JSON parse error:", err, data.response);
+        console.error("Flashcards parse failed:", err, raw);
+        // fallback: try to eval-safe by extracting lines like Q: A:
         toast({ variant: "destructive", title: "❌ Could not parse flashcards JSON" });
         return;
       }
-
-      const formattedCards = parsed.slice(0, count).map((card: any, i: number) => ({
-        id: `flashcard-${Date.now()}-${i}`,
-        question: card.question || card.front || "Question",
-        answer: card.answer || card.back || "Answer",
-      }));
-
-      setFlashcards(formattedCards);
+      const cards = parsed.slice(0, count).map((c: any, i: number) => ({ id: `fc-${Date.now()}-${i}`, question: c.question || c.front || "Question", answer: c.answer || c.back || "Answer" }));
+      setFlashcards(cards);
       setActiveTab("flashcards");
-      toast({ title: `✅ Generated ${formattedCards.length} flashcards` });
+      toast({ title: `✅ ${cards.length} flashcards generated` });
     } catch (e) {
-      console.error("❌ Flashcards generation failed:", e);
+      console.error(e);
       toast({ variant: "destructive", title: "❌ Failed to generate flashcards" });
     } finally {
       setIsLoading(false);
@@ -348,72 +472,44 @@ ${combinedText}`;
     }
   };
 
-  // Robust quiz generation + parse + reset completion flag
+  // ---- Quiz ----
   const runQuiz = async () => {
     if (!combinedText.trim()) {
       toast({ variant: "destructive", title: "❌ Select at least one document" });
       return;
     }
-
     setIsLoading(true);
-    setProgress(60);
-
+    setProgress(10);
     try {
-      const prompt = `Create a multiple-choice quiz (10 questions) from this study material.
-Return strict JSON ONLY with this structure:
-{
-  "questions": [
-    { "question": string, "options": [string, string, string, string], "correct": number }
-  ]
-}
-No explanation, no extra text, no markdown fences.
-
-Material:
-
-${combinedText}`;
-
-      const resp = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, model: "together" }),
-      });
-
+      const input = combinedTextRaw.length > BATCH_CHUNK ? combinedTextRaw.slice(0, BATCH_CHUNK) : combinedText;
+      const prompt = `Create a multiple-choice quiz (10 questions) from the study material. Return strict JSON: { "questions": [ { "question": "...", "options": ["...","...","...","..."], "correct": <index 0-3> } ] } No extra text.\n\nMaterial:\n\n${input}`;
+      const resp = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, model: "together" }) });
       const data = await resp.json();
-      const raw = String(data?.response ?? "");
-
-      // Extract a JSON object, strip junk/fences, then parse
-      let parsed: { questions: QuizQuestion[] } | null = null;
-      try {
-        const objMatch = raw.match(/\{[\s\S]*\}/); // first {...} block
-        const candidate = (objMatch ? objMatch[0] : raw).replace(/```json|```/g, "").trim();
-        parsed = JSON.parse(candidate);
-      } catch (err) {
-        console.error("⚠️ Quiz JSON parse error:", err, raw);
-        // last-resort cleanup: remove anything before first {, then parse
-        try {
-          const cleaned = raw.replace(/^[^{]+/, "").replace(/```json|```/g, "").trim();
-          parsed = JSON.parse(cleaned);
-        } catch (err2) {
-          console.error("❌ Quiz cleanup parse failed:", err2);
-          toast({ variant: "destructive", title: "❌ Could not parse quiz JSON" });
-          return;
-        }
+      const raw = String(data.response || "");
+      let parsed = tryParseJSON(raw.match(/\{[\s\S]*\}/)?.[0] || raw) as { questions?: QuizQuestion[] } | null;
+      if (!parsed) {
+        // last resort cleanup
+        const cleaned = raw.replace(/^[^{]+/, "").replace(/```json|```/g, "").trim();
+        parsed = tryParseJSON(cleaned);
       }
-
       if (!parsed?.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
-        console.error("❌ Invalid quiz payload:", parsed);
+        console.error("Invalid quiz payload:", parsed, raw);
         toast({ variant: "destructive", title: "❌ Invalid quiz format from AI" });
         return;
       }
-
-      setQuiz(parsed.questions);
+      // normalize correct field name
+      const normalized: QuizQuestion[] = parsed.questions.map((q: any) => {
+        const correct = typeof q.correct === "number" ? q.correct : typeof q.correctAnswer === "number" ? q.correctAnswer : 0;
+        return { question: q.question || "Question", options: q.options || ["", "", "", ""], correct };
+      });
+      setQuiz(normalized);
       setQuizIndex(0);
-      setQuizAnswers(Array(parsed.questions.length).fill(-1));
+      setQuizAnswers(new Array(normalized.length).fill(-1));
       setIsCompleted(false);
       setActiveTab("quiz");
       toast({ title: "✅ Quiz generated!" });
     } catch (e) {
-      console.error("❌ Quiz generation failed:", e);
+      console.error(e);
       toast({ variant: "destructive", title: "❌ Failed to generate quiz" });
     } finally {
       setIsLoading(false);
@@ -421,607 +517,329 @@ ${combinedText}`;
     }
   };
 
-  // ----- Quiz helpers & UI logic -----
+  // Quiz helpers
   const quizCurrent = useMemo(() => (quiz && quiz.length > 0 ? quiz[quizIndex] : null), [quiz, quizIndex]);
 
-  const selectAnswer = (i: number) =>
+  const selectAnswer = (optIndex: number) => {
     setQuizAnswers((prev) => {
       const next = [...prev];
-      next[quizIndex] = i;
+      next[quizIndex] = optIndex;
       return next;
     });
+  };
 
   const handlePrev = () => {
     setIsCompleted(false);
     setQuizIndex((i) => Math.max(0, i - 1));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!quiz) return;
     if (quizIndex < quiz.length - 1) {
       setQuizIndex((i) => i + 1);
     } else {
-      // finish: compute score and celebrate
+      // finish
       setIsCompleted(true);
-      celebrate();
+      const score = quiz.reduce((acc, q, idx) => acc + ((quizAnswers[idx] === (q.correct ?? q.correctAnswer ?? 0)) ? 1 : 0), 0);
+      // nice confetti if good
+      try {
+        await runConfetti(score >= Math.max(1, Math.floor(quiz.length * 0.6)));
+      } catch { /* ignore */ }
     }
   };
 
   const score = useMemo(() => {
     if (!quiz) return 0;
-    return quiz.reduce((acc, q, idx) => {
-      return acc + (quizAnswers[idx] === q.correct ? 1 : 0);
-    }, 0);
+    return quiz.reduce((acc, q, idx) => acc + ((quizAnswers[idx] === (q.correct ?? q.correctAnswer ?? 0)) ? 1 : 0), 0);
   }, [quiz, quizAnswers]);
 
-  // ----- small confetti (no deps) -----
-  const celebrate = () => {
-    // small DOM confetti: create colorful divs that fall and remove themselves
-    const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#a78bfa", "#ec4899"];
-    const count = 90;
-    for (let i = 0; i < count; i++) {
-      const el = document.createElement("div");
-      el.style.position = "fixed";
-      el.style.zIndex = "9999";
-      el.style.pointerEvents = "none";
-      el.style.width = `${Math.random() * 10 + 6}px`;
-      el.style.height = `${Math.random() * 10 + 6}px`;
-      el.style.left = `${Math.random() * 100}%`;
-      el.style.top = `${Math.random() * -20 - 10}px`;
-      el.style.background = colors[Math.floor(Math.random() * colors.length)];
-      el.style.borderRadius = `${Math.random() > 0.5 ? "2px" : "50%"}`;
-      el.style.transform = `rotate(${Math.random() * 360}deg)`;
-      el.style.opacity = "0.95";
-      el.style.transition = "transform 1.8s linear, top 1.8s linear, opacity 0.5s linear";
-      document.body.appendChild(el);
-
-      requestAnimationFrame(() => {
-        el.style.top = `${window.innerHeight + 40}px`;
-        el.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg)`;
-      });
-
-      setTimeout(() => {
-        el.style.opacity = "0";
-      }, 1600);
-
-      setTimeout(() => {
-        el.remove();
-      }, 2200);
-    }
-  };
-
-  // ----- Timer logic -----
-  useEffect(() => {
-    let t: number | undefined;
-    if (timerRunning) {
-      t = window.setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            // timer done
-            setTimerRunning(false);
-            toast({ title: "⏰ Time's up!", description: "Study timer finished." });
-            celebrate();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (t) clearInterval(t);
-    };
-  }, [timerRunning, toast]);
-
-  useEffect(() => {
-    setTimeLeft(timerSeconds);
-  }, [timerSeconds]);
-
-  const formatTime = (s: number) => {
-    const mm = Math.floor(s / 60)
-      .toString()
-      .padStart(2, "0");
-    const ss = Math.floor(s % 60)
-      .toString()
-      .padStart(2, "0");
-    return `${mm}:${ss}`;
-  };
-
-  // ---- Tabs + color helper ----
-  const tabs = [
-    { id: "content" as ActiveTab, label: "Materials", icon: FileText, color: "yellow" },
-    { id: "summary" as ActiveTab, label: "Summary", icon: Zap, color: "blue" },
-    { id: "notes" as ActiveTab, label: "Notes", icon: FileCheck, color: "green" },
-    { id: "flashcards" as ActiveTab, label: "Flashcards", icon: Brain, color: "pink" },
-    { id: "quiz" as ActiveTab, label: "Quizzes", icon: CheckSquare, color: "purple" },
-  ];
-
-  const getColorClasses = (color: string, isActive: boolean = false) => {
-    const colors: Record<string, string> = {
-      yellow: isActive ? "bg-yellow-400 text-black border-yellow-400" : "bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-black",
-      blue: isActive ? "bg-blue-400 text-black border-blue-400" : "bg-black text-blue-400 border-blue-400 hover:bg-blue-400 hover:text-black",
-      green: isActive ? "bg-green-400 text-black border-green-400" : "bg-black text-green-400 border-green-400 hover:bg-green-400 hover:text-black",
-      pink: isActive ? "bg-pink-400 text-black border-pink-400" : "bg-black text-pink-400 border-pink-400 hover:bg-pink-400 hover:text-black",
-      purple: isActive ? "bg-purple-400 text-black border-purple-400" : "bg-black text-purple-400 border-purple-400 hover:bg-purple-400 hover:text-black",
-      cyan: isActive ? "bg-cyan-400 text-black border-cyan-400" : "bg-black text-cyan-400 border-cyan-400 hover:bg-cyan-400 hover:text-black",
-    };
-    return colors[color] || colors.yellow;
-  };
-
-  // ----- Chat selection helpers -----
+  // Chat context text
   const chatContextText = useMemo(() => {
     if (!chatUseAllDocs && chatDocId) {
       const d = docs.find((x) => x.id === chatDocId);
       return d ? `# ${d.name}\n\n${d.text}` : "";
     }
-    return combinedText;
-  }, [chatUseAllDocs, chatDocId, docs, combinedText]);
+    return combinedTextRaw;
+  }, [chatUseAllDocs, chatDocId, docs, combinedTextRaw]);
 
-  // ----- Render -----
+  // UI helpers
+  const tabs = [
+    { id: "content" as ActiveTab, label: "Materials", color: "yellow" },
+    { id: "summary" as ActiveTab, label: "Summary", color: "blue" },
+    { id: "notes" as ActiveTab, label: "Notes", color: "green" },
+    { id: "flashcards" as ActiveTab, label: "Flashcards", color: "pink" },
+    { id: "quiz" as ActiveTab, label: "Quizzes", color: "purple" },
+  ];
+
+  const getColorClasses = (color: string, active = false) => {
+    const map: Record<string, string> = {
+      yellow: active ? "bg-yellow-400 text-black border-yellow-400" : "bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-black",
+      blue: active ? "bg-blue-400 text-black border-blue-400" : "bg-black text-blue-400 border-blue-400 hover:bg-blue-400 hover:text-black",
+      green: active ? "bg-green-400 text-black border-green-400" : "bg-black text-green-400 border-green-400 hover:bg-green-400 hover:text-black",
+      pink: active ? "bg-pink-400 text-black border-pink-400" : "bg-black text-pink-400 border-pink-400 hover:bg-pink-400 hover:text-black",
+      purple: active ? "bg-purple-400 text-black border-purple-400" : "bg-black text-purple-400 border-purple-400 hover:bg-purple-400 hover:text-black",
+    };
+    return map[color] || map.yellow;
+  };
+
+  // format time helper
+  const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+
+  // --- Render ---
   return (
     <div className="min-h-screen bg-black text-white font-mono">
       <Navbar />
 
-      {/* Hidden file input always available so ADD FILES works anytime */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.docx,.txt,.md,.html"
-        className="hidden"
-        onChange={onHiddenFileChange}
-      />
+      {/* Fixed top timer bar */}
+      <div className="fixed left-0 right-0 top-0 z-50 bg-gray-900 border-b-4 border-yellow-400 p-3">
+        <div className="container mx-auto flex items-center justify-between gap-4 px-4">
+          <div>
+            <div className="text-xs text-gray-300 font-bold">STUDY TIMER</div>
+            <div className="flex items-center gap-3">
+              <div className="font-black text-2xl">{fmt(timeLeft)}</div>
+              <div className="flex gap-2">
+                <Button onClick={() => setTimerRunning((v) => !v)} className="bg-gray-300 text-black border-black px-3 py-1 font-black">
+                  {timerRunning ? "PAUSE" : "START"}
+                </Button>
+                <Button onClick={() => { setTimerRunning(false); setTimeLeft(durationMin * 60); }} className="bg-gray-300 text-black border-black px-3 py-1 font-black">
+                  RESET
+                </Button>
+              </div>
+              <select value={durationMin} onChange={(e) => setDurationMin(Number(e.target.value))} className="bg-black text-white border-2 border-gray-700 px-2 py-1">
+                <option value={5}>5 min</option>
+                <option value={15}>15 min</option>
+                <option value={25}>25 min</option>
+                <option value={45}>45 min</option>
+                <option value={60}>60 min</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex-1 px-6">
+            <div className="bg-black h-3 rounded overflow-hidden border-2 border-white">
+              <div className="h-full bg-yellow-400" style={{ width: `${Math.min(100, Math.max(0, Math.round(((durationMin * 60 - timeLeft) / (durationMin * 60)) * 100)))}%` }} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-xs text-gray-300 font-bold">TUTORLY</div>
+              <div className="font-black">AI Study Session</div>
+            </div>
+            {/* Avatar */}
+            <img src={GITHUB_RAW_AI} alt="Tutorly" className="w-12 h-12 rounded-full border-4 border-black object-cover shadow-[6px_6px_0px_#22d3ee]" onError={(e) => { (e.currentTarget as HTMLImageElement).src = ""; }} />
+          </div>
+        </div>
+      </div>
+
+      {/* keep space for fixed bar */}
+      <div style={{ height: 92 }} />
 
       <main className="container max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="text-left">
-              <div className="inline-block bg-yellow-400 text-black px-6 py-2 font-black text-2xl mb-2 transform -rotate-1 shadow-[8px_8px_0px_#fbbf24]">
-                TUTORLY TOOLS
-              </div>
-              <h1 className="text-4xl font-black text-white mb-2">TUTORLY STUDY SESSION</h1>
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="inline-block bg-yellow-400 text-black px-6 py-2 font-black text-2xl mb-2 transform -rotate-1 shadow-[8px_8px_0px_#fbbf24]">TUTORLY TOOLS</div>
+              <h1 className="text-4xl font-black text-white mb-1">TUTORLY STUDY SESSION</h1>
               <p className="text-gray-400 font-bold">UPLOAD • ANALYZE • LEARN</p>
             </div>
 
-            {/* Timer + Tutorly avatar + controls */}
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-xs text-gray-400 font-bold mb-1">STUDY TIMER</div>
-                <div className="bg-gray-900 border-4 border-white p-2 rounded inline-flex items-center gap-3">
-                  <div className="font-black text-lg w-20 text-center">{formatTime(timeLeft)}</div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setTimerRunning((v) => !v)}
-                        className="bg-gray-400 text-black border-4 border-black font-black px-3 py-1"
-                      >
-                        {timerRunning ? "PAUSE" : "START"}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setTimerRunning(false);
-                          setTimeLeft(timerSeconds);
-                        }}
-                        className="bg-gray-400 text-black border-4 border-black font-black px-3 py-1"
-                      >
-                        RESET
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <select
-                        value={timerSeconds}
-                        onChange={(e) => setTimerSeconds(Number(e.target.value))}
-                        className="bg-black text-white border-2 border-gray-700 px-2 py-1 text-sm"
-                      >
-                        <option value={5 * 60}>5 min</option>
-                        <option value={15 * 60}>15 min</option>
-                        <option value={25 * 60}>25 min</option>
-                        <option value={45 * 60}>45 min</option>
-                        <option value={60 * 60}>60 min</option>
-                      </select>
-                      <div className="text-xs text-gray-400">Auto stop & alert</div>
-                    </div>
-                  </div>
-                </div>
+            <div className="hidden md:flex items-center gap-4">
+              {/* small helper: batch mode hint */}
+              <div className="text-sm text-gray-400">
+                {combinedTextRaw.length > BATCH_CHUNK ? <span>Batch mode available for large content</span> : <span>Ready</span>}
               </div>
-
-            
-          {/* Progress Bar */}
-          <AnimatePresence>
-            {progress > 0 && (
-              <motion.div
-                initial={{ opacity: 0, scaleX: 0 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                exit={{ opacity: 0, scaleX: 0 }}
-                className="mb-6"
-              >
-                <div className="bg-gray-900 border-4 border-yellow-400 p-4 shadow-[8px_8px_0px_#fbbf24]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-yellow-400 font-black">PROCESSING...</span>
-                    <span className="text-white font-black">{progress}%</span>
-                  </div>
-                  <div className="w-full bg-black border-2 border-yellow-400 h-4">
-                    <motion.div className="h-full bg-yellow-400" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </div>
+          </div>
 
           {/* Tabs */}
-          <div className="flex flex-wrap gap-2 justify-center mt-6">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <motion.button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 border-4 font-black text-sm transition-all duration-200 transform hover:scale-105 hover:-rotate-1 ${getColorClasses(
-                    tab.color,
-                    isActive
-                  )} ${isActive ? "shadow-[6px_6px_0px_rgba(255,255,255,0.2)]" : "shadow-[4px_4px_0px_rgba(255,255,255,0.1)]"}`}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Icon size={18} />
-                  {tab.label}
-                </motion.button>
-              );
-            })}
+          <div className="flex flex-wrap gap-2 mt-6">
+            {tabs.map((t) => (
+              <motion.button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex items-center gap-2 px-4 py-3 border-4 font-black text-sm ${getColorClasses(t.color, activeTab === t.id)} shadow-[4px_4px_0px_rgba(0,0,0,0.3)]`} whileTap={{ scale: 0.98 }}>
+                <span>{t.label}</span>
+              </motion.button>
+            ))}
           </div>
         </motion.div>
 
-        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Area */}
+          {/* Main content column */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.3 }} className="bg-gray-900 border-4 border-white p-6 shadow-[12px_12px_0px_rgba(255,255,255,0.1)]">
-                {/* Content Tab */}
+              <motion.div key={activeTab} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.25 }} className="bg-gray-900 border-4 border-white p-6 shadow-[12px_12px_0px_rgba(255,255,255,0.04)]">
+                {/* Hidden file input (always present) */}
+                <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.txt,.md,.html" className="hidden" onChange={onHiddenFileChange} />
+
+                {/* Content tab */}
                 {activeTab === "content" && (
-                  <div className="space-y-6">
-                    {docsEmpty ? (
-                      <div>
-                        <h2 className="text-3xl font-black text-center mb-4">IMPORT CONTENT</h2>
-                        <p className="text-center text-gray-400 font-bold mb-8">Select the type of content you'd like to import to a new session.</p>
+                  <>
+                    {docs.length === 0 ? (
+                      <>
+                        <div className="text-center py-12">
+                          <h2 className="text-3xl font-black mb-3">IMPORT CONTENT</h2>
+                          <p className="text-gray-400 mb-8">Upload files, paste text, or import a URL.</p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                          <motion.div whileHover={{ scale: 1.02, rotate: -1 }} whileTap={{ scale: 0.98 }} onClick={() => fileInputRef.current?.click()} className="bg-purple-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#a855f7] hover:shadow-[12px_12px_0px_#a855f7] transition-all">
-                            <div className="w-12 h-12 bg-black text-purple-400 flex items-center justify-center mb-4 border-2 border-black">
-                              <File size={24} />
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div onClick={() => fileInputRef.current?.click()} className="cursor-pointer bg-purple-400 text-black p-6 border-4 border-black shadow-[8px_8px_0px_#a855f7]">
+                              <div className="font-black">ADD FILES</div>
                             </div>
-                            <h3 className="font-black text-xl mb-2">FILE</h3>
-                            <p className="font-bold text-sm">Import Files</p>
-                          </motion.div>
-
-                          <motion.div whileHover={{ scale: 1.02, rotate: 1 }} whileTap={{ scale: 0.98 }} onClick={() => document.getElementById("link-input")?.focus()} className="bg-cyan-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22d3ee] hover:shadow-[12px_12px_0px_#22d3ee] transition-all">
-                            <div className="w-12 h-12 bg-black text-cyan-400 flex items-center justify-center mb-4 border-2 border-black">
-                              <LinkIcon size={24} />
+                            <div className="bg-cyan-400 text-black p-6 border-4 border-black shadow-[8px_8px_0px_#22d3ee]" onClick={() => (document.getElementById("link-input") as HTMLInputElement)?.focus()}>
+                              <div className="font-black">IMPORT URL</div>
                             </div>
-                            <h3 className="font-black text-xl mb-2">LINK</h3>
-                            <p className="font-bold text-sm">Import URL</p>
-                          </motion.div>
-
-                          <motion.div whileHover={{ scale: 1.02, rotate: -1 }} whileTap={{ scale: 0.98 }} onClick={() => document.getElementById("text-input")?.focus()} className="bg-green-400 text-black p-6 border-4 border-black cursor-pointer shadow-[8px_8px_0px_#22c55e] hover:shadow-[12px_12px_0px_#22c55e] transition-all">
-                            <div className="w-12 h-12 bg-black text-green-400 flex items-center justify-center mb-4 border-2 border-black">
-                              <FileText size={24} />
+                            <div className="bg-green-400 text-black p-6 border-4 border-black shadow-[8px_8px_0px_#22c55e]" onClick={() => (document.getElementById("text-input") as HTMLTextAreaElement)?.focus()}>
+                              <div className="font-black">PASTE TEXT</div>
                             </div>
-                            <h3 className="font-black text-xl mb-2">TEXT</h3>
-                            <p className="font-bold text-sm">Copy & Paste</p>
-                          </motion.div>
-                        </div>
-
-                        <div onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDrop={onDrop} className={`border-4 border-dashed p-12 text-center transition-all duration-300 mb-6 ${dragActive ? "border-yellow-400 bg-yellow-400/10 shadow-[8px_8px_0px_#fbbf24]" : "border-gray-600 hover:border-white"}`}>
-                          <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                          <p className="text-xl font-black mb-2">DRAG & DROP FILES HERE</p>
-                          <p className="text-gray-400 font-bold">PDF, DOCX, PPT, Images, Videos</p>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div>
-                            <Textarea id="text-input" value={pastedText} onChange={(e) => setPastedText(e.target.value)} placeholder="Paste your text content here..." className="bg-black border-4 border-green-400 focus:border-green-400 text-white p-4 font-mono min-h-[120px] shadow-[4px_4px_0px_#22c55e]" />
-                            <Button onClick={addPastedText} disabled={!pastedText.trim()} className="mt-2 bg-green-400 text-black border-4 border-black font-black hover:bg-green-500 shadow-[4px_4px_0px_#22c55e]">
-                              ADD TEXT
-                            </Button>
                           </div>
 
-                          <div className="flex gap-2">
-                            <Input id="link-input" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://example.com/article" className="bg-black border-4 border-cyan-400 focus:border-cyan-400 text-white font-mono shadow-[4px_4px_0px_#22d3ee]" />
-                            <Button onClick={addLink} disabled={!linkUrl.trim()} className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee]">
-                              IMPORT
-                            </Button>
+                          <div onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDrop={onDrop} className={`border-4 border-dashed p-12 mb-8 ${dragActive ? "border-yellow-400 bg-yellow-400/10" : "border-gray-600"}`}>
+                            <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                            <div className="font-black text-xl">DRAG & DROP FILES</div>
+                            <div className="text-gray-400 mt-2">PDF, DOCX, PPT, TXT, MD</div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <Textarea id="text-input" value={pastedText} onChange={(e) => setPastedText(e.target.value)} placeholder="Paste text..." className="min-h-[120px]" />
+                            <div className="flex gap-2">
+                              <Button onClick={addPastedText} disabled={!pastedText.trim()} className="bg-green-400 text-black">ADD TEXT</Button>
+                              <Input id="link-input" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." />
+                              <Button onClick={addLink} disabled={!linkUrl.trim()} className="bg-cyan-400 text-black">IMPORT</Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </>
                     ) : (
-                      // Documents exist UI
-                      <div>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                      <>
+                        <div className="flex items-center justify-between mb-4">
                           <h2 className="text-2xl font-black">DOCUMENTS ({docs.length})</h2>
-                          <div className="flex flex-wrap gap-2">
-                            <Button onClick={() => selectAll(true)} className="bg-yellow-400 text-black border-4 border-black font-black hover:bg-yellow-500 shadow-[4px_4px_0px_#fbbf24]">
-                              SELECT ALL
-                            </Button>
-                            <Button onClick={() => selectAll(false)} className="bg-gray-400 text-black border-4 border-black font-black hover:bg-gray-500 shadow-[4px_4px_0px_#9ca3af]">
-                              DESELECT ALL
-                            </Button>
+                          <div className="flex gap-2">
+                            <Button onClick={() => selectAll(true)} className="bg-yellow-400 text-black">SELECT ALL</Button>
+                            <Button onClick={() => selectAll(false)} className="bg-gray-400 text-black">DESELECT ALL</Button>
                           </div>
                         </div>
 
                         <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
-                          {docs.map((doc, index) => (
-                            <motion.div key={doc.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.03 }} className={`flex items-center gap-4 p-4 border-4 transition-all duration-200 cursor-pointer ${doc.selected ? "bg-yellow-400 text-black border-black shadow-[6px_6px_0px_#fbbf24]" : "bg-black text-white border-gray-600 hover:border-white"}`} onClick={() => toggleDoc(doc.id)}>
-                              <div className={`${doc.selected ? "text-black" : "text-yellow-400"}`}>{doc.selected ? <CheckSquare size={20} /> : <Square size={20} />}</div>
-                              <File className={doc.selected ? "text-black" : "text-gray-400"} size={18} />
+                          {docs.map((doc, idx) => (
+                            <motion.div key={doc.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.02 }} className={`flex items-center gap-4 p-4 border-4 ${doc.selected ? "bg-yellow-400 text-black border-black" : "bg-black text-white border-gray-600"}`} onClick={() => toggleDoc(doc.id)}>
+                              <div>{doc.selected ? <CheckSquare /> : <Square />}</div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-black truncate">{doc.name}</p>
-                                <p className={`text-xs font-bold uppercase ${doc.selected ? "text-black/70" : "text-gray-500"}`}>{doc.type}</p>
+                                <div className="font-black truncate">{doc.name}</div>
+                                <div className="text-xs">{doc.type}</div>
                               </div>
                               <div className="flex gap-2">
-                                <Button onClick={(e) => { e.stopPropagation(); setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id); }} size="sm" className={`${getColorClasses("blue")} p-2`}>
-                                  <Eye size={16} />
-                                </Button>
-                                <Button onClick={(e) => { e.stopPropagation(); removeDoc(doc.id); }} size="sm" className="bg-red-400 text-black border-2 border-black hover:bg-red-500 p-2">
-                                  <Trash2 size={16} />
-                                </Button>
+                                <Button onClick={(e) => { e.stopPropagation(); setSelectedDocForView(selectedDocForView === doc.id ? null : doc.id); }} className="bg-blue-400 text-black p-2"><Eye /></Button>
+                                <Button onClick={(e) => { e.stopPropagation(); removeDoc(doc.id); }} className="bg-red-400 text-black p-2"><Trash2 /></Button>
                               </div>
                             </motion.div>
                           ))}
                         </div>
 
-                        {/* Viewer */}
                         {selectedDocForView && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 bg-black border-4 border-blue-400 p-4 shadow-[6px_6px_0px_#60a5fa]">
-                            <div className="flex items-center justify-between mb-4">
-                              <h3 className="font-black text-blue-400">VIEWING: {docs.find((d) => d.id === selectedDocForView)?.name}</h3>
-                              <Button onClick={() => setSelectedDocForView(null)} size="sm" className="bg-red-400 text-black border-2 border-black hover:bg-red-500">
-                                <X size={16} />
-                              </Button>
+                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 bg-black border-4 border-blue-400 p-4">
+                            <div className="flex justify-between items-center mb-3">
+                              <div className="font-black text-blue-400">VIEW: {docs.find((d) => d.id === selectedDocForView)?.name}</div>
+                              <Button onClick={() => setSelectedDocForView(null)} className="bg-red-400 text-black"><X /></Button>
                             </div>
-                            <div className="max-h-64 overflow-y-auto bg-gray-900 p-4 border-2 border-blue-400">
-                              <pre className="whitespace-pre-wrap text-gray-300 font-mono text-sm">{docs.find((d) => d.id === selectedDocForView)?.text}</pre>
+                            <div className="max-h-64 overflow-y-auto bg-gray-900 p-3">
+                              <pre className="whitespace-pre-wrap text-gray-300">{docs.find((d) => d.id === selectedDocForView)?.text}</pre>
                             </div>
                           </motion.div>
                         )}
 
-                        {/* Action Buttons */}
-                        <div className="bg-gray-900 border-4 border-white p-6 shadow-[8px_8px_0px_rgba(255,255,255,0.1)]">
-                          <h3 className="font-black text-white mb-4">GENERATE AI CONTENT ({hasSelectedDocs ? selectedDocs.length : 0} DOCS SELECTED)</h3>
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                            <Button onClick={runSummary} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("blue")} font-black shadow-[4px_4px_0px_#60a5fa] hover:shadow-[6px_6px_0px_#60a5fa] transition-all`}>
-                              <Zap className="mr-2" size={16} />
-                              SUMMARY
-                            </Button>
-                            <Button onClick={runNotes} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("green")} font-black shadow-[4px_4px_0px_#22c55e] hover:shadow-[6px_6px_0px_#22c55e] transition-all`}>
-                              <FileCheck className="mr-2" size={16} />
-                              NOTES
-                            </Button>
-                            <Button onClick={() => runFlashcards(10)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[4px_4px_0px_#ec4899] hover:shadow-[6px_6px_0px_#ec4899] transition-all`}>
-                              <Brain className="mr-2" size={16} />
-                              FLASHCARDS
-                            </Button>
-                            <Button onClick={runQuiz} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("purple")} font-black shadow-[4px_4px_0px_#a855f7] hover:shadow-[6px_6px_0px_#a855f7] transition-all`}>
-                              <CheckSquare className="mr-2" size={16} />
-                              QUIZ
-                            </Button>
+                        <div className="bg-gray-900 border-4 border-white p-6 mb-4">
+                          <div className="mb-3 font-black">GENERATE AI CONTENT ({hasSelectedDocs ? selectedDocs.length : 0} DOCS SELECTED)</div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <Button onClick={runSummary} disabled={isLoading || !hasSelectedDocs} className="bg-blue-400 text-black">SUMMARY</Button>
+                            <Button onClick={runNotes} disabled={isLoading || !hasSelectedDocs} className="bg-green-400 text-black">NOTES</Button>
+                            <Button onClick={() => runFlashcards(10)} disabled={isLoading || !hasSelectedDocs} className="bg-pink-400 text-black">FLASHCARDS</Button>
+                            <Button onClick={runQuiz} disabled={isLoading || !hasSelectedDocs} className="bg-purple-400 text-black">QUIZ</Button>
                           </div>
                         </div>
 
-                        {/* Quick Add More */}
-                        <div className="bg-black border-4 border-yellow-400 p-4 shadow-[6px_6px_0px_#fbbf24]">
-                          <h4 className="font-black text-yellow-400 mb-3">ADD MORE CONTENT</h4>
-                          <div className="flex flex-col md:flex-row gap-3">
-                            <Button onClick={() => fileInputRef.current?.click()} className={`${getColorClasses("purple")} font-black flex-1`}>
-                              <Plus className="mr-2" size={16} />
-                              ADD FILES
-                            </Button>
-                            <div className="flex gap-2 flex-1">
-                              <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Add URL..." className="bg-black border-2 border-cyan-400 text-white font-mono" />
-                              <Button onClick={addLink} disabled={!linkUrl.trim()} className={`${getColorClasses("cyan")} font-black`}>
-                                ADD
-                              </Button>
-                            </div>
+                        <div className="bg-black border-4 border-yellow-400 p-4">
+                          <div className="font-black text-yellow-400 mb-2">ADD MORE CONTENT</div>
+                          <div className="flex gap-2">
+                            <Button onClick={() => fileInputRef.current?.click()} className="bg-purple-400 text-black"><Plus /> ADD FILES</Button>
+                            <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Add URL..." />
+                            <Button onClick={addLink} disabled={!linkUrl.trim()} className="bg-cyan-400 text-black">ADD</Button>
                           </div>
                         </div>
-                      </div>
+                      </>
                     )}
-                  </div>
+                  </>
                 )}
 
-                {/* Summary */}
+                {/* Summary tab */}
                 {activeTab === "summary" && (
                   <div>
-                    <h2 className="text-3xl font-black text-blue-400 mb-6">SUMMARY</h2>
-                    {summary ? (
-                      <div className="bg-black border-4 border-blue-400 p-6 shadow-[8px_8px_0px_#60a5fa]">
-                        <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono">{summary}</pre>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <div className="bg-blue-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#60a5fa]">
-                          <Zap className="w-12 h-12 text-black" />
-                        </div>
-                        <p className="text-xl font-black mb-4">NO SUMMARY YET</p>
-                        <p className="text-gray-400 font-bold mb-8">Select documents and generate summary</p>
-                        <Button onClick={runSummary} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("blue")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#60a5fa]`}>
-                          GENERATE SUMMARY
-                        </Button>
-                      </div>
-                    )}
+                    <h2 className="text-3xl font-black text-blue-400 mb-4">SUMMARY</h2>
+                    {summary ? <div className="bg-black border-4 border-blue-400 p-6"><pre className="whitespace-pre-wrap">{summary}</pre></div> : <div className="text-center py-12"><p className="font-black">NO SUMMARY YET</p><Button onClick={runSummary} disabled={isLoading || !hasSelectedDocs} className="bg-blue-400 text-black mt-4">GENERATE</Button></div>}
                   </div>
                 )}
 
-                {/* Notes */}
+                {/* Notes tab */}
                 {activeTab === "notes" && (
                   <div>
-                    <h2 className="text-3xl font-black text-green-400 mb-6">NOTES</h2>
-                    {notes ? (
-                      <div className="bg-black border-4 border-green-400 p-6 shadow-[8px_8px_0px_#22c55e]">
-                        <pre className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono">{notes}</pre>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <div className="bg-green-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#22c55e]">
-                          <FileCheck className="w-12 h-12 text-black" />
-                        </div>
-                        <p className="text-xl font-black mb-4">NO NOTES YET</p>
-                        <p className="text-gray-400 font-bold mb-8">Select documents and generate AI notes</p>
-                        <Button onClick={runNotes} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("green")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#22c55e]`}>
-                          GENERATE NOTES
-                        </Button>
-                      </div>
-                    )}
+                    <h2 className="text-3xl font-black text-green-400 mb-4">NOTES</h2>
+                    {notes ? <div className="bg-black border-4 border-green-400 p-6"><pre className="whitespace-pre-wrap">{notes}</pre></div> : <div className="text-center py-12"><p className="font-black">NO NOTES YET</p><Button onClick={runNotes} disabled={isLoading || !hasSelectedDocs} className="bg-green-400 text-black mt-4">GENERATE</Button></div>}
                   </div>
                 )}
 
-                {/* Flashcards */}
+                {/* Flashcards tab */}
                 {activeTab === "flashcards" && (
                   <div>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                      <h2 className="text-3xl font-black text-pink-400">FLASHCARDS</h2>
-                      {flashcards.length > 0 && (
-                        <div className="flex gap-2">
-                          <Button onClick={() => runFlashcards(5)} className="bg-pink-400 text-black border-2 border-black font-black hover:bg-pink-500">
-                            5 CARDS
-                          </Button>
-                          <Button onClick={() => runFlashcards(10)} className="bg-pink-400 text-black border-2 border-black font-black hover:bg-pink-500">
-                            10 CARDS
-                          </Button>
-                          <Button onClick={() => runFlashcards(20)} className="bg-pink-400 text-black border-2 border-black font-black hover:bg-pink-500">
-                            20 CARDS
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {flashcards.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {flashcards.map((card, index) => (
-                          <FlashcardComponent key={card.id} card={card} index={index} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <div className="bg-pink-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#ec4899]">
-                          <Brain className="w-12 h-12 text-black" />
-                        </div>
-                        <p className="text-xl font-black mb-4">NO FLASHCARDS YET</p>
-                        <p className="text-gray-400 font-bold mb-8">Select documents and generate flashcards</p>
-                        <div className="flex flex-wrap gap-3 justify-center">
-                          <Button onClick={() => runFlashcards(5)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}>
-                            5 CARDS
-                          </Button>
-                          <Button onClick={() => runFlashcards(10)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}>
-                            10 CARDS
-                          </Button>
-                          <Button onClick={() => runFlashcards(20)} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("pink")} font-black shadow-[6px_6px_0px_#ec4899]`}>
-                            20 CARDS
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    <h2 className="text-3xl font-black text-pink-400 mb-4">FLASHCARDS</h2>
+                    {flashcards.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{flashcards.map((c, i) => <FlashcardComponent key={c.id} card={c} index={i} />)}</div> : <div className="text-center py-12"><p className="font-black">NO FLASHCARDS YET</p><Button onClick={() => runFlashcards(10)} disabled={isLoading || !hasSelectedDocs} className="bg-pink-400 text-black mt-4">GENERATE</Button></div>}
                   </div>
                 )}
 
-                {/* Quiz */}
+                {/* Quiz tab */}
                 {activeTab === "quiz" && (
                   <div>
-                    <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
+                    <h2 className="text-3xl font-black text-purple-400 mb-4">AI QUIZ</h2>
 
-                    {/* Completed */}
                     {quiz && isCompleted ? (
-                      <div className="text-center py-16">
-                        <div className="bg-green-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#22c55e] animate-bounce">
-                          <CheckSquare className="w-12 h-12 text-black" />
-                        </div>
-                        <h3 className="text-2xl font-black mb-4">🎉 QUIZ COMPLETE!</h3>
-                        <p className="text-xl mb-4">
-                          You scored <span className="text-purple-400">{score}</span> / {quiz.length}
-                        </p>
-
+                      <div className="text-center py-8">
+                        <div className="bg-green-400 w-24 h-24 mx-auto flex items-center justify-center border-4 border-black mb-4"><CheckSquare className="w-12 h-12 text-black" /></div>
+                        <h3 className="font-black text-2xl mb-2">🎉 QUIZ COMPLETE</h3>
+                        <p className="mb-4">Score: <span className="text-purple-400 font-black">{score}</span> / {quiz.length}</p>
                         <div className="space-y-3 text-left max-w-3xl mx-auto">
                           {quiz.map((q, i) => (
                             <div key={i} className="p-3 border-2 border-black bg-gray-900">
-                              <p className="font-bold mb-1">
-                                {i + 1}. {q.question}
-                              </p>
-                              <p className={quizAnswers[i] === q.correct ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
-                                Your Answer: {quizAnswers[i] >= 0 ? q.options[quizAnswers[i]] : "Not answered"}
-                              </p>
-                              <p className="text-purple-400">Correct: {q.options[q.correct]}</p>
+                              <div className="font-bold mb-1">{i + 1}. {q.question}</div>
+                              <div className={quizAnswers[i] === (q.correct ?? q.correctAnswer ?? 0) ? "text-green-400 font-bold" : "text-red-400 font-bold"}>Your: {quizAnswers[i] >= 0 ? q.options[quizAnswers[i]] : "No answer"}</div>
+                              <div className="text-purple-400">Correct: {q.options[(q.correct ?? q.correctAnswer ?? 0)]}</div>
                             </div>
                           ))}
                         </div>
 
-                        <div className="mt-6 flex justify-center gap-4">
-                          <Button
-                            onClick={() => {
-                              // Retake: keep same quiz, reset answers and index
-                              setQuizAnswers(Array(quiz.length).fill(-1));
-                              setQuizIndex(0);
-                              setIsCompleted(false);
-                            }}
-                            className="bg-gray-400 text-black border-4 border-black font-black px-6 py-3"
-                          >
-                            Retake
-                          </Button>
-
-                          <Button
-                            onClick={() => {
-                              // Close: clear quiz
-                              setQuiz(null);
-                              setQuizAnswers([]);
-                              setQuizIndex(0);
-                              setIsCompleted(false);
-                              setActiveTab("content");
-                            }}
-                            className="bg-purple-400 text-black border-4 border-black font-black px-6 py-3"
-                          >
-                            Close
-                          </Button>
+                        <div className="mt-6 flex gap-3 justify-center">
+                          <Button onClick={() => { setQuizAnswers(new Array(quiz.length).fill(-1)); setQuizIndex(0); setIsCompleted(false); }} className="bg-gray-400 text-black">Retake</Button>
+                          <Button onClick={() => { setQuiz(null); setQuizAnswers([]); setQuizIndex(0); setIsCompleted(false); setActiveTab("content"); }} className="bg-purple-400 text-black">Close</Button>
                         </div>
                       </div>
                     ) : quiz && quizCurrent ? (
-                      <div className="space-y-6">
-                        <div className="bg-black border-4 border-purple-400 p-6 shadow-[8px_8px_0px_#a855f7]">
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between mb-4">
-                              <span className="font-black text-purple-400">
-                                QUESTION {quizIndex + 1} OF {quiz.length}
-                              </span>
-                              <div className="flex gap-1">
-                                {quiz.map((_, index) => (
-                                  <div key={index} className={`w-4 h-4 border-2 border-black ${index === quizIndex ? "bg-purple-400" : quizAnswers[index] !== -1 ? "bg-green-400" : "bg-gray-600"}`} />
-                                ))}
-                              </div>
+                      <div>
+                        <div className="bg-black border-4 border-purple-400 p-6 mb-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="font-black text-purple-400">QUESTION {quizIndex + 1} OF {quiz.length}</div>
+                            <div className="flex gap-1">
+                              {quiz.map((_, idx) => <div key={idx} className={`w-4 h-4 border-2 ${idx === quizIndex ? "bg-purple-400" : quizAnswers[idx] !== -1 ? "bg-green-400" : "bg-gray-600"}`} />)}
                             </div>
-
-                            <QuizCard question={quizCurrent.question} options={quizCurrent.options} questionNumber={quizIndex + 1} totalQuestions={quiz.length} selectedAnswer={quizAnswers[quizIndex] ?? null} onAnswerSelect={selectAnswer} />
                           </div>
+
+                          <QuizCard question={quizCurrent.question} options={quizCurrent.options} questionNumber={quizIndex + 1} totalQuestions={quiz.length} selectedAnswer={quizAnswers[quizIndex] ?? null} onAnswerSelect={selectAnswer} />
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <Button disabled={quizIndex === 0} onClick={handlePrev} className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]">
-                            <ChevronLeft size={16} className="mr-2" />
-                            PREV
-                          </Button>
-
-                          <Button onClick={handleNext} className="bg-gray-400 text-black border-4 border-black font-black disabled:opacity-50 shadow-[4px_4px_0px_#9ca3af]">
-                            {quizIndex >= quiz.length - 1 ? "FINISH" : "NEXT"}
-                            <ChevronRight size={16} className="ml-2" />
-                          </Button>
+                        <div className="flex justify-between">
+                          <Button disabled={quizIndex === 0} onClick={handlePrev} className="bg-gray-400 text-black"><ChevronLeft /> PREV</Button>
+                          <Button onClick={handleNext} className="bg-gray-400 text-black">{quizIndex >= quiz.length - 1 ? "FINISH" : "NEXT"} <ChevronRight /></Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-16">
-                        <div className="bg-purple-400 w-24 h-24 mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[8px_8px_0px_#a855f7]">
-                          <CheckSquare className="w-12 h-12 text-black" />
-                        </div>
-                        <p className="text-xl font-black mb-4">NO QUIZ YET</p>
-                        <p className="text-gray-400 font-bold mb-8">Select documents and generate quiz</p>
-                        <Button onClick={runQuiz} disabled={isLoading || !hasSelectedDocs} className={`${getColorClasses("purple")} font-black text-lg px-8 py-4 shadow-[6px_6px_0px_#a855f7]`}>
-                          GENERATE QUIZ
-                        </Button>
+                      <div className="text-center py-12">
+                        <p className="font-black mb-3">NO QUIZ YET</p>
+                        <Button onClick={runQuiz} disabled={isLoading || !hasSelectedDocs} className="bg-purple-400 text-black">GENERATE QUIZ</Button>
                       </div>
                     )}
                   </div>
@@ -1030,42 +848,41 @@ ${combinedText}`;
             </AnimatePresence>
           </div>
 
-          {/* Sidebar - Chat / Tutorly */}
+          {/* Sidebar / Tutorly */}
           <div className="lg:col-span-1">
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-gray-900 border-4 border-cyan-400 p-6 shadow-[8px_8px_0px_#22d3ee] sticky top-8">
-              <div className="flex items-center gap-3 mb-4 justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 bg-cyan-400 text-black flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_#22d3ee]">
-                    <MessageCircle className="w-8 h-8" />
-                  </div>
+            <div className="sticky top-24">
+              <div className="bg-gray-900 border-4 border-cyan-400 p-4 shadow-[8px_8px_0px_#22d3ee]">
+                <div className="flex items-center gap-3 mb-3">
+                  <img src={GITHUB_RAW_AI} alt="Tutorly" className="w-14 h-14 rounded-full border-4 border-black object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = ""; }} />
                   <div>
-                    <h3 className="text-xl font-black text-cyan-400">TUTORLY</h3>
-                    <p className="text-gray-400 font-bold text-sm">Your AI study helper</p>
+                    <div className="font-black text-cyan-400">TUTORLY</div>
+                    <div className="text-xs text-gray-400">Your AI study helper</div>
+                  </div>
+                  <div className="ml-auto">
+                    <Button onClick={() => setIsTutorVisible((v) => !v)} className="bg-gray-400 text-black px-3 py-1">{isTutorVisible ? "HIDE" : "SHOW"}</Button>
                   </div>
                 </div>
 
-                {/* Chat controls: choose docs to chat with */}
-                <div className="flex flex-col items-end gap-2">
-                  <div className="text-xs text-gray-400">Chat scope</div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setChatUseAllDocs(true); setChatDocId(null); }} className={`px-2 py-1 text-xs font-black border-2 ${chatUseAllDocs ? "bg-cyan-400 text-black border-black" : "bg-black text-cyan-400 border-cyan-400"}`}>ALL</button>
-                    <button onClick={() => { setChatUseAllDocs(false); if (selectedDocs[0]) setChatDocId(selectedDocs[0].id); }} className={`px-2 py-1 text-xs font-black border-2 ${!chatUseAllDocs ? "bg-cyan-400 text-black border-black" : "bg-black text-cyan-400 border-cyan-400"}`}>SINGLE</button>
+                {isTutorVisible ? (
+                  <ChatBox contextText={chatContextText} docs={docs} selectedDocId={chatDocId} setSelectedDocId={setChatDocId} />
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="font-black text-gray-400">TUTORLY is hidden</div>
+                    <div className="text-xs text-gray-500 mt-2">Click SHOW to open the assistant</div>
                   </div>
-                </div>
+                )}
               </div>
-
-              {isTutorVisible ? (
-                <ChatBox contextText={chatContextText} docs={docs} selectedDocId={chatDocId} setSelectedDocId={setChatDocId} />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="font-black text-gray-400">Tutorly hidden</p>
-                  <p className="text-xs text-gray-500">Click SHOW to open the assistant</p>
-                </div>
-              )}
-            </motion.div>
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Floating restore button when hidden */}
+      {!isTutorVisible && (
+        <button onClick={() => setIsTutorVisible(true)} title="Show Tutorly" style={{ position: "fixed", right: 24, bottom: 24, zIndex: 9999 }} className="w-14 h-14 rounded-full bg-cyan-400 border-4 border-black shadow-[6px_6px_0px_#22d3ee]">
+          <img src={GITHUB_RAW_AI} alt="Tutorly" className="w-full h-full object-cover rounded-full" />
+        </button>
+      )}
 
       <Footer />
       <BottomNav />
@@ -1075,68 +892,51 @@ ${combinedText}`;
 
 export default MultiDocSession;
 
-/* ---------- FlashcardComponent (unchanged, copy/paste) ---------- */
+/* ---------- Flashcard component ---------- */
 const FlashcardComponent: React.FC<{ card: { id: string; question: string; answer: string }; index: number }> = ({ card, index }) => {
   const [isFlipped, setIsFlipped] = useState(false);
-
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="h-48 cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
-      <motion.div className="w-full h-full relative" animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.6 }} style={{ transformStyle: "preserve-3d" }}>
-        {/* Front */}
-        <div className="absolute inset-0 w-full h-full bg-pink-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#ec4899]" style={{ backfaceVisibility: "hidden" }}>
-          <div className="text-center">
-            <div className="bg-black text-pink-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-pink-400">QUESTION</div>
-            <p className="font-bold text-lg leading-tight">{card.question}</p>
-            <div className="text-xs font-bold mt-4 opacity-70">CLICK TO REVEAL</div>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }} onClick={() => setIsFlipped((s) => !s)} className="cursor-pointer">
+      <div className="relative w-full h-44 perspective">
+        <div className={`absolute inset-0 transition-transform duration-500 ${isFlipped ? "rotate-y-180" : ""}`} style={{ transformStyle: "preserve-3d" }}>
+          <div style={{ backfaceVisibility: "hidden" }} className="absolute inset-0 bg-pink-400 text-black border-4 border-black p-4 flex flex-col justify-center">
+            <div className="font-black text-sm mb-2">QUESTION</div>
+            <div className="font-bold text-lg">{card.question}</div>
+          </div>
+          <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }} className="absolute inset-0 bg-green-400 text-black border-4 border-black p-4 flex flex-col justify-center">
+            <div className="font-black text-sm mb-2">ANSWER</div>
+            <div className="font-bold text-lg">{card.answer}</div>
           </div>
         </div>
-
-        {/* Back */}
-        <div className="absolute inset-0 w-full h-full bg-green-400 text-black border-4 border-black p-4 flex flex-col justify-center shadow-[6px_6px_0px_#22c55e]" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-          <div className="text-center">
-            <div className="bg-black text-green-400 px-3 py-1 font-black text-xs mb-4 inline-block border-2 border-green-400">ANSWER</div>
-            <p className="font-bold text-lg leading-tight">{card.answer}</p>
-            <div className="text-xs font-bold mt-4 opacity-70">CLICK FOR QUESTION</div>
-          </div>
-        </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
 
-/* ---------- ChatBox updated to TUTORLY ---------- */
+/* ---------- ChatBox (TUTORLY) ---------- */
 const ChatBox: React.FC<{ contextText: string; docs: SessionDoc[]; selectedDocId: string | null; setSelectedDocId: (id: string | null) => void }> = ({ contextText, docs, selectedDocId, setSelectedDocId }) => {
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
 
   const ask = async () => {
-    if (!input.trim() || !contextText.trim()) {
-      if (!contextText.trim()) toast({ title: "Select documents first" });
+    if (!input.trim()) return;
+    if (!contextText.trim()) {
+      toast({ title: "Select documents first" });
       return;
     }
     const q = input.trim();
     setMessages((m) => [...m, { role: "user", content: q }]);
     setInput("");
     setLoading(true);
-
     try {
-      const resp = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `Use the following study materials to answer concisely.\n\n<materials>\n${contextText}\n</materials>\n\nQuestion: ${q}`,
-          model: "groq",
-        }),
-      });
+      const resp = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `Use the study materials to answer concisely:\n\n<materials>\n${contextText}\n</materials>\n\nQuestion: ${q}`, model: "groq" }) });
       const data = await resp.json();
-      setMessages((m) => [...m, { role: "assistant", content: data.response || "No response" }]);
+      setMessages((m) => [...m, { role: "assistant", content: data.response || "No answer" }]);
     } catch (e) {
       console.error(e);
       setMessages((m) => [...m, { role: "assistant", content: "Error fetching answer." }]);
@@ -1145,78 +945,48 @@ const ChatBox: React.FC<{ contextText: string; docs: SessionDoc[]; selectedDocId
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       ask();
     }
   };
 
-  const suggestedQuestions = ["What are the main topics?", "Summarize key points", "Create a study plan", "Explain difficult concepts"];
+  const suggestions = ["What are the main topics?", "Summarize key points", "Create a study plan", "Explain difficult concepts"];
 
   return (
     <div className="flex flex-col h-96">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="text-xs text-gray-400">Chat with</div>
-        <select value={selectedDocId ?? "all"} onChange={(e) => setSelectedDocId(e.target.value === "all" ? null : e.target.value)} className="bg-black text-white border-2 border-gray-700 px-2 py-1 text-sm">
-          <option value="all">All Selected Docs</option>
-          {docs.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-xs text-gray-400">Chat scope</div>
+        <div className="flex gap-2">
+          <button onClick={() => { setSelectedDocId(null); }} className={`px-2 py-1 text-xs font-black border-2 ${!selectedDocId ? "bg-cyan-400 text-black" : "bg-black text-cyan-400"}`}>ALL</button>
+          <button onClick={() => { if (docs[0]) setSelectedDocId(docs[0].id); }} className={`px-2 py-1 text-xs font-black border-2 ${selectedDocId ? "bg-cyan-400 text-black" : "bg-black text-cyan-400"}`}>SINGLE</button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-        {messages.length === 0 && !contextText ? (
-          <div className="text-center py-8">
-            <div className="bg-gray-600 w-16 h-16 mx-auto mb-4 flex items-center justify-center border-4 border-black">
-              <MessageCircle className="w-8 h-8 text-white" />
+      <div className="flex-1 overflow-y-auto space-y-3 mb-3">
+        {messages.length === 0 ? (
+          <div className="text-center py-6">
+            <div className="bg-black border-4 border-cyan-400 p-4 mb-3">
+              <div className="font-black text-cyan-400">ASK TUTORLY</div>
             </div>
-            <p className="font-black text-gray-400 mb-4">NO DOCUMENTS SELECTED</p>
-            <p className="text-xs text-gray-500 font-bold">Upload and select documents to chat</p>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="space-y-3">
-            <p className="font-black text-cyan-400 text-center mb-4">ASK TUTORLY</p>
-            {suggestedQuestions.map((question, index) => (
-              <motion.button key={index} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }} onClick={() => setInput(question)} className="block w-full text-left bg-black border-2 border-gray-600 hover:border-cyan-400 px-3 py-2 text-xs font-bold transition-all hover:shadow-[4px_4px_0px_#22d3ee]">
-                💡 {question}
-              </motion.button>
-            ))}
+            {suggestions.map((s, i) => <button key={i} onClick={() => setInput(s)} className="block w-full text-left bg-black border-2 border-gray-700 px-3 py-2 mb-2">{s}</button>)}
           </div>
         ) : (
-          messages.map((message, index) => (
-            <motion.div key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`p-3 border-4 text-sm font-bold ${message.role === "user" ? "bg-cyan-400 text-black border-black ml-4 shadow-[4px_4px_0px_#22d3ee]" : "bg-black text-white border-cyan-400 mr-4 shadow-[4px_4px_0px_#22d3ee]"}`}>
-              <div className={`text-xs font-black mb-1 ${message.role === "user" ? "text-black/70" : "text-cyan-400"}`}>{message.role === "user" ? "YOU" : "TUTORLY"}</div>
-              <div className="whitespace-pre-wrap">{message.content}</div>
-            </motion.div>
+          messages.map((m, idx) => (
+            <div key={idx} className={`p-3 ${m.role === "user" ? "bg-cyan-400 text-black self-end text-right" : "bg-black text-white border-2 border-cyan-400"}`}>
+              <div className="text-xs font-black mb-1">{m.role === "user" ? "YOU" : "TUTORLY"}</div>
+              <div className="whitespace-pre-wrap">{m.content}</div>
+            </div>
           ))
         )}
-
-        {loading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-black text-white border-4 border-cyan-400 p-3 mr-4 shadow-[4px_4px_0px_#22d3ee]">
-            <div className="text-xs font-black text-cyan-400 mb-1">TUTORLY</div>
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-cyan-400 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="w-2 h-2 bg-cyan-400 animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                <div className="w-2 h-2 bg-cyan-400 animate-bounce" style={{ animationDelay: "300ms" }}></div>
-              </div>
-              <span className="text-xs font-bold">THINKING...</span>
-            </div>
-          </motion.div>
-        )}
-
+        {loading && <div className="text-sm text-gray-400">Thinking...</div>}
         <div ref={messagesEndRef} />
       </div>
 
       <div className="flex gap-2">
-        <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={handleKeyPress} placeholder="Ask Tutorly..." className="bg-black border-2 border-cyan-400 text-white font-mono text-sm font-bold focus:border-cyan-400 shadow-[2px_2px_0px_#22d3ee]" disabled={loading || !contextText} />
-        <Button onClick={ask} disabled={loading || !input.trim() || !contextText} className="bg-cyan-400 text-black border-4 border-black font-black hover:bg-cyan-500 shadow-[4px_4px_0px_#22d3ee] px-4">
-          {loading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : <ArrowRight size={16} />}
-        </Button>
+        <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} placeholder="Ask Tutorly..." />
+        <Button onClick={ask} disabled={!input.trim() || loading || !contextText.trim()} className="bg-cyan-400 text-black">{loading ? "..." : <ArrowRight />}</Button>
       </div>
     </div>
   );
