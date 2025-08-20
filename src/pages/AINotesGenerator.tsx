@@ -16,14 +16,10 @@ import {
   Upload,
   FileText,
   Send,
-  Trash2,
   HelpCircle,
   Zap,
-  ArrowRight,
   BrainCircuit,
-  X,
 } from "lucide-react";
-import { ExtractionResult } from "@/lib/fileExtractor";
 import { generateNotesAI, generateFlashcardsAI, AINote, Flashcard } from "@/lib/aiNotesService";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
 import { useHistory } from "@/hooks/useHistory";
@@ -31,12 +27,63 @@ import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// --- Helper Functions & Interfaces ---
+// --- Libraries for File Extraction ---
+import * as pdfjs from "pdfjs-dist";
+import mammoth from "mammoth";
 
-// A safe JSON parser that won't crash on invalid input
+// Required for pdfjs to work in a Vite/Next.js environment
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).toString();
+
+
+// --- Helper Functions & Interfaces (File Extraction logic is now here) ---
+
+export interface ExtractionResult {
+  text: string;
+  filename: string;
+}
+
+/**
+ * Extracts text from various file types (PDF, DOCX, TXT, MD).
+ * This function now lives inside your component file.
+ */
+export const extractTextFromFile = async (file: File): Promise<ExtractionResult> => {
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  let text = "";
+
+  switch (extension) {
+    case 'pdf':
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjs.getDocument(arrayBuffer).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str).join(' ');
+      }
+      break;
+
+    case 'docx':
+      const docxBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer: docxBuffer });
+      text = result.value;
+      break;
+
+    case 'txt':
+    case 'md':
+      text = await file.text();
+      break;
+
+    default:
+      throw new Error(`Unsupported file type: .${extension}`);
+  }
+
+  return { text, filename: file.name };
+};
+
 const safeJsonParse = (str: string) => {
   try {
-    // Attempt to find a JSON array or object within the string
     const match = str.match(/(\[.*\]|\{.*\})/s);
     if (match) {
       return JSON.parse(match[0]);
@@ -63,7 +110,7 @@ interface StoredNote {
     sourceFilename: string;
 }
 
-// --- Reusable UI Components (Created from scratch as requested) ---
+// --- Reusable UI Components ---
 
 const ActionButton = ({
   onClick,
@@ -108,7 +155,7 @@ const FileUploaderComponent = ({ onFileProcessed, isProcessing }: { onFileProces
         if (!files || files.length === 0) return;
         const file = files[0];
         try {
-            const result = await extractTextFromFile(file);
+            const result = await extractTextFromFile(file); // This will now work correctly
             onFileProcessed(result);
         } catch (error) {
             toast({
@@ -235,7 +282,6 @@ const AINotesGenerator = () => {
 
   // Chat State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
@@ -289,6 +335,7 @@ const AINotesGenerator = () => {
 
   const generateNotes = useCallback(async (text: string, filename: string) => {
     setIsLoading(true);
+    setNote(null); // Clear previous notes
     setProgress(10);
     try {
       let progressInterval = setInterval(() => {
@@ -301,8 +348,8 @@ const AINotesGenerator = () => {
       setProgress(100);
 
       setNote(generatedNote);
-      setShowChat(false); // Reset chat visibility
-      setChatMessages([]); // Clear previous chat
+      setShowChat(false);
+      setChatMessages([]);
       
       await addHistoryEntry(`Source: ${filename}`, generatedNote.content, { title: generatedNote.title, type: 'notes_generation' });
       trackNoteCreated();
@@ -495,7 +542,7 @@ const AINotesGenerator = () => {
             {/* --- RIGHT PANEL: OUTPUT --- */}
             <div className={`bg-neutral-900 border-2 p-6 flex flex-col min-h-[70vh] transition-colors duration-500 ${note ? 'border-cyan-500' : 'border-neutral-800'}`}>
                 <AnimatePresence mode="wait">
-                    {isLoading ? (
+                    {isLoading && !note ? ( // Show loader only when generating new notes, not just processing a file
                         <motion.div key="loading" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center h-full text-center">
                             <Loader2 className="w-16 h-16 animate-spin text-lime-400 mb-6"/>
                             <h3 className="text-2xl font-bold text-neutral-100">AI Is Working Its Magic...</h3>
