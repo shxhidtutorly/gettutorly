@@ -63,7 +63,7 @@ interface QuizQuestion {
 type ActiveTab = "content" | "summary" | "notes" | "flashcards" | "quiz";
 
 const GITHUB_RAW_AI =
-  "https://raw.githubusercontent.com/shxhidtutorly/gettutorly/university-logos/ai.png";
+  "https://raw.githubusercontent.com/shxhidtutorly/university-logos/main/ai.png";
 
 const MAX_COMBINED_TEXT_LENGTH = 120_000; // safety cap for frontend prompt size
 const BATCH_CHUNK_SIZE = 80_000; // chunk size for batch processing
