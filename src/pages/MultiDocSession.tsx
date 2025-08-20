@@ -1454,57 +1454,55 @@ ${combinedText}`;
             </AnimatePresence>
           </div>
 
-          {/* Sidebar - Chat / Tutorly */}
-          {isTutorVisible && (
-            <div className="lg:col-span-1">
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                className="bg-gray-900 border-4 border-cyan-400 p-6 shadow-[8px_8px_0px_#22d3ee] sticky top-32"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={GITHUB_RAW_AI}
-                      alt="Tutorly AI"
-                      className="w-14 h-14 border-4 border-black shadow-[4px_4px_0px_#22d3ee] bg-cyan-400"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = "flex";
-                      }}
-                    />
-                    <div className="w-14 h-14 bg-cyan-400 text-black flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_#22d3ee] hidden">
-                      <MessageCircle className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-cyan-400">TUTORLY</h3>
-                      <p className="text-gray-400 font-bold text-sm">Your AI study helper</p>
-                    </div>
-                  </div>
+       {/* Sidebar - Chat / Tutorly */}
+{isTutorVisible && (
+  <div className="lg:col-span-1">
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="bg-gray-900 border-4 border-cyan-400 p-6 shadow-[8px_8px_0px_#22d3ee] sticky top-32"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {/* AI Avatar */}
+          <img
+            src={GITHUB_RAW_AI}
+            alt="Tutorly AI"
+            className="w-14 h-14 border-4 border-black shadow-[4px_4px_0px_#22d3ee] bg-cyan-400 rounded-full object-cover"
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.src =
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' fill='black'><rect width='100%' height='100%' fill='%2322d3ee'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='28' font-family='Arial'>AI</text></svg>";
+            }}
+          />
 
-                  <Button
-                    onClick={() => setIsTutorVisible(false)}
-                    size="sm"
-                    className="bg-gray-600 text-white border-2 border-gray-400 hover:bg-gray-700 p-2"
-                    aria-label="Hide Tutorly"
-                  >
-                    <Minimize2 size={16} />
-                  </Button>
-                </div>
+          <div>
+            <h3 className="text-xl font-black text-cyan-400">TUTORLY</h3>
+            <p className="text-gray-400 font-bold text-sm">Your AI study helper</p>
+          </div>
+        </div>
 
-                <ChatBox 
-                  contextText={chatContextText} 
-                  docs={docs} 
-                  selectedDocId={chatDocId} 
-                  setSelectedDocId={setChatDocId}
-                  chatUseAllDocs={chatUseAllDocs}
-                  setChatUseAllDocs={setChatUseAllDocs}
-                />
-              </motion.div>
-            </div>
-          )}
+        <Button
+          onClick={() => setIsTutorVisible(false)}
+          size="sm"
+          className="bg-gray-600 text-white border-2 border-gray-400 hover:bg-gray-700 p-2"
+          aria-label="Hide Tutorly"
+        >
+          <Minimize2 size={16} />
+        </Button>
+      </div>
+
+      <ChatBox
+        contextText={chatContextText}
+        docs={docs}
+        selectedDocId={chatDocId}
+        setSelectedDocId={setChatDocId}
+        chatUseAllDocs={chatUseAllDocs}
+        setChatUseAllDocs={setChatUseAllDocs}
+      />
+    </motion.div>
+  </div>
+)}
         </div>
       </main>
 
