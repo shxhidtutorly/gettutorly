@@ -422,7 +422,20 @@ const AINotesGenerator = () => {
     setIsGeneratingQuiz(true);
     
     try {
-      const quizPrompt = `Create a quiz with 5 multiple choice questions based on these notes. Format the output as a clean JSON array like this: [{"question": "What is...?", "options": ["A", "B", "C", "D"], "correct": 0}] where 'correct' is the zero-based index of the correct option. ONLY output the JSON array, no other text. Notes: ${note.content}`;
+const quizPrompt = `Create a quiz with 5 multiple choice questions based on these notes.
+
+Output ONLY a valid JSON array, nothing else. Do not add markdown, backticks, or text before/after.
+
+Format:
+[
+  {
+    "question": "string",
+    "options": ["A", "B", "C", "D"],
+    "correct": 0
+  }
+]
+
+Notes: ${note.content}`;
       
       const response = await fetch('/api/ai', {
         method: 'POST',
@@ -433,7 +446,17 @@ const AINotesGenerator = () => {
       if (!response.ok) throw new Error('Failed to get a response from the AI for the quiz.');
       const data = await response.json();
       
-      const questions: QuizQuestion[] = safeJsonParse(data.response);
+          function extractJsonArray(text: string): string | null {
+  if (!text) return null;
+  // Try to find the first JSON array in the string
+  const match = text.match(/\[[\s\S]*\]/);
+  return match ? match[0] : null;
+}
+
+const raw = data.response;
+const extracted = extractJsonArray(raw);
+
+const questions: QuizQuestion[] = extracted ? JSON.parse(extracted) : [];
       
       if (!questions || !Array.isArray(questions) || questions.length === 0) {
         throw new Error("The AI returned an invalid format for the quiz. Please try again.");
