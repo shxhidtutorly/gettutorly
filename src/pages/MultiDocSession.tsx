@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import confetti from "canvas-confetti";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
@@ -74,7 +73,7 @@ const MultiDocSession: React.FC = () => {
   const [summary, setSummary] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [flashcards, setFlashcards] = useState<{ id: string; question: string; answer: string }[]>([]);
-// Quiz State
+  // Quiz State
 const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
 const [quizIndex, setQuizIndex] = useState(0);
 const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
@@ -110,7 +109,6 @@ const score = useMemo(() => {
     return acc + (quizAnswers[idx] === q.correctAnswer ? 1 : 0);
   }, 0);
 }, [quiz, quizAnswers]);
-
 
   // View state
   const [selectedDocForView, setSelectedDocForView] = useState<string | null>(null);
@@ -932,7 +930,7 @@ ${combinedText}`;
                   </div>
                 )}
 
-               {/* Quiz Tab */}
+              {/* Quiz Tab */}
 {activeTab === 'quiz' && (
   <div>
     <h2 className="text-3xl font-black text-purple-400 mb-6">AI QUIZ</h2>
