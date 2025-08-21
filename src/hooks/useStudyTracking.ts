@@ -2,13 +2,20 @@ import { useState, useCallback, useMemo } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 import { db } from "@/lib/firebase-firestore";
-import { doc, setDoc, getDoc, updateDoc, increment, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  increment,
+  serverTimestamp,
+} from "firebase/firestore";
 
 // ----------------- Types -----------------
 interface StudySession {
   userId: string;
   sessionType: string;
-  activity?: string;
+  activity?: string | null;
   startTime: Date;
   endTime?: Date;
   duration: number; // seconds
@@ -32,6 +39,10 @@ export const useStudyTracking = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const userId = useMemo(() => user?.uid, [user?.uid]);
+
+  // Small helper to strip `undefined`
+  const cleanData = (data: any) =>
+    JSON.parse(JSON.stringify(data, (_, v) => (v === undefined ? null : v)));
 
   // -------- Update user stats --------
   const updateUserStats = useCallback(
@@ -72,7 +83,7 @@ export const useStudyTracking = () => {
       const session: StudySession = {
         userId,
         sessionType,
-        activity: content,
+        activity: content ?? null,
         startTime: new Date(),
         duration: 0,
         isCompleted: false,
@@ -89,28 +100,30 @@ export const useStudyTracking = () => {
     async (sessionType?: string, activity?: string, wasCompleted: boolean = true) => {
       if (!userId) throw new Error("No user logged in");
 
-      const session = currentSession || {
+      const session: StudySession = currentSession || {
         userId,
         sessionType: sessionType || "general",
-        activity: activity || null, // fallback instead of undefined
+        activity: activity ?? null,
         startTime: new Date(),
         duration: 0,
         isCompleted: wasCompleted,
       };
 
       const endTime = new Date();
-      const duration = Math.floor((endTime.getTime() - session.startTime.getTime()) / 1000); // seconds
+      const duration = Math.floor(
+        (endTime.getTime() - session.startTime.getTime()) / 1000
+      ); // seconds
 
       try {
         setIsLoading(true);
 
-        const sessionData = {
+        const sessionData = cleanData({
           ...session,
           endTime,
           duration,
           isCompleted: wasCompleted,
           createdAt: serverTimestamp(),
-        };
+        });
 
         const sessionRef = doc(db, "study_sessions", `${userId}_${Date.now()}`);
         await setDoc(sessionRef, sessionData);
@@ -131,11 +144,26 @@ export const useStudyTracking = () => {
   );
 
   // -------- Tracking helpers --------
-  const trackQuizCompleted = useCallback(() => updateUserStats("quizzes_taken"), [updateUserStats]);
-  const trackSummaryCreated = useCallback(() => updateUserStats("summaries_created"), [updateUserStats]);
-  const trackNoteCreated = useCallback(() => updateUserStats("notes_created"), [updateUserStats]);
-  const trackMathProblemSolved = useCallback(() => updateUserStats("math_problems_solved"), [updateUserStats]);
-  const trackDoubtResolved = useCallback(() => updateUserStats("doubts_resolved"), [updateUserStats]);
+  const trackQuizCompleted = useCallback(
+    () => updateUserStats("quizzes_taken"),
+    [updateUserStats]
+  );
+  const trackSummaryCreated = useCallback(
+    () => updateUserStats("summaries_created"),
+    [updateUserStats]
+  );
+  const trackNoteCreated = useCallback(
+    () => updateUserStats("notes_created"),
+    [updateUserStats]
+  );
+  const trackMathProblemSolved = useCallback(
+    () => updateUserStats("math_problems_solved"),
+    [updateUserStats]
+  );
+  const trackDoubtResolved = useCallback(
+    () => updateUserStats("doubts_resolved"),
+    [updateUserStats]
+  );
 
   const trackActivity = useCallback(
     (activityType: string) => {
@@ -157,7 +185,13 @@ export const useStudyTracking = () => {
           break;
       }
     },
-    [trackQuizCompleted, trackSummaryCreated, trackNoteCreated, trackMathProblemSolved, trackDoubtResolved]
+    [
+      trackQuizCompleted,
+      trackSummaryCreated,
+      trackNoteCreated,
+      trackMathProblemSolved,
+      trackDoubtResolved,
+    ]
   );
 
   // -------- Return API --------
