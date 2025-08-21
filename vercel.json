@@ -32,9 +32,6 @@
     "api/audio-to-notes.js": {
       "maxDuration": 300,
       "memory": 2048
-    },
-    "api/get-upload-url.js": {
-      "maxDuration": 15
     }
   }
 }
