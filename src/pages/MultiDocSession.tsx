@@ -1533,7 +1533,7 @@ ${combinedText}`;
       <BottomNav />
     </div>
   );
-};
+}
 
 export default MultiDocSession;
 
