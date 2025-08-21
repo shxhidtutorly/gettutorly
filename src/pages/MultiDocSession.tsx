@@ -442,45 +442,18 @@ const MultiDocSession: React.FC = () => {
         result = note.content;
       }
       
-      const cleanNotesOutput = (rawText) => {
-  if (!rawText || typeof rawText !== 'string') {
-    return "";
-  }
-
-  let cleanedText = rawText;
-
-  // 1. Remove the initial metadata block completely
-  // It looks for a block that starts with "Title:" and ends before the first real section header (like ## or [1)
-  const metadataEndIndex = cleanedText.search(/(\n## |\[\d+\])/);
-  if (metadataEndIndex !== -1) {
-    cleanedText = cleanedText.substring(metadataEndIndex);
-  }
-
-  // 2. Remove common AI conversational fluff
-  const fluffPatterns = [
-    /^Here are the notes.*\n/gim,
-    /^Certainly, here are.*\n/gim,
-    /^I have generated.*\n/gim,
-  ];
-  fluffPatterns.forEach(pattern => {
-    cleanedText = cleanedText.replace(pattern, '');
-  });
-
-  // 3. Remove markdown horizontal rules and other separators
-  const separatorPatterns = [
-    /^\s*[-*_]{3,}\s*$/gm, // Matches ---, ***, ___
-    /^\s*[\/\\#]{3,}\s*$/gm, // Matches ///, \\\, ### on their own lines
-  ];
-  separatorPatterns.forEach(pattern => {
-    cleanedText = cleanedText.replace(pattern, '');
-  });
-
-  // 4. Normalize newlines to prevent huge gaps
-  cleanedText = cleanedText.replace(/\n{3,}/g, '\n\n');
-
-  // 5. Trim whitespace from the start and end of the entire text
-  return cleanedText.trim();
-};
+      const cleanedNotes = cleanNotesOutput(result);
+      setNotes(cleanedNotes);
+      setActiveTab("notes");
+      toast({ title: "✅ AI Notes generated!" });
+    } catch (e) {
+      console.error("Notes generation failed:", e);
+      toast({ variant: "destructive", title: "❌ Failed to generate notes" });
+    } finally {
+      setIsLoading(false);
+      setProgress(0);
+    }
+  };
 
   // Robust flashcards generation
   const runFlashcards = async (count: number) => {
@@ -1533,7 +1506,7 @@ ${combinedText}`;
       <BottomNav />
     </div>
   );
-}
+};
 
 export default MultiDocSession;
 
