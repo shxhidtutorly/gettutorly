@@ -13,20 +13,19 @@ import {
   Download,
 } from "lucide-react";
 
-// A sleek, minimal color palette for the dark theme
 const colors = {
-  primary: "#00e6c4", // A vibrant neon green
-  secondary: "#ff5a8f", // A bold pink
-  text: "#e4e4e7", // Zinc-200
-  background: "#18181b", // Zinc-900
-  border: "#3f3f46", // Zinc-700
+  primary: "#00e6c4",
+  secondary: "#ff5a8f",
+  text: "#e4e4e7",
+  background: "#18181b",
+  border: "#3f3f46",
 };
 
 const AudioNotes = () => {
-  const { user } = useAuth(); // Using Firebase Auth state from context
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [status, setStatus] = useState("idle"); // idle | recording | uploading | transcribing | completed
+  const [status, setStatus] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [lastTranscript, setLastTranscript] = useState("");
   const [error, setError] = useState(null);
@@ -37,7 +36,6 @@ const AudioNotes = () => {
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    // Load last transcript from local storage
     const storedTranscript = localStorage.getItem("lastTranscript");
     if (storedTranscript) {
       setLastTranscript(storedTranscript);
@@ -47,18 +45,19 @@ const AudioNotes = () => {
   useEffect(() => {
     if (status === "transcribing") {
       const start = Date.now();
-      const duration = 20000; // 20 seconds mock duration
+      // Set a mock duration to make the progress bar feel real
+      const duration = 20000; // 20 seconds
       intervalRef.current = setInterval(() => {
         const elapsed = Date.now() - start;
-        const newProgress = Math.min((elapsed / duration) * 100, 100);
+        const newProgress = Math.min((elapsed / duration) * 100, 99); // Cap at 99%
         setProgress(newProgress);
-        if (newProgress >= 100) {
+        if (newProgress >= 99) {
           clearInterval(intervalRef.current);
         }
       }, 50);
     } else {
       clearInterval(intervalRef.current);
-      setProgress(0);
+      if (status !== "completed") setProgress(0); // Reset progress on failure or idle
     }
     return () => clearInterval(intervalRef.current);
   }, [status]);
@@ -105,14 +104,15 @@ const AudioNotes = () => {
       const formData = new FormData();
       formData.append("audio", audioBlob, "audio.webm");
 
-      // Replace this with your actual API endpoint
-      const response = await fetch("/api/audio-to-transcript", {
+      // **** FIX: Use the correct API path matching the backend filename ****
+      const response = await fetch("/api/audio-to-notes", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error(`API call failed with status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || `API call failed with status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -350,7 +350,7 @@ const AudioNotes = () => {
           className="w-full max-w-4xl mx-auto p-8 border-4 border-zinc-700 bg-zinc-900 rounded-lg shadow-2xl"
         >
           <div className="mb-8 text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black flex items-center gap-3 justify-center tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-white flex items-center gap-3 justify-center tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
               <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-primary drop-shadow-md" />
               Tutorly Transcriber
             </h1>
