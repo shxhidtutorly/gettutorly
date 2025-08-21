@@ -92,7 +92,7 @@ export const useStudyTracking = () => {
       const session = currentSession || {
         userId,
         sessionType: sessionType || "general",
-        activity,
+        activity: activity || null, // fallback instead of undefined
         startTime: new Date(),
         duration: 0,
         isCompleted: wasCompleted,
