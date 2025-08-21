@@ -97,38 +97,61 @@ const AudioNotes = () => {
     }
   };
 
-  const handleProcessAudio = async (audioBlob) => {
-    setStatus("transcribing");
-    setError(null);
-    try {
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "audio.webm");
+ const handleProcessAudio = async (audioBlob) => {
+  setStatus("transcribing");
+  setError(null);
+  
+  try {
+    // 1. Get a secure, temporary upload URL from your new API
+    const getUrlResponse = await fetch("/api/get-upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: `audio-${Date.now()}.${audioBlob.type.split('/')[1].split(';')[0]}`,
+        filetype: audioBlob.type,
+      }),
+    });
+    const { url: uploadUrl, filename: s3Key } = await getUrlResponse.json();
 
-      // **** FIX: Use the correct API path matching the backend filename ****
-      const response = await fetch("/api/audio-to-notes", {
-        method: "POST",
-        body: formData,
-      });
+    // 2. Upload the audio file directly to S3. This bypasses the 4.5MB Vercel limit.
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      body: audioBlob,
+      headers: { "Content-Type": audioBlob.type },
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.details || `API call failed with status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.transcript) {
-        setTranscript(data.transcript);
-        localStorage.setItem("lastTranscript", data.transcript);
-        setStatus("completed");
-      } else {
-        throw new Error("No transcript received from the API.");
-      }
-    } catch (err) {
-      console.error("Error during transcription:", err);
-      setError(`Transcription failed: ${err.message}. Please try again.`);
-      setStatus("idle");
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload audio to S3. Status: ${uploadResponse.status}`);
     }
-  };
+
+    // 3. Call your main transcription API with the URL of the uploaded file
+    const audioUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+    const transcriptResponse = await fetch("/api/audio-to-notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audio_url: audioUrl }),
+    });
+
+    if (!transcriptResponse.ok) {
+      const errorData = await transcriptResponse.json().catch(() => ({}));
+      throw new Error(errorData.details || `Transcription API call failed with status: ${transcriptResponse.status}`);
+    }
+
+    const data = await transcriptResponse.json();
+    if (data.transcript) {
+      setTranscript(data.transcript);
+      localStorage.setItem("lastTranscript", data.transcript);
+      setStatus("completed");
+    } else {
+      throw new Error("No transcript received from the API.");
+    }
+
+  } catch (err) {
+    console.error("Error during transcription:", err);
+    setError(`Transcription failed: ${err.message}. Please try again.`);
+    setStatus("idle");
+  }
+};
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
