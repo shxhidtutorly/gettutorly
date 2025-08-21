@@ -1,4 +1,5 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -26,5 +27,14 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/audio-to-notes.js": {
+      "maxDuration": 300,
+      "memory": 2048
+    },
+    "api/get-upload-url.js": {
+      "maxDuration": 15
+    }
+  }
 }
