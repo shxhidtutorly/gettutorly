@@ -172,6 +172,45 @@ const MultiDocSession: React.FC = () => {
     [selectedDocs]
   );
 
+  const cleanNotesOutput = (rawText) => {
+  if (!rawText || typeof rawText !== 'string') {
+    return "";
+  }
+
+  let cleanedText = rawText;
+
+  // 1. Remove the initial metadata block completely
+  // It looks for a block that starts with "Title:" and ends before the first real section header (like ## or [1)
+  const metadataEndIndex = cleanedText.search(/(\n## |\[\d+\])/);
+  if (metadataEndIndex !== -1) {
+    cleanedText = cleanedText.substring(metadataEndIndex);
+  }
+
+  // 2. Remove common AI conversational fluff
+  const fluffPatterns = [
+    /^Here are the notes.*\n/gim,
+    /^Certainly, here are.*\n/gim,
+    /^I have generated.*\n/gim,
+  ];
+  fluffPatterns.forEach(pattern => {
+    cleanedText = cleanedText.replace(pattern, '');
+  });
+
+  // 3. Remove markdown horizontal rules and other separators
+  const separatorPatterns = [
+    /^\s*[-*_]{3,}\s*$/gm, // Matches ---, ***, ___
+    /^\s*[\/\\#]{3,}\s*$/gm, // Matches ///, \\\, ### on their own lines
+  ];
+  separatorPatterns.forEach(pattern => {
+    cleanedText = cleanedText.replace(pattern, '');
+  });
+
+  // 4. Normalize newlines to prevent huge gaps
+  cleanedText = cleanedText.replace(/\n{3,}/g, '\n\n');
+
+  // 5. Trim whitespace from the start and end of the entire text
+  return cleanedText.trim();
+};
   // Batch processing for large documents
   const shouldUseBatch = useMemo(() => combinedTextRaw.length > 400_000, [combinedTextRaw]);
 
@@ -414,14 +453,8 @@ const MultiDocSession: React.FC = () => {
   };
 
   // Clean notes output by removing auto-generated scaffolding
-  const cleanNotesOutput = (rawNotes: string): string => {
-    return rawNotes
-      .replace(/^.*?(Title & Metadata|Table of Contents).*?\n/gmi, '')
-      .replace(/^# Table of Contents.*?\n(?:\s*[-*]\s+.*\n)*/gmi, '')
-      .replace(/^#{1,3}\s*(Title|Metadata|Introduction).*?\n/gmi, '')
-      .replace(/^---+\s*\n/gm, '')
-      .trim();
-  };
+  const cleanedNotes = cleanNotesOutput(result); // This will now work much better
+setNotes(cleanedNotes);
 
   const runNotes = async () => {
     if (!combinedText.trim()) {
