@@ -1,47 +1,50 @@
+// File: gettutorly/api/audio-to-notes.js
+
 import { PassThrough } from "stream";
-import multiparty from "multiparty";
+import { Buffer } from "buffer";
 
-// IMPORTANT: AssemblyAI and Deepgram SDKs are a bit complex to use in a generic Next.js/Vercel serverless function with streaming files.
-// A simpler, more robust approach is to upload the file to a public URL (like AWS S3 or a local file system) first and then pass that URL to the APIs.
-// This example uses a simplified approach for demonstration, assuming the API can handle a direct stream.
-// A better production-level solution might involve uploading the blob to a temporary storage first.
-// The provided code handles the file directly from the request stream.
+// We need a specific package to parse multipart/form-data in a serverless function
+// You will need to install this: npm install form-data-parser
+import { parse } from "form-data-parser";
 
-// Make sure you have the following environment variables set in Vercel:
+// Make sure you have these environment variables set in Vercel
 // ASSEMBLYAI_API_KEY
 // DEEPGRAM_API_KEY
 // GEMINI_API_KEY
 
+// The Vercel function configuration
 export const config = {
   api: {
-    bodyParser: false, // Disables the default body parser so we can handle the file stream
+    bodyParser: false, // Must be false to handle file uploads
   },
 };
 
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const form = new multiparty.Form();
-  let file;
+  let fileStream;
+  let fileType;
   let provider;
+  let finalTranscript = null;
 
   try {
-    const data = await new Promise((resolve, reject) => {
-      form.parse(req, (err, fields, files) => {
-        if (err) return reject(err);
-        resolve({ fields, files });
-      });
-    });
-    file = data.files.audio[0];
+    // Parse the incoming multipart form data
+    const parsedData = await parse(req, req.headers);
+    if (!parsedData.files.audio || parsedData.files.audio.length === 0) {
+        return res.status(400).json({ error: "No audio file provided" });
+    }
+    const audioFile = parsedData.files.audio[0];
+    fileStream = audioFile.content;
+    fileType = audioFile.mimeType;
+
   } catch (err) {
     console.error("Error parsing form data:", err);
     return res.status(400).json({ error: "Failed to parse audio file" });
   }
-
-  let finalTranscript = null;
 
   // --- Try AssemblyAI (Primary) ---
   try {
@@ -49,17 +52,21 @@ export default async function handler(req, res) {
     if (!assemblyAIKey) throw new Error("AssemblyAI API key not configured.");
 
     console.log("Attempting transcription with AssemblyAI...");
-    const stream = new PassThrough();
-    req.pipe(stream);
 
-    const assemblyResponse = await fetch("https://api.assemblyai.com/v2/upload", {
+    // 1. Upload the file to AssemblyAI's temporary upload endpoint
+    const uploadResponse = await fetch("https://api.assemblyai.com/v2/upload", {
       method: "POST",
-      headers: { authorization: assemblyAIKey, "Content-Type": file.headers["content-type"] },
-      body: stream,
+      headers: {
+        authorization: assemblyAIKey,
+        "Content-Type": fileType,
+        "Transfer-Encoding": "chunked"
+      },
+      body: fileStream,
     });
-    const uploadData = await assemblyResponse.json();
-    if (!assemblyResponse.ok) throw new Error(uploadData.error || "Failed to upload to AssemblyAI.");
+    const uploadData = await uploadResponse.json();
+    if (!uploadResponse.ok) throw new Error(uploadData.error || "Failed to upload to AssemblyAI.");
     
+    // 2. Start transcription job
     const audioUrl = uploadData.upload_url;
     const transcriptRequest = await fetch("https://api.assemblyai.com/v2/transcript", {
       method: "POST",
@@ -68,6 +75,7 @@ export default async function handler(req, res) {
     });
     const { id: transcriptId } = await transcriptRequest.json();
 
+    // 3. Poll for the result
     let transcript;
     let attempts = 0;
     const maxAttempts = 120; // 10 minutes max
@@ -85,6 +93,7 @@ export default async function handler(req, res) {
     
     finalTranscript = transcript.text;
     provider = "AssemblyAI";
+
   } catch (err) {
     console.error("AssemblyAI failed:", err.message);
 
@@ -94,13 +103,21 @@ export default async function handler(req, res) {
       if (!deepgramKey) throw new Error("Deepgram API key not configured.");
 
       console.log("Attempting transcription with Deepgram...");
-      const stream = new PassThrough();
-      req.pipe(stream);
       
+      // We need to re-create the stream because it was consumed by AssemblyAI
+      const tempBuffer = await new Promise((resolve, reject) => {
+        const chunks = [];
+        fileStream.on('data', chunk => chunks.push(chunk));
+        fileStream.on('end', () => resolve(Buffer.concat(chunks)));
+        fileStream.on('error', reject);
+      });
+      const newStream = new PassThrough();
+      newStream.end(tempBuffer);
+
       const deepgramResponse = await fetch("https://api.deepgram.com/v1/listen?punctuate=true&diarize=true", {
         method: "POST",
-        headers: { authorization: `Token ${deepgramKey}`, "Content-Type": file.headers["content-type"] },
-        body: stream,
+        headers: { authorization: `Token ${deepgramKey}`, "Content-Type": fileType },
+        body: newStream,
       });
 
       const deepgramData = await deepgramResponse.json();
@@ -114,23 +131,22 @@ export default async function handler(req, res) {
 
       // --- Try Gemini Pro (Fallback 2) ---
       try {
-        const geminiApiKey = process.env.GEMINI_API_KEY;
-        if (!geminiApiKey) throw new Error("Gemini API key not configured.");
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!geminiKey) throw new Error("Gemini API key not configured.");
 
         console.log("Attempting transcription with Gemini Pro...");
-        // This is a simplified fallback. Gemini 1.5 Pro can handle audio, but direct file
-        // upload via API is more complex. A more robust solution would be to use a
-        // dedicated multimodal API route. This example passes a base64 encoded string.
-        const audioBuffer = await new Promise((resolve, reject) => {
+        
+        // As before, we need a buffer for Gemini's API
+        const tempBuffer = await new Promise((resolve, reject) => {
           const chunks = [];
-          req.on('data', chunk => chunks.push(chunk));
-          req.on('end', () => resolve(Buffer.concat(chunks)));
-          req.on('error', reject);
+          fileStream.on('data', chunk => chunks.push(chunk));
+          fileStream.on('end', () => resolve(Buffer.concat(chunks)));
+          fileStream.on('error', reject);
         });
 
-        const base64Audio = audioBuffer.toString('base64');
+        const base64Audio = tempBuffer.toString('base64');
         
-        const geminiResponse = await fetch(`${process.env.VERCEL_URL}/api/ai`, {
+        const geminiResponse = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/ai`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
