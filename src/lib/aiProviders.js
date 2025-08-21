@@ -1,30 +1,30 @@
 class AIProviderManager {
   constructor() {
-    // Order of preference for provider fallback
+    // RE-ORDERED: Prioritize fast, free, and reliable providers first.
     this.providerOrder = [
-      'together',
-      'gemini',
       'groq',
-      'claude',
+      'gemini',
       'openrouter',
+      'together',
+      'claude',
       'mistral',
-      'cerebras',
-      'nvidia'
+      'nvidia',
     ];
 
     // Map of environment var names to provider keys
+    // FIX: Corrected typos for MISTRAL and NVIDIA env vars.
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
       claude: this.getKeysFromEnv('CLAUDE_API_KEY'),
       openrouter: this.getKeysFromEnv('OPENROUTER_API_KEY'),
       together: this.getKeysFromEnv('TOGETHER_API_KEY'),
-      mistral: this.getKeysFromEnv('MISTRAL_API_KEY').concat(this.getKeysFromEnv('MINISTRAL_API_KEY')),
-      nvidia: this.getKeysFromEnv('NVIDIA_API_KEY').concat(this.getKeysFromEnv('NVIDA_API_KEY')),
-      cerebras: this.getKeysFromEnv('CEREBRAS_API_KEY'),
+      mistral: this.getKeysFromEnv('MISTRAL_API_KEY'),
+      nvidia: this.getKeysFromEnv('NVIDIA_API_KEY'),
     };
 
     // Provider max context/token capacity defaults
+    // FIX: Removed the defunct 'cerebras' provider.
     this.defaultProviderMaxTokens = {
       together: 8192,
       gemini: 8192,
@@ -32,8 +32,7 @@ class AIProviderManager {
       claude: 200000,
       openrouter: 128000,
       mistral: 32768,
-      cerebras: 8192,
-      nvidia: 32768
+      nvidia: 32768,
     };
 
     // Load effective max tokens (allow override via env var name MAX_TOKENS_{PROVIDER})
@@ -43,6 +42,17 @@ class AIProviderManager {
       const envVal = process.env[envName];
       this.providerMaxTokens[prov] = envVal ? parseInt(envVal, 10) : this.defaultProviderMaxTokens[prov];
     });
+
+    // NEW: Default models for each provider. This is crucial for the fixed fallback logic.
+    this.defaultModels = {
+      groq: 'llama-3.1-8b-instant',
+      gemini: 'gemini-1.5-flash-latest',
+      openrouter: 'mistralai/mistral-7b-instruct:free',
+      together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+      claude: 'claude-3-5-sonnet-20240620',
+      mistral: 'open-mixtral-8x7b',
+      nvidia: 'meta/llama3-8b-instruct',
+    };
   }
 
   getKeysFromEnv(envVar) {
@@ -111,9 +121,10 @@ class AIProviderManager {
      Main entrypoint: getAIResponse with fallback + retries
      ---------------------------- */
 
-  async getAIResponse(prompt, model, options = {}) {
-    const requestedProvider = this.getProviderForModel(model);
-    const fallbackProviders = [requestedProvider, ...this.providerOrder.filter(p => p !== requestedProvider)];
+  async getAIResponse(prompt, requestedModel, options = {}) {
+    const requestedProvider = this.getProviderForModel(requestedModel) || this.providerOrder[0];
+    const uniqueProviders = new Set([requestedProvider, ...this.providerOrder]);
+    const fallbackProviders = Array.from(uniqueProviders);
 
     let promptTextForEstimate = '';
     if (typeof prompt === 'string') {
@@ -132,6 +143,21 @@ class AIProviderManager {
         continue;
       }
 
+      // *** MAJOR FIX START ***
+      // Determine the correct model to use for this specific provider attempt.
+      // If the originally requested model belongs to this provider, use it.
+      // Otherwise, use this provider's designated default model.
+      let modelForThisAttempt = requestedModel;
+      if (this.getProviderForModel(modelForThisAttempt) !== provider) {
+        modelForThisAttempt = this.defaultModels[provider];
+      }
+
+      if (!modelForThisAttempt) {
+        console.error(`No default model configured for provider: ${provider}. Skipping.`);
+        continue;
+      }
+      // *** MAJOR FIX END ***
+
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
         const attemptMaxList = [
@@ -139,19 +165,19 @@ class AIProviderManager {
           Math.max(16, Math.floor(desiredMaxOutput / 2)),
           Math.max(16, Math.floor(desiredMaxOutput / 4)),
           128,
-          32
+          32,
         ].filter((v, idx, arr) => v > 0 && arr.indexOf(v) === idx);
 
         let lastError = null;
 
         for (const attemptMax of attemptMaxList) {
           try {
-            // Pass the original model preference so provider functions can use it if it's specific
-            const response = await this.callProvider(provider, prompt, key, model, { maxTokens: attemptMax });
-            return { message: response, provider, model, usedKeyIndex: i, usedMaxTokens: attemptMax };
+            console.log(`Attempting provider: ${provider} with model: ${modelForThisAttempt}`);
+            const response = await this.callProvider(provider, prompt, key, modelForThisAttempt, { maxTokens: attemptMax });
+            return { message: response, provider, model: modelForThisAttempt, usedKeyIndex: i, usedMaxTokens: attemptMax };
           } catch (error) {
             lastError = error;
-            console.error(`Error with ${provider} (key ${i+1}): ${error.message}`);
+            console.error(`Error with ${provider} (model: ${modelForThisAttempt}, key ${i+1}): ${error.message}`);
             if (!this.isTokenLimitError(error)) {
               break;
             }
@@ -170,6 +196,7 @@ class AIProviderManager {
      Model -> provider mapping
      ---------------------------- */
   getProviderForModel(model) {
+    // UPDATED: Modern, valid models. Removed Cerebras. Added more options.
     const modelProviderMap = {
       // Gemini
       'gemini-1.5-flash-latest': 'gemini',
@@ -177,25 +204,31 @@ class AIProviderManager {
       // Groq
       'llama3-8b-8192': 'groq',
       'llama-3.1-8b-instant': 'groq',
+      'llama-3.1-70b-versatile': 'groq',
+      'mixtral-8x7b-32768': 'groq',
+      // OpenRouter (Free models)
+      'mistralai/mistral-7b-instruct:free': 'openrouter',
+      'google/gemma-7b-it:free': 'openrouter',
+      'nousresearch/nous-hermes-2-mixtral-8x7b-dpo': 'openrouter',
       // Together
       'meta-llama/Llama-3-70b-chat-hf': 'together',
+      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': 'together',
+      'mistralai/Mixtral-8x7B-Instruct-v0.1': 'together',
       // Claude
       'claude-3-5-sonnet-20240620': 'claude',
-      // OpenRouter
-      'mistralai/mistral-7b-instruct:free': 'openrouter',
+      'claude-3-opus-20240229': 'claude',
+      'claude-3-haiku-20240307': 'claude',
       // Mistral
-        'mistral-medium-2508': 'mistral',
-        'mistral-small-2507': 'mistral',
-        'magistral-medium-2507': 'mistral',
-        'codestral-2508': 'mistral',
-      // Cerebras
-      'gpt-oss-120b': 'cerebras',
+      'open-mistral-7b': 'mistral',
+      'open-mixtral-8x7b': 'mistral',
+      'mistral-small-latest': 'mistral',
+      'mistral-large-latest': 'mistral',
       // Nvidia
+      'meta/llama3-8b-instruct': 'nvidia',
       'meta/llama3-70b-instruct': 'nvidia',
     };
-    return modelProviderMap[model] || model;
+    return modelProviderMap[model] || model; // Fallback to model name as provider
   }
-
 
   /* ----------------------------
      callProvider dispatcher
@@ -217,23 +250,21 @@ class AIProviderManager {
     switch (provider) {
       case 'gemini':
         if (typeof finalPromptForAPI === 'string') {
-          return await this.callGemini({ text: finalPromptForAPI }, apiKey, options);
+          return this.callGemini({ text: finalPromptForAPI }, apiKey, model, options);
         }
-        return await this.callGemini(finalPromptForAPI, apiKey, options);
+        return this.callGemini(finalPromptForAPI, apiKey, model, options);
       case 'groq':
-        return await this.callGroq(finalPromptForAPI, apiKey, model, options);
+        return this.callGroq(finalPromptForAPI, apiKey, model, options);
       case 'claude':
-        return await this.callClaude(finalPromptForAPI, apiKey, model, options);
+        return this.callClaude(finalPromptForAPI, apiKey, model, options);
       case 'openrouter':
-        return await this.callOpenRouter(finalPromptForAPI, apiKey, model, options);
+        return this.callOpenRouter(finalPromptForAPI, apiKey, model, options);
       case 'together':
-        return await this.callTogether(finalPromptForAPI, apiKey, model, options);
+        return this.callTogether(finalPromptForAPI, apiKey, model, options);
       case 'mistral':
-        return await this.callMistral(finalPromptForAPI, apiKey, model, options);
-      case 'cerebras':
-        return await this.callCerebras(finalPromptForAPI, apiKey, model, options);
+        return this.callMistral(finalPromptForAPI, apiKey, model, options);
       case 'nvidia':
-        return await this.callNvidia(finalPromptForAPI, apiKey, model, options);
+        return this.callNvidia(finalPromptForAPI, apiKey, model, options);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -244,7 +275,8 @@ class AIProviderManager {
      ---------------------------- */
 
   // Gemini
-  async callGemini(promptObj, apiKey, options = {}) {
+  // FIX: Pass 'model' parameter for consistency, though internal logic overrides it.
+  async callGemini(promptObj, apiKey, model, options = {}) {
     const parts = [];
     if (promptObj.text) parts.push({ text: promptObj.text });
     if (promptObj.files) {
@@ -252,14 +284,15 @@ class AIProviderManager {
         parts.push({ inlineData: { mimeType: file.type, data: file.base64 } });
       }
     }
-    const model = (promptObj.files && promptObj.files.length > 0) ? 'gemini-1.5-pro-latest' : 'gemini-1.5-flash-latest';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // Logic to auto-select Pro model for vision is good, retained.
+    const finalModel = (promptObj.files && promptObj.files.length > 0) ? 'gemini-1.5-pro-latest' : 'gemini-1.5-flash-latest';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${finalModel}:generateContent?key=${apiKey}`;
     const body = {
       contents: [{ parts }],
       generationConfig: {
         temperature: options.temperature ?? 0.3,
-        maxOutputTokens: options.maxTokens || 8190
-      }
+        maxOutputTokens: options.maxTokens || 8190,
+      },
     };
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await response.json();
@@ -269,36 +302,39 @@ class AIProviderManager {
     return this.removeMarkdownFormatting(textResponse || '');
   }
 
-  // Groq
-  async callGroq(prompt, apiKey, model, options = {}) {
-    const finalModel = this.getProviderForModel(model) === 'groq' ? (process.env.GROQ_MODEL || 'llama3-8b-8192') : model;
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  // Generic function for OpenAI-compatible APIs
+  async callOpenAICompatible(apiUrl, apiKey, model, prompt, options, providerName) {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: finalModel,
+        model: model,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: options.maxTokens,
-        temperature: options.temperature ?? 0.3
-      })
+        temperature: options.temperature ?? 0.3,
+      }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(`Groq API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
+    if (!response.ok) throw new Error(`${providerName} API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
     return this.removeMarkdownFormatting(data.choices?.[0]?.message?.content || '');
+  }
+
+  // Groq
+  async callGroq(prompt, apiKey, model, options = {}) {
+    return this.callOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', apiKey, model, prompt, options, 'Groq');
   }
 
   // Claude
   async callClaude(prompt, apiKey, model, options = {}) {
-    const finalModel = this.getProviderForModel(model) === 'claude' ? (process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20240620') : model;
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: finalModel,
+        model: model,
         max_tokens: options.maxTokens,
         messages: [{ role: 'user', content: prompt }],
-        temperature: options.temperature ?? 0.3
-      })
+        temperature: options.temperature ?? 0.3,
+      }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(`Claude API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
@@ -307,100 +343,23 @@ class AIProviderManager {
 
   // OpenRouter
   async callOpenRouter(prompt, apiKey, model, options = {}) {
-    const finalModel = this.getProviderForModel(model) === 'openrouter' ? (process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct:free') : model;
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: finalModel,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: options.maxTokens,
-        temperature: options.temperature ?? 0.3
-      })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(`OpenRouter API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
-    return this.removeMarkdownFormatting(data.choices?.[0]?.message?.content || '');
+    return this.callOpenAICompatible('https://openrouter.ai/api/v1/chat/completions', apiKey, model, prompt, options, 'OpenRouter');
   }
 
   // Together.ai
   async callTogether(prompt, apiKey, model, options = {}) {
-    const finalModel = this.getProviderForModel(model) === 'together' ? (process.env.TOGETHER_MODEL || 'meta-llama/Llama-3-70b-chat-hf') : model;
-    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: finalModel,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: options.maxTokens,
-        temperature: options.temperature ?? 0.3
-      })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(`Together.ai API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
-    return this.removeMarkdownFormatting(data.choices?.[0]?.message?.content || '');
+    // Note: Together.ai now uses a v1 endpoint similar to OpenAI
+    return this.callOpenAICompatible('https://api.together.xyz/v1/chat/completions', apiKey, model, prompt, options, 'Together.ai');
   }
 
   // Mistral
   async callMistral(prompt, apiKey, model, options = {}) {
-    // Use a valid, dated model name from the official docs
-    const finalModel = this.getProviderForModel(model) === 'mistral'
-        ? (process.env.MISTRAL_MODEL || 'mistral-medium-2508')
-        : model;
-    const url = 'https://api.mistral.ai/v1/chat/completions';
-    const body = {
-        model: finalModel,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: options.temperature ?? 0.3,
-        max_tokens: options.maxTokens
-    };
-    const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(body)
-    });
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-        throw new Error(`Mistral API error: ${resp.status} - ${data?.error?.message || JSON.stringify(data)}`);
-    }
-    return this.removeMarkdownFormatting(data?.choices?.[0]?.message?.content || '');
-}
-
-  // Cerebras
-  async callCerebras(prompt, apiKey, model, options = {}) {
-    // FIX: Use a valid default model from official docs.
-    const finalModel = this.getProviderForModel(model) === 'cerebras' ? (process.env.CEREBRAS_MODEL || 'gpt-oss-120b') : model;
-    const url = 'https://api.cerebras.net/v1/chat/completions';
-    const body = {
-      model: finalModel,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens
-    };
-    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) throw new Error(`Cerebras HTTP ${resp.status} - ${JSON.stringify(data)}`);
-    return this.removeMarkdownFormatting(data?.choices?.[0]?.message?.content || '');
+    return this.callOpenAICompatible('https://api.mistral.ai/v1/chat/completions', apiKey, model, prompt, options, 'Mistral');
   }
 
   // Nvidia
   async callNvidia(prompt, apiKey, model, options = {}) {
-    // FIX: Use a valid default model from official docs.
-    const finalModel = this.getProviderForModel(model) === 'nvidia' ? (process.env.NVIDIA_MODEL || 'meta/llama3-70b-instruct') : model;
-    const url = 'https://integrate.api.nvidia.com/v1/chat/completions';
-    const body = {
-      model: finalModel,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens
-    };
-    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) throw new Error(`NVIDIA NIM HTTP ${resp.status} - ${JSON.stringify(data)}`);
-    return this.removeMarkdownFormatting(data?.choices?.[0]?.message?.content || '');
+    return this.callOpenAICompatible('https://integrate.api.nvidia.com/v1/chat/completions', apiKey, model, prompt, options, 'NVIDIA NIM');
   }
 }
 
