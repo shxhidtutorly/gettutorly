@@ -104,7 +104,7 @@ const Humanizer = () => {
   // Open text editor with humanized text
   const handleEditText = () => {
     sessionStorage.setItem("humanizedContent", rewrittenText);
-    navigate("/text-editor");
+    navigate("/texteditor");
   };
 
   // Get score color based on value
