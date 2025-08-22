@@ -1,388 +1,254 @@
 // api/humanize.js - Tutorly AI Humanizer endpoint
-// This endpoint transforms AI-generated content into natural, human-like writing
+// This endpoint transforms AI-generated content into natural, human-like writing.
+// REFACTORED FOR ROBUSTNESS, MAINTAINABILITY, AND PERFORMANCE.
+
+// --- UTILITIES (Defined once at module scope) ---
+
+/**
+ * A conservative heuristic for estimating token count (1 token ≈ 4 chars).
+ * @param {string} text The text to estimate.
+ * @returns {number} The estimated number of tokens.
+ */
+const estimateTokens = (text) => {
+  if (!text) return 0;
+  return Math.ceil(String(text).length / 4);
+};
+
+/**
+ * Safely parses a string into a JSON object.
+ * @param {string | object} content The content to parse.
+ * @returns {object | null} The parsed object or null if parsing fails.
+ */
+const parseJsonResponse = (content) => {
+  try {
+    // If the model wraps the JSON in markdown code fences, strip them out.
+    const jsonString = content.replace(/^```json\n|```$/g, '').trim();
+    return JSON.parse(jsonString);
+  } catch (e) {
+    console.error('Failed to parse content as JSON:', content);
+    return null;
+  }
+};
+
+
+// --- CORE API CALLER (Centralized logic for all fetch requests) ---
+
+/**
+ * A resilient function to call any API endpoint with a timeout and robust error handling.
+ * @param {string} url The API endpoint URL.
+ * @param {object} options The options for the fetch request (method, headers, body).
+ * @param {number} [timeout=30000] The timeout in milliseconds.
+ * @returns {Promise<object>} The JSON response from the API.
+ */
+async function callApi(url, options, timeout = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorBody = await response.text(); // Read error as text to avoid JSON parse errors
+      throw new Error(`API Error: ${response.status} ${response.statusText} - Body: ${errorBody}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('API request timed out.');
+    }
+    throw error;
+  }
+}
+
+
+// --- PROVIDER IMPLEMENTATIONS (Modular and reusable) ---
+
+/**
+ * Handles calls for any OpenAI-compatible API.
+ * @param {string} providerName The name of the provider (e.g., 'Groq').
+ * @param {string} apiKey The API key.
+ * @param {string} model The model name.
+ * @param {string} systemPrompt The system prompt.
+ * @param {string} userPrompt The user prompt.
+ * @returns {Promise<object|null>} The parsed result or null on failure.
+ */
+async function callOpenAICompatible(providerName, apiKey, model, systemPrompt, userPrompt) {
+  const endpoints = {
+    OpenRouter: 'https://openrouter.ai/api/v1/chat/completions',
+    Groq: 'https://api.groq.com/openai/v1/chat/completions',
+    TogetherAI: 'https://api.together.xyz/v1/chat/completions',
+    OpenAI: 'https://api.openai.com/v1/chat/completions',
+  };
+
+  const data = await callApi(endpoints[providerName], {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 2000,
+      response_format: { type: 'json_object' }
+    })
+  });
+
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error(`Empty or invalid content from ${providerName}`);
+  
+  return parseJsonResponse(content);
+}
+
+/**
+ * Handles calls for the Anthropic (Claude) API.
+ * @param {string} apiKey The API key.
+ * @param {string} model The model name.
+ * @param {string} systemPrompt The system prompt.
+ * @param {string} userPrompt The user prompt.
+ * @returns {Promise<object|null>} The parsed result or null on failure.
+ */
+async function callAnthropic(apiKey, model, systemPrompt, userPrompt) {
+  const data = await callApi('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+      temperature: 0.3,
+      max_tokens: 2000
+    })
+  });
+  
+  const content = data.content?.[0]?.text;
+  if (!content) throw new Error('Empty or invalid content from Anthropic');
+
+  return parseJsonResponse(content);
+}
+
+
+// --- API ENDPOINT HANDLER ---
 
 export default async function handler(req, res) {
-  console.log(`🧠 Tutorly AI Humanizer called: ${req.method} ${req.url}`);
-
-  // CORS + JSON headers
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', process.env.SITE_URL || '*'); // Restrict in production
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const safeParseBody = (b) => {
-    try { return typeof b === 'string' ? JSON.parse(b) : b; } catch (e) { return b; }
-  };
-
-  const estimateTokens = (text) => {
-    // conservative heuristic: 1 token ≈ 4 chars
-    if (!text) return 0;
-    return Math.ceil(String(text).length / 4);
-  };
-
-  const getEnv = (name) => process.env[name] || '';
-
   try {
-    const body = safeParseBody(req.body);
-    const { text, language, tone } = body || {};
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { text, language = 'English', tone = 'Neutral' } = body || {};
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
       return res.status(400).json({ error: 'Text must be a non-empty string' });
     }
+    
+    console.log(`🧠 Tutorly AI Humanizer called. Input tokens: ~${estimateTokens(text)}`);
 
-    // Validate language and tone
-    const validLanguages = ['English', 'Spanish', 'French', 'German'];
-    const validTones = ['Neutral', 'Formal', 'Casual', 'Persuasive', 'Informative'];
+    const systemPrompt = `You are an expert copy editor. Rewrite the user's text to be clear, concise, and human-like, following all rules.
+Rules: Use active voice, short sentences, and simple language. Address the reader directly with "you". Avoid jargon, clichés, passive voice, semicolons, and filler words like "very", "really", "just".
+Your final output MUST BE a single, valid JSON object with three fields: "rewrittenText" (string), "score" (integer from 1-100 indicating how well you followed the rules), and "explanation" (a brief string explaining the score). Do not include any text outside of this JSON object.`;
+    
+    const userPrompt = `Please rewrite the following text in ${language} with a ${tone.toLowerCase()} tone:\n\n---\n\n${text}`;
 
-    if (!validLanguages.includes(language)) {
-      return res.status(400).json({ error: 'Invalid language selection' });
-    }
-
-    if (!validTones.includes(tone)) {
-      return res.status(400).json({ error: 'Invalid tone selection' });
-    }
-
-    // Estimate token count for input text
-    const estimatedInputTokens = estimateTokens(text);
-    console.log(`Estimated input tokens: ${estimatedInputTokens}`);
-
-    // Prepare the system prompt
-    const systemPrompt = `Rewrite the given text to follow these rules:
-- Use clear, simple language.
-- Be spartan and informative.
-- Use short, impactful sentences.
-- Use active voice. Avoid passive voice.
-- Give practical and actionable insights.
-- Use bullet point lists for social media posts.
-- Use data and examples when possible.
-- Address the reader with "you" and "your".
-
-Do not:
-- Use em dashes. Only use commas, periods, or standard punctuation.
-- Use semicolons.
-- Use markdown, asterisks, or hashtags.
-- Use setup phrases like "in conclusion" or "in closing".
-- Use metaphors, clichés, or generalizations.
-- Use unnecessary adjectives or adverbs.
-- Include warnings, notes, or explanations outside of the rewritten text.
-- Use banned words: very, really, just, actually, basically, literally.
-
-After rewriting, return:
-1. The cleaned and human-like version of the text.
-2. A score from 1 to 100 measuring how close the rewritten text is to these rules.
-3. A short one-line explanation of the score.
-
-Output format must be a valid JSON with these fields: rewrittenText, score, explanation.`;
-
-    // Add language and tone instructions to the prompt
-    let userPrompt = `Please rewrite the following text in ${language} with a ${tone.toLowerCase()} tone:\n\n${text}`;
-
-    // Try different AI providers in order of preference
-    const providers = [
-      callOpenRouter,
-      callGroq,
-      callTogetherAI,
-      callOpenAI,
-      callAnthropic,
-      // Add more providers as needed
+    // --- DYNAMIC PROVIDER CONFIGURATION ---
+    const providerConfig = [
+      {
+        name: 'OpenRouter',
+        apiKey: process.env.OPENROUTER_API_KEY,
+        model: process.env.OPENROUTER_MODEL || 'google/gemma-3n-e2b-it:free',
+        enabled: !!process.env.OPENROUTER_API_KEY,
+        func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
+      },
+      {
+        name: 'Groq',
+        apiKey: process.env.GROQ_API_KEY,
+        model: process.env.GROQ_MODEL || 'llama3-70b-8192',
+        enabled: !!process.env.GROQ_API_KEY,
+        func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
+      },
+      {
+        name: 'TogetherAI',
+        apiKey: process.env.TOGETHER_API_KEY,
+        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3-70b-chat-hf',
+        enabled: !!process.env.TOGETHER_API_KEY,
+        func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
+      },
+      {
+        name: 'OpenAI',
+        apiKey: process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
+        enabled: !!process.env.OPENAI_API_KEY,
+        func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
+      },
+      {
+        name: 'Anthropic',
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20240620',
+        enabled: !!process.env.ANTHROPIC_API_KEY,
+        func: (config) => callAnthropic(config.apiKey, config.model, systemPrompt, userPrompt)
+      }
     ];
+    
+    const availableProviders = providerConfig.filter(p => p.enabled);
+
+    if (availableProviders.length === 0) {
+      return res.status(503).json({ error: 'No AI providers are configured. Please set API keys.' });
+    }
 
     let result = null;
-    let error = null;
+    let lastError = null;
 
-    // Try each provider until one succeeds
-    for (const provider of providers) {
+    for (const provider of availableProviders) {
       try {
-        result = await provider(systemPrompt, userPrompt);
-        if (result) break;
+        console.log(`Attempting provider: ${provider.name}...`);
+        result = await provider.func(provider);
+        if (result && result.rewrittenText) {
+          console.log(`✅ Success with provider: ${provider.name}`);
+          break; // Success, exit the loop
+        }
       } catch (err) {
-        console.error(`Provider error: ${err.message}`);
-        error = err;
+        console.error(`Provider ${provider.name} failed: ${err.message}`);
+        lastError = err;
       }
     }
 
     if (!result) {
-      console.error('All providers failed');
-      return res.status(500).json({ 
-        error: 'Failed to process text with available AI providers', 
-        details: error?.message || 'Unknown error' 
+      console.error('All available providers failed.');
+      return res.status(502).json({
+        error: 'Failed to process text with all available AI providers.',
+        details: lastError?.message || 'Unknown provider error.'
       });
+    }
+    
+    // Final validation of the successful result
+    if (!result.rewrittenText || !result.score || !result.explanation) {
+         return res.status(500).json({ error: 'AI provider returned an incomplete JSON object.' });
     }
 
     return res.status(200).json(result);
+
   } catch (error) {
-    console.error('Humanizer error:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error', 
-      details: error.message 
+    console.error(`Humanizer main error: ${error.message}`);
+    return res.status(500).json({
+      error: 'An internal server error occurred.',
+      details: error.message
     });
-  }
-}
-
-// Provider implementations
-async function callOpenRouter(systemPrompt, userPrompt) {
-  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-  if (!OPENROUTER_API_KEY) {
-    console.log('OpenRouter API key not found, skipping');
-    return null;
-  }
-
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': process.env.SITE_URL || 'https://gettutorly.com',
-      'X-Title': 'Tutorly AI Humanizer'
-    },
-    body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || 'z-ai/glm-4.5-air:free',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' }
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenRouter API error: ${error.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content;
-  
-  if (!content) {
-    throw new Error('Empty response from OpenRouter');
-  }
-
-  try {
-    // Parse the JSON response
-    const parsedContent = JSON.parse(content);
-    return {
-      rewrittenText: parsedContent.rewrittenText,
-      score: parseInt(parsedContent.score, 10),
-      explanation: parsedContent.explanation
-    };
-  } catch (e) {
-    console.error('Failed to parse OpenRouter response:', e);
-    throw new Error('Invalid response format from AI provider');
-  }
-}
-
-async function callGroq(systemPrompt, userPrompt) {
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  if (!GROQ_API_KEY) {
-    console.log('Groq API key not found, skipping');
-    return null;
-  }
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: process.env.GROQ_MODEL || 'llama3-70b-8192',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' }
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Groq API error: ${error.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content;
-  
-  if (!content) {
-    throw new Error('Empty response from Groq');
-  }
-
-  try {
-    // Parse the JSON response
-    const parsedContent = JSON.parse(content);
-    return {
-      rewrittenText: parsedContent.rewrittenText,
-      score: parseInt(parsedContent.score, 10),
-      explanation: parsedContent.explanation
-    };
-  } catch (e) {
-    console.error('Failed to parse Groq response:', e);
-    throw new Error('Invalid response format from AI provider');
-  }
-}
-
-async function callTogetherAI(systemPrompt, userPrompt) {
-  const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
-  if (!TOGETHER_API_KEY) {
-    console.log('Together AI key not found, skipping');
-    return null;
-  }
-
-  const response = await fetch('https://api.together.xyz/v1/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${TOGETHER_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: process.env.TOGETHER_MODEL || 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-      prompt: `<s>[INST] ${systemPrompt} [/INST]\n\n[INST] ${userPrompt} [/INST]`,
-      temperature: 0.3,
-      max_tokens: 2000,
-      stop: ['</s>']
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Together AI error: ${error.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices[0]?.text;
-  
-  if (!content) {
-    throw new Error('Empty response from Together AI');
-  }
-
-  try {
-    // Extract JSON from the response (it might be embedded in text)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON found in response');
-    }
-    
-    const parsedContent = JSON.parse(jsonMatch[0]);
-    return {
-      rewrittenText: parsedContent.rewrittenText,
-      score: parseInt(parsedContent.score, 10),
-      explanation: parsedContent.explanation
-    };
-  } catch (e) {
-    console.error('Failed to parse Together AI response:', e);
-    throw new Error('Invalid response format from AI provider');
-  }
-}
-
-async function callOpenAI(systemPrompt, userPrompt) {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-  if (!OPENAI_API_KEY) {
-    console.log('OpenAI API key not found, skipping');
-    return null;
-  }
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' }
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenAI API error: ${error.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content;
-  
-  if (!content) {
-    throw new Error('Empty response from OpenAI');
-  }
-
-  try {
-    // Parse the JSON response
-    const parsedContent = JSON.parse(content);
-    return {
-      rewrittenText: parsedContent.rewrittenText,
-      score: parseInt(parsedContent.score, 10),
-      explanation: parsedContent.explanation
-    };
-  } catch (e) {
-    console.error('Failed to parse OpenAI response:', e);
-    throw new Error('Invalid response format from AI provider');
-  }
-}
-
-async function callAnthropic(systemPrompt, userPrompt) {
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_API_KEY) {
-    console.log('Anthropic API key not found, skipping');
-    return null;
-  }
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || 'claude-3-opus-20240229',
-      system: systemPrompt,
-      messages: [
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 2000
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Anthropic API error: ${error.error?.message || response.statusText}`);
-  }
-
-  const data = await response.json();
-  const content = data.content[0]?.text;
-  
-  if (!content) {
-    throw new Error('Empty response from Anthropic');
-  }
-
-  try {
-    // Extract JSON from the response (it might be embedded in text)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON found in response');
-    }
-    
-    const parsedContent = JSON.parse(jsonMatch[0]);
-    return {
-      rewrittenText: parsedContent.rewrittenText,
-      score: parseInt(parsedContent.score, 10),
-      explanation: parsedContent.explanation
-    };
-  } catch (e) {
-    console.error('Failed to parse Anthropic response:', e);
-    throw new Error('Invalid response format from AI provider');
   }
 }
