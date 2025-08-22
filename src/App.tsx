@@ -26,6 +26,7 @@ import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
 import Faq from "./pages/faq";
 import Summaries from "./pages/Summaries";
+import Humanizer from "./pages/Humanizer";
 import MicroLessons from "./pages/MicroLessons";
 import AIAssistant from "./pages/AIAssistant";
 import StudyTechniques from "./pages/StudyTechniques";
@@ -55,9 +56,9 @@ import StudyTechniquesFeature from "./pages/features/study-techniques";
 import TestsQuizFeature from "./pages/features/tests-quiz";
 import SummariesFeature from "./pages/features/summaries";
 import DoubtChainFeature from "./pages/features/doubt-chain";
-import ConvertFeature from "./pages/features/convert";
-import CompressFeature from "./pages/features/compress";
 import FeaturesPage from './pages/features'
+import CompressFeature from "./pages/features/compress";
+import ConvertFeature from "./pages/features/convert";
 
 // CSS
 import "./css/animations.css";
@@ -100,8 +101,9 @@ const App = () => {
                 <Route path="/features/tests-quiz" element={<TestsQuizFeature />} />
                 <Route path="/features/summaries" element={<SummariesFeature />} />
                 <Route path="/features/doubt-chain" element={<DoubtChainFeature />} />
-                <Route path="/features/convert" element={<ConvertFeature />} />
-                <Route path="/features/compress" element={<CompressFeature />} />
+                                <Route path="/features/convert" element={<convertFeature />} />
+                <Route path="/features/compress" element={<compressFeature />} />
+
                 <Route path="/features" element={<FeaturesPage />} />
 
 
@@ -130,6 +132,7 @@ const App = () => {
                 <Route path="/aicontentprocessor" element={<ProtectedRoute><AiContentProcessor /></ProtectedRoute>} />
                  <Route path="/multi-doc-session" element={<ProtectedRoute><MultiDocSession /></ProtectedRoute>} />
                  <Route path="/mindmap" element={<ProtectedRoute><MindMap /></ProtectedRoute>} />
+                 <Route path="/humanizer" element={<ProtectedRoute><Humanizer /></ProtectedRoute>} />
 
                 <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
