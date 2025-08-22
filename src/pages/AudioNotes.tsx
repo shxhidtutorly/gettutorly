@@ -401,9 +401,7 @@ const AudioNotes = () => {
           </motion.button>
           <div className="flex items-center gap-2 text-sm" style={{ color: colors.subText }}>
             <Info size={16} />
-            <p>
-              {MAX_DAILY_UPLOADS - uploadCount} / {MAX_DAILY_UPLOADS} left today
-            </p>
+           
           </div>
         </nav>
       </header>
