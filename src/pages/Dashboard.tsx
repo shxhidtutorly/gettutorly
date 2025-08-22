@@ -181,6 +181,8 @@ const Dashboard = () => {
     { title: "TUTOR ME", desc: t('dashboard.multiDocDesc'), icon: FileStack, route: "/multi-doc-session", accent: "#ff5a8f" },
     { title: t('dashboard.aiAssistant'), desc: t('dashboard.aiAssistantDesc'), icon: User, route: "/ai-assistant", accent: "#00e6c4" },
     { title: t('dashboard.contentProcessor'), desc: t('dashboard.contentProcessorDesc'), icon: Wand2, route: "/aicontentprocessor", accent: "#ff5a8f" },
+    { title: "Humanizer", desc: "Rewrite and improve your text with AI", icon: MessageCircle, route: "/humanizer", accent: "#00e6c4" },
+    { title: "Text Editor", desc: "Edit and humanize your text", icon: FileText, route: "/text-editor", accent: "#ff5a8f" },
   ];
 
   const themeClasses = theme === 'light' ? 'bg-stone-100 text-stone-900' : 'bg-zinc-900 text-zinc-100';
