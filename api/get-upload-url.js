@@ -15,17 +15,21 @@ export default async function handler(req, res) {
   }
 
   const { filename, filetype } = req.body;
+  const key = `audionotes/${Date.now()}-${filename}`;
 
   try {
     const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME,
-      Key: `audionotes/${filename}`,  // path inside bucket
+      Key: key,
       ContentType: filetype,
     });
 
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL valid for 1 hour
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    
+    // Construct the public URL here on the server
+    const publicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
-    res.status(200).json({ url, filename: command.input.Key });
+    res.status(200).json({ signedUrl, publicUrl });
   } catch (error) {
     console.error("Error generating signed URL:", error);
     res.status(500).json({ message: 'Error generating upload URL', details: error.message });
