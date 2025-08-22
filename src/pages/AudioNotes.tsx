@@ -97,12 +97,12 @@ const AudioNotes = () => {
     }
   };
 
- const handleProcessAudio = async (audioBlob) => {
+const handleProcessAudio = async (audioBlob) => {
   setStatus("transcribing");
   setError(null);
   
   try {
-    // 1. Get a secure, temporary upload URL from your new API
+    // 1. Get a secure, temporary upload URL and the public URL from your API
     const getUrlResponse = await fetch("/api/get-upload-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -111,10 +111,10 @@ const AudioNotes = () => {
         filetype: audioBlob.type,
       }),
     });
-    const { url: uploadUrl, filename: s3Key } = await getUrlResponse.json();
+    const { signedUrl, publicUrl } = await getUrlResponse.json();
 
-    // 2. Upload the audio file directly to S3. This bypasses the 4.5MB Vercel limit.
-    const uploadResponse = await fetch(uploadUrl, {
+    // 2. Upload the audio file directly to S3 using the signed URL
+    const uploadResponse = await fetch(signedUrl, {
       method: "PUT",
       body: audioBlob,
       headers: { "Content-Type": audioBlob.type },
@@ -124,12 +124,11 @@ const AudioNotes = () => {
       throw new Error(`Failed to upload audio to S3. Status: ${uploadResponse.status}`);
     }
 
-    // 3. Call your main transcription API with the URL of the uploaded file
-    const audioUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+    // 3. Call your main transcription API with the PUBLIC URL of the uploaded file
     const transcriptResponse = await fetch("/api/audio-to-notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audio_url: audioUrl }),
+      body: JSON.stringify({ audio_url: publicUrl }),
     });
 
     if (!transcriptResponse.ok) {
@@ -152,7 +151,7 @@ const AudioNotes = () => {
     setStatus("idle");
   }
 };
-
+  
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
