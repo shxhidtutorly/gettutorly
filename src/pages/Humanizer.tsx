@@ -11,6 +11,7 @@ import {
   FileText,
   Info,
   X,
+  FileEdit,
 } from "lucide-react";
 
 // The brutalist-inspired color palette (same as other components)
@@ -98,6 +99,12 @@ const Humanizer = () => {
   const handleCopy = () => {
     navigator.clipboard.writeText(rewrittenText);
     // Could add a toast notification here
+  };
+  
+  // Open text editor with humanized text
+  const handleEditText = () => {
+    sessionStorage.setItem("humanizedContent", rewrittenText);
+    navigate("/text-editor");
   };
 
   // Get score color based on value
@@ -281,19 +288,32 @@ const Humanizer = () => {
               Copy Output
             </motion.button>
             
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: `8px 8px 0px ${colors.primary}` }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setInputText("");
-                setStatus("idle");
-              }}
-              className="flex items-center justify-center gap-3 px-6 py-4 border-4 border-zinc-700 bg-zinc-800 font-black tracking-wide rounded-lg shadow-xl"
-              style={{ boxShadow: `4px 4px 0px ${colors.primary}`, color: colors.text }}
-            >
-              <Sparkles size={24} style={{ color: colors.primary }} />
-              Start New Session
-            </motion.button>
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+                    <motion.button
+                      whileHover={{ scale: 1.05, boxShadow: `8px 8px 0px ${colors.secondary}` }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleEditText}
+                      className="flex items-center justify-center gap-3 px-6 py-4 border-4 border-zinc-700 bg-zinc-800 font-black tracking-wide rounded-lg shadow-xl flex-1"
+                      style={{ boxShadow: `4px 4px 0px ${colors.secondary}`, color: colors.text }}
+                    >
+                      <FileEdit size={24} style={{ color: colors.secondary }} />
+                      Edit Text
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05, boxShadow: `8px 8px 0px ${colors.primary}` }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setInputText("");
+                        setStatus("idle");
+                      }}
+                      className="flex items-center justify-center gap-3 px-6 py-4 border-4 border-zinc-700 bg-zinc-800 font-black tracking-wide rounded-lg shadow-xl flex-1"
+                      style={{ boxShadow: `4px 4px 0px ${colors.primary}`, color: colors.text }}
+                    >
+                      <Sparkles size={24} style={{ color: colors.primary }} />
+                      Start New Session
+                    </motion.button>
+                  </div>
           </motion.div>
         );
         
