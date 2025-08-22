@@ -26,6 +26,7 @@ import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
 import Faq from "./pages/faq";
 import Summaries from "./pages/Summaries";
+import Humanizer from "./pages/Humanizer";
 import MicroLessons from "./pages/MicroLessons";
 import AIAssistant from "./pages/AIAssistant";
 import StudyTechniques from "./pages/StudyTechniques";
@@ -126,6 +127,7 @@ const App = () => {
                 <Route path="/aicontentprocessor" element={<ProtectedRoute><AiContentProcessor /></ProtectedRoute>} />
                  <Route path="/multi-doc-session" element={<ProtectedRoute><MultiDocSession /></ProtectedRoute>} />
                  <Route path="/mindmap" element={<ProtectedRoute><MindMap /></ProtectedRoute>} />
+                 <Route path="/humanizer" element={<ProtectedRoute><Humanizer /></ProtectedRoute>} />
 
                 <Route path="/upload" element={<Navigate to="/ai-notes" replace />} />
 
