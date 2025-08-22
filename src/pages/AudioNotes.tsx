@@ -16,15 +16,15 @@ import {
 
 // The brutalist-inspired color palette
 const colors = {
-  primary: "#00e6c4", // A vibrant turquoise for accents
-  secondary: "#ff5a8f", // A hot pink for contrast
-  text: "#e4e4e7", // A soft white for main text
-  subText: "#a1a1aa", // A muted gray for secondary text
-  background: "#18181b", // A deep charcoal
-  cardBg: "#27272a", // A slightly lighter gray for cards
-  border: "#3f3f46", // A dark gray for borders
-  error: "#f43f5e", // A bold red for errors
-  recording: "#ef4444", // A distinct red for recording state
+  primary: "#00d4b6", // Softer turquoise (still vibrant but easier on the eyes)
+  secondary: "#ff4d80", // Slightly deeper pink for contrast
+  text: "#e4e4e7", // Soft white for readability
+  subText: "#9ca3af", // Softer muted gray for secondary text
+  background: "#18181b", // Deep charcoal (good for brutalist dark mode)
+  cardBg: "#1f1f23", // Darker but distinct card background
+  border: "#2d2d32", // Subtle border that doesn’t overpower
+  error: "#f43f5e", // Keep red bold for errors
+  recording: "#e11d48", // Slightly darker red for recording state
 };
 
 const MAX_DAILY_UPLOADS = 15;
