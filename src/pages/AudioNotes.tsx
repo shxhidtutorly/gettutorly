@@ -12,23 +12,24 @@ import {
   FileText,
   Download,
   Info,
+  X,
 } from "lucide-react";
 
 // The brutalist-inspired color palette
 const colors = {
-  primary: "#00d4b6", // Softer turquoise (still vibrant but easier on the eyes)
-  secondary: "#ff4d80", // Slightly deeper pink for contrast
-  text: "#e4e4e7", // Soft white for readability
-  subText: "#9ca3af", // Softer muted gray for secondary text
-  background: "#18181b", // Deep charcoal (good for brutalist dark mode)
-  cardBg: "#1f1f23", // Darker but distinct card background
-  border: "#2d2d32", // Subtle border that doesn’t overpower
-  error: "#f43f5e", // Keep red bold for errors
-  recording: "#e11d48", // Slightly darker red for recording state
+  primary: "#00e6c4", // A vibrant turquoise for accents
+  secondary: "#ff5a8f", // A hot pink for contrast
+  text: "#e4e4e7", // A soft white for main text
+  subText: "#a1a1aa", // A muted gray for secondary text
+  background: "#18181b", // A deep charcoal
+  cardBg: "#27272a", // A slightly lighter gray for cards
+  border: "#3f3f46", // A dark gray for borders
+  error: "#f43f5e", // A bold red for errors
+  recording: "#ef4444", // A distinct red for recording state
 };
 
 const MAX_DAILY_UPLOADS = 15;
-const MAX_FILE_SIZE_MB = 50; // Max file size in megabytes
+const MAX_FILE_SIZE_MB = 50;
 
 const AudioNotes = () => {
   const { user } = useAuth();
@@ -40,12 +41,12 @@ const AudioNotes = () => {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(0);
   const [uploadCount, setUploadCount] = useState(0);
+  const [showLastTranscriptModal, setShowLastTranscriptModal] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const intervalRef = useRef(null);
 
-  // Load last transcript and initialize rate limit from localStorage
   useEffect(() => {
     const storedTranscript = localStorage.getItem("lastTranscript");
     if (storedTranscript) {
@@ -65,11 +66,10 @@ const AudioNotes = () => {
     }
   }, []);
 
-  // Progress bar animation
   useEffect(() => {
     if (status === "transcribing") {
       const start = Date.now();
-      const duration = 20000; // 20 seconds
+      const duration = 20000;
       intervalRef.current = setInterval(() => {
         const elapsed = Date.now() - start;
         const newProgress = Math.min((elapsed / duration) * 100, 99);
@@ -138,9 +138,7 @@ const AudioNotes = () => {
   const handleProcessAudio = async (audioBlob) => {
     setStatus("transcribing");
     setError(null);
-
     incrementUploadCount();
-    
     try {
       const getUrlResponse = await fetch("/api/get-upload-url", {
         method: "POST",
@@ -151,28 +149,23 @@ const AudioNotes = () => {
         }),
       });
       const { signedUrl, publicUrl } = await getUrlResponse.json();
-
       const uploadResponse = await fetch(signedUrl, {
         method: "PUT",
         body: audioBlob,
         headers: { "Content-Type": audioBlob.type },
       });
-
       if (!uploadResponse.ok) {
         throw new Error(`Failed to upload audio to S3. Status: ${uploadResponse.status}`);
       }
-
       const transcriptResponse = await fetch("/api/audio-to-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ audio_url: publicUrl }),
       });
-
       if (!transcriptResponse.ok) {
         const errorData = await transcriptResponse.json().catch(() => ({}));
         throw new Error(errorData.details || `Transcription API call failed with status: ${transcriptResponse.status}`);
       }
-
       const data = await transcriptResponse.json();
       if (data.transcript) {
         setTranscript(data.transcript);
@@ -225,7 +218,8 @@ const AudioNotes = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-center text-lg font-bold text-zinc-400"
+              className="text-center text-lg font-bold"
+              style={{ color: colors.subText }}
             >
               Choose an option to transcribe your audio.
             </motion.p>
@@ -259,22 +253,24 @@ const AudioNotes = () => {
               </motion.label>
             </div>
             {lastTranscript && (
-              <motion.div
+              <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="w-full mt-8 p-6 border-4 border-zinc-700 bg-zinc-800 rounded-lg shadow-inner"
+                whileHover={{ scale: 1.02 }}
+                onClick={() => setShowLastTranscriptModal(true)}
+                className="w-full mt-8 p-6 border-4 border-zinc-700 bg-zinc-800 rounded-lg shadow-inner text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <FileText style={{ color: colors.primary }} />
-                  <h3 className="text-xl font-bold tracking-wide text-zinc-200">
+                  <h3 className="text-xl font-bold tracking-wide" style={{ color: colors.text }}>
                     Last Session Transcript
                   </h3>
                 </div>
-                <p className="text-zinc-400 text-sm italic font-light max-h-40 overflow-auto whitespace-pre-wrap">
+                <p className="text-sm italic font-light max-h-40 overflow-hidden text-ellipsis" style={{ color: colors.subText }}>
                   {lastTranscript.substring(0, 500)}...
                 </p>
-              </motion.div>
+              </motion.button>
             )}
           </div>
         );
@@ -295,10 +291,10 @@ const AudioNotes = () => {
             >
               <MicOff size={48} style={{ color: colors.recording }} />
             </motion.div>
-            <h2 className="text-2xl font-black tracking-wide text-zinc-200">
+            <h2 className="text-2xl font-black tracking-wide" style={{ color: colors.text }}>
               Recording in progress...
             </h2>
-            <p className="text-zinc-400">Click stop when you're done.</p>
+            <p style={{ color: colors.subText }}>Click stop when you're done.</p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -323,7 +319,7 @@ const AudioNotes = () => {
             >
               <RotateCw size={48} style={{ color: colors.primary }} />
             </motion.div>
-            <h2 className="text-2xl font-black tracking-wide text-zinc-200 text-center">
+            <h2 className="text-2xl font-black tracking-wide text-center" style={{ color: colors.text }}>
               Generating Transcript...
             </h2>
             <div className="w-full h-8 bg-zinc-800 border-4 border-zinc-700 rounded-full overflow-hidden">
@@ -336,7 +332,7 @@ const AudioNotes = () => {
                 transition={{ duration: 0.2 }}
               />
             </div>
-            <p className="text-sm font-bold text-zinc-400 mt-2">
+            <p className="text-sm font-bold mt-2" style={{ color: colors.subText }}>
               Please wait, this may take a moment.
             </p>
           </motion.div>
@@ -350,12 +346,12 @@ const AudioNotes = () => {
           >
             <div className="flex items-center gap-3 mb-4">
               <FileText size={32} style={{ color: colors.primary }} />
-              <h2 className="text-2xl sm:text-3xl font-black tracking-wide text-zinc-200">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-wide" style={{ color: colors.text }}>
                 Transcript Generated!
               </h2>
             </div>
             <div className="bg-zinc-800 p-6 border-4 border-zinc-700 rounded-lg shadow-inner max-h-[500px] overflow-auto">
-              <p className="text-zinc-200 whitespace-pre-wrap leading-relaxed">
+              <p className="whitespace-pre-wrap leading-relaxed" style={{ color: colors.subText }}>
                 {transcript}
               </p>
             </div>
@@ -363,8 +359,8 @@ const AudioNotes = () => {
               whileHover={{ scale: 1.05, boxShadow: `8px 8px 0px ${colors.secondary}` }}
               whileTap={{ scale: 0.95 }}
               onClick={handleDownload}
-              className="flex items-center justify-center gap-3 px-6 py-4 border-4 border-zinc-700 bg-zinc-800 text-zinc-200 font-black tracking-wide rounded-lg shadow-xl"
-              style={{ boxShadow: `4px 4px 0px ${colors.secondary}` }}
+              className="flex items-center justify-center gap-3 px-6 py-4 border-4 border-zinc-700 bg-zinc-800 font-black tracking-wide rounded-lg shadow-xl"
+              style={{ boxShadow: `4px 4px 0px ${colors.secondary}`, color: colors.text }}
             >
               <Download size={24} style={{ color: colors.secondary }} />
               Download Transcript (.txt)
@@ -376,8 +372,8 @@ const AudioNotes = () => {
                 setTranscript("");
                 setStatus("idle");
               }}
-              className="flex items-center justify-center gap-3 px-6 py-4 border-4 border-zinc-700 bg-zinc-800 text-zinc-200 font-black tracking-wide rounded-lg shadow-xl"
-              style={{ boxShadow: `4px 4px 0px ${colors.primary}` }}
+              className="flex items-center justify-center gap-3 px-6 py-4 border-4 border-zinc-700 bg-zinc-800 font-black tracking-wide rounded-lg shadow-xl"
+              style={{ boxShadow: `4px 4px 0px ${colors.primary}`, color: colors.text }}
             >
               <Sparkles size={24} style={{ color: colors.primary }} />
               Start New Session
@@ -390,22 +386,20 @@ const AudioNotes = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-900 text-gray-100 font-mono">
-      <header className="py-4 px-6 sm:px-8 border-b-4 border-zinc-700">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: colors.background, color: colors.text, fontFamily: 'monospace' }}>
+      <header className="py-4 px-6 sm:px-8 border-b-4" style={{ borderColor: colors.border }}>
         <nav className="flex items-center justify-between">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/dashboard")}
-            className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
+            className="flex items-center gap-2 font-bold"
+            style={{ color: colors.subText }}
           >
             <ArrowLeft size={20} />
             <span className="font-bold">Dashboard</span>
           </motion.button>
-          <div className="font-black text-2xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-            AUDIO TO TEXT
-          </div>
-          <div className="flex items-center gap-2 text-sm text-zinc-500">
+          <div className="flex items-center gap-2 text-sm" style={{ color: colors.subText }}>
             <Info size={16} />
             <p>
               {MAX_DAILY_UPLOADS - uploadCount} / {MAX_DAILY_UPLOADS} left today
@@ -418,14 +412,14 @@ const AudioNotes = () => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-4xl mx-auto p-8 border-4 border-zinc-700 bg-zinc-900 rounded-lg shadow-2xl"
+          className="w-full max-w-4xl mx-auto p-8 border-4 rounded-lg shadow-2xl"
+          style={{ borderColor: colors.border, backgroundColor: colors.cardBg }}
         >
           <div className="mb-8 text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black flex items-center gap-3 justify-center tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-              <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-primary drop-shadow-md" />
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black flex items-center gap-3 justify-center tracking-tight" style={{ color: colors.text }}>
               Tutorly Transcriber
             </h1>
-            <p className="mt-2 text-lg sm:text-xl font-bold text-zinc-400">
+            <p className="mt-2 text-lg sm:text-xl font-bold" style={{ color: colors.subText }}>
               Transform lectures & conversations into text.
             </p>
           </div>
@@ -453,9 +447,49 @@ const AudioNotes = () => {
           )}
         </motion.div>
       </main>
-      <footer className="w-full py-4 text-center text-zinc-500 text-sm font-light border-t-4 border-zinc-700">
+      <footer className="w-full py-4 text-center text-sm font-light border-t-4" style={{ color: colors.subText, borderColor: colors.border }}>
         © 2025 Tutorly. All rights reserved.
       </footer>
+
+      <AnimatePresence>
+        {showLastTranscriptModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+            onClick={() => setShowLastTranscriptModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-2xl p-6 border-4 rounded-lg shadow-2xl relative"
+              style={{ backgroundColor: colors.cardBg, borderColor: colors.border }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowLastTranscriptModal(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-700 transition-colors"
+                style={{ color: colors.subText }}
+              >
+                <X size={24} />
+              </button>
+              <div className="flex items-center gap-3 mb-4">
+                <FileText style={{ color: colors.primary }} />
+                <h3 className="text-xl font-bold" style={{ color: colors.text }}>Full Transcript</h3>
+              </div>
+              <div className="max-h-[70vh] overflow-y-auto">
+                <p className="whitespace-pre-wrap leading-relaxed" style={{ color: colors.subText }}>
+                  {lastTranscript}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
