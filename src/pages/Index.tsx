@@ -907,7 +907,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-     /* Enhanced Tutorly Call-to-Action Section */}
+      {/* Enhanced Tutorly Call-to-Action Section */}
 <section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-emerald-900 text-white overflow-hidden flex items-center">
   
   {/* Animated Background Elements */}
