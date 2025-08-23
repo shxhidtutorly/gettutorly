@@ -826,17 +826,82 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Text Gradient Scroll Section */}
-      <section className="bg-black py-32">
-  <div className="max-w-4xl mx-auto px-4">
-    <TextGradientScroll
-      text="Tutorly is your all-in-one AI-powered study assistant, built to make learning smarter and more efficient. Upload your notes, lectures, or readings, and instantly receive well-structured summaries that save you hours of review. With just one click, Tutorly transforms key concepts into interactive flashcards and personalized quizzes, helping you practice smarter and retain knowledge longer. Unlike traditional study tools, Tutorly adapts to your learning style, ensuring that every session is focused, productive, and stress-free. From simplifying complex topics to keeping you exam-ready, Tutorly is designed to give students the confidence and tools they need to succeed."
-      className="text-3xl md:text-4xl lg:text-5xl font-black text-center leading-relaxed"
-      type="word"
-      textOpacity="soft"
-    />
+     {/* Scroll Image Section */}
+<section className="bg-black py-32 relative">
+  <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+    
+    {/* Left Text */}
+    <div className="text-white space-y-6 scroll-fade-in">
+      <h2 className="text-4xl md:text-5xl font-extrabold">
+        Understand complex topics in a flash
+      </h2>
+      <p className="text-lg md:text-xl text-gray-300 font-medium leading-relaxed">
+        Get straight to the point quickly with AI-generated notes and summaries. 
+        Simply upload your lecture, notes, or documents and instantly get 
+        structured smart notes and concise explanations.
+      </p>
+    </div>
+
+    {/* Right Image */}
+    <div className="relative scroll-slide-right">
+      <img
+        src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/landing%20page%20images%20/browser.png"
+        alt="Tutorly Screenshot"
+        className="rounded-xl border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] w-full"
+      />
+    </div>
+  </div>
+
+  {/* Second Block */}
+  <div className="max-w-6xl mx-auto px-6 mt-32 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+    
+    {/* Left Image */}
+    <div className="relative scroll-slide-left order-2 md:order-1">
+      <img
+        src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/landing%20page%20images%20/doubtchain.png"
+        alt="Doubt Chain Feature"
+        className="rounded-xl border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] w-full"
+      />
+    </div>
+
+    {/* Right Text */}
+    <div className="text-white space-y-6 scroll-fade-in order-1 md:order-2">
+      <h2 className="text-4xl md:text-5xl font-extrabold">
+        Break down doubts step by step
+      </h2>
+      <p className="text-lg md:text-xl text-gray-300 font-medium leading-relaxed">
+        With Tutorly’s <span className="font-bold">Doubt Chain</span>, 
+        complex concepts are broken into simple, connected steps. 
+        Learn progressively and never get stuck.
+      </p>
+    </div>
+  </div>
+
+  {/* Third Block */}
+  <div className="max-w-6xl mx-auto px-6 mt-32 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+    
+    {/* Left Text */}
+    <div className="text-white space-y-6 scroll-fade-in">
+      <h2 className="text-4xl md:text-5xl font-extrabold">
+        Organized learning on any device
+      </h2>
+      <p className="text-lg md:text-xl text-gray-300 font-medium leading-relaxed">
+        Access your study tools on desktop or mobile seamlessly. 
+        Stay organized and focused with Tutorly’s intuitive dashboard.
+      </p>
+    </div>
+
+    {/* Right Image */}
+    <div className="relative scroll-slide-right">
+      <img
+        src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/landing%20page%20images%20/shotsnapp-1755943575%20(1).688"
+        alt="Tutorly Dashboard"
+        className="rounded-xl border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] w-full"
+      />
+    </div>
   </div>
 </section>
+
 
       {/* Animated Card with AI Models */}
       <section className="bg-white py-20">
