@@ -923,48 +923,53 @@ export default function LandingPage() {
         </div>
       </section>
 
-    {/* Call-to-Action Section */}
-<section className="relative bg-purple-900 text-white py-24 overflow-hidden">
-  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+ {/* Tutorly Call-to-Action Section */}
+<section className="relative bg-gradient-to-r from-black via-purple-950 to-black text-white py-28 overflow-hidden">
+  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
     
-    {/* Left Image */}
-    <div className="flex justify-center md:justify-start scroll-slide-left">
-      <div className="relative w-72 h-72 md:w-96 md:h-96 rounded-full overflow-hidden border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
-        <img
-          src="https://via.placeholder.com/400x400.png" // replace with your Supabase image later
-          alt="Student learning"
-          className="w-full h-full object-cover"
-        />
-      </div>
-    </div>
-
-    {/* Right Text Content */}
+    {/* Text Content */}
     <div className="space-y-6 text-center md:text-left scroll-fade-in">
-      <p className="text-purple-300 font-semibold uppercase tracking-wide">
-        Stop procrastinating and act today
-      </p>
-      <h2 className="text-4xl md:text-5xl font-extrabold leading-tight">
-        You’ll be shocked at how <span className="text-purple-400">quickly you can learn</span>
+      <h2 className="text-5xl md:text-6xl font-extrabold leading-tight">
+        Take control of your <span className="text-purple-400">study journey</span>
       </h2>
-      <p className="text-lg text-gray-200 max-w-lg">
-        Ready to unlock the future of efficient learning? Get started with a free trial and 
-        experience how Tutorly helps you study smarter, not harder. 
-        Unlock AI-powered notes, flashcards, and quizzes instantly.
+      <p className="text-lg text-gray-300 max-w-xl">
+        Don’t let exams sneak up on you — prepare smarter with Tutorly.  
+        Our AI tools simplify your notes, create quizzes instantly, and 
+        keep you focused so you can reach your goals with confidence.  
+      </p>
+      <p className="text-md text-gray-400 italic">
+        No clutter. No wasted hours. Just learning that sticks.
       </p>
 
-      <div className="mt-8">
+      <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
         <a href="/signup">
-          <button className="px-10 py-4 bg-purple-500 hover:bg-purple-600 text-white font-black rounded-full border-4 border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-all">
-            Try for FREE
+          <button className="px-10 py-4 bg-purple-500 hover:bg-purple-600 text-white font-black rounded-lg border-4 border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-all">
+            Start Free Trial
+          </button>
+        </a>
+        <a href="/features">
+          <button className="px-10 py-4 bg-transparent hover:bg-white hover:text-black font-black rounded-lg border-4 border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-all">
+            Explore Features
           </button>
         </a>
       </div>
     </div>
+
+    {/* Right Image */}
+    <div className="relative flex justify-center md:justify-end scroll-slide-right">
+      <div className="relative w-80 h-80 md:w-[28rem] md:h-[28rem] rounded-2xl overflow-hidden border-4 border-white shadow-[10px_10px_0px_0px_rgba(255,255,255,1)]">
+        <img
+          src="https://via.placeholder.com/600x600.png" // replace with your own Supabase image
+          alt="Tutorly student success"
+          className="w-full h-full object-cover"
+        />
+      </div>
+    </div>
   </div>
 
-  {/* Decorative Circles */}
-  <div className="absolute top-10 left-10 w-40 h-40 border-2 border-purple-400 rounded-full opacity-30 animate-pulse"></div>
-  <div className="absolute bottom-10 right-10 w-32 h-32 border-2 border-purple-400 rounded-full opacity-30 animate-pulse"></div>
+  {/* Decorative Gradient Blobs */}
+  <div className="absolute -top-10 -left-10 w-72 h-72 bg-purple-700 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+  <div className="absolute -bottom-20 -right-10 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
 </section>
 
       
@@ -1007,7 +1012,7 @@ export default function LandingPage() {
             }`}
           >
             <div className="px-6 pb-6 border-t-2 border-black">
-              <p className="font-medium text-black pt-4">{faq.answer}</p>
+              <p className="font-medium text-white pt-4">{faq.answer}</p>
             </div>
           </div>
         </div>
