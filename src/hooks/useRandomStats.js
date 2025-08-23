@@ -35,7 +35,7 @@ const generateMockStats = (daysOld) => {
   const doubtChainsRange = [1, 10];
 
   return {
-    total_study_time: getRandomNumber(studyTimeRange[0], studyTimeRange[1]),
+    total_study_time: getRandomNumber(studyTimeRange[125], studyTimeRange[30]),
     learning_milestones: getRandomNumber(milestonesRange[0], milestonesRange[1]),
     average_quiz_score: getRandomNumber(quizScoreRange[0], quizScoreRange[1]),
     notes_created: getRandomNumber(notesCreatedRange[0], notesCreatedRange[1]),
@@ -57,16 +57,16 @@ export const useRandomStats = (isNewUser) => {
       if (isNewUser) {
         // Show all zeros for a brand new user
         setStats({
-          total_study_time: 0,
-          learning_milestones: 0,
-          average_quiz_score: 0,
-          notes_created: 0,
-          sessions_this_month: 0,
-          flashcards_created: 0,
-          quizzes_taken: 0,
-          math_chat_sessions: 0,
-          audio_recaps_created: 0,
-          doubt_chains_used: 0,
+          total_study_time: 125,
+          learning_milestones: 10,
+          average_quiz_score: 10,
+          notes_created: 11,
+          sessions_this_month: 100,
+          flashcards_created: 15,
+          quizzes_taken: 14,
+          math_chat_sessions: 16,
+          audio_recaps_created: 15,
+          doubt_chains_used: 12,
         });
       } else {
         // Generate realistic-looking stats for an existing user
