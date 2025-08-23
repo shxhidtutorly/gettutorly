@@ -908,158 +908,153 @@ export default function LandingPage() {
       </section>
 
      {/* Enhanced Tutorly Call-to-Action Section */}
-<section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-emerald-900 text-white overflow-hidden flex items-center">
+<section className="relative bg-gradient-to-br from-gray-900 via-purple-900 to-black text-white py-24 overflow-hidden">
   
-  {/* Animated Background Elements */}
+  {/* Subtle Background Elements */}
   <div className="absolute inset-0">
-    <div className="absolute top-20 left-10 w-32 h-32 bg-emerald-400 rounded-full opacity-20 animate-pulse"></div>
-    <div className="absolute top-60 right-20 w-24 h-24 bg-green-300 rounded-full opacity-30 animate-bounce"></div>
-    <div className="absolute bottom-40 left-1/4 w-40 h-40 bg-teal-400 rounded-full opacity-15 animate-pulse"></div>
-    <div className="absolute top-1/2 right-1/3 w-16 h-16 bg-emerald-300 opacity-25 animate-spin" style={{clipPath: 'polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%)'}}></div>
+    <div className="absolute top-20 left-20 w-1 h-32 bg-purple-400/30 rotate-45"></div>
+    <div className="absolute top-40 right-32 w-1 h-24 bg-purple-300/20 rotate-12"></div>
+    <div className="absolute bottom-32 left-1/3 w-1 h-20 bg-purple-500/25 -rotate-45"></div>
+    <div className="absolute top-1/2 right-20 w-2 h-2 bg-purple-400 rounded-full opacity-60"></div>
+    <div className="absolute bottom-40 right-1/4 w-1 h-1 bg-purple-300 rounded-full opacity-40"></div>
   </div>
   
-  {/* Glowing Grid Pattern */}
-  <div className="absolute inset-0 opacity-10" style={{
-    backgroundImage: 'radial-gradient(circle, #10b981 1px, transparent 1px)',
-    backgroundSize: '50px 50px'
+  {/* Minimal Grid Overlay */}
+  <div className="absolute inset-0 opacity-[0.02]" style={{
+    backgroundImage: 'linear-gradient(rgba(168,85,247,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.1) 1px, transparent 1px)',
+    backgroundSize: '60px 60px'
   }}></div>
 
-  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
+  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
     
     {/* Left Content */}
     <motion.div 
       className="space-y-8"
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
+      transition={{ duration: 0.6 }}
       viewport={{ once: true }}
     >
-      {/* Floating Tag */}
+      {/* Status Badge */}
       <motion.div 
-        className="inline-flex items-center px-6 py-2 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-emerald-300 text-sm font-black backdrop-blur-sm"
-        animate={{ y: [0, -5, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
+        className="inline-flex items-center px-4 py-2 bg-purple-500/20 border border-purple-400/40 rounded-full text-purple-300 text-sm font-bold backdrop-blur-sm"
+        initial={{ opacity: 0, scale: 0.9 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2 }}
       >
-        <span className="w-2 h-2 bg-emerald-400 rounded-full mr-3 animate-pulse"></span>
-        Transform your learning experience
+        <div className="w-2 h-2 bg-purple-400 rounded-full mr-3 animate-pulse"></div>
+        AI-Powered Learning Platform
       </motion.div>
       
       {/* Main Headlines */}
       <div className="space-y-6">
-        <h2 className="text-6xl lg:text-7xl font-black leading-tight">
+        <h2 className="text-5xl lg:text-6xl font-black leading-tight">
           Master any
-          <span className="text-emerald-400 animate-pulse"> subject</span>
+          <span className="text-purple-400"> subject</span>
           <br/>with confidence
         </h2>
-        <p className="text-xl text-gray-300 leading-relaxed max-w-2xl">
-          Experience revolutionary AI-powered learning that adapts to your pace. 
-          Build lasting knowledge through interactive sessions designed for your success.
+        <p className="text-lg text-gray-300 leading-relaxed max-w-xl">
+          Transform your learning experience with AI that understands how you study best. 
+          Get personalized insights, instant explanations, and progress tracking that actually works.
         </p>
       </div>
       
-      {/* Feature Highlights */}
-      <div className="flex flex-wrap gap-4 py-4">
+      {/* Clean Feature List */}
+      <div className="space-y-3">
         {[
-          { label: "Instant Understanding", color: "bg-emerald-400" },
-          { label: "Smart Progress Tracking", color: "bg-green-400" },
-          { label: "Personalized Learning", color: "bg-teal-400" }
+          "Smart note generation from any content",
+          "Instant doubt resolution with AI",  
+          "Personalized learning paths"
         ].map((feature, index) => (
           <motion.div 
             key={index}
-            className="flex items-center space-x-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20"
-            whileHover={{ scale: 1.05 }}
+            className="flex items-center space-x-3"
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.2 }}
+            transition={{ delay: 0.3 + (index * 0.1) }}
           >
-            <div className={`w-2 h-2 ${feature.color} rounded-full animate-pulse`}></div>
-            <span className="text-sm font-bold">{feature.label}</span>
+            <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
+            <span className="text-gray-300 font-medium">{feature}</span>
           </motion.div>
         ))}
       </div>
       
-      {/* CTA Buttons */}
-      <div className="flex flex-col sm:flex-row gap-6 pt-6">
+      {/* Single CTA Button */}
+      <motion.div 
+        className="pt-6"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
         <motion.a 
           href="/signup"
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          <button className="group relative px-8 py-4 bg-emerald-500 hover:bg-emerald-400 rounded-2xl font-black text-lg transition-all duration-300 border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 overflow-hidden">
-            <span className="relative z-10">Start Learning Now</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <button className="px-10 py-4 bg-purple-500 hover:bg-purple-600 text-white font-black rounded-xl border-4 border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all duration-200">
+            Start Learning Free
           </button>
         </motion.a>
-      </div>
+      </motion.div>
     </motion.div>
     
     {/* Right Visual Element */}
     <motion.div 
       className="relative flex justify-center lg:justify-end"
-      initial={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       whileInView={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6, delay: 0.3 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
       viewport={{ once: true }}
     >
       
       {/* Main Image Container */}
-      <div className="relative w-96 h-96 lg:w-[32rem] lg:h-[32rem]">
-        {/* Rotating Border */}
-        <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 opacity-80 animate-spin" style={{ animationDuration: '20s' }}></div>
+      <div className="relative w-80 h-80 lg:w-96 lg:h-96">
         
-        {/* Image Container */}
-        <div className="relative w-full h-full m-2 rounded-3xl overflow-hidden bg-gray-800 border-4 border-white/20 backdrop-blur-sm">
+        {/* Clean Image Frame */}
+        <div className="relative w-full h-full rounded-2xl overflow-hidden border-4 border-white shadow-[10px_10px_0px_0px_rgba(255,255,255,1)]">
           <img
             src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/1749549623896.jpg"
             alt="Student achieving success with Tutorly"
             className="w-full h-full object-cover"
           />
-          {/* Overlay Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 to-transparent"></div>
+          {/* Subtle overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent"></div>
         </div>
         
-        {/* Floating Stats Cards */}
+        {/* Clean Stats Cards */}
         <motion.div 
-          className="absolute -top-6 -right-6 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-2xl border-4 border-black"
-          initial={{ opacity: 0, scale: 0 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          className="absolute -top-4 -right-4 bg-white p-4 rounded-xl shadow-lg border-4 border-black"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          animate={{ y: [0, -10, 0] }}
-          style={{ animationDuration: '3s', animationIterationCount: 'infinite' }}
         >
           <div className="text-center">
-            <div className="text-2xl font-black text-emerald-600">98%</div>
-            <div className="text-sm text-gray-600 font-bold">Success Rate</div>
+            <div className="text-2xl font-black text-purple-600">98%</div>
+            <div className="text-xs text-gray-600 font-bold">SUCCESS RATE</div>
           </div>
         </motion.div>
         
         <motion.div 
-          className="absolute -bottom-8 -left-6 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-2xl border-4 border-black"
-          initial={{ opacity: 0, scale: 0 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.2 }}
-          animate={{ y: [0, 10, 0] }}
-          style={{ animationDuration: '4s', animationIterationCount: 'infinite' }}
+          className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg border-4 border-black"
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1 }}
         >
           <div className="text-center">
-            <div className="text-2xl font-black text-green-600">50K+</div>
-            <div className="text-sm text-gray-600 font-bold">Students</div>
+            <div className="text-2xl font-black text-purple-600">50K+</div>
+            <div className="text-xs text-gray-600 font-bold">STUDENTS</div>
           </div>
         </motion.div>
         
-        {/* Glowing Orbs */}
-        <div className="absolute -top-4 left-1/2 w-8 h-8 bg-emerald-400 rounded-full opacity-60 animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div>
-        <div className="absolute top-1/2 -right-4 w-6 h-6 bg-green-400 rounded-full opacity-80 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.5)]" style={{ animationDelay: '1s' }}></div>
+        {/* Minimal accent elements */}
+        <div className="absolute -top-2 left-1/2 w-4 h-4 bg-purple-500 rounded-full opacity-80"></div>
+        <div className="absolute top-1/2 -right-2 w-3 h-3 bg-purple-400 rounded-full opacity-60"></div>
       </div>
     </motion.div>
   </div>
   
-  {/* Bottom Decorative Wave */}
-  <div className="absolute bottom-0 left-0 right-0">
-    <svg viewBox="0 0 1200 120" className="w-full h-20 fill-current text-emerald-500/20">
-      <path d="M0,120 C300,80 600,40 1200,60 L1200,120 Z"></path>
-    </svg>
-  </div>
+  {/* Clean bottom accent */}
+  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"></div>
 </section>
       
 {/* FAQ Section */}
