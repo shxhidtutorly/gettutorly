@@ -145,7 +145,7 @@ const otherFeatures = [
   <div className="max-w-4xl mx-auto px-4">
     <div className="text-center mb-16 scroll-fade-in">
       {/* Heading should stay white only if bg is dark */}
-      <h2 className="text-4xl md:text-6xl font-bold mb-6 text-black">
+      <h2 className="text-4xl md:text-6xl font-bold mb-6 text-white">
         Tests & Quiz FAQs
       </h2>
       <div className="w-32 h-2 bg-red-500 mx-auto"></div>
@@ -173,7 +173,7 @@ const otherFeatures = [
           </button>
           <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
             <div className="px-6 pb-6">
-              <p className="font-medium text-gray-700">{faq.answer}</p>
+              <p className="font-medium text-black">{faq.answer}</p>
             </div>
           </div>
         </div>
