@@ -894,7 +894,7 @@ export default function LandingPage() {
     {/* Right Image */}
     <div className="relative scroll-slide-right">
       <img
-        src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/landing%20page%20images%20/browser.png"
+        src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/landing%20page%20images%20/mobile%20desktop.png"
         alt="Tutorly Dashboard"
         className="rounded-xl border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] w-full"
       />
