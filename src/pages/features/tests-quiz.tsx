@@ -183,33 +183,31 @@ const otherFeatures = [
 </section>
 
 
-      {/* Other Features */}
-      <section className="bg-white py-20">
+     {/* Other Features */}
+      <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">Explore Other Features</h2>
-            <div className="w-32 h-2 bg-red-500 mx-auto"></div>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">Explore Other Features</h2>
+            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {otherFeatures.map((feature, index) => (
               <Link key={index} href={feature.href}>
                 <div
-                  className="bg-gray-50 p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer scroll-scale-in"
+                  className="bg-white p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer scroll-scale-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <h3 className="text-xl font-white mb-2">{feature.name}</h3>
-                  <p className="font-bold text-gray-700 mb-4">{feature.desc}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-purple-600">EXPLORE {feature.name.toUpperCase()}</span>
-                    <ArrowRight className="w-4 h-4 text-purple-600" />
-                  </div>
+                  <h3 className="text-xl font-black mb-2">{feature.name}</h3>
+                  <p className="font-bold text-black-700">{feature.desc}</p>
+                  <ArrowRight className="w-5 h-5 mt-4 text-purple-500" />
                 </div>
               </Link>
             ))}
           </div>
         </div>
       </section>
+
 
       <Footer />
     </div>
