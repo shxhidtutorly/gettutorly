@@ -140,40 +140,47 @@ const otherFeatures = [
         </div>
       </section>
 
-      {/* Feature FAQ */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-blue mb-6 text-black">Summarize FAQs</h2>
-            <div className="w-32 h-2 bg-yellow-500 mx-auto"></div>
-          </div>
+    {/* Feature FAQ */}
+<section className="bg-gray-50 py-20">
+  <div className="max-w-4xl mx-auto px-4">
+    <div className="text-center mb-16 scroll-fade-in">
+      <h2 className="text-4xl md:text-6xl font-black mb-6 text-white">
+        Summarize FAQs
+      </h2>
+      <div className="w-32 h-2 bg-yellow-500 mx-auto"></div>
+    </div>
 
-          <div className="space-y-0">
-            {summarizeFaqs.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-white brutal-border scroll-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <button
-                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-black-100 transition-colors text-black"
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                >
-                  {faq.question}
-                  <div className={`faq-icon ${openFaq === index ? "open" : ""}`}>
-                    {openFaq === index ? <Minus className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                  </div>
-                </button>
-                <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
-                  <div className="px-6 pb-6">
-                    <p className="font-bold text-black-700">{faq.answer}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+    <div className="space-y-0">
+      {summarizeFaqs.map((faq, index) => (
+        <div
+          key={index}
+          className="bg-white brutal-border scroll-fade-in"
+          style={{ animationDelay: `${index * 0.1}s` }}
+        >
+          <button
+            className="w-full p-6 text-left flex items-center justify-between font-bold text-lg hover:bg-gray-100 transition-colors text-black"
+            onClick={() => setOpenFaq(openFaq === index ? null : index)}
+          >
+            <span className="text-black">{faq.question}</span>
+            <div className={`faq-icon ${openFaq === index ? "open" : ""}`}>
+              {openFaq === index ? (
+                <Minus className="w-6 h-6 text-black" />
+              ) : (
+                <Plus className="w-6 h-6 text-black" />
+              )}
+            </div>
+          </button>
+          <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
+            <div className="px-6 pb-6">
+              <p className="font-medium text-gray-700">{faq.answer}</p>
+            </div>
           </div>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
+
 
       {/* Other Features */}
       <section className="bg-white py-20">
