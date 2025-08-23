@@ -99,11 +99,12 @@ export default function App() {
       <Navbar />
       
       {/* Hero Section with Gradient Background */}
-      <section className="bg-gradient-to-br from-indigo-400 via-purple-400 to-fuchsia-400 text-black border-b-4 border-black">
-        <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32">
-          <h1 className="text-6xl md:text-8xl font-black mb-4 uppercase text-white" style={{ textShadow: '4px 4px 0 #000' }}>All Features</h1>
-          <div className="w-40 h-2 bg-black mx-auto mb-8"></div>
-          <p className="text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/30 backdrop-blur-sm p-4 border-2 border-black">
+      <section className="bg-teal-300 text-black border-b-4 border-black relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8 animate-slide-in" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #8b5cf6' }}>
+         All Features
+          </h1>
+          <p style={{ animationDelay: '0.2s' }} className="animate-slide-in text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/50 backdrop-blur-sm p-4 border-4 border-black">
             Discover every tool you need to transform your learning experience with AI-powered assistance.
           </p>
         </div>
