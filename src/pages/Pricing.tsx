@@ -111,12 +111,6 @@ const universities = [
   { name: "Harvard University", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/Harvard-University-Logo.png" },
 ];
 
-const FloatingShape = ({ className, animationDelay }: { className: string, animationDelay: string }) => (
-  <div
-    className={`absolute rounded-full mix-blend-multiply filter blur-xl opacity-70 ${className}`}
-    style={{ animation: `float 6s ease-in-out infinite`, animationDelay }}
-  />
-);
 
 export default function Pricing(): JSX.Element {
   const { user, loading: authLoading } = useUser();
