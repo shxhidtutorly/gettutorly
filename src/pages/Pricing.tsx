@@ -18,54 +18,80 @@ const CLIENT_TOKEN = "live_6a94977317431ccad01df272b4a";
 // Your LIVE Paddle price IDs. You must get these from your live Paddle account.
 // The IDs will look similar to "pri_01k...".
 const PRICES = {
-  PRO: { monthly: "pri_01jxq0pfrjcd0gkj08cmqv6rb1", annually: "pri_01jxq11xb6dpkzgqr27fxkejc3" },
-  PREMIUM: { monthly: "pri_01jxq0wydxwg59kmha33h213ab", annually: "pri_01k22jjqh6dtn42e25bw0znrgy" },
-  MAX: { monthly: "pri_01k22kw22dfrejy55t8xdhrzwd", annually: "pri_01k22ty36jptak5rjj74axhvxg" },
+  WEEKLY: "pri_01jxq0pfrjcd0gkj08cmqv6rb1",
+  MONTHLY: "pri_01jxq0wydxwg59kmha33h213ab",
+  ANNUALLY: "pri_01k22ty36jptak5rjj74axhvxg",
 };
 
-const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
-const brutalistTransition = "transition-all duration-300 ease-in-out";
-const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
+// All features are now unified and unlimited for all plans
+const allFeatures = [
+  "Unlimited Math Solver",
+  "Unlimited AI Notes",
+  "Unlimited AI Flashcards",
+  "Unlimited AI Quiz",
+  "Unlimited Doubt Chain",
+  "Unlimited AI Summary",
+  "Unlimited Audio Recap",
+  "Unlimited AI Content Processor",
+  "Unlimited Humanizer Text",
+  "Priority Support",
+  "Advanced Analytics",
+  "Export Options",
+  "And much more..."
+];
 
+// New pricing plan structure
 const pricingPlans = [
   {
-    name: "PRO",
-    desc: "Essential tools to get started",
-    priceMonthly: "$5.99",
-    priceAnnually: "$36",
-    planKey: "PRO", // Match the key from the PRICES object
-    features: ["Basic AI Chat", "100+ Notes/Month", "Unlimited Flashcards", "All basic features"],
-    notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features", "Team Management", "Bulk Import"],
-    color: "bg-sky-400",
-    buttonClass: "bg-black text-white hover:bg-gray-800",
-    cta: "GET STARTED",
+    name: "Tutorly Pro",
+    planKey: "PRO",
+    cycle: "Weekly",
+    priceId: PRICES.WEEKLY,
+    price: "$8.99",
+    scratchedPrice: null,
+    billingInfo: "Per week",
+    desc: "Perfect for a short-term boost.",
+    color: "bg-cyan-400",
+    shadowColor: "shadow-cyan-500/50",
+    features: allFeatures,
   },
   {
-    name: "PREMIUM",
-    desc: "Full features + unlimited usage",
-    priceMonthly: "$9.99",
-    priceAnnually: "$65",
-    planKey: "PREMIUM", // Match the key from the PRICES object
-    features: ["Unlimited Everything", "Priority Support", "Advanced Analytics", "Export Options", "Audio Recap", "Math Solver"],
-    notIncluded: ["Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
+    name: "Tutorly Premium",
+    planKey: "PREMIUM",
+    cycle: "Monthly",
+    priceId: PRICES.MONTHLY,
+    price: "$14.99",
+    scratchedPrice: "$35.96", // Based on 4x weekly price
+    billingInfo: "Per month",
+    desc: "The ideal balance of flexibility and value.",
     popular: true,
-    color: "bg-fuchsia-400",
-    buttonClass: "bg-black text-white hover:bg-gray-800",
-    cta: "GO PREMIUM",
+    color: "bg-purple-500",
+    shadowColor: "shadow-purple-500/50",
+    features: allFeatures,
   },
   {
-    name: "MAX",
-    desc: "For groups & institutions",
-    priceMonthly: "$14.99",
-    priceAnnually: "$119",
-    planKey: "MAX", // Match the key from the PRICES object
-    features: ["Everything in Premium", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
-    notIncluded: [],
-    color: "bg-amber-400",
-    buttonClass: "bg-black text-white hover:bg-gray-800",
-    cta: "CONTACT US",
+    name: "Tutorly Max",
+    planKey: "MAX",
+    cycle: "Annually",
+    priceId: PRICES.ANNUALLY,
+    price: "$9.92", // $119 / 12 months
+    scratchedPrice: "$14.99", // The standard monthly price
+    billingInfo: "Per month, billed at $119.00 per year",
+    desc: "Best value for long-term success.",
+    discount: "SAVE 34%",
+    color: "bg-rose-500",
+    shadowColor: "shadow-rose-500/50",
+    features: allFeatures,
   },
 ];
+
+
+const FloatingShape = ({ className, animationDelay }: { className: string, animationDelay: string }) => (
+  <div
+    className={`absolute rounded-full mix-blend-multiply filter blur-2xl opacity-50 ${className}`}
+    style={{ animation: `float 8s ease-in-out infinite`, animationDelay }}
+  />
+);
 
 const testimonials = [
   { name: "Alice Chen", role: "CS @ MIT", quote: "Feels like a real tutor 24/7. The AI Notes feature is a lifesaver for my lectures.", avatarUrl: "https://placehold.co/100x100/7c3aed/ffffff?text=AC&font=mono" },
@@ -249,100 +275,114 @@ const handlePurchase = (planKey: "PRO" | "PREMIUM" | "MAX") => {
 
 
   return (
-    <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans selection:bg-purple-200">
       <style>{`
         @keyframes float {
           0% { transform: translate(0, 0); }
-          50% { transform: translate(30px, -40px); }
+          50% { transform: translate(20px, -30px); }
           100% { transform: translate(0, 0); }
+        }
+        @keyframes subtle-shine {
+          0%, 100% { background-position: 200% 50%; }
+          50% { background-position: -100% 50%; }
+        }
+        .shine-effect {
+          background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.2), transparent 80%);
+          background-size: 200% 100%;
+          animation: subtle-shine 7s linear infinite;
         }
       `}</style>
 
-      {/* Hero Section */}
-      <section className="bg-sky-200 text-black border-b-4 border-black relative overflow-hidden">
-        <FloatingShape className="w-72 h-72 bg-fuchsia-300 top-40 -left-20" animationDelay="0s" />
-        <FloatingShape className="w-72 h-72 bg-amber-300 bottom-40 -right-20" animationDelay="2s" />
-        <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8"
-              style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #4f46e5' }}>
-            CHOOSE YOUR PLAN
+     {/* Hero Section */}
+      <section className="relative overflow-hidden bg-white border-b-2 border-gray-200">
+        <FloatingShape className="w-96 h-96 bg-purple-200 top-20 -left-40" animationDelay="0s" />
+        <FloatingShape className="w-96 h-96 bg-cyan-200 bottom-0 -right-40" animationDelay="2s" />
+        <div className="max-w-6xl mx-auto px-6 text-center py-28 md:py-36 relative z-10">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-6">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-rose-500">
+              Unlock Your Potential
+            </span>
           </h1>
-          <p className="text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/50 backdrop-blur-sm p-4 border-4 border-black">
-            Start learning smarter today with our flexible pricing options designed for every student's needs.
+          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+            Choose the perfect plan to revolutionize your study habits. All plans start with a 4-day free trial. Cancel anytime.
           </p>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-stone-50 py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase">Made Simple. Just Like It Should Be.</h2>
-            <div className="w-32 h-2 bg-black mx-auto"></div>
-          </div>
-          <div className="flex justify-center items-center my-12">
-            <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-stone-400'}`}>Monthly</span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={billingCycle === 'annually'}
-                onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')}
-              />
-              <div className={`w-20 h-10 bg-stone-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-[4px] after:bg-black after:border after:border-black after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-fuchsia-400`}></div>
-            </label>
-            <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-stone-400'}`}>Annually</span>
-            <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
-          </div>
+      <section className="py-20 sm:py-28">
+        <div className="max-w-7xl mx-auto px-6">
           {errorMessage && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-800 font-bold text-center">
+            <div className="mb-8 p-4 bg-red-100 border border-red-400 text-red-800 font-medium text-center rounded-lg">
               <strong>Error:</strong> {errorMessage}
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
             {pricingPlans.map(plan => (
-              <div key={plan.name} className={`relative h-full flex flex-col p-8 text-black bg-white ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+              <div
+                key={plan.name}
+                className={`relative h-full flex flex-col rounded-2xl border border-gray-200 bg-white shadow-lg ${plan.shadowColor} transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl ${plan.popular ? 'border-purple-500 border-2' : ''}`}
+              >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                    <Badge className="bg-black text-white font-black px-6 py-2 border-2 border-black text-sm">
+                    <div className="flex items-center gap-2 bg-purple-500 text-white font-semibold px-4 py-1.5 rounded-full text-sm">
+                      <Star className="w-4 h-4" />
                       MOST POPULAR
-                    </Badge>
+                    </div>
                   </div>
                 )}
-                <div className={`w-full h-4 ${plan.color} absolute top-0 left-0 border-b-4 border-black`}></div>
-                <div className="text-center mb-6 pt-8">
-                  <h3 className="text-3xl font-black mb-2 uppercase">{plan.name}</h3>
-                  <p className="font-bold mb-4 text-base text-stone-600">{plan.desc}</p>
-                  <div className="text-6xl font-black">{priceTexts[plan.planKey as keyof typeof priceTexts]}</div>
-                  <div className="text-base font-bold text-stone-600">/{billingCycle === 'monthly' ? 'month' : 'year'}</div>
-                </div>
-                <div className="space-y-3 mb-8 flex-grow">
-                  {plan.features.map(feature => (
-                    <div key={feature} className="flex items-center">
-                      <Check className="w-6 h-6 mr-3 flex-shrink-0 text-green-500" />
-                      <span className="font-bold text-md">{feature}</span>
+                 {plan.discount && (
+                  <div className="absolute top-5 -right-4 z-10 transform -rotate-45">
+                    <div className="bg-rose-500 text-white font-bold text-xs py-1 px-8">
+                      {plan.discount}
                     </div>
-                  ))}
-                  {plan.notIncluded.map(feature => (
-                    <div key={feature} className="flex items-center opacity-60">
-                      <X className="w-6 h-6 mr-3 flex-shrink-0 text-red-500" />
-                      <span className="font-bold line-through text-md">{feature}</span>
+                  </div>
+                )}
+
+                <div className="p-8 flex flex-col h-full">
+                  <div className="text-center mb-8">
+                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                    <p className="text-gray-500 mb-6">{plan.desc}</p>
+                    
+                    <p className="font-semibold text-gray-600 text-sm">Free Trial (4 days)</p>
+                    <div className="flex items-baseline justify-center gap-2 mt-2">
+                        {plan.scratchedPrice && (
+                            <span className="text-2xl text-gray-400 line-through">{plan.scratchedPrice}</span>
+                        )}
+                        <span className="text-5xl font-extrabold tracking-tight">{plan.price}</span>
                     </div>
-                  ))}
+                    <p className="text-sm text-gray-500 mt-2">{plan.billingInfo}</p>
+                  </div>
+                  
+                  <div className="my-6 h-px bg-gray-200"></div>
+
+                  <div className="space-y-4 mb-8 flex-grow">
+                    <p className="font-semibold text-gray-800">Unlimited Everything:</p>
+                    {plan.features.map(feature => (
+                      <div key={feature} className="flex items-center">
+                        <Check className="w-5 h-5 mr-3 flex-shrink-0 text-purple-500" />
+                        <span className="text-md text-gray-600">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => handlePurchase(plan)}
+                    disabled={!paddleReady}
+                    className={`mt-auto w-full font-semibold py-3 text-lg rounded-lg transition-all duration-300 ease-in-out text-white disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden ${plan.popular ? 'bg-gradient-to-r from-purple-600 to-rose-500' : 'bg-gray-800 hover:bg-gray-900'}`}
+                  >
+                    <span className="absolute w-full h-full left-0 top-0 shine-effect opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
+                    <span className="relative z-10 flex items-center justify-center">
+                        Try Now for $0 <Zap className="w-4 h-4 ml-2"/>
+                    </span>
+                  </button>
                 </div>
-                <Button
-                  onClick={() => handlePurchase(plan.planKey as "PRO" | "PREMIUM" | "MAX")}
-                  disabled={!paddleReady}
-                  className={`mt-auto w-full font-black py-4 text-lg border-4 border-black ${plan.buttonClass} ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}
-                >
-                  {plan.cta}
-                </Button>
               </div>
             ))}
           </div>
         </div>
       </section>
-
+      
       {/* Testimonials Section */}
       <section className="bg-stone-100 py-20 border-y-4 border-black">
         <div className="max-w-7xl mx-auto px-4">
