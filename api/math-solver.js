@@ -1,21 +1,41 @@
-// A helper function to safely parse JSON from the AI's response
+// A more robust helper function to safely parse JSON from the AI's response
 function extractAndParseJson(text) {
   // Find the start and end of the JSON code block
   const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
   if (!jsonMatch || !jsonMatch[1]) {
     throw new Error("Could not find a valid JSON code block in the AI response.");
   }
+
+  const jsonString = jsonMatch[1];
+
+  // First, try to parse the string as is.
   try {
-    // Parse the extracted JSON string
-    return JSON.parse(jsonMatch[1]);
-  } catch (error) {
-    console.error("Failed to parse JSON:", error);
-    throw new Error("Invalid JSON format in the AI response.");
+    return JSON.parse(jsonString);
+  } catch (initialError) {
+    console.log("Initial JSON.parse failed. Attempting to sanitize and re-parse...");
+    console.log("Initial error:", initialError.message);
+    
+    // If it fails, attempt to fix common unescaped backslash issues from LaTeX.
+    // This regex replaces a single backslash `\` with a double backslash `\\`
+    // ONLY IF it's not already part of a valid JSON escape sequence (like \", \\, \/, \b, \f, \n, \r, \t).
+    const sanitizedJsonString = jsonString.replace(/\\(?![\\/"bfnrt])/g, '\\\\');
+
+    try {
+      // Try parsing the sanitized string
+      return JSON.parse(sanitizedJsonString);
+    } catch (secondError) {
+      console.error("Failed to parse JSON even after sanitizing.");
+      console.error("Original JSON String:", jsonString);
+      console.error("Sanitized JSON String:", sanitizedJsonString);
+      console.error("Second error:", secondError.message);
+      // If it still fails, throw an error with the original message for better debugging.
+      throw new Error(`Invalid JSON format in AI response: ${initialError.message}`);
+    }
   }
 }
 
 export default async function handler(req, res) {
-  console.log('=== MATH SOLVER API V2 START ===');
+  console.log('=== MATH SOLVER API V2 (FIXED) START ===');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -36,14 +56,14 @@ export default async function handler(req, res) {
 
     console.log('✅ Valid request - Problem:', problem.substring(0, 50) + '...');
 
-    // New prompt that requests a structured JSON output
+    // Updated prompt to be more explicit about JSON escaping
     const mathPrompt = `Solve the following math problem. Provide a clear, step-by-step solution.
 
 Problem: "${problem}"
 
 Your response MUST be a JSON object inside a \`\`\`json code block. The JSON object should have a single key "steps", which is an array of objects. Each object in the array represents a single step in the solution and must have two keys:
 1. "explanation": A string explaining the concept or the action taken in this step.
-2. "formula": A string containing the mathematical equation or expression for this step, formatted in LaTeX. Use $$ for display math.
+2. "formula": A string containing the mathematical equation or expression for this step, formatted in LaTeX. Use $$ for display math. IMPORTANT: All backslashes in LaTeX must be properly escaped for JSON (e.g., use "\\\\sqrt" instead of "\\sqrt").
 
 Example Response Format:
 \`\`\`json
@@ -62,7 +82,7 @@ Example Response Format:
 \`\`\`
 `;
 
-    const systemPrompt = `You are an expert mathematics tutor. Your task is to provide step-by-step solutions to math problems. You MUST ONLY respond with a JSON object in the specified format, enclosed in a \`\`\`json code block. Do not add any conversational text or explanations outside of the JSON structure.`;
+    const systemPrompt = `You are an expert mathematics tutor. Your task is to provide step-by-step solutions to math problems. You MUST ONLY respond with a JSON object in the specified format, enclosed in a \`\`\`json code block. Do not add any conversational text or explanations outside of the JSON structure. Ensure all LaTeX backslashes are correctly escaped for JSON.`;
 
     const apiRequestBody = {
       model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free', // Primary model
@@ -98,7 +118,6 @@ Example Response Format:
       });
     }
 
-
     if (!response.ok) {
       const errorBody = await response.text();
       throw new Error(`TogetherAI API error: ${response.status} - ${errorBody}`);
@@ -107,11 +126,11 @@ Example Response Format:
     const data = await response.json();
     const rawContent = data.choices[0].message.content;
 
-    // Parse the structured JSON from the raw response
+    // Use the robust parsing function
     const structuredSolution = extractAndParseJson(rawContent);
 
     console.log('✅ Math solution received and parsed.');
-    console.log('=== MATH SOLVER API V2 SUCCESS ===');
+    console.log('=== MATH SOLVER API V2 (FIXED) SUCCESS ===');
 
     return res.status(200).json({
       solution: structuredSolution,
@@ -119,7 +138,7 @@ Example Response Format:
     });
 
   } catch (error) {
-    console.error('=== MATH SOLVER API V2 ERROR ===');
+    console.error('=== MATH SOLVER API V2 (FIXED) ERROR ===');
     console.error('Error details:', error);
     return res.status(500).json({
       error: 'Failed to solve math problem.',
