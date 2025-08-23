@@ -923,108 +923,50 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="bg-white py-20" id="pricing">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase text-black">Choose Your Plan</h2>
-            <div className="w-32 h-2 bg-black mx-auto"></div>
-          </div>
-          
-          <div className="flex justify-center items-center my-12">
-            <span className={`font-bold text-lg mr-4 ${billingCycle === 'monthly' ? 'text-black' : 'text-gray-400'}`}>Monthly</span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="sr-only peer" 
-                onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')} 
-                checked={billingCycle === 'annually'} 
-              />
-              <div className="w-20 h-10 bg-gray-200 rounded-full border-4 border-black peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-2 after:bg-black after:border after:rounded-full after:h-7 after:w-7 after:transition-all after:duration-300 after:ease-in-out"></div>
-            </label>
-            <span className={`font-bold text-lg ml-4 ${billingCycle === 'annually' ? 'text-black' : 'text-gray-400'}`}>Annually</span>
-            <div className="ml-4 bg-amber-300 text-black font-bold text-sm py-1 px-3 border-2 border-black -rotate-6">SAVE 20%</div>
-          </div>
+    {/* Call-to-Action Section */}
+<section className="relative bg-purple-900 text-white py-24 overflow-hidden">
+  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+    
+    {/* Left Image */}
+    <div className="flex justify-center md:justify-start scroll-slide-left">
+      <div className="relative w-72 h-72 md:w-96 md:h-96 rounded-full overflow-hidden border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+        <img
+          src="https://via.placeholder.com/400x400.png" // replace with your Supabase image later
+          alt="Student learning"
+          className="w-full h-full object-cover"
+        />
+      </div>
+    </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-            {[
-              {
-                name: "BASIC",
-                desc: "Essential tools to get started",
-                price: "$9",
-                features: ["Basic AI Chat", "10 Notes/Month", "20 Flashcards", "Community Support"],
-                notIncluded: ["Unlimited Usage", "Priority Support", "Advanced Features"],
-                bg: "bg-white text-black",
-                cta: "TRY FREE",
-              },
-              {
-                name: "PRO",
-                desc: "Full features + unlimited usage",
-                price: "$19",
-                features: [
-                  "Unlimited Everything",
-                  "Priority Support",
-                  "Advanced Analytics",
-                  "Export Options",
-                  "Audio Recap",
-                  "Math Solver",
-                ],
-                notIncluded: [],
-                bg: "bg-purple-500 text-white",
-                popular: true,
-                cta: "TRY FREE",
-              },
-              {
-                name: "TEAM",
-                desc: "For groups/institutions",
-                price: "$49",
-                features: ["Everything in Pro", "Team Management", "Bulk Import", "Admin Dashboard", "Custom Branding"],
-                notIncluded: [],
-                bg: "bg-blue-600 text-white",
-                cta: "TRY FREE",
-              },
-            ].map((plan, index) => (
-              <div
-                key={index}
-                className={`${plan.bg} p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative hover:shadow-none hover:-translate-x-1 hover:-translate-y-1 transition-all duration-300 h-full flex flex-col`}
-              >
-                {plan.popular && (
-                  <div className="absolute top-3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-                    <Badge className="bg-gray-800 text-white font-black px-6 py-2 border-2 border-black text-sm">
-                      🔥 POPULAR
-                    </Badge>
-                  </div>
-                )}
-                <div className="text-center mb-6 pt-8">
-                  <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
-                  <p className="font-bold mb-4 text-base">{plan.desc}</p>
-                  <div className="text-5xl font-black">{plan.price}</div>
-                  <div className="text-base font-bold">/month</div>
-                </div>
-                <div className="space-y-3 mb-8 flex-grow">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center">
-                      <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-400" />
-                      <span className="font-bold text-sm">{feature}</span>
-                    </div>
-                  ))}
-                  {plan.notIncluded.map((feature, idx) => (
-                    <div key={idx} className="flex items-center opacity-50">
-                      <div className="w-5 h-5 mr-3 flex-shrink-0 text-red-400 font-black">✕</div>
-                      <span className="font-bold line-through text-sm">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                <a href="/signup">
-                  <Button className="w-full font-black py-4 mt-auto bg-purple-500 text-white hover:bg-purple-600 border-2 border-black">
-                    {plan.cta}
-                  </Button>
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+    {/* Right Text Content */}
+    <div className="space-y-6 text-center md:text-left scroll-fade-in">
+      <p className="text-purple-300 font-semibold uppercase tracking-wide">
+        Stop procrastinating and act today
+      </p>
+      <h2 className="text-4xl md:text-5xl font-extrabold leading-tight">
+        You’ll be shocked at how <span className="text-purple-400">quickly you can learn</span>
+      </h2>
+      <p className="text-lg text-gray-200 max-w-lg">
+        Ready to unlock the future of efficient learning? Get started with a free trial and 
+        experience how Tutorly helps you study smarter, not harder. 
+        Unlock AI-powered notes, flashcards, and quizzes instantly.
+      </p>
+
+      <div className="mt-8">
+        <a href="/signup">
+          <button className="px-10 py-4 bg-purple-500 hover:bg-purple-600 text-white font-black rounded-full border-4 border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-all">
+            Try for FREE
+          </button>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {/* Decorative Circles */}
+  <div className="absolute top-10 left-10 w-40 h-40 border-2 border-purple-400 rounded-full opacity-30 animate-pulse"></div>
+  <div className="absolute bottom-10 right-10 w-32 h-32 border-2 border-purple-400 rounded-full opacity-30 animate-pulse"></div>
+</section>
+
       
 {/* FAQ Section */}
 <section id="faq" className="bg-black py-20">
