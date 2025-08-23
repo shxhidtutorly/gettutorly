@@ -53,14 +53,17 @@ export default function StudyTechniquesPage() {
 
       {/* Hero */}
       <section className="bg-gray-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-7xl font-white mb-6">📚 STUDY TECHNIQUES</h1>
-          <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
-          <p className="text-xl md:text-2xl font-bold text-gray-700 max-w-4xl mx-auto">
-            Master proven study methods that enhance learning efficiency and retention.
-          </p>
-        </div>
-      </section>
+  <div className="max-w-7xl mx-auto px-4 text-center">
+    <h1 className="text-5xl md:text-7xl font-white mb-6 text-white">
+      📚 STUDY TECHNIQUES
+    </h1>
+    <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
+    <p className="text-xl md:text-2xl font-bold text-gray-700 max-w-4xl mx-auto">
+      Master proven study methods that enhance learning efficiency and retention.
+    </p>
+  </div>
+</section>
+
 
       {/* Techniques Grid */}
       <section className="bg-white py-20">
@@ -99,28 +102,30 @@ export default function StudyTechniquesPage() {
       </section>
 
       {/* Integration CTA */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-6xl font-white mb-6">🤖 COMBINE WITH AI</h2>
-          <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
-          <p className="text-xl font-bold text-gray-700 mb-8">
-            Use these techniques alongside Tutorly's AI features for maximum learning efficiency.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link href="/signup">
-              <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button">
-                START LEARNING FREE
-              </Button>
-            </Link>
-            <Link href="/features">
-                           <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button">
+     <section className="bg-gray-50 py-20">
+  <div className="max-w-4xl mx-auto px-4 text-center">
+    <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">
+      🤖 COMBINE WITH AI
+    </h2>
+    <div className="w-32 h-2 bg-purple-500 mx-auto mb-8"></div>
+    <p className="text-xl font-bold text-gray-700 mb-8">
+      Use these techniques alongside Tutorly's AI features for maximum learning efficiency.
+    </p>
+    <div className="flex flex-col sm:flex-row gap-6 justify-center">
+      <Link href="/signup">
+        <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button">
+          START LEARNING FREE
+        </Button>
+      </Link>
+      <Link href="/features">
+        <Button className="bg-purple-500 hover:bg-purple-600 text-white font-black text-xl px-12 py-6 brutal-button">
+          EXPLORE FEATURES
+        </Button>
+      </Link>
+    </div>
+  </div>
+</section>
 
-                EXPLORE FEATURES
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
             <Footer />
     </div>
   )
