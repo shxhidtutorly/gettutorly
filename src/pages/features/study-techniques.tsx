@@ -45,7 +45,15 @@ export default function StudyTechniquesPage() {
       ],
     },
   ]
-
+const otherFeatures = [
+    { name: "Math Chat", href: "/features/math-chat", desc: "Solve problems with step-by-step help" },
+    { name: "AI Notes", href: "/features/ai-notes", desc: "Generate smart notes from any content" },
+    { name: "Flashcards", href: "/features/flashcard", desc: "Create adaptive study cards" },
+    { name: "Tests & Quizzes", href: "/features/tests-quiz", desc: "Generate practice tests" },
+    { name: "Summarizer", href: "/features/summaries", desc: "Summarize any document" },
+    { name: "Doubt Chain", href: "/features/doubt-chain", desc: "Break down complex concepts" },
+  ]
+  
   return (
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
             <Navbar />
