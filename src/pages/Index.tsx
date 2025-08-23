@@ -573,45 +573,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white text-black font-mono">
       <Navbar />
 
-      {/* Sticky Navigation */}
-      <nav className={`nav-sticky ${stickyNav ? "visible" : ""}`}>
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-           <a href="/" className="flex items-center space-x-3">
-  <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-    <Brain className="w-5 h-5 text-white" />
-  </div>
-  <span className="font-extrabold text-lg tracking-wide">TUTORLY</span>
-</a>
-
-            <div className="flex items-center space-x-6">
-              <a href="#hero" className="font-black hover:text-purple-500 transition-colors text-sm">
-                HOME
-              </a>
-              <a href="/features" className="font-black hover:text-purple-500 transition-colors text-sm">
-                FEATURES
-              </a>
-              <a href="/pricing" className="font-black hover:text-purple-500 transition-colors text-sm">
-                PRICING
-              </a>
-              <a href="/faq" className="font-black hover:text-purple-500 transition-colors text-sm">
-                FAQ
-              </a>
-              <a href="/signin" className="font-black hover:text-purple-500 transition-colors text-sm">
-                SIGNIN
-              </a>
-              <a href="/support" className="font-black hover:text-purple-500 transition-colors text-sm">
-                SUPPORT
-              </a>
-              <a href="/signup">
-                <Button size="sm" className="bg-purple-500 hover:bg-purple-600 text-white font-black brutal-button">
-                  TRY FOR FREE
-                </Button>
-              </a>
-            </div>
-          </div>
-        </div>
-      </nav>
+     
 
       {/* Hero Section */}
       <section
