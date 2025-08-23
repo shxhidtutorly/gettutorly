@@ -161,7 +161,7 @@ export default function DoubtChainPage() {
                 >
                   {faq.question}
                   <div className={`faq-icon ${openFaq === index ? "open" : ""}`}>
-                    {openFaq === index ? <Minus className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                {openFaq === index ? <Minus className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
                   </div>
                 </button>
                 <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
