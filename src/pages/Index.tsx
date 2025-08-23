@@ -907,7 +907,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Enhanced Tutorly Call-to-Action Section */}
+     {/* Enhanced Tutorly Call-to-Action Section */}
 <section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-emerald-900 text-white overflow-hidden flex items-center">
   
   {/* Animated Background Elements */}
@@ -948,7 +948,7 @@ export default function LandingPage() {
       <div className="space-y-6">
         <h2 className="text-6xl lg:text-7xl font-black leading-tight">
           Master any
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 animate-pulse"> subject</span>
+          <span className="text-emerald-400 animate-pulse"> subject</span>
           <br/>with confidence
         </h2>
         <p className="text-xl text-gray-300 leading-relaxed max-w-2xl">
@@ -988,15 +988,6 @@ export default function LandingPage() {
           <button className="group relative px-8 py-4 bg-emerald-500 hover:bg-emerald-400 rounded-2xl font-black text-lg transition-all duration-300 border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 overflow-hidden">
             <span className="relative z-10">Start Learning Now</span>
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </button>
-        </motion.a>
-        <motion.a 
-          href="/features"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <button className="px-8 py-4 border-4 border-emerald-400 hover:bg-emerald-400/10 rounded-2xl font-black text-lg transition-all duration-300 backdrop-blur-sm hover:shadow-[8px_8px_0px_0px_rgba(16,185,129,0.3)]">
-            Watch Demo
           </button>
         </motion.a>
       </div>
