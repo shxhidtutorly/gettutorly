@@ -907,71 +907,169 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Enhanced Testimonials Section */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">What Students Are Saying</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
-          </div>
-
-          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[740px] overflow-hidden">
-            <TestimonialsColumn testimonials={firstColumn} duration={15} />
-            <TestimonialsColumn testimonials={secondColumn} className="hidden md:block" duration={19} />
-            <TestimonialsColumn testimonials={thirdColumn} className="hidden lg:block" duration={17} />
-          </div>
-        </div>
-      </section>
-
- {/* Tutorly Call-to-Action Section */}
-<section className="relative bg-gradient-to-r from-black via-purple-950 to-black text-white py-28 overflow-hidden">
-  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-    
-    {/* Text Content */}
-    <div className="space-y-6 text-center md:text-left scroll-fade-in">
-      <h2 className="text-5xl md:text-6xl font-extrabold leading-tight">
-        Take control of your <span className="text-purple-400">study journey</span>
-      </h2>
-      <p className="text-lg text-gray-300 max-w-xl">
-        Don’t let exams sneak up on you — prepare smarter with Tutorly.  
-        Our AI tools simplify your notes, create quizzes instantly, and 
-        keep you focused so you can reach your goals with confidence.  
-      </p>
-      <p className="text-md text-gray-400 italic">
-        No clutter. No wasted hours. Just learning that sticks.
-      </p>
-
-      <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-        <a href="/signup">
-          <button className="px-10 py-4 bg-purple-500 hover:bg-purple-600 text-white font-black rounded-lg border-4 border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-all">
-            Start Free Trial
-          </button>
-        </a>
-        <a href="/features">
-          <button className="px-10 py-4 bg-transparent hover:bg-white hover:text-black font-black rounded-lg border-4 border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-all">
-            Explore Features
-          </button>
-        </a>
-      </div>
-    </div>
-
-    {/* Right Image */}
-    <div className="relative flex justify-center md:justify-end scroll-slide-right">
-      <div className="relative w-80 h-80 md:w-[28rem] md:h-[28rem] rounded-2xl overflow-hidden border-4 border-white shadow-[10px_10px_0px_0px_rgba(255,255,255,1)]">
-        <img
-          src="https://via.placeholder.com/600x600.png" // replace with your own Supabase image
-          alt="Tutorly student success"
-          className="w-full h-full object-cover"
-        />
-      </div>
-    </div>
+     /* Enhanced Tutorly Call-to-Action Section */}
+<section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-emerald-900 text-white overflow-hidden flex items-center">
+  
+  {/* Animated Background Elements */}
+  <div className="absolute inset-0">
+    <div className="absolute top-20 left-10 w-32 h-32 bg-emerald-400 rounded-full opacity-20 animate-pulse"></div>
+    <div className="absolute top-60 right-20 w-24 h-24 bg-green-300 rounded-full opacity-30 animate-bounce"></div>
+    <div className="absolute bottom-40 left-1/4 w-40 h-40 bg-teal-400 rounded-full opacity-15 animate-pulse"></div>
+    <div className="absolute top-1/2 right-1/3 w-16 h-16 bg-emerald-300 opacity-25 animate-spin" style={{clipPath: 'polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%)'}}></div>
   </div>
+  
+  {/* Glowing Grid Pattern */}
+  <div className="absolute inset-0 opacity-10" style={{
+    backgroundImage: 'radial-gradient(circle, #10b981 1px, transparent 1px)',
+    backgroundSize: '50px 50px'
+  }}></div>
 
-  {/* Decorative Gradient Blobs */}
-  <div className="absolute -top-10 -left-10 w-72 h-72 bg-purple-700 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-  <div className="absolute -bottom-20 -right-10 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
+    
+    {/* Left Content */}
+    <motion.div 
+      className="space-y-8"
+      initial={{ opacity: 0, y: 50 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+      viewport={{ once: true }}
+    >
+      {/* Floating Tag */}
+      <motion.div 
+        className="inline-flex items-center px-6 py-2 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-emerald-300 text-sm font-black backdrop-blur-sm"
+        animate={{ y: [0, -5, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        <span className="w-2 h-2 bg-emerald-400 rounded-full mr-3 animate-pulse"></span>
+        Transform your learning experience
+      </motion.div>
+      
+      {/* Main Headlines */}
+      <div className="space-y-6">
+        <h2 className="text-6xl lg:text-7xl font-black leading-tight">
+          Master any
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 animate-pulse"> subject</span>
+          <br/>with confidence
+        </h2>
+        <p className="text-xl text-gray-300 leading-relaxed max-w-2xl">
+          Experience revolutionary AI-powered learning that adapts to your pace. 
+          Build lasting knowledge through interactive sessions designed for your success.
+        </p>
+      </div>
+      
+      {/* Feature Highlights */}
+      <div className="flex flex-wrap gap-4 py-4">
+        {[
+          { label: "Instant Understanding", color: "bg-emerald-400" },
+          { label: "Smart Progress Tracking", color: "bg-green-400" },
+          { label: "Personalized Learning", color: "bg-teal-400" }
+        ].map((feature, index) => (
+          <motion.div 
+            key={index}
+            className="flex items-center space-x-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20"
+            whileHover={{ scale: 1.05 }}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.2 }}
+          >
+            <div className={`w-2 h-2 ${feature.color} rounded-full animate-pulse`}></div>
+            <span className="text-sm font-bold">{feature.label}</span>
+          </motion.div>
+        ))}
+      </div>
+      
+      {/* CTA Buttons */}
+      <div className="flex flex-col sm:flex-row gap-6 pt-6">
+        <motion.a 
+          href="/signup"
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <button className="group relative px-8 py-4 bg-emerald-500 hover:bg-emerald-400 rounded-2xl font-black text-lg transition-all duration-300 border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 overflow-hidden">
+            <span className="relative z-10">Start Learning Now</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </button>
+        </motion.a>
+        <motion.a 
+          href="/features"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <button className="px-8 py-4 border-4 border-emerald-400 hover:bg-emerald-400/10 rounded-2xl font-black text-lg transition-all duration-300 backdrop-blur-sm hover:shadow-[8px_8px_0px_0px_rgba(16,185,129,0.3)]">
+            Watch Demo
+          </button>
+        </motion.a>
+      </div>
+    </motion.div>
+    
+    {/* Right Visual Element */}
+    <motion.div 
+      className="relative flex justify-center lg:justify-end"
+      initial={{ opacity: 0, scale: 0.8 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, delay: 0.3 }}
+      viewport={{ once: true }}
+    >
+      
+      {/* Main Image Container */}
+      <div className="relative w-96 h-96 lg:w-[32rem] lg:h-[32rem]">
+        {/* Rotating Border */}
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 opacity-80 animate-spin" style={{ animationDuration: '20s' }}></div>
+        
+        {/* Image Container */}
+        <div className="relative w-full h-full m-2 rounded-3xl overflow-hidden bg-gray-800 border-4 border-white/20 backdrop-blur-sm">
+          <img
+            src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/1749549623896.jpg"
+            alt="Student achieving success with Tutorly"
+            className="w-full h-full object-cover"
+          />
+          {/* Overlay Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 to-transparent"></div>
+        </div>
+        
+        {/* Floating Stats Cards */}
+        <motion.div 
+          className="absolute -top-6 -right-6 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-2xl border-4 border-black"
+          initial={{ opacity: 0, scale: 0 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.8 }}
+          animate={{ y: [0, -10, 0] }}
+          style={{ animationDuration: '3s', animationIterationCount: 'infinite' }}
+        >
+          <div className="text-center">
+            <div className="text-2xl font-black text-emerald-600">98%</div>
+            <div className="text-sm text-gray-600 font-bold">Success Rate</div>
+          </div>
+        </motion.div>
+        
+        <motion.div 
+          className="absolute -bottom-8 -left-6 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-2xl border-4 border-black"
+          initial={{ opacity: 0, scale: 0 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.2 }}
+          animate={{ y: [0, 10, 0] }}
+          style={{ animationDuration: '4s', animationIterationCount: 'infinite' }}
+        >
+          <div className="text-center">
+            <div className="text-2xl font-black text-green-600">50K+</div>
+            <div className="text-sm text-gray-600 font-bold">Students</div>
+          </div>
+        </motion.div>
+        
+        {/* Glowing Orbs */}
+        <div className="absolute -top-4 left-1/2 w-8 h-8 bg-emerald-400 rounded-full opacity-60 animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div>
+        <div className="absolute top-1/2 -right-4 w-6 h-6 bg-green-400 rounded-full opacity-80 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.5)]" style={{ animationDelay: '1s' }}></div>
+      </div>
+    </motion.div>
+  </div>
+  
+  {/* Bottom Decorative Wave */}
+  <div className="absolute bottom-0 left-0 right-0">
+    <svg viewBox="0 0 1200 120" className="w-full h-20 fill-current text-emerald-500/20">
+      <path d="M0,120 C300,80 600,40 1200,60 L1200,120 Z"></path>
+    </svg>
+  </div>
 </section>
-
       
 {/* FAQ Section */}
 <section id="faq" className="bg-black py-20">
