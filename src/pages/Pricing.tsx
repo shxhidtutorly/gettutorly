@@ -119,11 +119,47 @@ const pricingPlans = [
 ];
 
 const testimonials = [
-  { name: "Alice Chen", role: "CS @ MIT", quote: "Feels like a real tutor 24/7. The unlimited AI features are a lifesaver for my studies.", avatarUrl: "https://placehold.co/100x100/7c3aed/ffffff?text=AC&font=mono" },
-  { name: "Bob Martinez", role: "Engineering @ Stanford", quote: "Unlimited AI summaries saved me hours of reading. I can focus on the core concepts now.", avatarUrl: "https://placehold.co/100x100/2563eb/ffffff?text=BM&font=mono" },
-  { name: "Charlie Kim", role: "Pre-Med @ Yale", quote: "The unlimited flashcards are incredible. They helped me retain so much more for my bio exams.", avatarUrl: "https://placehold.co/100x100/16a34a/ffffff?text=CK&font=mono" },
-  { name: "Diana Patel", role: "Business @ Penn", quote: "Unlimited voice notes processing turns my lectures into perfectly structured text. It's magic.", avatarUrl: "https://placehold.co/100x100/f97316/ffffff?text=DP&font=mono" },
+  {
+    text: "Tutorly's AI notes feature transformed my study sessions! It converts my messy lecture recordings into perfectly organized summaries in minutes.",
+    image: "https://randomuser.me/api/portraits/women/1.jpg",
+    name: "Emily Johnson",
+    role: "Computer Science Student",
+  },
+  {
+    text: "The math chat is incredible! It breaks down complex calculus problems step-by-step, making everything so much clearer than my textbook.",
+    image: "https://randomuser.me/api/portraits/men/2.jpg",
+    name: "Michael Chen",
+    role: "Engineering Student",
+  },
+  {
+    text: "I love how Tutorly creates flashcards automatically from my readings. It's like having a personal tutor that knows exactly what I need to study.",
+    image: "https://randomuser.me/api/portraits/women/3.jpg",
+    name: "Sarah Williams",
+    role: "Pre-Med Student",
+  },
+  {
+    text: "The AI quiz feature helped me ace my finals! It generates practice tests from my notes and identifies my weak spots perfectly.",
+    image: "https://randomuser.me/api/portraits/men/4.jpg",
+    name: "David Rodriguez",
+    role: "Business Student",
+  },
+  {
+    text: "Audio recap is a game-changer! I can turn hour-long lectures into concise summaries while commuting. Tutorly saves me so much time.",
+    image: "https://randomuser.me/api/portraits/women/5.jpg",
+    name: "Jessica Martinez",
+    role: "Psychology Student",
+  },
+  {
+    text: "The doubt solver feature is amazing! When I'm stuck on complex topics, Tutorly breaks them down into simple, digestible concepts.",
+    image: "https://randomuser.me/api/portraits/women/6.jpg",
+    name: "Amanda Davis",
+    role: "Biology Student",
+  },
 ];
+
+const firstColumn = testimonials.slice(0, 2);
+const secondColumn = testimonials.slice(2, 4);
+const thirdColumn = testimonials.slice(4, 6);
 
 const universities = [
   { name: "MIT", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp" },
@@ -405,22 +441,76 @@ export default function Pricing(): JSX.Element {
             <h2 className="text-4xl md:text-6xl font-black mb-4 uppercase">Trusted by Students Worldwide</h2>
             <div className="w-32 h-2 bg-black mx-auto"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {testimonials.map(t => (
-              <div key={t.name} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-                <div className="flex items-center mb-4">
-                  <img src={t.avatarUrl} alt={t.name} className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} />
-                  <div className="ml-4">
-                    <div className="font-black text-xl">{t.name}</div>
-                    <div className="font-bold text-md text-stone-600">{t.role}</div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* First Column */}
+            <div className="space-y-6">
+              {firstColumn.map((testimonial, index) => (
+                <div key={`col1-${index}`} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                  <div className="flex items-center mb-4">
+                    <img 
+                      src={testimonial.image} 
+                      alt={testimonial.name} 
+                      className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} 
+                    />
+                    <div className="ml-4">
+                      <div className="font-black text-xl">{testimonial.name}</div>
+                      <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
+                    </div>
                   </div>
+                  <div className="flex mb-4">
+                    {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
+                  </div>
+                  <p className="font-bold text-lg leading-tight">"{testimonial.text}"</p>
                 </div>
-                <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
+              ))}
+            </div>
+            
+            {/* Second Column */}
+            <div className="space-y-6">
+              {secondColumn.map((testimonial, index) => (
+                <div key={`col2-${index}`} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                  <div className="flex items-center mb-4">
+                    <img 
+                      src={testimonial.image} 
+                      alt={testimonial.name} 
+                      className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} 
+                    />
+                    <div className="ml-4">
+                      <div className="font-black text-xl">{testimonial.name}</div>
+                      <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
+                    </div>
+                  </div>
+                  <div className="flex mb-4">
+                    {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
+                  </div>
+                  <p className="font-bold text-lg leading-tight">"{testimonial.text}"</p>
                 </div>
-                <p className="font-bold text-lg leading-tight">"{t.quote}"</p>
-              </div>
-            ))}
+              ))}
+            </div>
+            
+            {/* Third Column */}
+            <div className="space-y-6 md:col-span-2 lg:col-span-1">
+              {thirdColumn.map((testimonial, index) => (
+                <div key={`col3-${index}`} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                  <div className="flex items-center mb-4">
+                    <img 
+                      src={testimonial.image} 
+                      alt={testimonial.name} 
+                      className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} 
+                    />
+                    <div className="ml-4">
+                      <div className="font-black text-xl">{testimonial.name}</div>
+                      <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
+                    </div>
+                  </div>
+                  <div className="flex mb-4">
+                    {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
+                  </div>
+                  <p className="font-bold text-lg leading-tight">"{testimonial.text}"</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
