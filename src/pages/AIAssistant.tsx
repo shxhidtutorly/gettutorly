@@ -659,7 +659,7 @@ flowchart TD
     G --> H[Output Result]
 \`\`\``
         }
-      } else if (actualInput.toLowerCase().includes("code") || 
+      } else (actualInput.toLowerCase().includes("code") || 
                  actualInput.toLowerCase().includes("program") ||
                  actualInput.toLowerCase().includes("javascript") ||
                  actualInput.toLowerCase().includes("python")) {
