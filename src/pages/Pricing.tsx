@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { initializePaddle, Paddle as PaddleType } from '@paddle/paddle-js';
 import { Check, Star, X, ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -155,11 +156,78 @@ const testimonials = [
     name: "Amanda Davis",
     role: "Biology Student",
   },
+  {
+    text: "Tutorly's AI chat understands my questions perfectly and provides detailed explanations. It's like having office hours 24/7!",
+    image: "https://randomuser.me/api/portraits/men/7.jpg",
+    name: "James Wilson",
+    role: "Physics Student",
+  },
+  {
+    text: "The AI summaries are spot-on! They capture all the key points from lengthy research papers and make studying so much more efficient.",
+    image: "https://randomuser.me/api/portraits/women/8.jpg",
+    name: "Rachel Brown",
+    role: "Literature Student",
+  },
+  {
+    text: "The unlimited features are incredible! No restrictions means I can study as much as I want without worrying about limits.",
+    image: "https://randomuser.me/api/portraits/men/9.jpg",
+    name: "Alex Thompson",
+    role: "Medical Student",
+  },
 ];
 
-const firstColumn = testimonials.slice(0, 2);
-const secondColumn = testimonials.slice(2, 4);
-const thirdColumn = testimonials.slice(4, 6);
+const firstColumn = testimonials.slice(0, 3);
+const secondColumn = testimonials.slice(3, 6);
+const thirdColumn = testimonials.slice(6, 9);
+
+// Testimonials Column Component
+const TestimonialsColumn = (props: {
+  className?: string;
+  testimonials: typeof testimonials;
+  duration?: number;
+}) => {
+  return (
+    <div className={props.className}>
+      <motion.div
+        animate={{
+          translateY: "-50%",
+        }}
+        transition={{
+          duration: props.duration || 10,
+          repeat: Infinity,
+          ease: "linear",
+          repeatType: "loop",
+        }}
+        className="flex flex-col gap-6 pb-6"
+      >
+        {[
+          ...new Array(2).fill(0).map((_, index) => (
+            <React.Fragment key={index}>
+              {props.testimonials.map(({ text, image, name, role }, i) => (
+                <div className={`p-6 bg-white text-black ${brutalistShadow} max-w-xs w-full`} key={i}>
+                  <div className="font-bold text-sm text-black">{text}</div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <img
+                      width={40}
+                      height={40}
+                      src={image}
+                      alt={name}
+                      className="h-10 w-10 rounded-full border-2 border-black"
+                    />
+                    <div className="flex flex-col">
+                      <div className="font-black tracking-tight leading-5 text-black">{name}</div>
+                      <div className="leading-5 opacity-60 tracking-tight font-bold text-sm text-black">{role}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </React.Fragment>
+          )),
+        ]}
+      </motion.div>
+    </div>
+  );
+};
 
 const universities = [
   { name: "MIT", logo: "https://cdn.jsdelivr.net/gh/shxhidtutorly/university-logos/mit-logo.webp" },
@@ -437,80 +505,22 @@ export default function Pricing(): JSX.Element {
       {/* Testimonials Section */}
       <section className="bg-stone-100 py-20 border-y-4 border-black">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-4xl md:text-6xl font-black mb-4 uppercase">Trusted by Students Worldwide</h2>
-            <div className="w-32 h-2 bg-black mx-auto"></div>
-          </div>
+            <div className="w-32 h-2 bg-black mx-auto mb-4"></div>
+            <p className="text-xl font-bold text-stone-600">See what our students have to say about Tutorly AI</p>
+          </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* First Column */}
-            <div className="space-y-6">
-              {firstColumn.map((testimonial, index) => (
-                <div key={`col1-${index}`} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-                  <div className="flex items-center mb-4">
-                    <img 
-                      src={testimonial.image} 
-                      alt={testimonial.name} 
-                      className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} 
-                    />
-                    <div className="ml-4">
-                      <div className="font-black text-xl">{testimonial.name}</div>
-                      <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
-                    </div>
-                  </div>
-                  <div className="flex mb-4">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
-                  </div>
-                  <p className="font-bold text-lg leading-tight">"{testimonial.text}"</p>
-                </div>
-              ))}
-            </div>
-            
-            {/* Second Column */}
-            <div className="space-y-6">
-              {secondColumn.map((testimonial, index) => (
-                <div key={`col2-${index}`} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-                  <div className="flex items-center mb-4">
-                    <img 
-                      src={testimonial.image} 
-                      alt={testimonial.name} 
-                      className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} 
-                    />
-                    <div className="ml-4">
-                      <div className="font-black text-xl">{testimonial.name}</div>
-                      <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
-                    </div>
-                  </div>
-                  <div className="flex mb-4">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
-                  </div>
-                  <p className="font-bold text-lg leading-tight">"{testimonial.text}"</p>
-                </div>
-              ))}
-            </div>
-            
-            {/* Third Column */}
-            <div className="space-y-6 md:col-span-2 lg:col-span-1">
-              {thirdColumn.map((testimonial, index) => (
-                <div key={`col3-${index}`} className={`p-6 bg-white text-black ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
-                  <div className="flex items-center mb-4">
-                    <img 
-                      src={testimonial.image} 
-                      alt={testimonial.name} 
-                      className={`w-16 h-16 rounded-full border-4 border-black ${brutalistShadow}`} 
-                    />
-                    <div className="ml-4">
-                      <div className="font-black text-xl">{testimonial.name}</div>
-                      <div className="font-bold text-md text-stone-600">{testimonial.role}</div>
-                    </div>
-                  </div>
-                  <div className="flex mb-4">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
-                  </div>
-                  <p className="font-bold text-lg leading-tight">"{testimonial.text}"</p>
-                </div>
-              ))}
-            </div>
+          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[740px] overflow-hidden">
+            <TestimonialsColumn testimonials={firstColumn} duration={15} />
+            <TestimonialsColumn testimonials={secondColumn} className="hidden md:block" duration={19} />
+            <TestimonialsColumn testimonials={thirdColumn} className="hidden lg:block" duration={17} />
           </div>
         </div>
       </section>
