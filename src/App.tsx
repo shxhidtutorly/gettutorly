@@ -10,7 +10,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import SubscriptionGuard from './components/SubscriptionGuard';
+import SubscriptionGuard from './components/auth/SubscriptionGuard';
 
 // Import i18n for initialization
 import './i18n/i18n';
