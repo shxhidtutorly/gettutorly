@@ -59,7 +59,6 @@ import TestsQuizFeature from "./pages/features/tests-quiz";
 import SummariesFeature from "./pages/features/summaries";
 import DoubtChainFeature from "./pages/features/doubt-chain";
 import FeaturesPage from './pages/features'
-import CompressFeature from "./pages/features/compress";
 import ConvertFeature from "./pages/features/convert";
 
 // CSS
@@ -105,7 +104,6 @@ const App = () => {
                   <Route path="/features/summaries" element={<SummariesFeature />} />
                   <Route path="/features/doubt-chain" element={<DoubtChainFeature />} />
                   <Route path="/features/convert" element={<ConvertFeature />} />
-                  <Route path="/features/compress" element={<CompressFeature />} />
                   <Route path="/features" element={<FeaturesPage />} />
 
                   {/* Protected Routes */}
