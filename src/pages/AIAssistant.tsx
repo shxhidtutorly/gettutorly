@@ -8,7 +8,7 @@ import {
   BrainCog,
   FileText,
 } from "lucide-react"
-import MessageBubble from "@/components/MessageBubble";
+import MessageBubble from "./MessageBubble"
 
 // Utility function for className merging
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ")
@@ -571,7 +571,7 @@ const AIAssistant: React.FC = () => {
     setIsLoading(true)
 
     try {
-      // Process files
+      // Process files for API
       const fileData = await Promise.all(
         files.map(async (file) => {
           if (file.type.startsWith("image/")) {
@@ -618,228 +618,28 @@ const AIAssistant: React.FC = () => {
       setFiles([])
       setFilePreviews({})
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Call real API
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: {
+            text: actualInput,
+            files: fileData,
+          },
+          model: "gemini",
+          isThinking: isThinkRequest,
+        }),
+      })
 
-     const response = await fetch("/api/ai", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    prompt: {
-      text: actualInput.trim(),  // ✅ FIXED
-      files: fileData,
-    },
-    model: "gemini",
-    isCanvas: false, 
-  }),
-})
-      const data = await response.json();
-
-if (!response.ok) {
-  throw new Error(data.error || "AI request failed");
-}
-
-const aiReply = data.response || data.text || "⚠️ No AI response";  
-
-setMessages((prev) => [
-  ...prev,
-  {
-    id: Date.now(),
-    role: "assistant",
-    text: aiReply,   
-  },
-]);
-
-
-      // Handle specific requests that should include diagrams
-      if (actualInput.toLowerCase().includes("flow") || 
-          actualInput.toLowerCase().includes("diagram") ||
-          actualInput.toLowerCase().includes("flowchart")) {
-        
-        if (actualInput.toLowerCase().includes("k-means") || 
-            actualInput.toLowerCase().includes("clustering")) {
-          aiResponse = `K-Means clustering is an unsupervised learning algorithm that groups data points into k clusters. Here's how it works:
-
-The algorithm iteratively assigns each data point to the nearest cluster centroid, then recalculates the centroids based on the assigned points. This process continues until the centroids stabilize.
-
-\`\`\`mermaid
-flowchart TD
-    A[Start with K random centroids] --> B[Assign each point to nearest centroid]
-    B --> C[Recalculate centroids as mean of assigned points]
-    C --> D{Did centroids change significantly?}
-    D -->|Yes| B
-    D -->|No| E[Clustering complete]
-    E --> F[Output: K clusters with final centroids]
-\`\`\``
-        } else {
-          aiResponse = `Here's a general process flow diagram for the concept you mentioned:
-
-\`\`\`mermaid
-flowchart TD
-    A[Start Process] --> B[Input Data]
-    B --> C[Process/Analyze]
-    C --> D{Decision Point}
-    D -->|Option 1| E[Action 1]
-    D -->|Option 2| F[Action 2]
-    E --> G[Combine Results]
-    F --> G
-    G --> H[Output Result]
-\`\`\``
-        }
-      } else if (actualInput.toLowerCase().includes("code") || 
-                 actualInput.toLowerCase().includes("program") ||
-                 actualInput.toLowerCase().includes("javascript") ||
-                 actualInput.toLowerCase().includes("python")) {
-        
-        if (actualInput.toLowerCase().includes("javascript") || actualInput.toLowerCase().includes("js")) {
-          aiResponse = `Here's a JavaScript example that demonstrates modern ES6+ features:
-
-\`\`\`javascript
-// Modern JavaScript example with async/await and destructuring
-class DataProcessor {
-  constructor(name) {
-    this.name = name;
-    this.data = [];
-  }
-
-  async fetchData(url) {
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-      this.data = data;
-      return data;
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      return null;
-    }
-  }
-
-  processData() {
-    return this.data
-      .filter(item => item.active)
-      .map(({ id, name, value }) => ({
-        id,
-        displayName: name.toUpperCase(),
-        processedValue: value * 2
-      }));
-  }
-
-  // Using arrow functions and array methods
-  getStatistics = () => {
-    const values = this.data.map(item => item.value);
-    return {
-      count: values.length,
-      sum: values.reduce((acc, val) => acc + val, 0),
-      average: values.reduce((acc, val) => acc + val, 0) / values.length
-    };
-  };
-}
-
-// Usage example
-const processor = new DataProcessor('MyProcessor');
-processor.fetchData('/api/data').then(data => {
-  if (data) {
-    console.log('Processed:', processor.processData());
-    console.log('Stats:', processor.getStatistics());
-  }
-});
-\`\`\``
-        } else if (actualInput.toLowerCase().includes("python")) {
-          aiResponse = `Here's a Python example demonstrating object-oriented programming and data handling:
-
-\`\`\`python
-import json
-from typing import List, Dict, Optional
-from dataclasses import dataclass
-
-@dataclass
-class Student:
-    name: str
-    age: int
-    grades: List[float]
-    
-    @property
-    def average_grade(self) -> float:
-        return sum(self.grades) / len(self.grades) if self.grades else 0.0
-    
-    def add_grade(self, grade: float) -> None:
-        if 0 <= grade <= 100:
-            self.grades.append(grade)
-        else:
-            raise ValueError("Grade must be between 0 and 100")
-
-class StudentManager:
-    def __init__(self):
-        self.students: List[Student] = []
-    
-    def add_student(self, student: Student) -> None:
-        self.students.append(student)
-    
-    def find_student(self, name: str) -> Optional[Student]:
-        return next((s for s in self.students if s.name == name), None)
-    
-    def get_top_students(self, n: int = 5) -> List[Student]:
-        return sorted(self.students, 
-                     key=lambda s: s.average_grade, 
-                     reverse=True)[:n]
-    
-    def export_to_json(self, filename: str) -> None:
-        data = [
-            {
-                "name": s.name,
-                "age": s.age,
-                "grades": s.grades,
-                "average": s.average_grade
-            }
-            for s in self.students
-        ]
-        
-        with open(filename, 'w') as f:
-            json.dump(data, f, indent=2)
-
-# Usage example
-if __name__ == "__main__":
-    manager = StudentManager()
-    
-    # Add students
-    students_data = [
-        ("Alice", 20, [85, 92, 78, 96]),
-        ("Bob", 19, [88, 84, 90, 87]),
-        ("Charlie", 21, [92, 95, 89, 94])
-    ]
-    
-    for name, age, grades in students_data:
-        student = Student(name, age, grades)
-        manager.add_student(student)
-    
-    # Find and display top students
-    top_students = manager.get_top_students(3)
-    for student in top_students:
-        print(f"{student.name}: {student.average_grade:.2f}")
-\`\`\``
-        }
-      } else if (actualInput.toLowerCase().includes("math") || 
-                 actualInput.toLowerCase().includes("formula") ||
-                 actualInput.toLowerCase().includes("equation")) {
-        aiResponse = `Here are some important mathematical formulas and their applications:
-
-**Quadratic Formula:**
-\`\`\`latex
-x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
-\`\`\`
-
-**Pythagorean Theorem:**
-\`\`\`latex
-c^2 = a^2 + b^2
-\`\`\`
-
-**Derivative of a function:**
-\`\`\`latex
-\\frac{d}{dx}[f(x)] = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}
-\`\`\`
-
-These formulas are fundamental in algebra, geometry, and calculus respectively.`
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
+
+      const data = await response.json()
+      const aiResponse = data.response || data.message || "I'm sorry, I couldn't process your request. Please try again."
 
       // Add AI response
       setMessages((prev) => [
@@ -848,11 +648,18 @@ These formulas are fundamental in algebra, geometry, and calculus respectively.`
           id: (Date.now() + 1).toString(),
           text: aiResponse,
           isUser: false,
+          isThinking: isThinkRequest,
         },
       ])
     } catch (error) {
-      let errorMessage = "Something went wrong."
-      if (error instanceof Error) errorMessage += " " + error.message
+      console.error("API Error:", error)
+      let errorMessage = "I'm having trouble connecting right now. Please check your internet connection and try again."
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = "Unable to connect to the server. Please check if the API endpoint is available."
+      } else if (error instanceof Error) {
+        errorMessage = `Error: ${error.message}`
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -976,4 +783,4 @@ These formulas are fundamental in algebra, geometry, and calculus respectively.`
   )
 }
 
-export default AIAssistant;
+export default AIAssistant
