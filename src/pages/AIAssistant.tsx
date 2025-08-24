@@ -621,6 +621,21 @@ const AIAssistant: React.FC = () => {
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: {
+            text: message.trim(),
+            files: fileData,
+          },
+          model: "gemini",
+          isCanvas: options?.isCanvas,
+        }),
+      })
+      
+      const data = await response.json()
+
       // Generate AI response based on input
       let aiResponse = "I understand your request. Let me help you with that."
 
@@ -629,22 +644,7 @@ const AIAssistant: React.FC = () => {
           actualInput.toLowerCase().includes("diagram") ||
           actualInput.toLowerCase().includes("flowchart")) {
         
-        if (actualInput.toLowerCase().includes("k-means") || 
-            actualInput.toLowerCase().includes("clustering")) {
-          aiResponse = `K-Means clustering is an unsupervised learning algorithm that groups data points into k clusters. Here's how it works:
-
-The algorithm iteratively assigns each data point to the nearest cluster centroid, then recalculates the centroids based on the assigned points. This process continues until the centroids stabilize.
-
-\`\`\`mermaid
-flowchart TD
-    A[Start with K random centroids] --> B[Assign each point to nearest centroid]
-    B --> C[Recalculate centroids as mean of assigned points]
-    C --> D{Did centroids change significantly?}
-    D -->|Yes| B
-    D -->|No| E[Clustering complete]
-    E --> F[Output: K clusters with final centroids]
-\`\`\``
-        } else {
+       
           aiResponse = `Here's a general process flow diagram for the concept you mentioned:
 
 \`\`\`mermaid
