@@ -8,7 +8,7 @@ import {
   BrainCog,
   FileText,
 } from "lucide-react"
-import MessageBubble from "./MessageBubble"
+import MessageBubble from "@/components/MessageBubble";
 
 // Utility function for className merging
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ")
