@@ -2,26 +2,44 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Headphones, Brain, Mic, FileText, Plus, Minus, TrendingUp, ArrowRight } from "lucide-react"
+import { Headphones, Brain, Mic, FileText, Plus, Minus, TrendingUp, ArrowRight, Upload } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import  Navbar  from "@/components/navbar"
-import { Footer } from "@/components/footer"
+import Navbar from "@/components/navbar"
+import Footer from "@/components/footer"
 
 export default function AudioRecapPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [isRecording, setIsRecording] = useState(false)
+  const [uploadDemo, setUploadDemo] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     setIsLoaded(true)
   }, [])
 
+  const benefits = [
+    {
+      title: "Effortless Note-Taking",
+      desc: "Automatically convert any audio into structured, editable notes so you never have to scramble to write things down again.",
+      icon: FileText,
+    },
+    {
+      title: "Enhanced Retention",
+      desc: "Revisit lectures and discussions by reading key takeaways and summaries instead of re-listening to long recordings.",
+      icon: Brain,
+    },
+    {
+      title: "Time Saver",
+      desc: "Save hours of manual transcription and note organization, letting you focus on studying and understanding the material.",
+      icon: TrendingUp,
+    },
+  ]
+
   const audioRecapFaqs = [
     {
       question: "What audio formats does Audio Recap support?",
       answer:
-        "Audio Recap supports MP3, WAV, M4A, and most common audio formats. You can also upload video files and we'll extract the audio automatically.",
+        "Audio Recap supports MP3, WAV, M4A, and most common audio formats. You can also upload video files, and we'll extract the audio automatically.",
     },
     {
       question: "How long can my audio recordings be?",
@@ -63,108 +81,77 @@ export default function AudioRecapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-black">
+    <div className="min-h-screen bg-white text-black font-mono selection:bg-blue-600 selection:text-white">
       <Navbar />
 
       {/* Hero Section */}
-      <section
-        className="feature-hero py-20 md:py-32 relative overflow-hidden"
-        style={{ minHeight: "500px", padding: "80px 0" }}
-      >
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center space-y-8">
-            <div className="flex justify-center space-x-4 mb-8">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center brutal-border floating">
-                <Headphones className="w-8 h-8 text-white" />
-              </div>
-              <div
-                className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center brutal-border floating"
-                style={{ animationDelay: "0.5s" }}
-              >
-                <Brain className="w-8 h-8 text-white" />
-              </div>
-              <div
-                className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center brutal-border floating"
-                style={{ animationDelay: "1s" }}
-              >
-                <FileText className="w-8 h-8 text-white" />
-              </div>
+      <section className="feature-hero py-20 md:py-32 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 text-center space-y-8 scroll-fade-in">
+          <div className="flex justify-center space-x-4 mb-8">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center brutal-border floating">
+              <Headphones className="w-8 h-8 text-white" />
             </div>
-
-            <Badge className="bg-blue-600 text-white font-black text-lg px-6 py-3 brutal-border">
-              🎧 AUDIO PROCESSOR
-            </Badge>
-
-            <h1
-              className="text-5xl md:text-7xl font-black leading-none text-black"
-              style={{ color: "#000000", fontWeight: "900", display: "block" }}
+            <div
+              className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center brutal-border floating"
+              style={{ animationDelay: "0.5s" }}
             >
-              Audio Recap
-            </h1>
-
-            <p
-              className="text-2xl md:text-3xl font-bold text-black-700 max-w-4xl mx-auto"
-              style={{ color: "#0000", fontWeight: "700", display: "block" }}
-            >
-              Convert lectures and audio recordings into organized notes automatically
-            </p>
-
-            <div className="flex items-center justify-center space-x-4 bg-yellow-100 px-6 py-3 rounded-full brutal-border">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-              <span className="font-black text-lg text-black">This feature saved students</span>
-              <Badge className="bg-yellow-500 text-black font-black px-4 py-2">60% study time</Badge>
+              <Brain className="w-8 h-8 text-white" />
             </div>
-
-            <Link href="/signup">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
-                🚀 Get Started
-              </Button>
-            </Link>
+            <div
+              className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center brutal-border floating"
+              style={{ animationDelay: "1s" }}
+            >
+              <FileText className="w-8 h-8 text-white" />
+            </div>
           </div>
+
+          <Badge className="bg-blue-600 text-white font-black text-lg px-6 py-3 brutal-border">
+            🎧 AUDIO PROCESSOR
+          </Badge>
+
+          <h1 className="text-5xl md:text-7xl font-black leading-none text-black">
+            Audio Recap
+          </h1>
+
+          <p className="text-2xl md:text-3xl font-bold text-black max-w-4xl mx-auto">
+            Convert lectures and audio recordings into organized notes automatically
+          </p>
+
+          <div className="flex items-center justify-center space-x-4 bg-yellow-100 px-6 py-3 rounded-full brutal-border">
+            <TrendingUp className="w-6 h-6 text-green-600" />
+            <span className="font-black text-lg text-black">This feature saved students</span>
+            <Badge className="bg-yellow-500 text-black font-black px-4 py-2">60% study time</Badge>
+          </div>
+
+          <Link href="/signup">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
+              🚀 Get Started
+            </Button>
+          </Link>
         </div>
       </section>
 
-      {/* How It Helps Section */}
+      {/* Benefits Section */}
       <section className="bg-white py-20">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2
-              className="text-4xl md:text-6xl font-black mb-6 text-black"
-              style={{ color: "#000000", fontWeight: "900", display: "block" }}
-            >
-              How Audio Recap Transforms Your Learning
-            </h2>
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">How It Transforms Your Learning</h2>
             <div className="w-32 h-2 bg-blue-600 mx-auto"></div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Mic,
-                title: "RECORD OR UPLOAD",
-                desc: "Record live lectures, upload audio files, or even extract audio from video recordings. Our AI processes any audio content.",
-                bg: "bg-blue-600",
-                textColor: "text-white",
-              },
-              {
-                icon: Brain,
-                title: "AI TRANSCRIPTION",
-                desc: "Advanced AI transcribes your audio with high accuracy, identifying key concepts, speakers, and important information automatically.",
-                bg: "bg-purple-500",
-                textColor: "text-white",
-              },
-              {
-                icon: FileText,
-                title: "STRUCTURED NOTES",
-                desc: "Get perfectly organized notes with headings, bullet points, and key takeaways. Export or continue editing in our platform.",
-                bg: "bg-green-600",
-                textColor: "text-white",
-              },
-            ].map((benefit, index) => (
-              <div key={index} className={`${benefit.bg} ${benefit.textColor} p-8 brutal-border hover-lift`}>
-                <benefit.icon className="w-16 h-16 mb-6" />
-                <h3 className="text-2xl font-black mb-4">{benefit.title}</h3>
-                <p className="font-bold leading-relaxed">{benefit.desc}</p>
+            {benefits.map((benefit, index) => (
+              <div
+                key={index}
+                className="bg-gray-50 p-6 brutal-border hover-scale transition-all scroll-scale-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                    <benefit.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-black">{benefit.title}</h3>
+                </div>
+                <p className="font-bold text-black-700">{benefit.desc}</p>
               </div>
             ))}
           </div>
@@ -174,63 +161,74 @@ export default function AudioRecapPage() {
       {/* Interactive Demo Section */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2
-              className="text-4xl md:text-6xl font-black mb-6 text-black"
-              style={{ color: "#FFFFFF", fontWeight: "900", display: "block" }}
-            >
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
               See Audio Recap in Action
             </h2>
             <div className="w-32 h-2 bg-blue-600 mx-auto"></div>
           </div>
 
           <div className="bg-white brutal-border p-8 interactive-demo">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              {/* Left side: Upload/Record UI */}
               <div className="space-y-6">
-                <h3 className="text-2xl font-black text-black">Audio Demo</h3>
-                <div className="bg-gray-100 p-8 text-center brutal-border">
-                  <button
-                    className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 transition-all ${
-                      isRecording ? "bg-red-500 animate-pulse" : "bg-blue-600 hover:bg-blue-700"
-                    }`}
-                    onClick={() => setIsRecording(!isRecording)}
-                  >
-                    <Mic className="w-12 h-12 text-white" />
-                  </button>
-                  <p className="font-black text-lg text-black">
-                    {isRecording ? "Recording..." : "Click to simulate recording"}
-                  </p>
-                  <p className="font-bold text-gray-600">Upload MP3, WAV, M4A, or record live</p>
-                </div>
+                <h3 className="text-2xl font-black text-black">
+                  Record Live or Upload Audio
+                </h3>
+                <p className="font-bold text-gray-700">
+                  Click the button to simulate recording or upload your own file to see the power of our AI.
+                </p>
 
-                {isRecording && (
-                  <div className="bg-green-50 p-6 brutal-border">
-                    <h4 className="font-black text-green-800 mb-2">🎯 Processing Audio...</h4>
-                    <p className="font-bold text-green-700">
-                      Converting your 45-minute chemistry lecture into organized notes:
-                    </p>
-                    <ul className="list-disc list-inside mt-2 font-bold text-green-700">
-                      <li>Chemical Bonding Concepts</li>
-                      <li>Molecular Structure Examples</li>
-                      <li>Key Formulas & Equations</li>
-                      <li>Professor's Important Points</li>
-                    </ul>
-                  </div>
-                )}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    onClick={() => setUploadDemo(true)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black brutal-button"
+                  >
+                    <Upload className="w-5 h-5 mr-2" />
+                    Simulate Upload
+                  </Button>
+                  <Button
+                    onClick={() => setUploadDemo(false)}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-black brutal-button"
+                  >
+                    <Mic className="w-5 h-5 mr-2" />
+                    Simulate Recording
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center justify-center">
-                <div className="text-center space-y-6">
-                  <div className="w-32 h-32 bg-blue-600 rounded-full flex items-center justify-center brutal-border mx-auto">
-                    <Headphones className="w-16 h-16 text-white" />
-                  </div>
-                  <p className="font-black text-xl text-black">Never miss important lecture content again!</p>
-                  <Link href="/signup">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black brutal-button">
-                      Try It Now
-                    </Button>
-                  </Link>
+              {/* Right side: Interactive output */}
+              <div className="bg-gray-100 p-8 brutal-border text-center">
+                <div className="text-left font-black text-lg mb-4 text-black">
+                  {uploadDemo ? "Uploaded Lecture" : "Live Recording"}
                 </div>
+                {uploadDemo ? (
+                  <div className="space-y-4">
+                    <div className="w-24 h-24 bg-purple-500 rounded-full flex items-center justify-center mx-auto animate-pulse brutal-border">
+                      <FileText className="w-12 h-12 text-white" />
+                    </div>
+                    <p className="font-black text-lg text-black">
+                      Analyzing and structuring your notes...
+                    </p>
+                    <ul className="text-left list-disc list-inside font-bold text-gray-700">
+                      <li>Identifying key terms</li>
+                      <li>Creating topic summaries</li>
+                      <li>Organizing into sections</li>
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto animate-pulse brutal-border">
+                      <Mic className="w-12 h-12 text-white" />
+                    </div>
+                    <p className="font-black text-lg text-black">
+                      Listening and transcribing...
+                    </p>
+                    <p className="font-bold text-gray-700">
+                      Processing live audio to capture every important detail.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -240,33 +238,26 @@ export default function AudioRecapPage() {
       {/* Feature FAQ */}
       <section className="bg-white py-20">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2
-              className="text-4xl md:text-6xl font-black mb-6 text-black"
-              style={{ color: "#000000", fontWeight: "900", display: "block" }}
-            >
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
               Audio Recap FAQs
             </h2>
             <div className="w-32 h-2 bg-blue-600 mx-auto"></div>
           </div>
 
-          <div className="space-y-0">
+          <div className="space-y-4">
             {audioRecapFaqs.map((faq, index) => (
-              <div key={index} className="bg-gray-50 brutal-border">
+              <div key={index} className="bg-gray-50 p-6 brutal-border">
                 <button
-                  className="w-full p-6 text-left flex items-center justify-between font-black text-lg hover:bg-gray-100 transition-colors text-black"
+                  className="w-full text-left flex items-center justify-between font-black text-lg hover:text-blue-600 transition-colors"
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                 >
                   {faq.question}
-                  <div className={`faq-icon ${openFaq === index ? "open" : ""}`}>
-                    {openFaq === index ? <Minus className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                  </div>
+                  {openFaq === index ? <Minus className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
                 </button>
-                <div className={`faq-content ${openFaq === index ? "open" : ""}`}>
-                  <div className="px-6 pb-6">
-                    <p className="font-bold text-gray-700">{faq.answer}</p>
-                  </div>
-                </div>
+                {openFaq === index && (
+                  <p className="mt-4 font-bold text-gray-700">{faq.answer}</p>
+                )}
               </div>
             ))}
           </div>
@@ -274,13 +265,10 @@ export default function AudioRecapPage() {
       </section>
 
       {/* Other Features */}
-      <section className="bg-gray-50 py-20">
+      <section className="bg-white py-20">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2
-              className="text-4xl md:text-6xl font-black mb-6 text-black"
-              style={{ color: "#FFFFFF", fontWeight: "900", display: "block" }}
-            >
+          <div className="text-center mb-16 scroll-fade-in">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
               Explore Other Features
             </h2>
             <div className="w-32 h-2 bg-blue-600 mx-auto"></div>
@@ -289,12 +277,15 @@ export default function AudioRecapPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {otherFeatures.map((feature, index) => (
               <Link key={index} href={feature.href}>
-                <div className="bg-white p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer">
+                <div
+                  className="bg-gray-50 p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer scroll-scale-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
                   <h3 className="text-xl font-black mb-2 text-black">{feature.name}</h3>
                   <p className="font-bold text-black-700 mb-4">{feature.desc}</p>
                   <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-purple-600">EXPLORE {feature.name.toUpperCase()}</span>
-                    <ArrowRight className="w-4 h-4 text-purple-600" />
+                    <span className="font-black text-sm text-blue-600">EXPLORE {feature.name.toUpperCase()}</span>
+                    <ArrowRight className="w-4 h-4 text-blue-600" />
                   </div>
                 </div>
               </Link>
@@ -303,6 +294,31 @@ export default function AudioRecapPage() {
         </div>
       </section>
 
+      {/* Final CTA */}
+      <section className="bg-black py-20">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-4xl md:text-6xl font-black mb-6 text-white">
+            Ready to Streamline Your Studies?
+          </h2>
+          <div className="w-32 h-2 bg-blue-600 mx-auto mb-8"></div>
+          <p className="text-xl font-bold text-gray-300 mb-8">
+            Start saving time and improving your notes instantly with Audio Recap.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <Link href="/signup">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
+                START LEARNING FREE
+              </Button>
+            </Link>
+            <Link href="/features">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black text-xl px-12 py-6 brutal-button brutal-button-glow">
+                EXPLORE FEATURES
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+      
       <Footer />
     </div>
   )
