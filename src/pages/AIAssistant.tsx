@@ -633,10 +633,23 @@ const AIAssistant: React.FC = () => {
     isCanvas: false, 
   }),
 })
-      const data = await response.json()
+      const data = await response.json();
 
-      // Generate AI response based on input
-      let aiResponse = "I understand your request. Let me help you with that."
+if (!response.ok) {
+  throw new Error(data.error || "AI request failed");
+}
+
+const aiReply = data.response || data.text || "⚠️ No AI response";  
+
+setMessages((prev) => [
+  ...prev,
+  {
+    id: Date.now(),
+    role: "assistant",
+    text: aiReply,   
+  },
+]);
+
 
       // Handle specific requests that should include diagrams
       if (actualInput.toLowerCase().includes("flow") || 
