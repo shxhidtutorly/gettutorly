@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Brain, Clock, Lightbulb, Network, ArrowRight, TrendingUp } from "lucide-react"
+import { FileText, Brain, Clock, Lightbulb, Network, ArrowRight, Upload, Download, Plus, Minus, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import Navbar from "@/components/navbar"
@@ -76,7 +76,7 @@ export default function StudyTechniquesPage() {
     { name: "Summarizer", href: "/features/summaries", desc: "Summarize any document" },
     { name: "Doubt Chain", href: "/features/doubt-chain", desc: "Break down complex concepts" },
   ]
-  const studyFaqs = [
+  const aiNotesFaqs = [
     {
       question: "What makes these techniques so effective?",
       answer:
@@ -100,7 +100,7 @@ export default function StudyTechniquesPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-white text-black font-mono selection:bg-amber-400 selection:text-black">
+    <div className="min-h-screen bg-white text-black font-mono">
       <Navbar />
 
       {/* Hero Section */}
@@ -214,7 +214,7 @@ export default function StudyTechniquesPage() {
           </div>
         </div>
       </section>
-
+      
       {/* FAQ Section */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-4xl mx-auto px-4">
@@ -223,7 +223,7 @@ export default function StudyTechniquesPage() {
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
           <div className="space-y-4">
-            {studyFaqs.map((faq, index) => (
+            {aiNotesFaqs.map((faq, index) => (
               <div key={index} className="bg-white p-6 brutal-border">
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
@@ -259,12 +259,9 @@ export default function StudyTechniquesPage() {
                   className="bg-gray-50 p-6 brutal-border hover-lift hover-scale transition-all cursor-pointer scroll-scale-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <h3 className="text-xl font-black mb-2 text-black">{feature.name}</h3>
-                  <p className="font-bold text-black-700 mb-4">{feature.desc}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-purple-600">EXPLORE {feature.name.toUpperCase()}</span>
-                    <ArrowRight className="w-4 h-4 text-purple-600" />
-                  </div>
+                  <h3 className="text-xl font-black mb-2">{feature.name}</h3>
+                  <p className="font-bold text-black-700">{feature.desc}</p>
+                  <ArrowRight className="w-5 h-5 mt-4 text-purple-500" />
                 </div>
               </Link>
             ))}
