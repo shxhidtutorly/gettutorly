@@ -96,13 +96,7 @@ const Navbar = ({ theme, toggleTheme }: { theme: "light" | "dark"; toggleTheme: 
                 <Settings className="w-4 h-4" />
               </Link>
 
-              {/* Notifications */}
-              <button
-                className={`p-2 border-2 border-black ${panelClasses}`}
-                style={{ boxShadow: "2px 2px 0px #000" }}
-              >
-                <BellIcon className="h-4 w-4" />
-              </button>
+            
 
               {/* Avatar */}
               <Link to="/profile">
