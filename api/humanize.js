@@ -172,7 +172,7 @@ Your final output MUST BE a single, valid JSON object with three fields: "rewrit
       {
         name: 'OpenRouter',
         apiKey: process.env.OPENROUTER_API_KEY,
-        model: process.env.OPENROUTER_MODEL || 'google/gemma-3n-e2b-it:free',
+        model: process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free',
         enabled: !!process.env.OPENROUTER_API_KEY,
         func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
       },
@@ -186,7 +186,7 @@ Your final output MUST BE a single, valid JSON object with three fields: "rewrit
       {
         name: 'TogetherAI',
         apiKey: process.env.TOGETHER_API_KEY,
-        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3-70b-chat-hf',
+        model: process.env.TOGETHER_MODEL || 'lgai/exaone-3-5-32b-instruct',
         enabled: !!process.env.TOGETHER_API_KEY,
         func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
       },
