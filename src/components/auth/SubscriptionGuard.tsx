@@ -4,43 +4,68 @@ import { useUser } from '@/hooks/useUser';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface SubscriptionGuardProps {
-  children: React.ReactNode;
+  children: React.ReactNode;
 }
 
+const publicPaths = ['/', '/signin', '/signup'];
+
 const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
-  const { user, isLoaded: isAuthLoaded, loading: authLoading } = useUser();
-  const { hasActiveSubscription, loading: subLoading } = useSubscription();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user, isLoaded: isAuthLoaded } = useUser();
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    // Wait for both auth and subscription to load
-    if (!isAuthLoaded || authLoading || subLoading) return;
+  const isLoading = !isAuthLoaded || subLoading;
 
-    // If not logged in, go to signin
-    if (!user) {
-      if (location.pathname !== '/signin' && location.pathname !== '/signup') {
-        navigate('/signin', {
-          state: { returnTo: location.pathname },
-          replace: true,
-        });
-      }
-      return;
-    }
+  useEffect(() => {
+    // Do nothing if we are still loading authentication or subscription status
+    if (isLoading) return;
 
-    // If logged in, send to dashboard during development
-    if (user) {
-      if (location.pathname !== '/dashboard') {
-        navigate('/dashboard', { replace: true });
-      }
-      return;
-    }
-  }, [user, isAuthLoaded, authLoading, hasActiveSubscription, subLoading, location.pathname, location.search, navigate]);
+    const isPublicPath = publicPaths.includes(location.pathname);
+    const isPricingPage = location.pathname === '/pricing';
+    const isDashboardPage = location.pathname === '/dashboard';
 
-  // Prevent flash while loading
-  if (!isAuthLoaded || authLoading || subLoading) return null;
+    // 1. If user is NOT logged in and not on a public path, redirect to signin
+    if (!user && !isPublicPath) {
+      navigate('/signin', {
+        state: { returnTo: location.pathname },
+        replace: true,
+      });
+      return;
+    }
 
-  return <>{children}</>;
+    // 2. If user IS logged in and has NO active subscription
+    if (user && !hasActiveSubscription) {
+      // If they are not already on the pricing page, redirect them
+      if (!isPricingPage) {
+        navigate('/pricing', { replace: true });
+      }
+      return;
+    }
+
+    // 3. If user IS logged in and HAS an active subscription
+    if (user && hasActiveSubscription) {
+      // If they are on the pricing page, they don't need to be, so redirect to dashboard
+      if (isPricingPage) {
+        navigate('/dashboard', { replace: true });
+      }
+      // If they are on a public path (like signin/signup), redirect them to the dashboard
+      if (isPublicPath && location.pathname !== '/') {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+
+    // All other cases (e.g., user is logged in, has subscription, and is on a protected route)
+    // will simply render the children without a redirect.
+  }, [isLoading, user, hasActiveSubscription, navigate, location.pathname]);
+
+  // Display a loading indicator or nothing while data is being fetched
+  if (isLoading) {
+    return null; // Or a loading spinner component
+  }
+
+  // Render the children if no redirect is needed
+  return <>{children}</>;
 };
 
 export default SubscriptionGuard;
