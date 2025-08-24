@@ -219,7 +219,7 @@ export default function StudyTechniquesPage() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black text-black mb-6">FAQs</h2>
+            <h2 className="text-4xl md:text-6xl font-black text-white mb-6">FAQs</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
           <div className="space-y-4">
