@@ -171,21 +171,21 @@ Your final output MUST BE a single, valid JSON object with three fields: "rewrit
     const providerConfig = [
       {
         name: 'OpenRouter',
-        apiKey: process.env.OPENROUTER_API_KEY,
+        apiKey: process.env.OPENROUTER_API_KEY2,
         model: process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free',
         enabled: !!process.env.OPENROUTER_API_KEY,
         func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
       },
       {
         name: 'Groq',
-        apiKey: process.env.GROQ_API_KEY,
+        apiKey: process.env.GROQ_API_KEY2,
         model: process.env.GROQ_MODEL || 'llama3-70b-8192',
         enabled: !!process.env.GROQ_API_KEY,
         func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
       },
       {
         name: 'TogetherAI',
-        apiKey: process.env.TOGETHER_API_KEY,
+        apiKey: process.env.TOGETHER_API_KEY2,
         model: process.env.TOGETHER_MODEL || 'lgai/exaone-3-5-32b-instruct',
         enabled: !!process.env.TOGETHER_API_KEY,
         func: (config) => callOpenAICompatible(config.name, config.apiKey, config.model, systemPrompt, userPrompt)
