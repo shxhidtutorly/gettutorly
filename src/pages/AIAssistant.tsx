@@ -621,18 +621,18 @@ const AIAssistant: React.FC = () => {
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: {
-            text: message.trim(),
-            files: fileData,
-          },
-          model: "gemini",
-          isCanvas: options?.isCanvas,
-        }),
-      })
+     const response = await fetch("/api/ai", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    prompt: {
+      text: actualInput.trim(),  // ✅ FIXED
+      files: fileData,
+    },
+    model: "gemini",
+    isCanvas: false, 
+  }),
+})
       const data = await response.json()
 
       // Generate AI response based on input
