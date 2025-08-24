@@ -67,7 +67,7 @@ interface UserProfile {
 }
 
 // --- Main Profile and Settings Component ---
-const ProfileAndSettings = () => {
+const Profile = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
   const { toast } = useToast();
