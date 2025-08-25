@@ -54,8 +54,6 @@ export default async function handler(req, res) {
     const aiResponse = await aiManager.getAIResponse(
       { text, files }, 
       model,
-      // The crucial line you needed to add for JSON output.
-      // This tells the AI model to explicitly return a JSON object.
       { response_format: 'json' }
     );
 
