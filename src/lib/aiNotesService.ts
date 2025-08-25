@@ -81,7 +81,6 @@ async function callAIProviders(prompt: string, userId?: string, timeoutMs = 9000
   // We prioritize them here.
   const providers = [
     { model: 'gemini' },
-    { model: 'claude' },
     { model: 'groq' },
     { model: 'openrouter' },
     { model: 'mistral' },
