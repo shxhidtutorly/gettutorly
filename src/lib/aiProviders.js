@@ -19,9 +19,9 @@ class AIProviderManager {
     };
 
     this.defaultModels = {
-      groq: 'llama-3.1-8b-instant', // Changed to a more reliable Groq model
+      groq: 'llama-3.1-8b-instant',
       gemini: 'gemini-1.5-flash-latest',
-      openrouter: 'google/gemma-2-9b-it:free', // Changed to a reliable free model
+      openrouter: 'google/gemma-2-9b-it:free',
       together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       mistral: 'open-mixtral-8x7b',
       nvidia: 'meta/llama3-8b-instruct',
@@ -32,8 +32,6 @@ class AIProviderManager {
     const keys = process.env[envVar];
     return keys ? keys.split(',').map(k => k.trim()).filter(Boolean) : [];
   }
-
-  // --- Utilities: Error Classification ---
 
   isTokenLimitError(err) {
     if (!err) return false;
@@ -47,14 +45,11 @@ class AIProviderManager {
     return msg.includes('invalid json') || msg.includes('incomplete json');
   }
 
-  // --- MAJOR FIX: New function to determine if an error should trigger a fallback ---
   isRetryableError(err) {
     return this.isTokenLimitError(err) || this.isInvalidContentError(err);
   }
 
-  // --- Main Entrypoint with new, robust fallback logic ---
   async getAIResponse(prompt, requestedModel, options = {}) {
-    // Default to 'text', but allow 'json' to be specified
     const responseFormat = options.response_format || 'text';
     const desiredMaxOutput = options.maxOutputTokens || 8000;
 
@@ -66,10 +61,9 @@ class AIProviderManager {
     for (const provider of fallbackProviders) {
       const keys = this.apiKeys[provider];
       if (!keys || keys.length === 0) {
-        continue; // Skip providers with no keys
+        continue;
       }
 
-      // Determine the correct model for this attempt
       let modelForThisAttempt = (this.getProviderForModel(requestedModel) === provider) 
         ? requestedModel 
         : this.defaultModels[provider];
@@ -79,7 +73,6 @@ class AIProviderManager {
         continue;
       }
 
-      // Try each key for the current provider
       for (const key of keys) {
         try {
           console.log(`Attempting provider: ${provider} with model: ${modelForThisAttempt}`);
@@ -92,18 +85,14 @@ class AIProviderManager {
             { ...options, maxTokens: desiredMaxOutput }
           );
 
-          // --- MAJOR FIX: Validate JSON response *inside* the loop ---
           if (responseFormat === 'json') {
             try {
-              // Test if the response is valid JSON
               JSON.parse(responseText); 
             } catch (jsonError) {
-              // If parsing fails, it's an incomplete response. Throw to trigger fallback.
               throw new Error(`Provider returned incomplete/invalid JSON.`);
             }
           }
           
-          // If we get here, the response is valid. Return it.
           console.log(`✅ Success with provider: ${provider}`);
           return { 
             message: responseText, 
@@ -115,13 +104,9 @@ class AIProviderManager {
           lastError = error;
           console.error(`Error with ${provider} (model: ${modelForThisAttempt}): ${error.message}`);
           
-          // --- MAJOR FIX: Check if the error is retryable ---
-          // If it's not a token or content error (e.g., invalid API key),
-          // stop trying with this provider and move to the next.
           if (!this.isRetryableError(error)) {
-            break; // Break from the key loop for this provider
+            break;
           }
-          // If it IS retryable, the loop will continue to the next key or provider.
         }
       }
     }
@@ -144,7 +129,6 @@ class AIProviderManager {
   }
 
   async callProvider(provider, prompt, apiKey, model, options = {}) {
-    // This is a simplified dispatcher now. The main logic is in getAIResponse.
     switch (provider) {
       case 'gemini':
         return this.callGemini(prompt, apiKey, model, options);
@@ -163,15 +147,17 @@ class AIProviderManager {
     }
   }
 
-  // --- Provider-specific Implementations ---
-
   async callGemini(prompt, apiKey, model, options = {}) {
+    const parts = [{ text: prompt.text }];
+    // Add file parts if they exist
+    if (prompt.files && prompt.files.length > 0) {
+      parts.push(...prompt.files.map(f => ({ fileData: { mimeType: f.mimeType, data: f.base64 } })));
+    }
     const finalModel = (prompt.files && prompt.files.length > 0) ? 'gemini-1.5-pro-latest' : model;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${finalModel}:generateContent?key=${apiKey}`;
     const body = {
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts }],
       generationConfig: {
-        // --- MAJOR FIX: Tell Gemini to output JSON when requested ---
         response_mime_type: options.response_format === 'json' ? "application/json" : "text/plain",
         temperature: options.temperature ?? 0.3,
         maxOutputTokens: options.maxTokens,
@@ -186,18 +172,30 @@ class AIProviderManager {
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!textResponse) throw new Error("Gemini returned an empty response.");
     
-    return textResponse; // Return raw text, no formatting removal
+    return textResponse;
   }
 
   async callOpenAICompatible(apiUrl, apiKey, model, prompt, options, providerName) {
+    const messages = [];
+
+    // Check for files and build message content for multimodal APIs
+    if (prompt.files && prompt.files.length > 0) {
+      const contentParts = [{ type: 'text', text: prompt.text }];
+      prompt.files.forEach(f => {
+        contentParts.push({ type: 'image_url', image_url: { url: `data:${f.mimeType};base64,${f.base64}` } });
+      });
+      messages.push({ role: 'user', content: contentParts });
+    } else {
+      messages.push({ role: 'user', content: prompt.text });
+    }
+
     const body = {
       model: model,
-      messages: [{ role: 'user', content: prompt }],
+      messages: messages,
       max_tokens: options.maxTokens,
       temperature: options.temperature ?? 0.3,
     };
 
-    // --- MAJOR FIX: Tell OpenAI-compatible APIs to output JSON when requested ---
     if (options.response_format === 'json') {
       body.response_format = { type: "json_object" };
     }
@@ -214,7 +212,7 @@ class AIProviderManager {
     const textResponse = data.choices?.[0]?.message?.content;
     if (!textResponse) throw new Error(`${providerName} returned an empty response.`);
     
-    return textResponse; // Return raw text, no formatting removal
+    return textResponse;
   }
 }
 
