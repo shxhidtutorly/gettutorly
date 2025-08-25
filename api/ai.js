@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-    const { prompt, model = 'gemini' } = body;
+    const { prompt, model } = body;
 
     let text, files;
     if (typeof prompt === 'string') {
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     }
 
     const aiResponse = await aiManager.getAIResponse(
-      { text, files }, 
+      { text, files },
       model,
       { response_format: 'json' }
     );
