@@ -44,7 +44,7 @@ class AIProviderManager {
     this.defaultModels = {
       groq: 'openai/gpt-oss-20b',
       gemini: 'gemini-1.5-flash-latest',
-      openrouter: 'mistralai/mistral-7b-instruct:free',
+      openrouter: 'openai/gpt-oss-20b:free',
       together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       mistral: 'open-mixtral-8x7b',
       nvidia: 'meta/llama3-8b-instruct',
@@ -203,9 +203,9 @@ class AIProviderManager {
       'llama-3.1-70b-versatile': 'groq',
       'mixtral-8x7b-32768': 'groq',
       // OpenRouter (Free models)
-      'mistralai/mistral-7b-instruct:free': 'openrouter',
+      'openai/gpt-oss-20b:free': 'openrouter',
       'google/gemma-7b-it:free': 'openrouter',
-      'nousresearch/nous-hermes-2-mixtral-8x7b-dpo': 'openrouter',
+      'mistralai/mistral-7b-instruct:free': 'openrouter',
       // Together
       'meta-llama/Llama-3-70b-chat-hf': 'together',
       'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': 'together',
