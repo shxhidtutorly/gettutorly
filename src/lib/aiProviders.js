@@ -19,9 +19,9 @@ class AIProviderManager {
     };
 
     this.defaultModels = {
-      groq: 'llama-3.1-8b-instant',
+      groq: 'openai/gpt-oss-20b',
       gemini: 'gemini-1.5-flash-latest',
-      openrouter: 'google/gemma-2-9b-it:free',
+      openrouter: 'openai/gpt-oss-20b:free',
       together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       mistral: 'open-mixtral-8x7b',
       nvidia: 'meta/llama3-8b-instruct',
@@ -30,7 +30,10 @@ class AIProviderManager {
 
   getKeysFromEnv(envVar) {
     const keys = process.env[envVar];
-    return keys ? keys.split(',').map(k => k.trim()).filter(Boolean) : [];
+    if (typeof keys !== 'string') {
+      return [];
+    }
+    return keys.split(',').map(k => k.trim()).filter(Boolean);
   }
 
   isTokenLimitError(err) {
@@ -64,10 +67,7 @@ class AIProviderManager {
         continue;
       }
 
-      let modelForThisAttempt = (this.getProviderForModel(requestedModel) === provider) 
-        ? requestedModel 
-        : this.defaultModels[provider];
-
+      const modelForThisAttempt = this.defaultModels[provider];
       if (!modelForThisAttempt) {
         console.warn(`No default model for provider: ${provider}. Skipping.`);
         continue;
@@ -76,34 +76,34 @@ class AIProviderManager {
       for (const key of keys) {
         try {
           console.log(`Attempting provider: ${provider} with model: ${modelForThisAttempt}`);
-          
+
           const responseText = await this.callProvider(
-            provider, 
-            prompt, 
-            key, 
-            modelForThisAttempt, 
+            provider,
+            prompt,
+            key,
+            modelForThisAttempt,
             { ...options, maxTokens: desiredMaxOutput }
           );
 
           if (responseFormat === 'json') {
             try {
-              JSON.parse(responseText); 
+              JSON.parse(responseText);
             } catch (jsonError) {
               throw new Error(`Provider returned incomplete/invalid JSON.`);
             }
           }
-          
+
           console.log(`✅ Success with provider: ${provider}`);
-          return { 
-            message: responseText, 
-            provider, 
-            model: modelForThisAttempt 
+          return {
+            message: responseText,
+            provider,
+            model: modelForThisAttempt
           };
 
         } catch (error) {
           lastError = error;
           console.error(`Error with ${provider} (model: ${modelForThisAttempt}): ${error.message}`);
-          
+
           if (!this.isRetryableError(error)) {
             break;
           }
@@ -115,12 +115,11 @@ class AIProviderManager {
     throw lastError || new Error('All API providers failed. Please check your API keys and network connection.');
   }
 
-
   getProviderForModel(model) {
     const modelProviderMap = {
       'gemini-1.5-flash-latest': 'gemini', 'gemini-1.5-pro-latest': 'gemini',
-      'llama-3.1-8b-instant': 'groq', 'llama-3.1-70b-versatile': 'groq', 'mixtral-8x7b-32768': 'groq',
-      'google/gemma-2-9b-it:free': 'openrouter', 'mistralai/mistral-7b-instruct:free': 'openrouter',
+      'openai/gpt-oss-20b': 'groq', 'llama-3.1-70b-versatile': 'groq', 'mixtral-8x7b-32768': 'groq',
+      'openai/gpt-oss-20b:free': 'openrouter', 'mistralai/mistral-7b-instruct:free': 'openrouter',
       'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': 'together', 'mistralai/Mixtral-8x7B-Instruct-v0.1': 'together',
       'open-mixtral-8x7b': 'mistral', 'mistral-small-latest': 'mistral',
       'meta/llama3-8b-instruct': 'nvidia', 'meta/llama3-70b-instruct': 'nvidia',
@@ -149,7 +148,6 @@ class AIProviderManager {
 
   async callGemini(prompt, apiKey, model, options = {}) {
     const parts = [{ text: prompt.text }];
-    // Add file parts if they exist
     if (prompt.files && prompt.files.length > 0) {
       parts.push(...prompt.files.map(f => ({ fileData: { mimeType: f.mimeType, data: f.base64 } })));
     }
@@ -165,20 +163,18 @@ class AIProviderManager {
     };
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await response.json();
-    
+
     if (!response.ok || data.error) throw new Error(`Gemini API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
     if (data.candidates?.[0]?.finishReason === 'MAX_TOKENS') throw new Error('Gemini finished due to MAX_TOKENS');
 
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!textResponse) throw new Error("Gemini returned an empty response.");
-    
+
     return textResponse;
   }
 
   async callOpenAICompatible(apiUrl, apiKey, model, prompt, options, providerName) {
     const messages = [];
-
-    // Check for files and build message content for multimodal APIs
     if (prompt.files && prompt.files.length > 0) {
       const contentParts = [{ type: 'text', text: prompt.text }];
       prompt.files.forEach(f => {
@@ -211,7 +207,7 @@ class AIProviderManager {
 
     const textResponse = data.choices?.[0]?.message?.content;
     if (!textResponse) throw new Error(`${providerName} returned an empty response.`);
-    
+
     return textResponse;
   }
 }
