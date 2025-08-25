@@ -152,32 +152,33 @@ export default function StudyTechniquesPage() {
         </div>
       </section>
 
+      
       {/* How It Helps Section */}
-      <section className="bg-white py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black text-black mb-6">How It Helps You</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+<section className="bg-white py-20">
+  <div className="max-w-7xl mx-auto px-4">
+    <div className="text-center mb-16 scroll-fade-in">
+      <h2 className="text-4xl md:text-6xl font-black text-black mb-6">How It Helps You</h2>
+      <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {howItHelps.map((item, index) => (
+        <div
+          key={index}
+          className="bg-black p-6 brutal-border hover-scale transition-all scroll-scale-in"
+          style={{ animationDelay: `${index * 0.1}s` }}
+        >
+          <div className="flex items-center mb-4">
+            <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mr-4">
+              <item.icon className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-2xl font-black text-white">{item.title}</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {howItHelps.map((item, index) => (
-              <div
-                key={index}
-                className="bg-gray-50 p-6 brutal-border hover-scale transition-all scroll-scale-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mr-4">
-                    <item.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-black">{item.title}</h3>
-                </div>
-                <p className="font-bold text-black-700">{item.desc}</p>
-              </div>
-            ))}
-          </div>
+          <p className="text-gray-200">{item.desc}</p>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* Techniques Grid */}
       <section className="bg-white py-20">
