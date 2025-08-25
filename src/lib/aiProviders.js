@@ -6,7 +6,6 @@ class AIProviderManager {
       'gemini',
       'openrouter',
       'together',
-      'claude',
       'mistral',
       'nvidia',
     ];
@@ -16,7 +15,6 @@ class AIProviderManager {
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
-      claude: this.getKeysFromEnv('CLAUDE_API_KEY'),
       openrouter: this.getKeysFromEnv('OPENROUTER_API_KEY'),
       together: this.getKeysFromEnv('TOGETHER_API_KEY'),
       mistral: this.getKeysFromEnv('MISTRAL_API_KEY'),
@@ -26,13 +24,12 @@ class AIProviderManager {
     // Provider max context/token capacity defaults
     // FIX: Removed the defunct 'cerebras' provider.
     this.defaultProviderMaxTokens = {
-      together: 7192,
-      gemini: 6192,
-      groq: 32768,
-      claude: 200000,
-      openrouter: 128000,
-      mistral: 32768,
-      nvidia: 32768,
+      together: 5192,
+      gemini: 2092,
+      groq: 2768,
+      openrouter: 3000,
+      mistral: 4268,
+      nvidia: 4278,
     };
 
     // Load effective max tokens (allow override via env var name MAX_TOKENS_{PROVIDER})
@@ -45,11 +42,10 @@ class AIProviderManager {
 
     // NEW: Default models for each provider. This is crucial for the fixed fallback logic.
     this.defaultModels = {
-      groq: 'llama-3.1-8b-instant',
+      groq: 'openai/gpt-oss-20b',
       gemini: 'gemini-1.5-flash-latest',
       openrouter: 'mistralai/mistral-7b-instruct:free',
       together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-      claude: 'claude-3-5-sonnet-20240620',
       mistral: 'open-mixtral-8x7b',
       nvidia: 'meta/llama3-8b-instruct',
     };
@@ -202,7 +198,7 @@ class AIProviderManager {
       'gemini-1.5-flash-latest': 'gemini',
       'gemini-1.5-pro-latest': 'gemini',
       // Groq
-      'llama3-8b-8192': 'groq',
+      'openai/gpt-oss-20b': 'groq',
       'llama-3.1-8b-instant': 'groq',
       'llama-3.1-70b-versatile': 'groq',
       'mixtral-8x7b-32768': 'groq',
@@ -214,10 +210,7 @@ class AIProviderManager {
       'meta-llama/Llama-3-70b-chat-hf': 'together',
       'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': 'together',
       'mistralai/Mixtral-8x7B-Instruct-v0.1': 'together',
-      // Claude
-      'claude-3-5-sonnet-20240620': 'claude',
-      'claude-3-opus-20240229': 'claude',
-      'claude-3-haiku-20240307': 'claude',
+     
       // Mistral
       'open-mistral-7b': 'mistral',
       'open-mixtral-8x7b': 'mistral',
