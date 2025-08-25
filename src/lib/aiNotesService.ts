@@ -1,4 +1,167 @@
 // src/lib/aiNotesService.ts
+
+// --- 1. UPDATED INTERFACES FOR STRUCTURED JSON OUTPUT ---
+
+/**
+ * Represents the structured content of the AI-generated notes.
+ * This is designed to be easily rendered in a UI.
+ */
+export interface AINoteContent {
+  title: string;
+  summary: string; // The executive summary
+  keyTakeaways: string[]; // List of key points
+  fullNotes: Array<{
+    heading: string;
+    content: string; // Detailed notes for this section in Markdown format
+  }>;
+  commonMistakes?: string[]; // Optional: List of common mistakes
+  formulas?: Array<{
+    formula: string; // e.g., "E = mc^2" (can contain LaTeX)
+    description: string;
+  }>;
+}
+
+/**
+ * Represents a single flashcard with a question and an answer.
+ */
+export interface Flashcard {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+/**
+ * Represents a single quiz question with multiple choice options.
+ */
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct: number; // 0-based index of the correct option
+  explanation: string; // Explanation for the correct answer
+}
+
+/**
+ * The main interface for a complete AI-generated note object.
+ * The 'content' is now a structured object instead of a string.
+ */
+export interface AINote {
+  id: string;
+  filename: string;
+  timestamp: string;
+  content: AINoteContent;
+  flashcards: Flashcard[];
+  quiz: QuizQuestion[];
+}
+
+
+// --- 2. CORE AI PROVIDER LOGIC (Largely Unchanged, but still robust) ---
+
+/**
+ * Small helper to perform fetch with a timeout.
+ */
+async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, timeoutMs = 90_000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+/**
+ * Attempts the configured providers in order until one returns a usable result.
+ */
+async function callAIProviders(prompt: string, userId?: string, timeoutMs = 90000): Promise<string> {
+  // Gemini and Claude are generally better at following structured JSON instructions.
+  // We prioritize them here.
+  const providers = [
+    { model: 'gemini' },
+    { model: 'groq' },
+    { model: 'openrouter' },
+    { model: 'mistral' },
+    { model: 'nvidia' },
+    { model: 'together' },
+    { model: 'cerebras' },
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const provider of providers) {
+    const body = {
+      prompt,
+      model: provider.model,
+      userId
+    };
+
+    try {
+      console.log(`🛰️ Trying provider: ${provider.model}`);
+      const resp = await fetchWithTimeout('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }, timeoutMs);
+
+      if (!resp.ok) {
+        let errText = `HTTP ${resp.status}`;
+        try {
+          const errJson = await resp.json();
+          errText = JSON.stringify(errJson).slice(0, 500);
+        } catch {
+          // fallback to text if json parsing fails
+          errText = await resp.text().catch(() => errText);
+        }
+        throw new Error(`${provider.model} returned an error: ${errText}`);
+      }
+
+      const data = await resp.json().catch(() => null);
+      
+      // Accept multiple common response shapes
+      const resultText = (data && (
+        data.result ||
+        data.response ||
+        data.summary ||
+        data.output ||
+        data.text ||
+        (typeof data === 'string' ? data : null)
+      )) ?? (data ? JSON.stringify(data) : null);
+
+
+      if (!resultText || resultText.trim().length < 20) {
+        throw new Error(`${provider.model} returned an empty or too-short response.`);
+      }
+
+      console.log(`✅ Success from ${provider.model}`);
+      return resultText;
+
+    } catch (err: any) {
+      const msg = (err && err.message) ? err.message : String(err);
+      console.warn(`❌ Provider ${provider.model} failed: ${msg}`);
+      lastError = err instanceof Error ? err : new Error(msg);
+      // continue to next provider
+    }
+  }
+
+  throw lastError ?? new Error('All AI providers failed to generate a response.');
+}
+
+
+// --- 3. REVISED AI NOTE GENERATION SERVICE ---
+
+/**
+ * Generates structured study notes, flashcards, and quizzes in a single AI call,
+ * requesting a JSON object for direct use in the UI.
+ *
+ * @param text The source text provided by the user.
+ * @param filename The name of the source file.
+ * @param userId An optional user ID for tracking.
+ * @returns A promise that resolves to a structured AINote object.
+ */
+// src/lib/aiNotesService.ts
 // ... (keep all the other code in the file, like interfaces and callAIProviders)
 
 /**
