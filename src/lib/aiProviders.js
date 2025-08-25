@@ -26,8 +26,8 @@ class AIProviderManager {
     // Provider max context/token capacity defaults
     // FIX: Removed the defunct 'cerebras' provider.
     this.defaultProviderMaxTokens = {
-      together: 8192,
-      gemini: 8192,
+      together: 7192,
+      gemini: 6192,
       groq: 32768,
       claude: 200000,
       openrouter: 128000,
