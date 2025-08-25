@@ -217,34 +217,34 @@ export default function StudyTechniquesPage() {
       </section>
       
       {/* FAQ Section */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black text-black mb-6">FAQs</h2>
-            <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
-          </div>
-          <div className="space-y-4">
-            {aiNotesFaqs.map((faq, index) => (
-              <div key={index} className="bg-white p-6 brutal-border">
-                <button
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full flex justify-between items-center font-black text-lg text-left"
-                >
-                  {faq.question}
-                  {openFaq === index ? (
-                    <Minus className="w-6 h-6" />
-                  ) : (
-                    <Plus className="w-6 h-6" />
-                  )}
-                </button>
-                {openFaq === index && (
-                  <p className="mt-4 font-bold text-gray-700">{faq.answer}</p>
-                )}
-              </div>
-            ))}
-          </div>
+<section className="bg-black py-20">
+  <div className="max-w-4xl mx-auto px-4">
+    <div className="text-center mb-16 scroll-fade-in">
+      <h2 className="text-4xl md:text-6xl font-black text-white mb-6">FAQs</h2>
+      <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
+    </div>
+    <div className="space-y-4">
+      {aiNotesFaqs.map((faq, index) => (
+        <div key={index} className="bg-white p-6 brutal-border">
+          <button
+            onClick={() => setOpenFaq(openFaq === index ? null : index)}
+            className="w-full flex justify-between items-center font-black text-lg text-left text-black"
+          >
+            {faq.question}
+            {openFaq === index ? (
+              <Minus className="w-6 h-6 text-black" />
+            ) : (
+              <Plus className="w-6 h-6 text-black" />
+            )}
+          </button>
+          {openFaq === index && (
+            <p className="mt-4 font-bold text-gray-700">{faq.answer}</p>
+          )}
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* Other Features */}
       <section className="bg-white py-20">
