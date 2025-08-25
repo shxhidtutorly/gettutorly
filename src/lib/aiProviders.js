@@ -1,6 +1,5 @@
 class AIProviderManager {
   constructor() {
-    // RE-ORDERED: Prioritize fast, free, and reliable providers first.
     this.providerOrder = [
       'groq',
       'gemini',
@@ -10,8 +9,6 @@ class AIProviderManager {
       'nvidia',
     ];
 
-    // Map of environment var names to provider keys
-    // FIX: Corrected typos for MISTRAL and NVIDIA env vars.
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
       groq: this.getKeysFromEnv('GROQ_API_KEY'),
@@ -21,30 +18,10 @@ class AIProviderManager {
       nvidia: this.getKeysFromEnv('NVIDIA_API_KEY'),
     };
 
-    // Provider max context/token capacity defaults
-    // FIX: Removed the defunct 'cerebras' provider.
-    this.defaultProviderMaxTokens = {
-      together: 5192,
-      gemini: 2092,
-      groq: 2768,
-      openrouter: 3000,
-      mistral: 4268,
-      nvidia: 4278,
-    };
-
-    // Load effective max tokens (allow override via env var name MAX_TOKENS_{PROVIDER})
-    this.providerMaxTokens = {};
-    Object.keys(this.defaultProviderMaxTokens).forEach((prov) => {
-      const envName = `MAX_TOKENS_${prov.toUpperCase()}`;
-      const envVal = process.env[envName];
-      this.providerMaxTokens[prov] = envVal ? parseInt(envVal, 10) : this.defaultProviderMaxTokens[prov];
-    });
-
-    // NEW: Default models for each provider. This is crucial for the fixed fallback logic.
     this.defaultModels = {
-      groq: 'openai/gpt-oss-20b',
+      groq: 'llama-3.1-8b-instant', // Changed to a more reliable Groq model
       gemini: 'gemini-1.5-flash-latest',
-      openrouter: 'openai/gpt-oss-20b:free',
+      openrouter: 'google/gemma-2-9b-it:free', // Changed to a reliable free model
       together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       mistral: 'open-mixtral-8x7b',
       nvidia: 'meta/llama3-8b-instruct',
@@ -53,306 +30,191 @@ class AIProviderManager {
 
   getKeysFromEnv(envVar) {
     const keys = process.env[envVar];
-    if (!keys) {
-      return [];
-    }
-    return keys.split(',').map(k => k.trim()).filter(Boolean);
+    return keys ? keys.split(',').map(k => k.trim()).filter(Boolean) : [];
   }
 
-  /* ----------------------------
-     Utilities: token estimation & error checks
-     ---------------------------- */
-
-  estimateTokens(text) {
-    if (!text) return 0;
-    if (typeof text !== 'string') text = String(text);
-    return Math.ceil(text.length / 4);
-  }
-
-  getProviderMaxTokens(provider) {
-    return this.providerMaxTokens[provider] || 8192;
-  }
-
-  getSafeMaxOutputTokens(provider, promptText, desiredMax) {
-    const providerLimit = this.getProviderMaxTokens(provider);
-    const promptTokens = this.estimateTokens(promptText);
-    const safe = Math.max(16, Math.min(desiredMax, providerLimit - promptTokens - 16));
-    return safe;
-  }
+  // --- Utilities: Error Classification ---
 
   isTokenLimitError(err) {
     if (!err) return false;
     const msg = (err.message || String(err)).toLowerCase();
-    return (
-      (msg.includes('tokens') && msg.includes('must')) ||
-      msg.includes('max_tokens') && (msg.includes('exceed') || msg.includes('must be')) ||
-      msg.includes('max_new_tokens') ||
-      msg.includes('max_output_tokens') ||
-      msg.includes('finishreason') && msg.includes('max') ||
-      msg.includes('max tokens') ||
-      msg.includes('input validation error') ||
-      msg.includes('context_length_exceeded')
-    );
+    return msg.includes('max_tokens') || msg.includes('context_length_exceeded') || (msg.includes('finishreason') && msg.includes('max'));
   }
 
-  removeMarkdownFormatting(text) {
-    if (typeof text !== 'string') {
-      return String(text || '');
-    }
-    text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '$1$2');
-    text = text.replace(/\*(.*?)\*|_(.*?)_/g, '$1$2');
-    text = text.replace(/^#+\s*(.*)$/gm, '$1');
-    text = text.replace(/```[\s\S]*?```/g, '');
-    text = text.replace(/`(.*?)`/g, '$1');
-    text = text.replace(/^[\*\-\+]\s*(.*)$/gm, '$1');
-    text = text.replace(/^\d+\.\s*(.*)$/gm, '$1');
-    text = text.replace(/^>\s*(.*)$/gm, '$1');
-    text = text.replace(/^[-\*\_]{3,}\s*$/gm, '');
-    text = text.split('\n').map(line => line.trim()).join('\n');
-    text = text.replace(/\n{3,}/g, '\n\n');
-    return text;
+  isInvalidContentError(err) {
+    if (!err) return false;
+    const msg = (err.message || String(err)).toLowerCase();
+    return msg.includes('invalid json') || msg.includes('incomplete json');
   }
 
-  /* ----------------------------
-     Main entrypoint: getAIResponse with fallback + retries
-     ---------------------------- */
+  // --- MAJOR FIX: New function to determine if an error should trigger a fallback ---
+  isRetryableError(err) {
+    return this.isTokenLimitError(err) || this.isInvalidContentError(err);
+  }
 
+  // --- Main Entrypoint with new, robust fallback logic ---
   async getAIResponse(prompt, requestedModel, options = {}) {
-    const requestedProvider = this.getProviderForModel(requestedModel) || this.providerOrder[0];
-    const uniqueProviders = new Set([requestedProvider, ...this.providerOrder]);
-    const fallbackProviders = Array.from(uniqueProviders);
-
-    let promptTextForEstimate = '';
-    if (typeof prompt === 'string') {
-      promptTextForEstimate = prompt;
-    } else if (prompt && typeof prompt === 'object' && prompt.text) {
-      promptTextForEstimate = prompt.text;
-    } else {
-      promptTextForEstimate = JSON.stringify(prompt || '');
-    }
-
+    // Default to 'text', but allow 'json' to be specified
+    const responseFormat = options.response_format || 'text';
     const desiredMaxOutput = options.maxOutputTokens || 8000;
+
+    const requestedProvider = this.getProviderForModel(requestedModel) || this.providerOrder[0];
+    const fallbackProviders = Array.from(new Set([requestedProvider, ...this.providerOrder]));
+
+    let lastError = null;
 
     for (const provider of fallbackProviders) {
       const keys = this.apiKeys[provider];
       if (!keys || keys.length === 0) {
-        continue;
+        continue; // Skip providers with no keys
       }
 
-      // *** MAJOR FIX START ***
-      // Determine the correct model to use for this specific provider attempt.
-      // If the originally requested model belongs to this provider, use it.
-      // Otherwise, use this provider's designated default model.
-      let modelForThisAttempt = requestedModel;
-      if (this.getProviderForModel(modelForThisAttempt) !== provider) {
-        modelForThisAttempt = this.defaultModels[provider];
-      }
+      // Determine the correct model for this attempt
+      let modelForThisAttempt = (this.getProviderForModel(requestedModel) === provider) 
+        ? requestedModel 
+        : this.defaultModels[provider];
 
       if (!modelForThisAttempt) {
-        console.error(`No default model configured for provider: ${provider}. Skipping.`);
+        console.warn(`No default model for provider: ${provider}. Skipping.`);
         continue;
       }
-      // *** MAJOR FIX END ***
 
-      for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-        const attemptMaxList = [
-          this.getSafeMaxOutputTokens(provider, promptTextForEstimate, desiredMaxOutput),
-          Math.max(16, Math.floor(desiredMaxOutput / 2)),
-          Math.max(16, Math.floor(desiredMaxOutput / 4)),
-          128,
-          32,
-        ].filter((v, idx, arr) => v > 0 && arr.indexOf(v) === idx);
+      // Try each key for the current provider
+      for (const key of keys) {
+        try {
+          console.log(`Attempting provider: ${provider} with model: ${modelForThisAttempt}`);
+          
+          const responseText = await this.callProvider(
+            provider, 
+            prompt, 
+            key, 
+            modelForThisAttempt, 
+            { ...options, maxTokens: desiredMaxOutput }
+          );
 
-        let lastError = null;
-
-        for (const attemptMax of attemptMaxList) {
-          try {
-            console.log(`Attempting provider: ${provider} with model: ${modelForThisAttempt}`);
-            const response = await this.callProvider(provider, prompt, key, modelForThisAttempt, { maxTokens: attemptMax });
-            return { message: response, provider, model: modelForThisAttempt, usedKeyIndex: i, usedMaxTokens: attemptMax };
-          } catch (error) {
-            lastError = error;
-            console.error(`Error with ${provider} (model: ${modelForThisAttempt}, key ${i+1}): ${error.message}`);
-            if (!this.isTokenLimitError(error)) {
-              break;
+          // --- MAJOR FIX: Validate JSON response *inside* the loop ---
+          if (responseFormat === 'json') {
+            try {
+              // Test if the response is valid JSON
+              JSON.parse(responseText); 
+            } catch (jsonError) {
+              // If parsing fails, it's an incomplete response. Throw to trigger fallback.
+              throw new Error(`Provider returned incomplete/invalid JSON.`);
             }
           }
-        }
-        if (lastError) {
-          continue;
+          
+          // If we get here, the response is valid. Return it.
+          console.log(`✅ Success with provider: ${provider}`);
+          return { 
+            message: responseText, 
+            provider, 
+            model: modelForThisAttempt 
+          };
+
+        } catch (error) {
+          lastError = error;
+          console.error(`Error with ${provider} (model: ${modelForThisAttempt}): ${error.message}`);
+          
+          // --- MAJOR FIX: Check if the error is retryable ---
+          // If it's not a token or content error (e.g., invalid API key),
+          // stop trying with this provider and move to the next.
+          if (!this.isRetryableError(error)) {
+            break; // Break from the key loop for this provider
+          }
+          // If it IS retryable, the loop will continue to the next key or provider.
         }
       }
     }
 
-    throw new Error('All API keys failed for all providers. Please check your API keys and network connection.');
+    console.error("All providers and keys failed.");
+    throw lastError || new Error('All API providers failed. Please check your API keys and network connection.');
   }
 
-  /* ----------------------------
-     Model -> provider mapping
-     ---------------------------- */
+
   getProviderForModel(model) {
-    // UPDATED: Modern, valid models. Removed Cerebras. Added more options.
     const modelProviderMap = {
-      // Gemini
-      'gemini-1.5-flash-latest': 'gemini',
-      'gemini-1.5-pro-latest': 'gemini',
-      // Groq
-      'openai/gpt-oss-20b': 'groq',
-      'llama-3.1-8b-instant': 'groq',
-      'llama-3.1-70b-versatile': 'groq',
-      'mixtral-8x7b-32768': 'groq',
-      // OpenRouter (Free models)
-      'openai/gpt-oss-20b:free': 'openrouter',
-      'google/gemma-7b-it:free': 'openrouter',
-      'mistralai/mistral-7b-instruct:free': 'openrouter',
-      // Together
-      'meta-llama/Llama-3-70b-chat-hf': 'together',
-      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': 'together',
-      'mistralai/Mixtral-8x7B-Instruct-v0.1': 'together',
-     
-      // Mistral
-      'open-mistral-7b': 'mistral',
-      'open-mixtral-8x7b': 'mistral',
-      'mistral-small-latest': 'mistral',
-      'mistral-large-latest': 'mistral',
-      // Nvidia
-      'meta/llama3-8b-instruct': 'nvidia',
-      'meta/llama3-70b-instruct': 'nvidia',
+      'gemini-1.5-flash-latest': 'gemini', 'gemini-1.5-pro-latest': 'gemini',
+      'llama-3.1-8b-instant': 'groq', 'llama-3.1-70b-versatile': 'groq', 'mixtral-8x7b-32768': 'groq',
+      'google/gemma-2-9b-it:free': 'openrouter', 'mistralai/mistral-7b-instruct:free': 'openrouter',
+      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': 'together', 'mistralai/Mixtral-8x7B-Instruct-v0.1': 'together',
+      'open-mixtral-8x7b': 'mistral', 'mistral-small-latest': 'mistral',
+      'meta/llama3-8b-instruct': 'nvidia', 'meta/llama3-70b-instruct': 'nvidia',
     };
-    return modelProviderMap[model] || model; // Fallback to model name as provider
+    return modelProviderMap[model] || model;
   }
 
-  /* ----------------------------
-     callProvider dispatcher
-     ---------------------------- */
   async callProvider(provider, prompt, apiKey, model, options = {}) {
-    let finalPromptForAPI = prompt;
-    if (typeof prompt === 'object' && prompt !== null) {
-      if (provider !== 'gemini') {
-        if (prompt.text !== undefined) {
-          finalPromptForAPI = prompt.text;
-        } else {
-          finalPromptForAPI = JSON.stringify(prompt);
-        }
-      }
-    } else if (typeof prompt !== 'string') {
-      finalPromptForAPI = String(prompt);
-    }
-
+    // This is a simplified dispatcher now. The main logic is in getAIResponse.
     switch (provider) {
       case 'gemini':
-        if (typeof finalPromptForAPI === 'string') {
-          return this.callGemini({ text: finalPromptForAPI }, apiKey, model, options);
-        }
-        return this.callGemini(finalPromptForAPI, apiKey, model, options);
+        return this.callGemini(prompt, apiKey, model, options);
       case 'groq':
-        return this.callGroq(finalPromptForAPI, apiKey, model, options);
-      case 'claude':
-        return this.callClaude(finalPromptForAPI, apiKey, model, options);
+        return this.callOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', apiKey, model, prompt, options, 'Groq');
       case 'openrouter':
-        return this.callOpenRouter(finalPromptForAPI, apiKey, model, options);
+        return this.callOpenAICompatible('https://openrouter.ai/api/v1/chat/completions', apiKey, model, prompt, options, 'OpenRouter');
       case 'together':
-        return this.callTogether(finalPromptForAPI, apiKey, model, options);
+        return this.callOpenAICompatible('https://api.together.xyz/v1/chat/completions', apiKey, model, prompt, options, 'Together.ai');
       case 'mistral':
-        return this.callMistral(finalPromptForAPI, apiKey, model, options);
+        return this.callOpenAICompatible('https://api.mistral.ai/v1/chat/completions', apiKey, model, prompt, options, 'Mistral');
       case 'nvidia':
-        return this.callNvidia(finalPromptForAPI, apiKey, model, options);
+        return this.callOpenAICompatible('https://integrate.api.nvidia.com/v1/chat/completions', apiKey, model, prompt, options, 'NVIDIA');
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
-  /* ----------------------------
-     Provider-specific implementations
-     ---------------------------- */
+  // --- Provider-specific Implementations ---
 
-  // Gemini
-  // FIX: Pass 'model' parameter for consistency, though internal logic overrides it.
-  async callGemini(promptObj, apiKey, model, options = {}) {
-    const parts = [];
-    if (promptObj.text) parts.push({ text: promptObj.text });
-    if (promptObj.files) {
-      for (const file of promptObj.files) {
-        parts.push({ inlineData: { mimeType: file.type, data: file.base64 } });
-      }
-    }
-    // Logic to auto-select Pro model for vision is good, retained.
-    const finalModel = (promptObj.files && promptObj.files.length > 0) ? 'gemini-1.5-pro-latest' : 'gemini-1.5-flash-latest';
+  async callGemini(prompt, apiKey, model, options = {}) {
+    const finalModel = (prompt.files && prompt.files.length > 0) ? 'gemini-1.5-pro-latest' : model;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${finalModel}:generateContent?key=${apiKey}`;
     const body = {
-      contents: [{ parts }],
+      contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
+        // --- MAJOR FIX: Tell Gemini to output JSON when requested ---
+        response_mime_type: options.response_format === 'json' ? "application/json" : "text/plain",
         temperature: options.temperature ?? 0.3,
-        maxOutputTokens: options.maxTokens || 8190,
+        maxOutputTokens: options.maxTokens,
       },
     };
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await response.json();
+    
     if (!response.ok || data.error) throw new Error(`Gemini API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
+    if (data.candidates?.[0]?.finishReason === 'MAX_TOKENS') throw new Error('Gemini finished due to MAX_TOKENS');
+
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!textResponse && data.candidates?.[0]?.finishReason === 'MAX_TOKENS') throw new Error('Gemini finished due to MAX_TOKENS');
-    return this.removeMarkdownFormatting(textResponse || '');
+    if (!textResponse) throw new Error("Gemini returned an empty response.");
+    
+    return textResponse; // Return raw text, no formatting removal
   }
 
-  // Generic function for OpenAI-compatible APIs
   async callOpenAICompatible(apiUrl, apiKey, model, prompt, options, providerName) {
+    const body = {
+      model: model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: options.maxTokens,
+      temperature: options.temperature ?? 0.3,
+    };
+
+    // --- MAJOR FIX: Tell OpenAI-compatible APIs to output JSON when requested ---
+    if (options.response_format === 'json') {
+      body.response_format = { type: "json_object" };
+    }
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: options.maxTokens,
-        temperature: options.temperature ?? 0.3,
-      }),
+      body: JSON.stringify(body),
     });
+
     const data = await response.json();
     if (!response.ok) throw new Error(`${providerName} API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
-    return this.removeMarkdownFormatting(data.choices?.[0]?.message?.content || '');
-  }
 
-  // Groq
-  async callGroq(prompt, apiKey, model, options = {}) {
-    return this.callOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', apiKey, model, prompt, options, 'Groq');
-  }
-
-  // Claude
-  async callClaude(prompt, apiKey, model, options = {}) {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: options.maxTokens,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: options.temperature ?? 0.3,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(`Claude API error: ${response.status} - ${data.error?.message || JSON.stringify(data)}`);
-    return this.removeMarkdownFormatting(data.content?.[0]?.text || '');
-  }
-
-  // OpenRouter
-  async callOpenRouter(prompt, apiKey, model, options = {}) {
-    return this.callOpenAICompatible('https://openrouter.ai/api/v1/chat/completions', apiKey, model, prompt, options, 'OpenRouter');
-  }
-
-  // Together.ai
-  async callTogether(prompt, apiKey, model, options = {}) {
-    // Note: Together.ai now uses a v1 endpoint similar to OpenAI
-    return this.callOpenAICompatible('https://api.together.xyz/v1/chat/completions', apiKey, model, prompt, options, 'Together.ai');
-  }
-
-  // Mistral
-  async callMistral(prompt, apiKey, model, options = {}) {
-    return this.callOpenAICompatible('https://api.mistral.ai/v1/chat/completions', apiKey, model, prompt, options, 'Mistral');
-  }
-
-  // Nvidia
-  async callNvidia(prompt, apiKey, model, options = {}) {
-    return this.callOpenAICompatible('https://integrate.api.nvidia.com/v1/chat/completions', apiKey, model, prompt, options, 'NVIDIA NIM');
+    const textResponse = data.choices?.[0]?.message?.content;
+    if (!textResponse) throw new Error(`${providerName} returned an empty response.`);
+    
+    return textResponse; // Return raw text, no formatting removal
   }
 }
 
