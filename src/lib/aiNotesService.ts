@@ -130,13 +130,14 @@ async function callAIProviders(prompt: string, userId?: string, timeoutMs = 9000
         (typeof data === 'string' ? data : null)
       )) ?? (data ? JSON.stringify(data) : null);
 
-
-      if (!resultText || resultText.trim().length < 20) {
+      // CRITICAL FIX: Ensure resultText is a string before calling .trim()
+      const sanitizedResultText = typeof resultText === 'string' ? resultText : '';
+      if (sanitizedResultText.trim().length < 20) {
         throw new Error(`${provider.model} returned an empty or too-short response.`);
       }
 
       console.log(`✅ Success from ${provider.model}`);
-      return resultText;
+      return sanitizedResultText;
 
     } catch (err: any) {
       const msg = (err && err.message) ? err.message : String(err);
@@ -151,18 +152,6 @@ async function callAIProviders(prompt: string, userId?: string, timeoutMs = 9000
 
 
 // --- 3. REVISED AI NOTE GENERATION SERVICE ---
-
-/**
- * Generates structured study notes, flashcards, and quizzes in a single AI call,
- * requesting a JSON object for direct use in the UI.
- *
- * @param text The source text provided by the user.
- * @param filename The name of the source file.
- * @param userId An optional user ID for tracking.
- * @returns A promise that resolves to a structured AINote object.
- */
-// src/lib/aiNotesService.ts
-// ... (keep all the other code in the file, like interfaces and callAIProviders)
 
 /**
  * Generates structured study notes, flashcards, and quizzes in a single AI call,
@@ -200,7 +189,7 @@ export async function generateNotesAI(text: string, filename: string, userId?: s
     "quiz": [
       {
         "question": "<Multiple choice question 1>",
-        "options": ["<Option A>", "<Option B>", "<Option C>", "<Option D>"],
+        "options": ["<Option A>", "<Option B>", "<Option B>", "<Option D>"],
         "correct": 0,
         "explanation": "<A brief explanation of why the answer is correct>"
       }
