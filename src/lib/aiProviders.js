@@ -11,8 +11,8 @@ class AIProviderManager {
 
     this.apiKeys = {
       gemini: this.getKeysFromEnv('GEMINI_API_KEY'),
-      groq: this.getKeysFromEnv('GROQ_API_KEY'),
-      openrouter: this.getKeysFromEnv('OPENROUTER_API_KEY'),
+      groq: this.getKeysFromEnv('GROQ_API_KEY2'),
+      openrouter: this.getKeysFromEnv('OPENROUTER_API_KEY2'),
       together: this.getKeysFromEnv('TOGETHER_API_KEY'),
       mistral: this.getKeysFromEnv('MISTRAL_API_KEY'),
       nvidia: this.getKeysFromEnv('NVIDIA_API_KEY'),
