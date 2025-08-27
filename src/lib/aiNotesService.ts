@@ -38,21 +38,25 @@ export interface AINote {
 // --- 2. DIRECT API CALLING LOGIC (No /api/ai) ---
 
 // Configuration for API keys from .env.local file
+// --- PASTE THIS SNIPPET AT THE TOP OF src/lib/aiNotesService.ts ---
+
+// Configuration for API keys from Vercel Environment Variables
+// It reads variables prefixed with VITE_ (e.g., VITE_GEMINI_API_KEY)
 const apiConfig = {
   gemini: {
-    apiKey: import.meta.env.GEMINI_API_KEY,
+    apiKey: import.meta.env.VITE_GEMINI_API_KEY,
     model: 'gemini-1.5-flash-latest',
   },
   groq: {
-    apiKey: import.meta.env.GROQ_API_KEY,
+    apiKey: import.meta.env.VITE_GROQ_API_KEY,
     model: 'openai/gpt-oss-20b',
   },
   mistral: {
-    apiKey: import.meta.env.MISTRAL_API_KEY,
+    apiKey: import.meta.env.VITE_MISTRAL_API_KEY,
     model: 'open-mixtral-8x7b',
   },
   openrouter: {
-    apiKey: import.meta.env.OPENROUTER_API_KEY,
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY,
     model: 'openai/gpt-oss-20b:free',
   },
 };
