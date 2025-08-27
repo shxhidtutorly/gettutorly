@@ -49,6 +49,8 @@ const Navbar = () => {
     { name: 'Tests & Quizzes', href: '/features/tests-quiz' },
     { name: 'Doubt Chain', href: '/features/doubt-chain' },
     { name: 'Study Methods', href: '/features/study-techniques' },
+     { name: 'Humanizer', href: '/features/humanizer' },
+
   ];
 
   return (
