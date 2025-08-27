@@ -15,7 +15,6 @@ export default async function handler(req, res) {
   let finalTranscript = null;
   let provider;
 
-  // --- Try AssemblyAI (Primary) ---
   try {
     const assemblyAIKey = process.env.ASSEMBLYAI_API_KEY;
     if (!assemblyAIKey) throw new Error("AssemblyAI API key not configured.");
