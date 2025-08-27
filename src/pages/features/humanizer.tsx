@@ -154,7 +154,7 @@ export default function Humanizer() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16 scroll-fade-in">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">See the Humanizer in Action</h2>
+            <h2 className="text-4xl md:text-6xl font-white mb-6 text-white">See the Humanizer in Action</h2>
             <div className="w-32 h-2 bg-purple-500 mx-auto"></div>
           </div>
 
