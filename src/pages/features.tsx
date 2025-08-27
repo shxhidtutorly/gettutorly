@@ -1,12 +1,44 @@
 import React from 'react';
-import { MessageSquare, FileText, Headphones, BookOpen, HelpCircle, Calculator, CreditCard, BrainCircuit, Feather, ArrowRight } from "lucide-react";
+import { 
+    MessageSquare, FileText, Headphones, BookOpen, HelpCircle, Calculator, 
+    CreditCard, BrainCircuit, Feather, ArrowRight, LayoutDashboard, Sparkles, Workflow 
+} from "lucide-react";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import Link from 'next/link';
 
 export default function FeaturesPage() {
-  // Array of all features with updated "AI Humanizer"
+  // Array of all features, now including the 3 new ones
   const coreFeatures = [
+    // --- NEW FEATURES ADDED AT THE TOP ---
+    {
+      icon: LayoutDashboard,
+      title: "Tutor Me",
+      desc: "Your all-in-one AI dashboard to manage documents and generate study tools.",
+      href: "/features/tutor-me",
+      color: "bg-violet-500",
+      iconBg: "bg-violet-100",
+      textColor: "text-black",
+    },
+    {
+      icon: Sparkles,
+      title: "Tutorly Assistant",
+      desc: "Chat with your documents and get instant, accurate answers from your own notes.",
+      href: "/features/tutorly-assistant",
+      color: "bg-blue-500",
+      iconBg: "bg-blue-100",
+      textColor: "text-black",
+    },
+    {
+      icon: Workflow,
+      title: "AI Content Processor",
+      desc: "Get YouTube transcripts and scrape any website's content with just a URL.",
+      href: "/features/ai-content-processor",
+      color: "bg-green-500",
+      iconBg: "bg-green-100",
+      textColor: "text-black",
+    },
+    // --- EXISTING FEATURES ---
     {
       icon: Calculator,
       title: "MATH SOLVER",
@@ -26,10 +58,10 @@ export default function FeaturesPage() {
       textColor: "text-black",
     },
     {
-      icon: Feather, // New Icon for Humanizer
+      icon: Feather,
       title: "AI HUMANIZER",
       desc: "Transform robotic AI text into authentic, human-like content and bypass AI detectors.",
-      href: "/features/humanizer", // Updated Path
+      href: "/features/humanizer",
       color: "bg-cyan-400",
       iconBg: "bg-cyan-100",
       textColor: "text-black",
@@ -90,7 +122,6 @@ export default function FeaturesPage() {
     },
   ];
 
-  // Reusable classes for brutalist elements
   const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
   const brutalistTransition = "transition-all duration-300 ease-in-out";
   const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
@@ -99,9 +130,7 @@ export default function FeaturesPage() {
     <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
       <Navbar />
 
-      {/* Hero Section with Enhanced Animations and Background */}
       <section className="bg-teal-300 text-black border-b-4 border-black relative overflow-hidden">
-         {/* Animated Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000012_1px,transparent_1px),linear-gradient(to_bottom,#00000012_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
         <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8 animate-slide-in" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #8b5cf6', animationDelay: '0.1s' }}>
@@ -113,13 +142,11 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Core Features Grid with Staggered Animations */}
       <section className="bg-stone-50 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-20">
              <h2 className="inline-block bg-amber-300 text-4xl md:text-6xl font-black mb-4 uppercase px-8 py-3 border-4 border-black">Core Tools</h2>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {coreFeatures.map((feature, index) => (
               <Link
@@ -129,15 +156,12 @@ export default function FeaturesPage() {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className={`h-full p-8 flex flex-col`}>
-                  {/* Interactive Icon with pulse on hover */}
                   <div className={`relative mb-6 w-20 h-20 flex items-center justify-center rounded-full ${feature.iconBg} border-4 border-black`}>
                       <div className={`absolute -top-2 -right-2 w-6 h-6 ${feature.color} rounded-full border-2 border-black group-hover:animate-ping`}></div>
                       <feature.icon className={`w-10 h-10 ${feature.textColor}`} strokeWidth={2.5} />
                   </div>
-                  
                   <h3 className={`text-2xl font-black mb-4 uppercase ${feature.textColor}`}>{feature.title}</h3>
                   <p className="text-lg font-bold leading-snug mb-6 flex-grow text-stone-700">{feature.desc}</p>
-                  
                   <div className={`mt-auto pt-4 border-t-2 border-dashed border-black/30 flex items-center justify-end ${feature.textColor}`}>
                     <span className="text-lg font-black uppercase">Explore</span>
                     <ArrowRight className="w-8 h-8 ml-3 transform group-hover:translate-x-2 transition-transform duration-300 group-hover:rotate-[-45deg]" />
@@ -149,7 +173,6 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* CTA Section with Enhanced Hover Effects */}
       <section className="bg-amber-400 text-black py-20 border-y-4 border-black">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-5xl md:text-7xl font-black mb-6 uppercase">Ready to Start?</h2>
