@@ -79,7 +79,6 @@ export default function App() {
       textColor: "text-black",
     },
   
-
   // Reusable classes for brutalist elements
   const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
   const brutalistTransition = "transition-all duration-300 ease-in-out";
