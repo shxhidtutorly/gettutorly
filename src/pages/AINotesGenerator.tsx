@@ -167,6 +167,8 @@ const QuizView = ({ questions }: { questions: QuizQuestion[] }) => {
   const select = (qi: number, oi: number) => {
     if (revealed[qi]) return;
     setAnswers(prev => ({ ...prev, [qi]: oi }));
+    // Automatically reveal the answer on selection for immediate feedback
+    setRevealed(prev => ({ ...prev, [qi]: true }));
   };
 
   return (
