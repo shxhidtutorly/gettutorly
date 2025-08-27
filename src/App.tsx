@@ -61,6 +61,11 @@ import FeaturesPage from './pages/features'
 import CompressFeature from "./pages/features/compress";
 import ConvertFeature from "./pages/features/convert";
 import HumanizerFeature from "./pages/features/humanizer";
+import AIContentProcessorFeature from "./pages/features/ai-content-processor";
+import TutorlyAssistantFeature from "./pages/features/tutorly-assistant";
+import TutormeFeature from "./pages/features/tutor-me";
+
+
 
 // CSS
 import "./css/animations.css";
@@ -97,6 +102,10 @@ const App = () => {
                 {/* Feature Pages (Public) */}
                 <Route path="/features/math-chat" element={<MathChatFeature />} />
                 <Route path="/features/humanizer" element={<HumanizerFeature />} />
+                <Route path="/features/tutor-me" element={<TutormeFeature />} />
+                <Route path="/features/tutorly-assistant" element={<TutorlyAssistantFeature />} />
+                <Route path="/features/ai-content-processor" element={<AIContentProcessorFeature />} />
+
                 <Route path="/features/ai-notes" element={<AiNotesFeature />} />
                 <Route path="/features/audio-recap" element={<AudioRecapFeature />} />
                 <Route path="/features/flashcard" element={<FlashcardFeature />} />
