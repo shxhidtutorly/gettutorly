@@ -78,16 +78,7 @@ export default function App() {
       iconBg: "bg-teal-100",
       textColor: "text-black",
     },
-    {
-      icon: FileSignature,
-      title: "ESSAY ASSISTANT",
-      desc: "Get help structuring, writing, and refining your essays with AI-powered suggestions.",
-      href: "/features/essay-assistant",
-      color: "bg-violet-500",
-      iconBg: "bg-violet-100",
-      textColor: "text-black",
-    },
-  ];
+  
 
   // Reusable classes for brutalist elements
   const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
