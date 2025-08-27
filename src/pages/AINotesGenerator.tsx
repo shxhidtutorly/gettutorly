@@ -4,9 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
 import {
   BookOpen,
   Loader2,
@@ -21,7 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  XCircle,
   RotateCw,
 } from "lucide-react";
 import { generateNotesAI, AINote, AINoteContent, Flashcard, QuizQuestion } from "@/lib/aiNotesService";
@@ -31,6 +27,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import * as pdfjs from "pdfjs-dist";
 import mammoth from "mammoth";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
 
 // pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.js', import.meta.url).toString();
@@ -130,37 +129,35 @@ const FileUploaderComponent = ({ onFileProcessed, isProcessing }: { onFileProces
 
 /* --------------------------- Views -------------------------------- */
 const NoteView = ({ content, sourceFilename }: { content: AINoteContent; sourceFilename: string; }) => (
-  <div className="h-full overflow-y-auto pr-4 -mr-4 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-neutral-800 p-2">
+  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full overflow-y-auto px-4 -mx-4 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-neutral-800">
     <header className="mb-8">
-      <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight">{content.title}</h1>
+      <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight">{content.title}</h1>
       <p className="text-neutral-400 mt-3 max-w-3xl">{content.summary}</p>
       <p className="text-xs text-neutral-500 mt-3">SOURCE: {sourceFilename}</p>
     </header>
 
-    <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-1 p-4 bg-neutral-950 border border-neutral-800 rounded-lg">
-        <h2 className="text-lg font-bold text-cyan-400 mb-3">Key Takeaways</h2>
-        <ul className="space-y-2">
-          {content.keyTakeaways.map((k, i) => (
-            <li key={i} className="flex items-start gap-3 text-neutral-300">
-              <CheckCircle2 className="w-5 h-5 text-lime-400 mt-1 flex-shrink-0" />
-              <span>{k}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="md:col-span-2 p-6 bg-neutral-950 border border-neutral-800 rounded-lg prose prose-invert max-w-none">
-        <h3 className="text-xl font-semibold mb-3 text-cyan-300">Full Notes</h3>
-        {content.fullNotes.map((s, idx) => (
-          <article key={idx} className="mb-6">
-            <h4 className="text-lg font-bold text-neutral-100 mb-2">{s.heading}</h4>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
-          </article>
+    <section className="mb-8">
+      <h2 className="text-2xl font-bold text-cyan-400 mb-4">Key Takeaways</h2>
+      <ul className="space-y-3">
+        {content.keyTakeaways.map((k, i) => (
+          <li key={i} className="flex items-start gap-3 text-neutral-300 bg-neutral-950 p-4 rounded-lg border border-neutral-800">
+            <CheckCircle2 className="w-5 h-5 text-lime-400 mt-1 flex-shrink-0" />
+            <span>{k}</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
-  </div>
+
+    <section className="mb-8 p-6 bg-neutral-950 border border-neutral-800 rounded-lg prose prose-invert max-w-none">
+      <h3 className="text-2xl font-semibold mb-6 text-cyan-300">Full Notes</h3>
+      {content.fullNotes.map((s, idx) => (
+        <article key={idx} className="mb-8">
+          <h4 className="text-xl font-bold text-neutral-100 mb-2">{s.heading}</h4>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
+        </article>
+      ))}
+    </section>
+  </motion.div>
 );
 
 const QuizView = ({ questions }: { questions: QuizQuestion[] }) => {
@@ -173,17 +170,18 @@ const QuizView = ({ questions }: { questions: QuizQuestion[] }) => {
   };
 
   return (
-    <div className="h-full overflow-y-auto pr-4 -mr-4 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-neutral-800 p-2 space-y-4">
-      {questions.length === 0 && <div className="text-neutral-500">No quiz questions generated.</div>}
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full overflow-y-auto px-4 -mx-4 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-neutral-800 space-y-6">
+      <h1 className="text-3xl font-bold text-center mb-6">Quiz</h1>
+      {questions.length === 0 && <div className="text-center text-neutral-500">No quiz questions generated.</div>}
       {questions.map((q, qi) => (
-        <div key={qi} className="p-4 bg-neutral-950 border border-neutral-800 rounded-lg">
-          <div className="font-bold text-neutral-100 mb-3">{qi + 1}. {q.question}</div>
-          <div className="space-y-2">
+        <div key={qi} className="p-6 bg-neutral-950 border border-neutral-800 rounded-lg">
+          <div className="font-bold text-neutral-100 text-lg mb-4">{qi + 1}. {q.question}</div>
+          <div className="space-y-3">
             {q.options.map((opt, oi) => {
               const sel = answers[qi] === oi;
               const isCorrect = q.correct === oi;
               const show = revealed[qi];
-              let className = 'w-full text-left p-3 border rounded-md transition-colors flex items-center gap-3';
+              let className = 'w-full text-left p-3 border rounded-lg transition-colors flex items-center gap-3';
               if (show) {
                 className += isCorrect ? ' bg-green-600/30 border-green-500 text-white' : (sel ? ' bg-red-600/30 border-red-500 text-white' : ' bg-neutral-800 border-neutral-700 text-neutral-300');
               } else if (sel) {
@@ -199,26 +197,15 @@ const QuizView = ({ questions }: { questions: QuizQuestion[] }) => {
               );
             })}
           </div>
-
-          <div className="mt-3">
-            {!revealed[qi] ? (
-              <button
-                disabled={answers[qi] == null}
-                onClick={() => setRevealed(prev => ({ ...prev, [qi]: true }))}
-                className="text-sm font-semibold text-lime-400 disabled:text-neutral-600"
-              >
-                Check Answer
-              </button>
-            ) : (
-              <div className="mt-2 text-sm text-neutral-300">
-                <div className="font-semibold">Correct: {String.fromCharCode(65 + q.correct)}. {q.options[q.correct]}</div>
-                <div className="text-neutral-400 mt-1">{q.explanation}</div>
-              </div>
-            )}
-          </div>
+          {revealed[qi] && (
+            <div className="mt-4 text-sm text-neutral-300">
+              <div className="font-semibold text-lime-400">Correct: {String.fromCharCode(65 + q.correct)}. {q.options[q.correct]}</div>
+              <div className="text-neutral-400 mt-1">{q.explanation}</div>
+            </div>
+          )}
         </div>
       ))}
-    </div>
+    </motion.div>
   );
 };
 
@@ -276,13 +263,12 @@ const FlashcardView = ({ flashcards }: { flashcards: Flashcard[] }) => {
   const backStyle: React.CSSProperties = {
     ...faceStyle,
     transform: 'rotateY(180deg)',
-    background: 'linear-gradient(180deg, rgba(6,95,70,0.12), rgba(6,78,59,0.08))',
-    border: '1px solid rgba(6,95,70,0.2)',
-    color: '#E6FFFA',
+    background: 'rgba(31,41,55,0.9)', // neutral-800
+    border: '1px solid rgba(71,85,105,0.6)', // neutral-700
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center gap-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full flex flex-col items-center justify-center gap-6">
       <div className="w-full max-w-lg h-64" style={cardContainerStyle}>
         <div style={flipperStyle} onClick={() => setFlipped(f => !f)} role="button" aria-pressed={flipped} className="cursor-pointer">
           {/* Front */}
@@ -312,7 +298,7 @@ const FlashcardView = ({ flashcards }: { flashcards: Flashcard[] }) => {
         </div>
         <button onClick={next} className="p-3 bg-neutral-800 rounded-full hover:bg-neutral-700 transition-colors"><ChevronRight /></button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -329,7 +315,7 @@ const AINotesGenerator = () => {
   const [note, setNote] = useState<AINote | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState<'note'|'quiz'|'flashcards'>('note');
+  const [activeTab, setActiveTab] = useState<'note'|'quiz'|'flashcards'|'input'>('input');
 
   useEffect(() => {
     try {
@@ -338,6 +324,7 @@ const AINotesGenerator = () => {
         const parsed = JSON.parse(saved) as { note: AINote; sourceFilename: string; };
         setNote(parsed.note);
         setSourceFilename(parsed.sourceFilename);
+        setActiveTab('note');
         toast({ title: "Loaded previous note", description: "Resuming from last session." });
       }
     } catch {
@@ -365,6 +352,7 @@ const AINotesGenerator = () => {
 
   const generateNotes = useCallback(async (text: string, filename: string) => {
     setIsLoading(true); setNote(null); setProgress(8);
+    setActiveTab('note');
 
     const progressInterval = setInterval(() => setProgress(p => Math.min(95, p + Math.random() * 7)), 450);
 
@@ -397,11 +385,11 @@ const AINotesGenerator = () => {
     md += `---\n\n## Quiz\n`;
     quiz.forEach((q, i) => {
       md += `${i+1}. ${q.question}\n`;
-      q.options.forEach((o, j) => md += `  - ${String.fromCharCode(65+j)}. ${o}\n`);
+      q.options.forEach((o, j) => md += `  - ${String.fromCharCode(65+j)}. ${o}\n`);
       md += `\n**Answer:** ${String.fromCharCode(65 + q.correct)}. ${q.options[q.correct]}\n\n`;
     });
     md += `\n## Flashcards\n`;
-    flashcards.forEach(f => md += `- Q: ${f.question}\n  - A: ${f.answer}\n`);
+    flashcards.forEach(f => md += `- Q: ${f.question}\n  - A: ${f.answer}\n`);
     return md;
   };
 
@@ -419,111 +407,90 @@ const AINotesGenerator = () => {
     toast({ title: "Download started" });
   };
 
-  const resetAll = () => { setSourceText(''); setSourceFilename('Pasted Text'); setNote(null); setInputType('upload'); };
+  const resetAll = () => { setSourceText(''); setSourceFilename('Pasted Text'); setNote(null); setActiveTab('input'); };
 
   const panelVariants = { hidden: { opacity: 0, y: -8 }, visible: { opacity: 1, y: 0, transition: { duration: 0.36 } }, exit: { opacity: 0, y: 8 } };
+
+  const renderContent = () => {
+    if (isLoading && !note) {
+      return (
+        <motion.div key="loading" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center gap-4 h-full">
+          <Loader2 className="w-14 h-14 animate-spin text-lime-400" />
+          <div className="text-center">
+            <h3 className="font-bold text-neutral-100">Generating…</h3>
+            <p className="text-neutral-400">This can take a few seconds depending on the model.</p>
+          </div>
+          <div className="w-full max-w-md h-2 rounded-full bg-neutral-800 overflow-hidden mt-3">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="h-full bg-lime-400" transition={{ ease: 'linear', duration: 0.6 }} />
+          </div>
+        </motion.div>
+      );
+    }
+    if (note) {
+      if (activeTab === 'note') return <NoteView content={note.content} sourceFilename={sourceFilename} />;
+      if (activeTab === 'quiz') return <QuizView questions={note.quiz} />;
+      if (activeTab === 'flashcards') return <FlashcardView flashcards={note.flashcards} />;
+    }
+    return (
+      <motion.div key="input-area" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6">
+        <div>
+          <h2 className="text-2xl font-bold">Provide Source</h2>
+          <p className="text-neutral-400 mt-1">Upload a file (PDF, DOCX, TXT, MD) or paste text.</p>
+        </div>
+        <div className="flex gap-3 items-center">
+          <button onClick={() => setInputType('upload')} className={`px-3 py-1 rounded-md font-semibold ${inputType === 'upload' ? 'bg-lime-400 text-black' : 'bg-neutral-800 text-neutral-300'}`}>Upload</button>
+          <button onClick={() => setInputType('text')} className={`px-3 py-1 rounded-md font-semibold ${inputType === 'text' ? 'bg-lime-400 text-black' : 'bg-neutral-800 text-neutral-300'}`}>Paste Text</button>
+        </div>
+        {inputType === 'upload' ? (
+          <FileUploaderComponent onFileProcessed={handleFileProcessed} isProcessing={isLoading} />
+        ) : (
+          <div className="flex flex-col gap-3">
+            <textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} rows={10} placeholder="Paste your article, transcript or notes here..." className="w-full resize-none p-4 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 placeholder-neutral-500 focus:outline-none" />
+            <ActionButton onClick={handleTextSubmit} icon={Sparkles} isLoading={isLoading}>Generate Notes</ActionButton>
+          </div>
+        )}
+      </motion.div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-neutral-200">
       <Navbar />
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+        <div className="w-full max-w-4xl mx-auto">
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
             <h1 className="text-3xl md:text-5xl font-black flex items-center justify-center gap-4">
               <BrainCircuit className="w-10 h-10 text-lime-400"/> AI Notes Generator
             </h1>
-            <p className="text-neutral-400 mt-2 max-w-3xl mx-auto">Upload or paste text and get structured notes, quizzes and flashcards — optimized for mobile & dark mode.</p>
+            <p className="text-neutral-400 mt-2 max-w-3xl mx-auto">Upload or paste text and get structured notes, quizzes and flashcards.</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* LEFT: Input / Actions */}
-            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-lg min-h-[64vh] flex flex-col">
-              <AnimatePresence mode="wait">
-                {!note ? (
-                  <motion.div key="input" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-6">
-                    <div>
-                      <h2 className="text-2xl font-bold">1. Provide Source</h2>
-                      <p className="text-neutral-400 mt-1">Upload a file (PDF, DOCX, TXT, MD) or paste text.</p>
-                    </div>
-
-                    <div className="flex gap-3 items-center">
-                      <button onClick={() => setInputType('upload')} className={`px-3 py-1 rounded-md font-semibold ${inputType === 'upload' ? 'bg-lime-400 text-black' : 'bg-neutral-800 text-neutral-300'}`}>Upload</button>
-                      <button onClick={() => setInputType('text')} className={`px-3 py-1 rounded-md font-semibold ${inputType === 'text' ? 'bg-lime-400 text-black' : 'bg-neutral-800 text-neutral-300'}`}>Paste Text</button>
-                    </div>
-
-                    {inputType === 'upload' ? (
-                      <FileUploaderComponent onFileProcessed={handleFileProcessed} isProcessing={isLoading} />
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        <textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} rows={10} placeholder="Paste your article, transcript or notes here..." className="w-full resize-none p-4 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 placeholder-neutral-500 focus:outline-none" />
-                        <div className="grid grid-cols-2 gap-3">
-                          <ActionButton onClick={handleTextSubmit} icon={Sparkles} isLoading={isLoading}>Generate Notes</ActionButton>
-                          <button onClick={() => { setSourceText(''); setSourceFilename('Pasted Text'); }} className="p-3 rounded-lg border border-neutral-800 bg-neutral-800 text-neutral-300">Clear</button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-auto">
-                      <p className="text-sm text-neutral-500 mb-2">Tip: For best results keep source ≤ 100k characters — split large files into sections.</p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="actions" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-4">
-                    <h2 className="text-2xl font-bold">Actions</h2>
-                    <p className="text-neutral-400">Your materials are ready. Download, create new or view tabs on the right.</p>
-                    <div className="grid grid-cols-1 gap-3">
-                      <ActionButton onClick={downloadNotes} icon={Download}>Download All (.md)</ActionButton>
-                      <button onClick={resetAll} className="w-full p-3 rounded-lg border border-neutral-800 bg-neutral-800 text-neutral-200 font-semibold">Start Over</button>
-                    </div>
-                    <div className="text-xs text-neutral-500 mt-4">Generated: {note && new Date(note.timestamp).toLocaleString()}</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          {note && (
+            <div className="flex justify-center gap-4 mb-6">
+              <button onClick={() => setActiveTab('note')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'note' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-950'}`}>
+                <BookOpen className="inline w-4 h-4 mr-2"/> Note
+              </button>
+              <button onClick={() => setActiveTab('quiz')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'quiz' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-950'}`}>
+                <HelpCircle className="inline w-4 h-4 mr-2"/> Quiz
+              </button>
+              <button onClick={() => setActiveTab('flashcards')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'flashcards' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-950'}`}>
+                <Zap className="inline w-4 h-4 mr-2"/> Flashcards
+              </button>
             </div>
+          )}
 
-            {/* RIGHT: Output */}
-            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-lg min-h-[64vh] flex flex-col">
-              <AnimatePresence mode="wait">
-                {isLoading && !note ? (
-                  <motion.div key="loading" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center gap-4 h-full">
-                    <Loader2 className="w-14 h-14 animate-spin text-lime-400" />
-                    <div className="text-center">
-                      <h3 className="font-bold text-neutral-100">Generating…</h3>
-                      <p className="text-neutral-400">This can take a few seconds depending on the model.</p>
-                    </div>
-                    <div className="w-full max-w-md h-2 rounded-full bg-neutral-800 overflow-hidden mt-3">
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="h-full bg-lime-400" transition={{ ease: 'linear', duration: 0.6 }} />
-                    </div>
-                  </motion.div>
-                ) : note ? (
-                  <motion.div key="note" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                    {/* Tabs */}
-                    <div className="flex items-center gap-4 border-b border-neutral-800 pb-3 mb-4">
-                      <button onClick={() => setActiveTab('note')} className={`px-3 py-2 rounded-md font-semibold ${activeTab === 'note' ? 'bg-neutral-800 text-white' : 'text-neutral-400'}`}><BookOpen className="inline w-4 h-4 mr-1"/> Note</button>
-                      <button onClick={() => setActiveTab('quiz')} className={`px-3 py-2 rounded-md font-semibold ${activeTab === 'quiz' ? 'bg-neutral-800 text-white' : 'text-neutral-400'}`}><HelpCircle className="inline w-4 h-4 mr-1"/> Quiz</button>
-                      <button onClick={() => setActiveTab('flashcards')} className={`px-3 py-2 rounded-md font-semibold ${activeTab === 'flashcards' ? 'bg-neutral-800 text-white' : 'text-neutral-400'}`}><Zap className="inline w-4 h-4 mr-1"/> Flashcards</button>
-                    </div>
-
-                    <div className="flex-1 overflow-hidden">
-                      <AnimatePresence mode="wait">
-                        <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.28 }} className="h-full">
-                          {activeTab === 'note' && <NoteView content={note.content} sourceFilename={sourceFilename} />}
-                          {activeTab === 'quiz' && <QuizView questions={note.quiz} />}
-                          {activeTab === 'flashcards' && <FlashcardView flashcards={note.flashcards} />}
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="placeholder" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center gap-4 h-full text-center text-neutral-500">
-                    <Sparkles className="w-16 h-16 text-lime-400" />
-                    <div className="text-lg font-semibold">Your notes will appear here</div>
-                    <div>Upload a file or paste text to generate structured notes, quizzes and flashcards.</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+          <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-lg min-h-[70vh] flex flex-col">
+            <AnimatePresence mode="wait">
+              {renderContent()}
+            </AnimatePresence>
           </div>
+          
+          {note && (
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <ActionButton onClick={downloadNotes} icon={Download}>Download All (.md)</ActionButton>
+              <button onClick={resetAll} className="w-full p-3 rounded-lg border border-neutral-800 bg-neutral-800 text-neutral-200 font-semibold hover:bg-neutral-700">Start Over</button>
+            </div>
+          )}
         </div>
       </main>
 
