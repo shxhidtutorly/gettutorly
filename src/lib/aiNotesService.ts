@@ -34,84 +34,125 @@ export interface AINote {
   quiz: QuizQuestion[];
 }
 
-// --- 2. SELF-CONTAINED AI CALLING LOGIC ---
+
+// --- 2. DIRECT API CALLING LOGIC (No /api/ai) ---
+
+// Configuration for API keys from .env.local file
+const apiConfig = {
+  gemini: {
+    apiKey: import.meta.env.GEMINI_API_KEY,
+    model: 'gemini-1.5-flash-latest',
+  },
+  groq: {
+    apiKey: import.meta.env.GROQ_API_KEY,
+    model: 'openai/gpt-oss-20b',
+  },
+  mistral: {
+    apiKey: import.meta.env.MISTRAL_API_KEY,
+    model: 'open-mixtral-8x7b',
+  },
+  openrouter: {
+    apiKey: import.meta.env.OPENROUTER_API_KEY,
+    model: 'openai/gpt-oss-20b:free',
+  },
+};
 
 /**
- * Helper to perform fetch with a timeout.
+ * Tries a list of AI providers in order until one returns a valid response.
+ * This version calls the provider APIs directly from the client.
  */
-async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, timeoutMs = 90_000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort("Request timed out"), timeoutMs);
-  try {
-    const response = await fetch(input, { ...init, signal: controller.signal });
-    return response;
-  } finally {
-    clearTimeout(id);
-  }
-}
+async function callAIWithFallback(prompt: string): Promise<string> {
+  const providersToTry: (keyof typeof apiConfig)[] = ['gemini', 'groq', 'openrouter', 'mistral'];
+  let lastError: Error | null = new Error("No API keys are configured. Please check your .env.local file.");
 
-/**
- * Tries a list of AI models in order until one returns a valid response.
- * This function calls your local /api/ai endpoint.
- */
-async function callAIWithFallback(prompt: string, userId?: string): Promise<string> {
-  // Model priority list: Gemini is first, followed by fast/reliable fallbacks.
-  const modelsToTry = [
-    'gemini',
-    'groq',
-    'openrouter',
-    'claude', // Good for structured data
-    'mistral',
-  ];
+  for (const provider of providersToTry) {
+    const config = apiConfig[provider];
+    if (!config || !config.apiKey) {
+      console.warn(`API key for ${provider} is missing. Skipping.`);
+      continue;
+    }
 
-  let lastError: Error | null = null;
-
-  for (const model of modelsToTry) {
     try {
-      console.log(`🛰️ Trying model: ${model}`);
-      const resp = await fetchWithTimeout('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model, userId, response_format: 'json' }) // IMPORTANT: We request JSON format
-      });
+      console.log(`🛰️ Trying provider: ${provider}`);
+      let responseText: string;
 
-      if (!resp.ok) {
-        throw new Error(`API returned HTTP ${resp.status} for model ${model}`);
+      if (provider === 'gemini') {
+        responseText = await callGeminiAPI(prompt, config.apiKey, config.model);
+      } else {
+        // Groq, Mistral, and OpenRouter use an OpenAI-compatible API format
+        responseText = await callOpenAICompatibleAPI(provider, prompt, config.apiKey, config.model);
       }
 
-      const data = await resp.json();
-      const resultText = data.response || data.result || data.message;
-
-      if (!resultText || typeof resultText !== 'string' || resultText.trim().length < 20) {
-        throw new Error(`Model ${model} returned an empty or invalid response.`);
+      if (!responseText || responseText.trim().length < 20) {
+        throw new Error(`Provider ${provider} returned an empty or invalid response.`);
       }
 
-      console.log(`✅ Success from model: ${model}`);
-      return resultText;
+      console.log(`✅ Success from provider: ${provider}`);
+      return responseText;
 
     } catch (err: any) {
-      console.warn(`❌ Model ${model} failed: ${err.message}`);
+      console.error(`❌ Provider ${provider} failed: ${err.message}`);
       lastError = err;
-      // Continue to the next model in the list
     }
   }
 
-  throw lastError ?? new Error('All AI models failed to generate a response.');
+  throw lastError;
 }
+
+
+// --- Provider-Specific Helper Functions ---
+
+async function callGeminiAPI(prompt: string, apiKey: string, model: string): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      response_mime_type: "application/json",
+      temperature: 0.4,
+    },
+  };
+  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await response.json();
+  if (!response.ok || data.error) {
+    throw new Error(`Gemini API error: ${data.error?.message || 'Unknown error'}`);
+  }
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
+async function callOpenAICompatibleAPI(provider: 'groq' | 'mistral' | 'openrouter', prompt: string, apiKey: string, model: string): Promise<string> {
+  const endpoints = {
+    groq: 'https://api.groq.com/openai/v1/chat/completions',
+    mistral: 'https://api.mistral.ai/v1/chat/completions',
+    openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+  };
+
+  const url = endpoints[provider];
+  const body = {
+    model: model,
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: "json_object" },
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`${provider} API error: ${data.error?.message || 'Unknown error'}`);
+  }
+  return data.choices?.[0]?.message?.content || "";
+}
+
 
 // --- 3. MAIN EXPORTED FUNCTION (Used by your React component) ---
 
 /**
- * Generates structured study notes by calling the AI with a JSON-focused prompt.
+ * Generates structured study notes by calling AI providers directly.
  */
-export async function generateNotesAI(text: string, filename: string, userId?: string): Promise<AINote> {
-  
-  const jsonSchema = `{
-    "content": { ... },
-    "flashcards": [ ... ],
-    "quiz": [ ... ]
-  }`; // A summary for brevity in the prompt
-
+export async function generateNotesAI(text: string, filename: string): Promise<AINote> {
   const prompt = `You are an expert AI study assistant. Your task is to analyze the following source text and generate a structured JSON object containing comprehensive study materials.
 Follow the provided JSON schema precisely. Your output MUST be a single, complete, valid JSON object and nothing else.
 
@@ -142,9 +183,8 @@ ${text}
 `;
 
   try {
-    const aiResponseString = await callAIWithFallback(prompt, userId);
+    const aiResponseString = await callAIWithFallback(prompt);
 
-    // Robustly find and parse the JSON from the AI's response string
     const jsonMatch = aiResponseString.match(/```json\s*([\s\S]*?)\s*```|({[\s\S]*})/);
     if (!jsonMatch) {
       throw new Error('AI response did not contain a recognizable JSON object.');
@@ -153,7 +193,6 @@ ${text}
     const extractedJson = jsonMatch[1] || jsonMatch[2];
     const parsed = JSON.parse(extractedJson);
 
-    // Validate and sanitize the parsed data to prevent UI crashes
     const finalNote: AINote = {
       id: Date.now().toString(),
       filename: filename,
