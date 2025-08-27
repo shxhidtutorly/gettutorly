@@ -1,250 +1,169 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { 
-    MessageSquare, 
-    FileText, 
-    Headphones, 
-    BookOpen, 
-    HelpCircle, 
-    Calculator, 
-    Zap, 
-    BrainCircuit, 
-    Wand2, // New icon for Humanizer
-    ArrowRight 
-} from "lucide-react";
-import Navbar from "@/components/layout/Navbar"; // Corrected import name
-import { Footer } from "@/components/layout/Footer"; // Corrected import name
+import { MessageSquare, FileText, Headphones, BookOpen, HelpCircle, Calculator, CreditCard, BrainCircuit, Feather, ArrowRight } from "lucide-react";
+import Navbar from "@/components/navbar";
+import { Footer } from "@/components/footer";
+import Link from 'next/link';
 
-// --- Main Component ---
-export default function AllFeaturesPage() {
-    
-  // Updated array of all features, with "AI Humanizer" replacing the old feature
-  const allFeatures = [
+export default function FeaturesPage() {
+  // Array of all features with updated "AI Humanizer"
+  const coreFeatures = [
     {
       icon: Calculator,
-      title: "Math Solver",
+      title: "MATH SOLVER",
       desc: "Solve complex math problems with step-by-step AI explanations and visual solutions.",
       href: "/features/math-chat",
-      color: "hsl(280, 80%, 60%)", // Fuchsia
-      glowColor: "hsl(280, 80%, 70%)",
+      color: "bg-fuchsia-400",
+      iconBg: "bg-fuchsia-100",
+      textColor: "text-black",
     },
     {
       icon: FileText,
-      title: "AI Notes Generator",
+      title: "AI NOTES",
       desc: "Generate smart, structured notes from any document, lecture, or study material instantly.",
       href: "/features/ai-notes",
-      color: "hsl(200, 90%, 60%)", // Sky
-      glowColor: "hsl(200, 90%, 70%)",
+      color: "bg-sky-400",
+      iconBg: "bg-sky-100",
+      textColor: "text-black",
     },
     {
-      icon: Headphones,
-      title: "Audio Recap",
-      desc: "Convert audio recordings and lectures into organized notes and summaries.",
-      href: "/features/audio-recap",
-      color: "hsl(150, 70%, 50%)", // Emerald
-      glowColor: "hsl(150, 70%, 60%)",
+      icon: Feather, // New Icon for Humanizer
+      title: "AI HUMANIZER",
+      desc: "Transform robotic AI text into authentic, human-like content and bypass AI detectors.",
+      href: "/features/humanizer", // Updated Path
+      color: "bg-cyan-400",
+      iconBg: "bg-cyan-100",
+      textColor: "text-black",
     },
     {
       icon: BookOpen,
-      title: "AI Summarizer",
+      title: "SUMMARIZER",
       desc: "Quickly summarize any text, article, or document into key points and insights.",
       href: "/features/summaries",
-      color: "hsl(45, 100%, 55%)", // Amber
-      glowColor: "hsl(45, 100%, 65%)",
+      color: "bg-amber-400",
+      iconBg: "bg-amber-100",
+      textColor: "text-black",
     },
     {
-      icon: Zap,
-      title: "Flashcards Generator",
+      icon: CreditCard,
+      title: "FLASHCARDS",
       desc: "Create and review adaptive flashcards that evolve based on your learning progress.",
       href: "/features/flashcard",
-      color: "hsl(25, 95%, 60%)", // Orange
-      glowColor: "hsl(25, 95%, 70%)",
+      color: "bg-orange-500",
+      iconBg: "bg-orange-100",
+      textColor: "text-black",
     },
     {
       icon: HelpCircle,
-      title: "Tests & Quizzes",
+      title: "TESTS & QUIZZES",
       desc: "Test your knowledge with AI-generated quizzes based on your study materials.",
       href: "/features/tests-quiz",
-      color: "hsl(345, 85%, 65%)", // Rose
-      glowColor: "hsl(345, 85%, 75%)",
+      color: "bg-rose-500",
+      iconBg: "bg-rose-100",
+      textColor: "text-black",
     },
     {
       icon: MessageSquare,
-      title: "Doubt Chain Solver",
+      title: "DOUBT CHAIN",
       desc: "Break down complex concepts into simple, connected steps for better understanding.",
       href: "/features/doubt-chain",
-      color: "hsl(250, 80%, 65%)", // Indigo
-      glowColor: "hsl(250, 80%, 75%)",
+      color: "bg-indigo-500",
+      iconBg: "bg-indigo-100",
+      textColor: "text-black",
     },
     {
       icon: BrainCircuit,
-      title: "Study Techniques",
+      title: "STUDY TECHNIQUES",
       desc: "Discover and apply proven learning methods like Feynman & Pomodoro tailored to your content.",
       href: "/features/study-techniques",
-      color: "hsl(170, 70%, 50%)", // Teal
-      glowColor: "hsl(170, 70%, 60%)",
+      color: "bg-teal-400",
+      iconBg: "bg-teal-100",
+      textColor: "text-black",
     },
-    {
-      icon: Wand2, // Replaced icon
-      title: "AI Humanizer", // Replaced title
-      desc: "Refine AI-generated text to have a more natural, human-like tone and style.",
-      href: "/features/humanizer", // Replaced href
-      color: "hsl(100, 80%, 60%)", // Lime
-      glowColor: "hsl(100, 80%, 70%)",
+     {
+      icon: Headphones,
+      title: "AUDIO RECAP",
+      desc: "Convert audio recordings and lectures into organized notes and summaries.",
+      href: "/features/audio-recap",
+      color: "bg-emerald-400",
+      iconBg: "bg-emerald-100",
+      textColor: "text-black",
     },
   ];
 
-  // --- Framer Motion Animation Variants ---
-
-  const heroContainerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-  
-  const heroItemVariants = {
-      hidden: { opacity: 0, y: 20 },
-      visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-  };
-  
-  const gridContainerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 50, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        duration: 0.5,
-        ease: [0.25, 1, 0.5, 1], // a nice ease-out cubic bezier
-      },
-    },
-  };
-
+  // Reusable classes for brutalist elements
+  const brutalistShadow = "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]";
+  const brutalistTransition = "transition-all duration-300 ease-in-out";
+  const brutalistHover = "hover:shadow-none hover:-translate-x-1 hover:-translate-y-1";
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-200 font-sans selection:bg-cyan-400 selection:text-black">
+    <div className="min-h-screen bg-stone-50 text-black font-mono selection:bg-amber-400 selection:text-black">
       <Navbar />
-      
-      {/* --- Hero Section --- */}
-      <section className="relative text-white border-b-2 border-gray-800 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <motion.div 
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 10, 0],
-              x: ['-10%', '10%', '-10%'],
-            }}
-            transition={{
-              duration: 20,
-              ease: "easeInOut",
-              repeat: Infinity,
-              repeatType: "mirror"
-            }}
-            className="absolute top-1/2 left-1/2 w-[60rem] h-[60rem] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-tr from-cyan-500/30 via-violet-500/30 to-rose-500/30 rounded-full blur-3xl opacity-40" 
-          />
-        </div>
-        <div className="max-w-7xl mx-auto px-6 text-center py-24 md:py-32 relative z-10">
-          <motion.div
-            variants={heroContainerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.h1 variants={heroItemVariants} className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400">
-                All Powerful Features
-            </motion.h1>
-            <motion.p variants={heroItemVariants} className="text-xl md:text-2xl font-medium text-gray-300 max-w-3xl mx-auto mt-6">
-              Discover a complete suite of AI tools engineered to elevate your learning, writing, and problem-solving abilities.
-            </motion.p>
-          </motion.div>
+
+      {/* Hero Section with Enhanced Animations and Background */}
+      <section className="bg-teal-300 text-black border-b-4 border-black relative overflow-hidden">
+         {/* Animated Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000012_1px,transparent_1px),linear-gradient(to_bottom,#00000012_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+        <div className="max-w-7xl mx-auto px-4 text-center py-24 md:py-32 relative">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-none text-white my-8 animate-slide-in" style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 #8b5cf6', animationDelay: '0.1s' }}>
+            Our Features
+          </h1>
+          <p style={{ animationDelay: '0.3s' }} className="animate-slide-in text-xl md:text-2xl font-bold text-stone-900 max-w-4xl mx-auto bg-white/50 backdrop-blur-sm p-4 border-4 border-black">
+            Discover a full suite of AI-powered tools designed to revolutionize your learning and productivity.
+          </p>
         </div>
       </section>
 
-      {/* --- Core Features Grid --- */}
-      <section className="bg-gray-950 py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center mb-16">
-                <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">Your AI-Powered Toolkit</h2>
-            </div>
-          
-            <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                variants={gridContainerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.1 }}
-            >
-                {allFeatures.map((feature) => (
-                    <motion.a
-                        key={feature.title}
-                        href={feature.href}
-                        variants={cardVariants}
-                        whileHover={{ scale: 1.03, y: -8 }}
-                        whileTap={{ scale: 0.98 }}
-                        transition={{ duration: 0.2 }}
-                        className="group block rounded-xl border-2 border-gray-800 bg-gray-900/50 p-8 h-full flex flex-col transition-all duration-300"
-                        style={{'--glow-color': feature.glowColor} as React.CSSProperties}
-                    >
-                        {/* The Glow Effect on Hover */}
-                        <div className="absolute inset-0 bg-[radial-gradient(40%_40%_at_50%_50%,var(--glow-color),transparent)] opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10"/>
+      {/* Core Features Grid with Staggered Animations */}
+      <section className="bg-stone-50 py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-20">
+             <h2 className="inline-block bg-amber-300 text-4xl md:text-6xl font-black mb-4 uppercase px-8 py-3 border-4 border-black">Core Tools</h2>
+          </div>
 
-                        <div className="mb-6 w-16 h-16 flex items-center justify-center rounded-lg bg-gray-800 border border-gray-700"
-                             style={{ color: feature.color }}>
-                            <feature.icon className="w-8 h-8" strokeWidth={2.5} />
-                        </div>
-                        
-                        <h3 className="text-2xl font-bold mb-3 text-white">{feature.title}</h3>
-                        <p className="text-gray-400 leading-relaxed mb-6 flex-grow">{feature.desc}</p>
-                        
-                        <div className="mt-auto flex items-center justify-end text-gray-500 group-hover:text-white transition-colors duration-300">
-                            <span className="text-sm font-bold uppercase tracking-wider">Explore</span>
-                            <ArrowRight className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform duration-300" />
-                        </div>
-                    </motion.a>
-                ))}
-            </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {coreFeatures.map((feature, index) => (
+              <Link
+                key={index}
+                href={feature.href}
+                className={`group block ${brutalistShadow} ${brutalistTransition} hover:bg-white bg-white scroll-fade-in-up`}
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className={`h-full p-8 flex flex-col`}>
+                  {/* Interactive Icon with pulse on hover */}
+                  <div className={`relative mb-6 w-20 h-20 flex items-center justify-center rounded-full ${feature.iconBg} border-4 border-black`}>
+                      <div className={`absolute -top-2 -right-2 w-6 h-6 ${feature.color} rounded-full border-2 border-black group-hover:animate-ping`}></div>
+                      <feature.icon className={`w-10 h-10 ${feature.textColor}`} strokeWidth={2.5} />
+                  </div>
+                  
+                  <h3 className={`text-2xl font-black mb-4 uppercase ${feature.textColor}`}>{feature.title}</h3>
+                  <p className="text-lg font-bold leading-snug mb-6 flex-grow text-stone-700">{feature.desc}</p>
+                  
+                  <div className={`mt-auto pt-4 border-t-2 border-dashed border-black/30 flex items-center justify-end ${feature.textColor}`}>
+                    <span className="text-lg font-black uppercase">Explore</span>
+                    <ArrowRight className="w-8 h-8 ml-3 transform group-hover:translate-x-2 transition-transform duration-300 group-hover:rotate-[-45deg]" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* --- CTA Section --- */}
-      <section className="bg-gray-900 py-20 border-y-2 border-gray-800">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-6">Ready to Supercharge Your Studies?</h2>
-            <p className="text-xl text-gray-400 mb-10">
-              Get started with our free plan or unlock unlimited potential by upgrading today.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <motion.a 
-                    href="/signup" 
-                    whileHover={{ scale: 1.05, y: -4, boxShadow: "0 10px 20px rgba(0, 255, 255, 0.1)" }}
-                    whileTap={{ scale: 0.95 }}
-                    className="block bg-cyan-500 text-black font-bold text-lg px-8 py-4 rounded-lg"
-                >
-                    Start For Free
-                </motion.a>
-                <motion.a 
-                    href="/pricing"
-                    whileHover={{ scale: 1.05, y: -4, boxShadow: "0 10px 20px rgba(255, 255, 255, 0.05)" }}
-                    whileTap={{ scale: 0.95 }}
-                    className="block bg-gray-800 text-white font-bold text-lg px-8 py-4 rounded-lg"
-                >
-                    View Pricing
-                </motion.a>
-            </div>
+      {/* CTA Section with Enhanced Hover Effects */}
+      <section className="bg-amber-400 text-black py-20 border-y-4 border-black">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-5xl md:text-7xl font-black mb-6 uppercase">Ready to Start?</h2>
+          <p className="text-2xl font-bold mb-10">
+            Experience all these features with our free plan, or upgrade for unlimited access.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <a href="/signup" className={`block bg-black text-white hover:bg-violet-600 font-black text-xl px-10 py-5 w-full sm:w-auto ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                START FOR FREE
+            </a>
+            <a href="/pricing" className={`block bg-white text-black hover:bg-black hover:text-white font-black text-xl px-10 py-5 w-full sm:w-auto ${brutalistShadow} ${brutalistTransition} ${brutalistHover}`}>
+                VIEW PRICING
+            </a>
+          </div>
         </div>
       </section>
       
