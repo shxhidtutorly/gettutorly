@@ -50,6 +50,10 @@ const Navbar = () => {
     { name: 'Doubt Chain', href: '/features/doubt-chain' },
     { name: 'Study Methods', href: '/features/study-techniques' },
      { name: 'Humanizer', href: '/features/humanizer' },
+    { name: 'Tutor me', href: '/features/tutor-me' },
+     { name: 'Tutorly assistant', href: '/features/tutorly-assistant' },
+     { name: 'Ai Content processor', href: '/features/ai-content-processor' },
+
 
   ];
 
