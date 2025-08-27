@@ -60,6 +60,7 @@ import DoubtChainFeature from "./pages/features/doubt-chain";
 import FeaturesPage from './pages/features'
 import CompressFeature from "./pages/features/compress";
 import ConvertFeature from "./pages/features/convert";
+import HumanizerFeature from "./pages/features/humanizer";
 
 // CSS
 import "./css/animations.css";
@@ -95,6 +96,7 @@ const App = () => {
 <Route path="/faq" element={<Faq />} />
                 {/* Feature Pages (Public) */}
                 <Route path="/features/math-chat" element={<MathChatFeature />} />
+                <Route path="/features/humanizer" element={<HumanizerFeature />} />
                 <Route path="/features/ai-notes" element={<AiNotesFeature />} />
                 <Route path="/features/audio-recap" element={<AudioRecapFeature />} />
                 <Route path="/features/flashcard" element={<FlashcardFeature />} />
