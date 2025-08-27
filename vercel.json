@@ -6,7 +6,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!assets|api|favicon\\.ico).*)",
+      "source": "/((?!assets|api|favicon\\.ico.jpg).*)",
       "has": [
         {
           "type": "header",
