@@ -148,43 +148,56 @@ export default function TutorMePage() {
         </div>
       </section>
 
-      {/* Interactive Demo Section */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-16 scroll-fade-in-up">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">See Your Hub in Action</h2>
-            <div className="w-32 h-2 bg-violet-500 mx-auto"></div>
-          </div>
+     {/* Interactive Demo Section */}
+<section className="bg-gray-50 py-20">
+  <div className="max-w-6xl mx-auto px-4">
+    <div className="text-center mb-16 scroll-fade-in-up">
+      <h2 className="text-4xl md:text-6xl font-black mb-6 text-black">
+        See Your Hub in Action
+      </h2>
+      <div className="w-32 h-2 bg-violet-500 mx-auto"></div>
+    </div>
 
-          <div className="bg-white brutal-border p-8 interactive-demo">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              <div className="space-y-6">
-                <h3 className="text-2xl font-black">From Document to Study Tools</h3>
-                <div className="bg-gray-100 p-6 brutal-border min-h-[200px] flex items-center justify-center">
-                  <div className="text-center transition-all duration-500 ease-in-out">
-                    <demoSteps[demoStep].icon className={`w-16 h-16 mx-auto mb-4 ${demoSteps[demoStep].color}`} />
-                    <p className={`text-xl font-black ${demoSteps[demoStep].color}`}>{demoSteps[demoStep].text}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center">
-                <div className="text-center space-y-6">
-                  <div className="w-32 h-32 bg-violet-500 rounded-full flex items-center justify-center brutal-border mx-auto">
-                    <LayoutDashboard className="w-16 h-16 text-white" />
-                  </div>
-                  <p className="font-black text-xl text-black">Consolidate your learning now!</p>
-                  <Link href="/signup">
-                    <Button className="bg-violet-500 hover:bg-violet-600 text-white font-black brutal-button">
-                      Start Building
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+    <div className="bg-white brutal-border p-8 interactive-demo">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div className="space-y-6">
+          <h3 className="text-2xl font-black">From Document to Study Tools</h3>
+          <div className="bg-gray-100 p-6 brutal-border min-h-[200px] flex items-center justify-center">
+            <div className="text-center transition-all duration-500 ease-in-out">
+              {(() => {
+                const StepIcon = demoSteps[demoStep].icon;
+                return (
+                  <StepIcon
+                    className={`w-16 h-16 mx-auto mb-4 ${demoSteps[demoStep].color}`}
+                  />
+                );
+              })()}
+              <p className={`text-xl font-black ${demoSteps[demoStep].color}`}>
+                {demoSteps[demoStep].text}
+              </p>
             </div>
           </div>
         </div>
-      </section>
+
+        <div className="flex items-center justify-center">
+          <div className="text-center space-y-6">
+            <div className="w-32 h-32 bg-violet-500 rounded-full flex items-center justify-center brutal-border mx-auto">
+              <LayoutDashboard className="w-16 h-16 text-white" />
+            </div>
+            <p className="font-black text-xl text-black">
+              Consolidate your learning now!
+            </p>
+            <Link href="/signup">
+              <Button className="bg-violet-500 hover:bg-violet-600 text-white font-black brutal-button">
+                Start Building
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* FAQ Section */}
       <section className="bg-white py-20">
