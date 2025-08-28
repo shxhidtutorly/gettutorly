@@ -1,8 +1,6 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
+import { useToast } from "@/hooks/use-toast";
 import {
   BookOpen,
   Loader2,
@@ -14,17 +12,21 @@ import {
   HelpCircle,
   Zap,
   BookMarked,
+  ChevronLeft,
+  ChevronRight,
+  RotateCw,
+  CheckCircle2,
 } from "lucide-react";
 import { useStudyTracking } from "@/hooks/useStudyTracking";
-import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// --- Libraries for File Extraction ---
 import * as pdfjs from "pdfjs-dist";
 import mammoth from "mammoth";
-import { Flashcard } from "@/lib/aiNotesService";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.js',
@@ -37,31 +39,46 @@ interface ExtractionResult {
   filename: string;
 }
 
+interface Flashcard {
+  question: string;
+  answer: string;
+}
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct: number;
+  explanation?: string;
+}
+
 const extractTextFromFile = async (file: File): Promise<ExtractionResult> => {
   const extension = file.name.split('.').pop()?.toLowerCase();
   let text = "";
-
-  switch (extension) {
-    case 'pdf':
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument(arrayBuffer).promise;
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        text += content.items.map((item: { str: string }) => item.str).join(' ') + "\n";
-      }
-      break;
-    case 'docx':
-      const docxBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer: docxBuffer });
-      text = result.value;
-      break;
-    case 'txt':
-    case 'md':
-      text = await file.text();
-      break;
-    default:
-      throw new Error(`Unsupported file type: .${extension}`);
+  try {
+    switch (extension) {
+      case 'pdf':
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument(arrayBuffer).promise;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map((item: any) => item.str).join(' ') + "\n";
+        }
+        break;
+      case 'docx':
+        const docxBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: docxBuffer });
+        text = result.value;
+        break;
+      case 'txt':
+      case 'md':
+        text = await file.text();
+        break;
+      default:
+        throw new Error(`Unsupported file type: .${extension}`);
+    }
+  } catch (err) {
+    throw new Error(`Failed to extract text: ${(err as Error).message}`);
   }
   return { text, filename: file.name };
 };
@@ -77,13 +94,6 @@ const safeJsonParse = (str: string) => {
   }
   return null;
 };
-
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  correct: number;
-  explanation?: string;
-}
 
 // --- Reusable UI Components ---
 const ActionButton = ({
@@ -158,9 +168,160 @@ const FileUploaderComponent = ({ onFileProcessed, isProcessing }: { onFileProces
   );
 };
 
+// --- Note View ---
+const SummaryView = ({ summary, sourceFilename }: { summary: string; sourceFilename: string; }) => (
+  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
+    <header className="mb-6">
+      <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">Summary of {sourceFilename}</h1>
+      <p className="text-xs text-neutral-500 mt-2">Source file: {sourceFilename}</p>
+    </header>
+    <div className="prose prose-sm prose-invert max-w-none prose-p:text-neutral-300 prose-headings:text-lime-400 prose-strong:text-neutral-50 prose-a:text-cyan-400">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {summary}
+      </ReactMarkdown>
+    </div>
+  </motion.div>
+);
+
+// --- Quiz View ---
+const QuizView = ({ questions }: { questions: QuizQuestion[] }) => {
+  const [answers, setAnswers] = useState<Record<number, number | null>>({});
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+
+  const select = (qi: number, oi: number) => {
+    if (revealed[qi]) return;
+    setAnswers(prev => ({ ...prev, [qi]: oi }));
+    setRevealed(prev => ({ ...prev, [qi]: true }));
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full overflow-y-auto px-4 -mx-4 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-neutral-800 space-y-6">
+      <h1 className="text-3xl font-bold text-center mb-6">Quiz</h1>
+      {questions.length === 0 && <div className="text-center text-neutral-500">No quiz questions generated.</div>}
+      {questions.map((q, qi) => (
+        <div key={qi} className="p-6 bg-neutral-950 border border-neutral-800 rounded-lg">
+          <div className="font-bold text-neutral-100 text-lg mb-4">{qi + 1}. {q.question}</div>
+          <div className="space-y-3">
+            {q.options.map((opt, oi) => {
+              const sel = answers[qi] === oi;
+              const isCorrect = q.correct === oi;
+              const show = revealed[qi];
+              let className = 'w-full text-left p-3 border rounded-lg transition-colors flex items-center gap-3';
+              if (show) {
+                className += isCorrect ? ' bg-green-600/30 border-green-500 text-white' : (sel ? ' bg-red-600/30 border-red-500 text-white' : ' bg-neutral-800 border-neutral-700 text-neutral-300');
+              } else if (sel) {
+                className += ' bg-cyan-600/20 border-cyan-500 text-white';
+              } else {
+                className += ' bg-neutral-800 border-neutral-700 text-neutral-300 hover:bg-neutral-700';
+              }
+              return (
+                <button key={oi} onClick={() => select(qi, oi)} className={className}>
+                  <span className="font-mono text-sm">{String.fromCharCode(65 + oi)}</span>
+                  <span>{opt}</span>
+                </button>
+              );
+            })}
+          </div>
+          {revealed[qi] && (
+            <div className="mt-4 text-sm text-neutral-300">
+              <div className="font-semibold text-lime-400">Correct: {String.fromCharCode(65 + q.correct)}. {q.options[q.correct]}</div>
+              <div className="text-neutral-400 mt-1">{q.explanation}</div>
+            </div>
+          )}
+        </div>
+      ))}
+    </motion.div>
+  );
+};
+
+// --- Flashcard View ---
+const FlashcardView = ({ flashcards }: { flashcards: Flashcard[] }) => {
+  const [idx, setIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+
+  useEffect(() => {
+    if (flashcards.length === 0) { setIdx(0); setFlipped(false); }
+    else setIdx(i => Math.min(i, flashcards.length - 1));
+  }, [flashcards]);
+
+  if (!flashcards || flashcards.length === 0) {
+    return <div className="text-center text-neutral-500">No flashcards available.</div>;
+  }
+
+  const next = () => { setFlipped(false); setIdx(i => (i + 1) % flashcards.length); };
+  const prev = () => { setFlipped(false); setIdx(i => (i - 1 + flashcards.length) % flashcards.length); };
+
+  const cardContainerStyle: React.CSSProperties = {
+    perspective: 1200,
+  };
+  const flipperStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+    transformStyle: 'preserve-3d',
+    transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+    transition: 'transform 0.6s ease',
+  };
+  const faceStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    WebkitBackfaceVisibility: 'hidden',
+    backfaceVisibility: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1rem',
+    boxSizing: 'border-box',
+    borderRadius: 12,
+  };
+  const frontStyle: React.CSSProperties = {
+    ...faceStyle,
+    transform: 'rotateY(0deg)',
+    background: 'rgba(31,41,55,0.9)',
+    border: '1px solid rgba(71,85,105,0.6)',
+  };
+  const backStyle: React.CSSProperties = {
+    ...faceStyle,
+    transform: 'rotateY(180deg)',
+    background: 'rgba(31,41,55,0.9)',
+    border: '1px solid rgba(71,85,105,0.6)',
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full flex flex-col items-center justify-center gap-6">
+      <div className="w-full max-w-lg h-64" style={cardContainerStyle}>
+        <div style={flipperStyle} onClick={() => setFlipped(f => !f)} role="button" aria-pressed={flipped} className="cursor-pointer">
+          <div style={frontStyle} className="rounded-md">
+            <div className="text-center px-4">
+              <div className="text-neutral-200 text-xl font-bold">{flashcards[idx].question}</div>
+            </div>
+          </div>
+          <div style={backStyle} className="rounded-md">
+            <div className="text-center px-4">
+              <div className="text-neutral-100 text-lg">{flashcards[idx].answer}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between w-full max-w-lg">
+        <button onClick={prev} className="p-3 bg-neutral-800 rounded-full hover:bg-neutral-700 transition-colors"><ChevronLeft /></button>
+        <div className="text-center">
+          <div className="font-mono text-neutral-300">{idx + 1} / {flashcards.length}</div>
+          <button onClick={() => setFlipped(f => !f)} className="text-xs text-neutral-400 mt-1 hover:text-lime-400 flex items-center gap-2">
+            <RotateCw className="w-3 h-3"/> Tap card to flip
+          </button>
+        </div>
+        <button onClick={next} className="p-3 bg-neutral-800 rounded-full hover:bg-neutral-700 transition-colors"><ChevronRight /></button>
+      </div>
+    </motion.div>
+  );
+};
+
 // --- Main Summarizer Component ---
 export default function SummarizerPage() {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { trackSummaryGeneration, endSession, startSession } = useStudyTracking();
 
@@ -168,116 +329,100 @@ export default function SummarizerPage() {
   const [inputType, setInputType] = useState<'upload' | 'text'>('upload');
   const [sourceText, setSourceText] = useState("");
   const [sourceFilename, setSourceFilename] = useState("Pasted Text");
-  const [summary, setSummary] = useState("");
-  const [isLoading, setIsLoading] = useState<'idle' | 'extracting' | 'summarizing'>('idle');
+  const [summary, setSummary] = useState<string>("");
+  const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState<'input'|'summary'|'quiz'|'flashcards'>('input');
 
-  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
-  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
-
-  // --- Handlers ---
-  const handleFileProcessed = (result: ExtractionResult) => {
-    setSourceText(result.text);
-    setSourceFilename(result.filename);
-  };
-
-  const handleGenerateSummary = useCallback(async () => {
-    const textToSummarize = sourceText;
-    if (!textToSummarize.trim()) {
+  const generateSummary = useCallback(async (text: string, filename: string) => {
+    if (!text.trim()) {
       toast({ title: "No content to summarize.", variant: "destructive" });
       return;
     }
 
-    setIsLoading('summarizing');
+    setIsLoading(true);
     setSummary("");
+    setQuiz([]);
+    setFlashcards([]);
     setProgress(10);
+    setActiveTab('summary');
     startSession();
 
     try {
       const progressInterval = setInterval(() => setProgress(p => Math.min(p + Math.random() * 5, 90)), 500);
-
+      
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToSummarize, filename: sourceFilename }),
+        body: JSON.stringify({ text, filename }),
       });
 
       clearInterval(progressInterval);
       if (!response.ok) throw new Error('Failed to get a response from the server.');
-
+      
       const data = await response.json();
       const generatedSummary = data.summary || data.response;
+
       if (!generatedSummary || typeof generatedSummary !== 'string') {
         throw new Error("The AI didn't return a valid summary.");
       }
-
+      
       setSummary(generatedSummary);
-      setProgress(100);
-      trackSummaryGeneration();
-      endSession("summary", sourceFilename, true);
-      toast({ title: "Summary generated successfully! 🎉" });
-
-    } catch (err) {
-      const error = err as Error;
-      endSession("summary", sourceFilename, false);
-      toast({ title: "Error Generating Summary", description: error.message, variant: "destructive" });
-    } finally {
-      setIsLoading('idle');
-      setTimeout(() => setProgress(0), 1500);
-    }
-  }, [sourceText, sourceFilename, toast, startSession, endSession, trackSummaryGeneration]);
-
-  const createFlashcards = async () => {
-    if (!summary) return;
-    setIsGeneratingFlashcards(true);
-    try {
-      const response = await fetch('/api/ai', {
+      
+      // Generate quiz and flashcards in the background
+      const quizResponse = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `Generate flashcards from this summary. Format as clean JSON: [{"front": "Term", "back": "Definition"}]. Summary: ${summary}`,
+          prompt: `Create a quiz with 5 multiple choice questions based on this summary. Format as a clean JSON array: [{"question": "What is...?", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "This is why the answer is correct."}]. ONLY output the JSON array. Summary: ${generatedSummary}`,
           model: 'gemini'
         })
       });
-      if (!response.ok) throw new Error('Failed to generate flashcards.');
-      const data = await response.json();
-      const flashcards: Flashcard[] = safeJsonParse(data.response);
-      if (!flashcards || flashcards.length === 0) throw new Error("AI couldn't create flashcards from this summary.");
-      
-      localStorage.setItem('flashcards', JSON.stringify(flashcards));
-      localStorage.setItem('flashcards-source', `${sourceFilename} (Summary)`);
-      toast({ title: "Flashcards Ready! 📚", description: "Navigating you to the flashcards page." });
-      navigate('/flashcards');
-    } catch (error) {
-      toast({ variant: "destructive", title: "Flashcard Generation Failed", description: (error as Error).message });
-    } finally {
-      setIsGeneratingFlashcards(false);
-    }
-  };
+      const quizData = await quizResponse.json();
+      const generatedQuiz = safeJsonParse(quizData.response);
+      if (generatedQuiz && Array.isArray(generatedQuiz)) {
+        setQuiz(generatedQuiz);
+      }
 
-  const createQuiz = async () => {
-    if (!summary) return;
-    setIsGeneratingQuiz(true);
-    try {
-      const quizPrompt = `Create a quiz with 5 multiple choice questions based on this summary. Format as a clean JSON array: [{"question": "What is...?", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "This is why the answer is correct."}]. ONLY output the JSON array. Summary: ${summary}`;
-      const response = await fetch('/api/ai', {
+      const flashcardResponse = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: quizPrompt, model: 'gemini' })
+        body: JSON.stringify({
+          prompt: `Generate flashcards from this summary. Format as clean JSON: [{"question": "Term", "answer": "Definition"}]. Summary: ${generatedSummary}`,
+          model: 'gemini'
+        })
       });
-      if (!response.ok) throw new Error('Failed to get a response from the AI for the quiz.');
-      const data = await response.json();
-      const questions: QuizQuestion[] = safeJsonParse(data.response);
-      if (!questions || !Array.isArray(questions) || questions.length === 0) throw new Error("AI returned an invalid format for the quiz.");
-      
-      localStorage.setItem('generatedQuiz', JSON.stringify({ title: `${sourceFilename} (Summary)`, questions }));
-      toast({ title: "Quiz Ready! 📝", description: "Navigating you to your new quiz." });
-      navigate('/quiz?source=generated');
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error Creating Quiz", description: (error as Error).message });
+      const flashcardData = await flashcardResponse.json();
+      const generatedFlashcards = safeJsonParse(flashcardData.response);
+      if (generatedFlashcards && Array.isArray(generatedFlashcards)) {
+        setFlashcards(generatedFlashcards);
+      }
+
+      setProgress(100);
+      trackSummaryGeneration();
+      endSession("summary", filename, true);
+      toast({ title: "Content generated successfully! 🎉" });
+
+    } catch (err) {
+      const error = err as Error;
+      endSession("summary", filename, false);
+      toast({ title: "Error Generating Content", description: error.message, variant: "destructive" });
     } finally {
-      setIsGeneratingQuiz(false);
+      setIsLoading(false);
+      setTimeout(() => setProgress(0), 1500);
     }
+  }, [toast, startSession, endSession, trackSummaryGeneration]);
+
+  const handleFileProcessed = (res: ExtractionResult) => {
+    setSourceText(res.text);
+    setSourceFilename(res.filename);
+    generateSummary(res.text, res.filename);
+  };
+
+  const handleTextSubmit = () => {
+    generateSummary(sourceText, 'Pasted Text');
   };
 
   const downloadSummary = () => {
@@ -298,15 +443,59 @@ export default function SummarizerPage() {
     setSourceText("");
     setSourceFilename("Pasted Text");
     setSummary("");
+    setQuiz([]);
+    setFlashcards([]);
     setProgress(0);
     setInputType('upload');
-    setIsLoading('idle');
+    setIsLoading(false);
+    setActiveTab('input');
   };
 
   const panelVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
     exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: "easeIn" } },
+  };
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <motion.div key="loading" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center h-full text-center">
+          <Loader2 className="w-16 h-16 animate-spin text-lime-400 mb-6" />
+          <h3 className="text-2xl font-bold text-neutral-100">Generating Content...</h3>
+          <p className="text-neutral-400 mt-2">The AI is reading and condensing your text.</p>
+          <div className="w-full max-w-sm mt-6 bg-neutral-800 border-2 border-neutral-700 h-3 overflow-hidden rounded-full">
+            <motion.div className="h-full bg-lime-400" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: "linear" }} />
+          </div>
+        </motion.div>
+      );
+    }
+    
+    if (summary) {
+      if (activeTab === 'summary') return <SummaryView summary={summary} sourceFilename={sourceFilename} />;
+      if (activeTab === 'quiz') return <QuizView questions={quiz} />;
+      if (activeTab === 'flashcards') return <FlashcardView flashcards={flashcards} />;
+    }
+
+    return (
+      <motion.div key="input" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
+        <h2 className="text-2xl font-bold text-neutral-100 mb-4">1. Provide Content</h2>
+        <div className="flex justify-center gap-2 mb-6 p-1 bg-neutral-950 border-2 border-neutral-700 w-fit mx-auto rounded-lg">
+          <button onClick={() => setInputType('upload')} className={`px-4 py-2 font-bold transition-colors rounded-md ${inputType === 'upload' ? 'bg-cyan-400 text-black' : 'bg-transparent text-neutral-300'}`}><Upload className="w-4 h-4 mr-2 inline" /> Upload File</button>
+          <button onClick={() => setInputType('text')} className={`px-4 py-2 font-bold transition-colors rounded-md ${inputType === 'text' ? 'bg-cyan-400 text-black' : 'bg-transparent text-neutral-300'}`}><FileText className="w-4 h-4 mr-2 inline" /> Paste Text</button>
+        </div>
+        {inputType === 'upload' ? (
+          <FileUploaderComponent onFileProcessed={handleFileProcessed} isProcessing={isLoading} />
+        ) : (
+          <textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} placeholder="Paste your article or text here..." className="w-full h-48 md:h-64 bg-neutral-950 border-2 border-neutral-700 rounded-md text-neutral-300 p-4 focus:border-cyan-400 focus:ring-0 resize-none transition-colors scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800" />
+        )}
+        <div className="mt-6">
+          <button onClick={handleTextSubmit} disabled={isLoading || !sourceText} className="w-full flex items-center justify-center gap-3 text-lg font-bold p-4 bg-lime-400 text-black border-2 border-lime-400 hover:bg-lime-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
+            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Sparkles className="w-6 h-6" /> Generate Summary </>}
+          </button>
+        </div>
+      </motion.div>
+    );
   };
 
   return (
@@ -324,60 +513,32 @@ export default function SummarizerPage() {
             </p>
           </motion.div>
 
-          {/* Main content area now a single, vertical stack */}
+          {summary && (
+            <div className="flex justify-center gap-4 mb-6">
+              <button onClick={() => setActiveTab('summary')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'summary' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-950'}`}>
+                <BookOpen className="inline w-4 h-4 mr-2"/> Summary
+              </button>
+              <button onClick={() => setActiveTab('quiz')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'quiz' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-950'}`}>
+                <HelpCircle className="inline w-4 h-4 mr-2"/> Quiz
+              </button>
+              <button onClick={() => setActiveTab('flashcards')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'flashcards' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-950'}`}>
+                <Zap className="inline w-4 h-4 mr-2"/> Flashcards
+              </button>
+            </div>
+          )}
+
           <div className="bg-neutral-900 border-2 border-neutral-800 p-6 flex flex-col min-h-[70vh] rounded-lg">
             <AnimatePresence mode="wait">
-              {isLoading === 'summarizing' ? (
-                <motion.div key="loading" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center h-full text-center">
-                  <Loader2 className="w-16 h-16 animate-spin text-lime-400 mb-6" />
-                  <h3 className="text-2xl font-bold text-neutral-100">Generating Summary...</h3>
-                  <p className="text-neutral-400 mt-2">The AI is reading and condensing your text.</p>
-                  <div className="w-full max-w-sm mt-6 bg-neutral-800 border-2 border-neutral-700 h-3 overflow-hidden rounded-full">
-                    <motion.div className="h-full bg-lime-400" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: "linear" }} />
-                  </div>
-                </motion.div>
-              ) : summary ? (
-                <motion.div key="summary-and-actions" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                  <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-3"><BookOpen /> Summary of {sourceFilename}</h2>
-                  <div className="flex-grow overflow-y-auto pr-2 -mr-2 mt-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm prose-invert max-w-none prose-p:text-neutral-300 prose-headings:text-lime-400 prose-strong:text-neutral-50 prose-a:text-cyan-400">
-                      {summary}
-                    </ReactMarkdown>
-                  </div>
-
-                  <div className="mt-8 space-y-4">
-                    <h2 className="text-2xl font-bold text-neutral-100 mb-2">Create Study Tools</h2>
-                    <ActionButton onClick={createQuiz} icon={HelpCircle} disabled={isGeneratingQuiz} isLoading={isGeneratingQuiz} className="group-hover:text-black hover:border-magenta-400">Create Quiz</ActionButton>
-                    <ActionButton onClick={createFlashcards} icon={Zap} disabled={isGeneratingFlashcards} isLoading={isGeneratingFlashcards} className="group-hover:text-black hover:border-magenta-400">Generate Flashcards</ActionButton>
-                    <ActionButton onClick={downloadSummary} icon={Download} className="group-hover:text-black hover:border-lime-400">Download Summary</ActionButton>
-                  </div>
-                  <div className="mt-auto pt-6">
-                    <button onClick={startOver} className="w-full flex items-center justify-center gap-3 p-3 bg-neutral-800 text-neutral-300 border-2 border-neutral-700 hover:bg-neutral-700 hover:text-white transition-colors font-bold rounded-lg">
-                      <RefreshCcw className="w-5 h-5" /> Summarize Another
-                    </button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div key="input" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                  <h2 className="text-2xl font-bold text-neutral-100 mb-4">1. Provide Content</h2>
-                  <div className="flex justify-center gap-2 mb-6 p-1 bg-neutral-950 border-2 border-neutral-700 w-fit mx-auto rounded-lg">
-                    <button onClick={() => setInputType('upload')} className={`px-4 py-2 font-bold transition-colors rounded-md ${inputType === 'upload' ? 'bg-cyan-400 text-black' : 'bg-transparent text-neutral-300'}`}><Upload className="w-4 h-4 mr-2 inline" /> Upload File</button>
-                    <button onClick={() => setInputType('text')} className={`px-4 py-2 font-bold transition-colors rounded-md ${inputType === 'text' ? 'bg-cyan-400 text-black' : 'bg-transparent text-neutral-300'}`}><FileText className="w-4 h-4 mr-2 inline" /> Paste Text</button>
-                  </div>
-                  {inputType === 'upload' ? (
-                    <FileUploaderComponent onFileProcessed={handleFileProcessed} isProcessing={isLoading === 'extracting'} />
-                  ) : (
-                    <textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} placeholder="Paste your article or text here..." className="w-full h-48 md:h-64 bg-neutral-950 border-2 border-neutral-700 rounded-md text-neutral-300 p-4 focus:border-cyan-400 focus:ring-0 resize-none transition-colors scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800" />
-                  )}
-                  <div className="mt-6">
-                    <button onClick={handleGenerateSummary} disabled={isLoading !== 'idle' || !sourceText} className="w-full flex items-center justify-center gap-3 text-lg font-bold p-4 bg-lime-400 text-black border-2 border-lime-400 hover:bg-lime-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
-                      {isLoading === 'summarizing' ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Sparkles className="w-6 h-6" /> Generate Summary </>}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+              {renderContent()}
             </AnimatePresence>
           </div>
+
+          {summary && (
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <ActionButton onClick={downloadSummary} icon={Download} className="w-full">Download Summary</ActionButton>
+              <button onClick={startOver} className="w-full p-3 rounded-lg border border-neutral-800 bg-neutral-800 text-neutral-200 font-semibold hover:bg-neutral-700">Start Over</button>
+            </div>
+          )}
         </div>
       </main>
       <Footer />
