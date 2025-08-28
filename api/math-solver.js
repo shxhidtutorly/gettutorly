@@ -107,7 +107,7 @@ Example Response Format:
       });
     } catch (error) {
       console.log('⚠️ Primary model failed, trying fallback...');
-      apiRequestBody.model = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'; // Fallback model
+      apiRequestBody.model = 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free'; // Fallback model
        response = await fetch('https://api.together.xyz/v1/chat/completions', {
         method: 'POST',
         headers: {
