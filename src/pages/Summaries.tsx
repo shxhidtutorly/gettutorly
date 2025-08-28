@@ -207,7 +207,9 @@ export default function SummarizerPage() {
 
       const data = await response.json();
       const generatedSummary = data.summary || data.response;
-      if (!generatedSummary) throw new Error("The AI didn't return a summary.");
+      if (!generatedSummary || typeof generatedSummary !== 'string') {
+        throw new Error("The AI didn't return a valid summary.");
+      }
 
       setSummary(generatedSummary);
       setProgress(100);
@@ -325,7 +327,37 @@ export default function SummarizerPage() {
           {/* Main content area now a single, vertical stack */}
           <div className="bg-neutral-900 border-2 border-neutral-800 p-6 flex flex-col min-h-[70vh] rounded-lg">
             <AnimatePresence mode="wait">
-              {!summary ? (
+              {isLoading === 'summarizing' ? (
+                <motion.div key="loading" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col items-center justify-center h-full text-center">
+                  <Loader2 className="w-16 h-16 animate-spin text-lime-400 mb-6" />
+                  <h3 className="text-2xl font-bold text-neutral-100">Generating Summary...</h3>
+                  <p className="text-neutral-400 mt-2">The AI is reading and condensing your text.</p>
+                  <div className="w-full max-w-sm mt-6 bg-neutral-800 border-2 border-neutral-700 h-3 overflow-hidden rounded-full">
+                    <motion.div className="h-full bg-lime-400" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: "linear" }} />
+                  </div>
+                </motion.div>
+              ) : summary ? (
+                <motion.div key="summary-and-actions" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
+                  <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-3"><BookOpen /> Summary of {sourceFilename}</h2>
+                  <div className="flex-grow overflow-y-auto pr-2 -mr-2 mt-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm prose-invert max-w-none prose-p:text-neutral-300 prose-headings:text-lime-400 prose-strong:text-neutral-50 prose-a:text-cyan-400">
+                      {summary}
+                    </ReactMarkdown>
+                  </div>
+
+                  <div className="mt-8 space-y-4">
+                    <h2 className="text-2xl font-bold text-neutral-100 mb-2">Create Study Tools</h2>
+                    <ActionButton onClick={createQuiz} icon={HelpCircle} disabled={isGeneratingQuiz} isLoading={isGeneratingQuiz} className="group-hover:text-black hover:border-magenta-400">Create Quiz</ActionButton>
+                    <ActionButton onClick={createFlashcards} icon={Zap} disabled={isGeneratingFlashcards} isLoading={isGeneratingFlashcards} className="group-hover:text-black hover:border-magenta-400">Generate Flashcards</ActionButton>
+                    <ActionButton onClick={downloadSummary} icon={Download} className="group-hover:text-black hover:border-lime-400">Download Summary</ActionButton>
+                  </div>
+                  <div className="mt-auto pt-6">
+                    <button onClick={startOver} className="w-full flex items-center justify-center gap-3 p-3 bg-neutral-800 text-neutral-300 border-2 border-neutral-700 hover:bg-neutral-700 hover:text-white transition-colors font-bold rounded-lg">
+                      <RefreshCcw className="w-5 h-5" /> Summarize Another
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
                 <motion.div key="input" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
                   <h2 className="text-2xl font-bold text-neutral-100 mb-4">1. Provide Content</h2>
                   <div className="flex justify-center gap-2 mb-6 p-1 bg-neutral-950 border-2 border-neutral-700 w-fit mx-auto rounded-lg">
@@ -342,40 +374,6 @@ export default function SummarizerPage() {
                       {isLoading === 'summarizing' ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Sparkles className="w-6 h-6" /> Generate Summary </>}
                     </button>
                   </div>
-                </motion.div>
-              ) : (
-                <motion.div key="summary-and-actions" variants={panelVariants} initial="hidden" animate="visible" exit="exit" className="flex flex-col h-full">
-                  {isLoading === 'summarizing' ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                      <Loader2 className="w-16 h-16 animate-spin text-lime-400 mb-6" />
-                      <h3 className="text-2xl font-bold text-neutral-100">Generating Summary...</h3>
-                      <p className="text-neutral-400 mt-2">The AI is reading and condensing your text.</p>
-                      <div className="w-full max-w-sm mt-6 bg-neutral-800 border-2 border-neutral-700 h-3 overflow-hidden rounded-full">
-                        <motion.div className="h-full bg-lime-400" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: "linear" }} />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-3"><BookOpen /> Summary of {sourceFilename}</h2>
-                      <div className="flex-grow overflow-y-auto pr-2 -mr-2 mt-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm prose-invert max-w-none prose-p:text-neutral-300 prose-headings:text-lime-400 prose-strong:text-neutral-50 prose-a:text-cyan-400">
-                          {summary}
-                        </ReactMarkdown>
-                      </div>
-
-                      <div className="mt-8 space-y-4">
-                        <h2 className="text-2xl font-bold text-neutral-100 mb-2">Create Study Tools</h2>
-                        <ActionButton onClick={createQuiz} icon={HelpCircle} disabled={isGeneratingQuiz} isLoading={isGeneratingQuiz} className="group-hover:text-black hover:border-magenta-400">Create Quiz</ActionButton>
-                        <ActionButton onClick={createFlashcards} icon={Zap} disabled={isGeneratingFlashcards} isLoading={isGeneratingFlashcards} className="group-hover:text-black hover:border-magenta-400">Generate Flashcards</ActionButton>
-                        <ActionButton onClick={downloadSummary} icon={Download} className="group-hover:text-black hover:border-lime-400">Download Summary</ActionButton>
-                      </div>
-                      <div className="mt-auto pt-6">
-                        <button onClick={startOver} className="w-full flex items-center justify-center gap-3 p-3 bg-neutral-800 text-neutral-300 border-2 border-neutral-700 hover:bg-neutral-700 hover:text-white transition-colors font-bold rounded-lg">
-                          <RefreshCcw className="w-5 h-5" /> Summarize Another
-                        </button>
-                      </div>
-                    </>
-                  )}
                 </motion.div>
               )}
             </AnimatePresence>
