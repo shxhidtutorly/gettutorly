@@ -807,7 +807,7 @@ export default function LandingPage() {
     {/* Right Image */}
     <div className="relative scroll-slide-right">
       <img
-        src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/landing%20page%20images%20/shotsnapp-1755943575%20(1).688"
+        src="https://dllyfsbuxrjyiatfcegk.supabase.co/storage/v1/object/public/tutorly%20images/Screenshot%202025-08-28%20225547.png"
         alt="Tutorly Screenshot"
         className="rounded-xl border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] w-full"
       />
